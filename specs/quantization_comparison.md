@@ -12,7 +12,8 @@ with the concrete savings behind it instead of a bare suggestion.
 
 The pure comparison layer evaluates 16-bit, 8-bit, and 4-bit weight precision for
 one `DeploymentSpec`, with savings measured against 16-bit and the input precision
-flagged as selected. The report and UI do not yet expose it.
+flagged as selected. `DeploymentReport` exposes the comparison; the web UI does
+not yet render it.
 
 ## The math (reuses the existing equation; no new constants)
 
@@ -41,8 +42,8 @@ Worked check (8B / 8k / inference, KV 16-bit):
 
 ## If The Items Above Are Complete, Do These
 
-- PRIORITY 2: attach the comparison to `DeploymentReport` and render a compact
-  three-row comparison in the one-page web output (still no scroll).
+- PRIORITY 2: render a compact three-row comparison in the one-page web output
+  (still no scroll).
 - PRIORITY 3: add README examples for the comparison API and web output.
 
 ## Acceptance Signals
@@ -60,5 +61,5 @@ Worked check (8B / 8k / inference, KV 16-bit):
 - Throughput, tokens per second, accuracy-loss estimates, or live pricing.
 
 - [x] PRIORITY 1: pure weight-precision comparison layer with savings versus 16-bit
-- [ ] PRIORITY 2: comparison attached to the report and rendered in the web UI
+- [ ] PRIORITY 2: comparison rendered in the web UI
 - [ ] PRIORITY 3: README examples for the comparison API and web output

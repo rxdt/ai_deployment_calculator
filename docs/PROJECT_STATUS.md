@@ -5,15 +5,15 @@
 ## Now
 
 - `specs/vram_calculator.md` is implemented through PRIORITY 4.
-- `specs/deployment_plan.md` is active at PRIORITY 4.
-- `specs/` contains the implemented VRAM spec and the active deployment-plan spec.
+- `specs/deployment_plan.md` is implemented through PRIORITY 4.
+- `specs/` contains the implemented VRAM spec and deployment-plan spec.
 - Core VRAM math, deployment-plan guidance, presenter, view model, and a
   GET-submitting one-page WSGI app live under `src/` with 100% coverage.
 - Reports and the web UI show the primary GPU plan plus the memory optimization note.
 - The web form exposes KV-cache precision alongside weight quantization.
 - `DeploymentSpec` is the only Pydantic model; web form state is a local dataclass.
 - The page CSS keeps both desktop and mobile layouts within one viewport without enabling body scroll.
-- README now reflects the AI deployment calculator instead of the source harness template.
+- README includes deployment-plan API and web-output examples.
 
 ## Checks
 
@@ -22,7 +22,7 @@
 
 ## Next
 
-- deployment_plan PRIORITY 4: add README deployment-plan API and web-output examples.
+- No active spec gap remains; add or select the next spec item before changing product code.
 
 ## Blockers
 -

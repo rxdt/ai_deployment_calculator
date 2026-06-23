@@ -1,6 +1,6 @@
 # Deployment Plan Spec
 
-PRIORITY 4 (active)
+PRIORITY 4 (implemented)
 
 ## Vision
 
@@ -9,11 +9,11 @@ deployment plan an AI engineer can act on: recommended card choice, fit status,
 sharding requirement, and the highest-impact memory optimization when the plan is
 awkward.
 
-## Current Gap
+## Current State
 
 The app now chooses a primary recommendation, labels sharded plans, explains the
-highest-impact memory lever, and exposes KV-cache precision. README still needs
-deployment-plan API and web-output examples.
+highest-impact memory lever, exposes KV-cache precision, and documents API plus
+web-output examples in README.
 
 ## Prioritize These Items
 
@@ -53,3 +53,4 @@ deployment-plan API and web-output examples.
 - [x] PRIORITY 1: pure deployment-plan layer with primary choice, fit labels, and optimization note
 - [x] PRIORITY 2: primary plan and optimization note shown in the report and web UI
 - [x] PRIORITY 3: KV-cache precision exposed in the web form
+- [x] PRIORITY 4: README examples for the deployment-plan API and web output

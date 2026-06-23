@@ -9,4 +9,9 @@ def test_readme_describes_deployment_calculator() -> None:
     readme = Path("README.md").read_text(encoding="utf-8")
     assert readme.startswith("# AI Deployment Calculator")
     assert "total_vram_gb(spec) == 20.1" in readme
+    assert "from deployment_plan import deployment_plan" in readme
+    assert 'plan.primary.option.gpu.name == "A100 80GB"' in readme
+    assert "Primary: A100 80GB (single GPU)" in readme
+    assert "3x 24 GB" in readme
+    assert "tensor parallel" in readme
     assert "A Python Ralph Harness" not in readme

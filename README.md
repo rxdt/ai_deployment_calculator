@@ -22,6 +22,23 @@ spec = DeploymentSpec(parameters_b=8, context_tokens=8000)
 assert total_vram_gb(spec) == 20.1
 ```
 
+## Deployment Plan Example
+
+```python
+from deployment_plan import deployment_plan
+from vram_calculator import DeploymentSpec
+
+spec = DeploymentSpec(parameters_b=70, context_tokens=8000, weight_bits=4, task="qlora")
+plan = deployment_plan(spec)
+
+assert plan.primary.option.gpu.name == "A100 80GB"
+assert plan.primary.fit == "single_gpu"
+```
+
+The matching web output shows `Primary: A100 80GB (single GPU)`, `52.3 GB`,
+`64 GB host RAM`, and `Use an FP8 KV cache` for the optimization note. The
+hardware table labels the RTX 4090 row as `3x 24 GB` and `tensor parallel`.
+
 ## Current Features
 
 - Pure typed calculator core in `src/vram_calculator.py`.

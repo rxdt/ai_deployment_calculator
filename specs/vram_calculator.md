@@ -45,7 +45,7 @@ Worked checks (subtotals before margin):
 - `uv run ralph verify` green; 100% coverage on `src/`.
 - `total_vram_gb` for 8B / 16-bit / 8k / inference == 20.1; subtotals match the worked checks above.
 
-- [ ] PRIORITY 1: pydantic model + formula functions, fully tested
+- [x] PRIORITY 1: pydantic model + formula functions, fully tested
 - [ ] PRIORITY 2: hardware/optimization recommendation
 - [ ] PRIORITY 3: one-page web UI
 

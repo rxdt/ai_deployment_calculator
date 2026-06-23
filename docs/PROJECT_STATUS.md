@@ -6,7 +6,7 @@
 
 - `specs/vram_calculator.md` is implemented through PRIORITY 4.
 - `specs/deployment_plan.md` is implemented through PRIORITY 4.
-- `specs/` contains the implemented VRAM spec and deployment-plan spec.
+- `specs/assumption_transparency.md` is the active next spec.
 - Core VRAM math, deployment-plan guidance, presenter, view model, and a
   GET-submitting one-page WSGI app live under `src/` with 100% coverage.
 - Reports and the web UI show the primary GPU plan plus the memory optimization note.
@@ -22,7 +22,8 @@
 
 ## Next
 
-- No active spec gap remains; add or select the next spec item before changing product code.
+- Implement `specs/assumption_transparency.md` PRIORITY 1: expose the core
+  calculator assumptions in the report and compact web output.
 
 ## Blockers
 -

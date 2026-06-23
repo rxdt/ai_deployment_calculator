@@ -44,6 +44,16 @@ def test_page_keeps_mobile_layout_to_one_viewport() -> None:
     assert "main { height: 100dvh;" in html
 
 
+def test_page_uses_dark_theme_tokens() -> None:
+    html = render_page()
+    assert ":root { color-scheme: dark;" in html
+    assert "body { margin: 0; min-height: 100vh; overflow: hidden;" in html
+    assert "background: #0f172a; color: #e5edf7;" in html
+    assert ".panel { border: 1px solid #243247; border-radius: 8px;" in html
+    assert "background: #162033; padding: 18px;" in html
+    assert ".total { font-size: 56px; line-height: .9; font-weight: 800; color: #2dd4bf; }" in html
+
+
 def test_page_selects_quantization_and_training_state() -> None:
     form = FormInputs(
         parameters_b=70,

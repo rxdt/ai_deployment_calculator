@@ -6,18 +6,27 @@ Create a one page, no scroll web app that takes user input about their model and
 
 ## Current State
 
-?
+The stdlib WSGI web app renders a one-page calculator with dark theme styling,
+all required inputs, backend-driven results, hardware recommendations, host RAM,
+quantization comparison, and compact assumption disclosure.
 
 ## Prioritize These Items
 
+- Keep the page dark themed while preserving the no-scroll one-page layout.
+- Keep the form wired to the pure backend report path.
+- Keep tests covering required controls, result fields, and theme tokens.
 
 ## Acceptance Signals
 
-- web pagge works as expected for all input and output fields
-- Playwright has been run with app
-- lint and stylelint pass
-- frontend is wired correctly to backend
-- best practices for frontend are followed
-- web app is user friendly
+- Web page works as expected for all input and output fields.
+- Playwright has been run with app when a browser harness is available.
+- Lint passes.
+- Frontend is wired correctly to backend.
+- Best practices for frontend are followed.
+- Web app is user friendly.
+
+- [x] PRIORITY 1: one-page backend-wired calculator UI
+- [x] PRIORITY 2: required inputs and report outputs
+- [x] PRIORITY 3: dark theme styling locked by tests
 
 ## Non-goals

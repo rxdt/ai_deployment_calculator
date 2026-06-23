@@ -4,13 +4,14 @@
 
 - Specs are implemented through deployment plan and assumption transparency.
 - 32-bit weight and KV precision are supported in the core, comparison, and web form.
+- The one-page web UI is dark themed and still backend-wired through the pure report path.
 - `docs/plan.md` is distilled to the durable formula, product shape, and milestones.
 - Tiny 400,000-parameter FP8 full-training sizing is documented and tested.
 - Markdown handoff files are tested to stay under 100 lines.
 
 ## Checks
 
-- `uv run ruff check . && uv run ruff format --check . && uv run pytest` — green.
+- `ruff check . && ruff format --check . && pytest` — green, 139 passed, 100% coverage.
 - `uv run ralph verify` — green.
 - Branch: `main`.
 

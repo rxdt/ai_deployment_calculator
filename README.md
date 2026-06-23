@@ -39,13 +39,27 @@ The matching web output shows `Primary: A100 80GB (single GPU)`, `52.3 GB`,
 `64 GB host RAM`, and `Use an FP8 KV cache` for the optimization note. The
 hardware table labels the RTX 4090 row as `3x 24 GB` and `tensor parallel`.
 
+## Quantization Comparison Example
+
+```python
+from quantization_comparison import quantization_comparison
+from vram_calculator import DeploymentSpec
+
+comparison = quantization_comparison(DeploymentSpec(parameters_b=8, context_tokens=8000))
+rows = [(row.weight_bits, row.total_gb, row.savings_gb, row.selected) for row in comparison.rows]
+
+assert rows == [(16, 20.1, 0.0, True), (8, 11.3, 8.8, False), (4, 6.9, 13.2, False)]
+```
+
+The matching web output shows `16-bit`, `8-bit`, and `4-bit` rows with `20.1 GB`,
+`11.3 GB`, and `6.9 GB` totals. The active precision row is highlighted.
+
 ## Current Features
 
 - Pure typed calculator core in `src/vram_calculator.py`.
 - Hardware recommendations in `src/hardware.py` for RTX 4090, A100, and H100.
-- Host RAM floor recommendation paired with the final VRAM estimate.
-- Display-ready report assembly in `src/report.py`.
-- GET-submitting one-page web app in `src/web/app.py`, rendered by `src/web/page.py`.
+- Host RAM floor recommendation and display-ready report assembly.
+- GET-submitting one-page web app rendered by `src/web/page.py`.
 - 100% test coverage across product code.
 
 ## Run Checks
@@ -73,11 +87,8 @@ PYTHONPATH=src uv run python -c "from wsgiref.simple_server import make_server; 
 
 ## Project Map
 
-- `specs/vram_calculator.md`: source-of-truth feature spec.
-- `docs/PROJECT_STATUS.md`: current implementation status and next steps.
-- `docs/plan.md`: original product notes and research dump.
-- `src/`: calculator, hardware recommendation, report, and web renderer code.
-- `tests/`: product and harness tests.
+`specs/` is the source of truth, `docs/PROJECT_STATUS.md` is the handoff, `src/`
+has product code, and `tests/` has product plus harness tests.
 
 ## Development Loop
 

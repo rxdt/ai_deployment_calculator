@@ -11,6 +11,9 @@ def test_readme_describes_deployment_calculator() -> None:
     assert "total_vram_gb(spec) == 20.1" in readme
     assert "from deployment_plan import deployment_plan" in readme
     assert 'plan.primary.option.gpu.name == "A100 80GB"' in readme
+    assert "from quantization_comparison import quantization_comparison" in readme
+    assert "(8, 11.3, 8.8, False)" in readme
+    assert "`16-bit`, `8-bit`, and `4-bit` rows" in readme
     assert "Primary: A100 80GB (single GPU)" in readme
     assert "3x 24 GB" in readme
     assert "tensor parallel" in readme

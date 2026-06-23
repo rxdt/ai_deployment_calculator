@@ -1,6 +1,6 @@
 # Quantization Comparison Spec
 
-PRIORITY 2 (implemented)
+PRIORITY 3 (implemented)
 
 ## Vision
 
@@ -62,4 +62,4 @@ Worked check (8B / 8k / inference, KV 16-bit):
 
 - [x] PRIORITY 1: pure weight-precision comparison layer with savings versus 16-bit
 - [x] PRIORITY 2: comparison rendered in the web UI
-- [ ] PRIORITY 3: README examples for the comparison API and web output
+- [x] PRIORITY 3: README examples for the comparison API and web output

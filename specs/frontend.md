@@ -13,21 +13,21 @@ inputs supported by the core calculator.
 
 ## Prioritize These Items
 
+- Make the frontend Vite.
 - Keep the page dark themed while preserving the no-scroll one-page layout.
 - Keep the form wired to the pure backend report path.
 - Keep tests covering required controls, result fields, and theme tokens.
 
 ## Acceptance Signals
 
-- Web page works as expected for all input and output fields.
-- Playwright has been run with app when a browser harness is available.
+- Playwright is run with app.
 - Lint passes.
-- Frontend is wired correctly to backend.
 - Best practices for frontend are followed.
 - Web app is user friendly.
 
-- [x] PRIORITY 1: one-page backend-wired calculator UI
-- [x] PRIORITY 2: required inputs and report outputs
-- [x] PRIORITY 3: dark theme styling locked by tests
+- [ ] PRIORITY 1: Web page works as expected for all input and output fields.
+- [ ] PRIORITY 2: Playwright has been run with app when a browser harness is available.
+- [ ] PRIORITY 3: Frontend is wired correctly to backend.
+- [ ] PRIORITY 4: Web app is user friendly.
 
 ## Non-goals

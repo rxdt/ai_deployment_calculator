@@ -17,6 +17,9 @@
 
 ## Next
 
+- Switch to simple Vite frontend.
+- Switch to simple FastAPI backend.
+- Update README.md to provide simple commands on how to start fullstack app.
 - Hardware catalog complete through B200 (192 GB). No further catalog entries pending.
 - Open research questions remain for CPU selection and memory-bandwidth-aware recommendations.
 

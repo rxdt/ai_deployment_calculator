@@ -52,9 +52,6 @@ PROTECTED_PATHS = (
     "pyproject.toml",
 )
 
-# preferences.py is the user-tunable knobs file: optional, and the loop is allowed to edit it.
-UNPROTECTED_PATHS = ("harness/preferences.py",)
-
 FORBIDDEN_PATTERNS = (
     "noqa",
     "type: ignore",
@@ -96,7 +93,6 @@ def agent_violations(repo: Path, files: list[str]) -> list[str]:
         f"protected path modified: {path}"
         for path in files
         if any(fnmatch.fnmatch(path, pattern) for pattern in PROTECTED_PATHS)
-        and path not in UNPROTECTED_PATHS
     ]
     problems.extend(
         f"banned pattern '{pattern}' in added line: {line.strip()}"

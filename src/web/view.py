@@ -54,6 +54,16 @@ class AssumptionRow:
 
 
 @dataclass(frozen=True)
+class ComparisonRow:
+    """One weight precision comparison row rendered in compact form."""
+
+    precision: str
+    total: str
+    savings: str
+    selected: bool
+
+
+@dataclass(frozen=True)
 class DeploymentView:
     """Display-ready deployment result for the one-page UI: total, breakdown, hardware."""
 
@@ -62,6 +72,7 @@ class DeploymentView:
     plan: PlanSummary
     breakdown: tuple[BreakdownRow, ...]
     hardware: tuple[HardwareRow, ...]
+    comparison: tuple[ComparisonRow, ...]
     assumptions: tuple[AssumptionRow, ...]
 
 
@@ -91,6 +102,15 @@ def view_from_report(report: DeploymentReport) -> DeploymentView:
         for plan_option in plan.options
     )
     assumptions = tuple(AssumptionRow(item.label, item.value) for item in report.assumptions.items)
+    comparison = tuple(
+        ComparisonRow(
+            precision=f"{row.weight_bits}-bit",
+            total=format_gb(row.total_gb),
+            savings=format_gb(row.savings_gb),
+            selected=row.selected,
+        )
+        for row in report.comparison.rows
+    )
     return DeploymentView(
         total_vram=format_gb(report.total_vram_gb),
         host_ram=f"{report.host_ram_gb} GB host RAM",
@@ -101,6 +121,7 @@ def view_from_report(report: DeploymentReport) -> DeploymentView:
         ),
         breakdown=breakdown,
         hardware=hardware,
+        comparison=comparison,
         assumptions=assumptions,
     )
 

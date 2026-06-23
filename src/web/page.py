@@ -4,8 +4,14 @@ from __future__ import annotations
 
 from html import escape
 
+from web.fragments import (
+    render_assumptions,
+    render_breakdown,
+    render_comparison_rows,
+    render_hardware_rows,
+)
 from web.presenter import DEFAULT_FORM, FormInputs, spec_from_form
-from web.view import DeploymentView, view_from_form
+from web.view import view_from_form
 
 STYLE = """
 :root { color-scheme: light; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
@@ -35,6 +41,8 @@ button {
 .breakdown { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
 .metric { border-left: 4px solid #2563eb; padding: 8px 10px; background: #f9fafb; }
 .metric strong { display: block; font-size: 20px; }
+.tables { display: grid; grid-template-columns: 1.15fr .85fr; gap: 18px; align-items: start; }
+.selected td { background: #ecfdf5; font-weight: 700; }
 .optimization { margin-top: 12px; color: #374151; }
 .assumptions { margin-top: 12px; display: grid; gap: 4px; font-size: 12px; color: #374151; }
 .assumptions p { display: inline; }
@@ -52,6 +60,7 @@ th { color: #4b5563; font-size: 12px; text-transform: uppercase; letter-spacing:
   .breakdown { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
   .metric { padding: 6px 8px; }
   .metric strong { font-size: 18px; }
+  .tables { grid-template-columns: 1fr 1fr; gap: 8px; }
   .total { font-size: 38px; }
   th, td { padding: 7px 6px; font-size: 12px; }
 }
@@ -71,30 +80,6 @@ def task_label(form: FormInputs) -> str:
 def selected_bits(active_bits: int, bits: int) -> str:
     """Return a select-option marker for an active precision value."""
     return " selected" if active_bits == bits else ""
-
-
-def render_breakdown(view: DeploymentView) -> str:
-    """Render compact VRAM component metric blocks."""
-    rows = [
-        f'<p class="metric">{escape(row.label)}<strong>{escape(row.value)}</strong></p>'
-        for row in view.breakdown
-    ]
-    return "\n".join(rows)
-
-
-def render_hardware_rows(view: DeploymentView) -> str:
-    """Render GPU recommendation rows."""
-    rows = [
-        (f"<tr><td>{escape(row.name)}</td><td>{escape(row.detail)}</td><td>{escape(row.sharding)}</td></tr>")
-        for row in view.hardware
-    ]
-    return "\n".join(rows)
-
-
-def render_assumptions(view: DeploymentView) -> str:
-    """Render compact fixed-assumption rows."""
-    rows = [f"<p>{escape(row.label)}: <strong>{escape(row.value)}</strong></p>" for row in view.assumptions]
-    return "\n".join(rows)
 
 
 def render_page(form: FormInputs | None = None) -> str:
@@ -152,13 +137,26 @@ def render_page(form: FormInputs | None = None) -> str:
 {render_breakdown(view)}
       </section>
       <section class="panel" aria-label="Hardware recommendations">
-        <h2>Hardware</h2>
-        <table>
-          <thead><tr><th>GPU</th><th>Cards</th><th>Mode</th></tr></thead>
-          <tbody>
+        <div class="tables">
+          <section aria-label="Hardware options">
+            <h2>Hardware</h2>
+            <table>
+              <thead><tr><th>GPU</th><th>Cards</th><th>Mode</th></tr></thead>
+              <tbody>
 {render_hardware_rows(view)}
-          </tbody>
-        </table>
+              </tbody>
+            </table>
+          </section>
+          <section aria-label="Quantization comparison">
+            <h2>Quantization</h2>
+            <table>
+              <thead><tr><th>Bits</th><th>Total</th><th>Saves</th></tr></thead>
+              <tbody>
+{render_comparison_rows(view)}
+              </tbody>
+            </table>
+          </section>
+        </div>
         <p class="optimization">{escape(view.plan.optimization)}</p>
         <section class="assumptions" aria-label="Assumptions">
           <h2>Assumptions</h2>

@@ -1,15 +1,15 @@
 from __future__ import annotations
 
-from web.page import (
+from web.fragments import (
     render_assumptions,
     render_breakdown,
+    render_comparison_rows,
     render_hardware_rows,
-    render_page,
-    selected_bits,
-    task_label,
+    selected_class,
 )
+from web.page import render_page, selected_bits, task_label
 from web.presenter import FormInputs
-from web.view import AssumptionRow, BreakdownRow, DeploymentView, HardwareRow, PlanSummary
+from web.view import AssumptionRow, BreakdownRow, ComparisonRow, DeploymentView, HardwareRow, PlanSummary
 
 
 def test_default_page_renders_required_controls_and_worked_total() -> None:
@@ -28,6 +28,10 @@ def test_default_page_renders_required_controls_and_worked_total() -> None:
     assert "CUDA/system tax" in html
     assert "KV cache heuristic" in html
     assert "Host RAM rule" in html
+    assert 'aria-label="Quantization comparison"' in html
+    assert "<td>16-bit</td>" in html
+    assert "<td>11.3 GB</td>" in html
+    assert "<td>13.2 GB</td>" in html
 
 
 def test_page_keeps_mobile_layout_to_one_viewport() -> None:
@@ -87,14 +91,20 @@ def test_page_helpers_render_labels_bits_and_escaped_rows() -> None:
         plan=PlanSummary(primary="GPU <A>", primary_fit="single GPU", optimization="Use <less> memory"),
         breakdown=(BreakdownRow("KV <cache>", "0.8 GB"),),
         hardware=(HardwareRow("GPU <A>", "1x 24 GB", "single GPU"),),
+        comparison=(ComparisonRow("8-<bit>", "11.3 GB", "8.8 GB", True),),
         assumptions=(AssumptionRow("Safety <margin>", "10%"),),
     )
     assert task_label(FormInputs(parameters_b=8, context_tokens=8000)) == "Inference"
     assert selected_bits(form.weight_bits, 8) == " selected"
     assert not selected_bits(form.weight_bits, 4)
     assert selected_bits(FormInputs(parameters_b=8, context_tokens=8000, kv_cache_bits=4).kv_cache_bits, 4)
+    assert selected_class(True) == ' class="selected"'
+    assert not selected_class(False)
     assert render_breakdown(view) == '<p class="metric">KV &lt;cache&gt;<strong>0.8 GB</strong></p>'
     assert render_hardware_rows(view) == (
         "<tr><td>GPU &lt;A&gt;</td><td>1x 24 GB</td><td>single GPU</td></tr>"
+    )
+    assert render_comparison_rows(view) == (
+        '<tr class="selected"><td>8-&lt;bit&gt;</td><td>11.3 GB</td><td>8.8 GB</td></tr>'
     )
     assert render_assumptions(view) == "<p>Safety &lt;margin&gt;: <strong>10%</strong></p>"

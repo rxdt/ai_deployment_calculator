@@ -7,19 +7,20 @@
 - `specs/vram_calculator.md` is implemented through PRIORITY 4.
 - `specs/deployment_plan.md` is implemented through PRIORITY 4.
 - `specs/assumption_transparency.md` is implemented through PRIORITY 1.
-- `specs/quantization_comparison.md` is implemented through PRIORITY 1.
+- `specs/quantization_comparison.md` is implemented through PRIORITY 2.
 - Core VRAM math, deployment-plan guidance, presenter, view model, and a
   GET-submitting one-page WSGI app live under `src/` with 100% coverage.
 - `src/quantization_comparison.py` compares 16-bit, 8-bit, and 4-bit weight precision
   totals with savings versus 16-bit.
-- `DeploymentReport` exposes the quantization comparison; the web UI does not yet
-  render it.
+- `DeploymentReport` exposes the quantization comparison; the web UI renders all
+  three weight-precision totals and savings.
 - Reports and the web UI show the primary GPU plan plus the memory optimization note.
 - The web form exposes KV-cache precision alongside weight quantization.
 - Reports and the web UI expose the fixed assumptions behind every estimate.
 - `DeploymentSpec` is the only Pydantic model; web form state is a local dataclass.
 - The page CSS keeps both desktop and mobile layouts within one viewport without enabling body scroll.
 - README includes deployment-plan API and web-output examples.
+- Hardware missing: L4, T4, B200
 
 ## Checks
 
@@ -29,8 +30,8 @@
 
 ## Next
 
-- `specs/quantization_comparison.md` PRIORITY 2 is next: render the compact
-  three-row comparison in the web UI.
+- `specs/quantization_comparison.md` PRIORITY 3 is next: add README examples for
+  the comparison API and web output.
 
 ## Blockers
 - None.

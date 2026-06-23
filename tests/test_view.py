@@ -11,6 +11,7 @@ from web.presenter import FormInputs
 from web.view import (
     AssumptionRow,
     BreakdownRow,
+    ComparisonRow,
     DeploymentView,
     HardwareRow,
     PlanSummary,
@@ -61,6 +62,11 @@ def test_total_and_breakdown_are_formatted_to_one_decimal() -> None:
     assert view.assumptions == (
         AssumptionRow("Safety margin", "10%"),
         AssumptionRow("CUDA/system tax", "1.5 GB"),
+    )
+    assert view.comparison == (
+        ComparisonRow("16-bit", "20.1 GB", "0.0 GB", True),
+        ComparisonRow("8-bit", "11.3 GB", "8.8 GB", False),
+        ComparisonRow("4-bit", "6.9 GB", "13.2 GB", False),
     )
 
 

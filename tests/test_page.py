@@ -16,6 +16,7 @@ def test_default_page_renders_required_controls_and_worked_total() -> None:
     html = render_page()
     assert '<form class="panel controls" method="get" aria-label="Deployment inputs">' in html
     assert 'name="parameters_b"' in html
+    assert 'min="0.000001" step="0.0001"' in html
     assert 'name="context_tokens"' in html
     assert 'name="weight_bits"' in html
     assert 'name="kv_cache_bits"' in html
@@ -35,6 +36,15 @@ def test_default_page_renders_required_controls_and_worked_total() -> None:
     assert "<td>16-bit</td>" in html
     assert "<td>11.3 GB</td>" in html
     assert "<td>13.2 GB</td>" in html
+
+
+def test_page_accepts_tiny_parameter_models_supported_by_core() -> None:
+    html = render_page(
+        FormInputs(parameters_b=0.0004, context_tokens=8000, weight_bits=8, kv_cache_bits=8, trained=True)
+    )
+    assert 'value="0.0004"' in html
+    assert "1.7 GB" in html
+    assert "<h2>Full training</h2>" in html
 
 
 def test_page_keeps_mobile_layout_to_one_viewport() -> None:

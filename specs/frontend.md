@@ -8,7 +8,8 @@ Create a one page, no scroll web app that takes user input about their model and
 
 The stdlib WSGI web app renders a one-page calculator with dark theme styling,
 all required inputs, backend-driven results, hardware recommendations, host RAM,
-quantization comparison, and compact assumption disclosure.
+quantization comparison, compact assumption disclosure, and tiny sub-0.1B model
+inputs supported by the core calculator.
 
 ## Prioritize These Items
 

@@ -102,7 +102,8 @@ def render_page(form: FormInputs | None = None) -> str:
     <form class="panel controls" method="get" aria-label="Deployment inputs">
       <h1>VRAM Deployment Calculator</h1>
       <label>Parameters (billions)
-        <input name="parameters_b" type="number" min="0.1" step="0.1" value="{active_form.parameters_b:g}">
+        <input name="parameters_b" type="number" min="0.000001" step="0.0001"
+          value="{active_form.parameters_b:g}">
       </label>
       <label>Context window
         <input name="context_tokens" type="number" min="0" step="1000" value="{active_form.context_tokens}">

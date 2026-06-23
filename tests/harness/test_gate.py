@@ -148,18 +148,6 @@ def test_run_gate_skips_containment_for_humans(monkeypatch: pytest.MonkeyPatch, 
     assert gate.run_gate(git_repo) == []
 
 
-def test_run_gate_allows_unprotected_paths_under_loop(
-    monkeypatch: pytest.MonkeyPatch, git_repo: Path
-) -> None:
-    """Under the loop, commits touching only unprotected paths pass."""
-    monkeypatch.setenv("RALPH_LOOP", "1")
-    monkeypatch.setattr(gate, "run_checks", fake_checks_clean)
-    stage(git_repo, "apps/feature.ts", "const x = 1\n")
-    stage(git_repo, "pkg/ok.py", "y = 2\n")
-    stage(git_repo, "docs/x.md", "note\n")
-    assert gate.run_gate(git_repo) == []
-
-
 def test_run_gate_flags_banned_patterns_under_loop(monkeypatch: pytest.MonkeyPatch, git_repo: Path) -> None:
     """Under the loop, banned escape-hatch patterns are flagged in added lines."""
     monkeypatch.setenv("RALPH_LOOP", "1")

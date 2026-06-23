@@ -45,6 +45,9 @@ button {
 .tables { display: grid; grid-template-columns: 1.15fr .85fr; gap: 18px; align-items: start; }
 .selected td { background: #134e4a; font-weight: 700; }
 .optimization { margin-top: 12px; color: #cbd5e1; }
+.calc { margin-top: 12px; font-size: 12px; color: #cbd5e1; }
+.calc summary { cursor: pointer; color: #93c5fd; }
+.calc code { display: block; margin-top: 4px; color: #e5edf7; }
 .assumptions { margin-top: 12px; display: grid; gap: 4px; font-size: 12px; color: #cbd5e1; }
 .assumptions p { display: inline; }
 table { width: 100%; border-collapse: collapse; font-size: 14px; }
@@ -162,6 +165,10 @@ def render_page(form: FormInputs | None = None) -> str:
           </section>
         </div>
         <p class="optimization">{escape(view.plan.optimization)}</p>
+        <details class="calc">
+          <summary>Calculation used</summary>
+          <code>{escape(view.calculation)}</code>
+        </details>
         <section class="assumptions" aria-label="Assumptions">
           <h2>Assumptions</h2>
 {render_assumptions(view)}

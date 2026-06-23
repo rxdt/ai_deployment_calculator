@@ -1,6 +1,6 @@
 """Pure view-model turning a deployment report into one-page display strings.
 
-PRIORITY 3 of specs/vram_calculator.md wants a one-page (no-scroll) UI. The Reflex page
+PRIORITY 3 of specs/vram_calculator.md wants a one-page (no-scroll) UI. The stdlib WSGI page
 should render plain text, not format numbers itself, so this module converts the raw floats
 and `HardwareOption` objects from `report.py` into display-ready rows. Keeping the formatting
 here makes it fully testable and leaves the page a thin shell over these strings.
@@ -10,7 +10,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from report import DeploymentReport
+from report import DeploymentReport, VramBreakdown
+from vram_calculator import SAFETY_MARGIN
 from web.presenter import FormInputs, report_from_form
 
 
@@ -74,6 +75,16 @@ class DeploymentView:
     hardware: tuple[HardwareRow, ...]
     comparison: tuple[ComparisonRow, ...]
     assumptions: tuple[AssumptionRow, ...]
+    calculation: str  # Auditable VRAM equation with substituted component values.
+
+
+def format_calculation(breakdown: VramBreakdown, total_vram_gb: float) -> str:
+    """Render the auditable VRAM equation so an engineer can check the estimate by hand."""
+    return (
+        f"({breakdown.weights:.1f} + {breakdown.kv_cache:.1f} + "
+        f"{breakdown.task_overhead:.1f} + {breakdown.cuda_tax:.1f}) "
+        f"* {SAFETY_MARGIN:.2f} = {total_vram_gb:.1f} GB"
+    )
 
 
 def fit_label_text(fit: str) -> str:
@@ -123,6 +134,7 @@ def view_from_report(report: DeploymentReport) -> DeploymentView:
         hardware=hardware,
         comparison=comparison,
         assumptions=assumptions,
+        calculation=format_calculation(parts, report.total_vram_gb),
     )
 
 

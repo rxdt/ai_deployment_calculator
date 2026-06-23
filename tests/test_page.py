@@ -25,6 +25,8 @@ def test_default_page_renders_required_controls_and_worked_total() -> None:
     assert "20.1 GB" in html
     assert "32 GB host RAM" in html
     assert '<option value="32">32-bit</option>' in html
+    assert "<summary>Calculation used</summary>" in html
+    assert "<code>(16.0 + 0.8 + 0.0 + 1.5) * 1.10 = 20.1 GB</code>" in html
     assert "Safety margin" in html
     assert "10%" in html
     assert "CUDA/system tax" in html
@@ -119,6 +121,7 @@ def test_page_helpers_render_labels_bits_and_escaped_rows() -> None:
         hardware=(HardwareRow("GPU <A>", "1x 24 GB", "single GPU"),),
         comparison=(ComparisonRow("8-<bit>", "11.3 GB", "8.8 GB", True),),
         assumptions=(AssumptionRow("Safety <margin>", "10%"),),
+        calculation="(8.0 + 0.8 + 0.0 + 1.5) * 1.10 = 11.3 GB",
     )
     assert task_label(FormInputs(parameters_b=8, context_tokens=8000)) == "Inference"
     assert selected_bits(form.weight_bits, 8) == " selected"

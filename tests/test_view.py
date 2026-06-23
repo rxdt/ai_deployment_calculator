@@ -68,6 +68,8 @@ def test_total_and_breakdown_are_formatted_to_one_decimal() -> None:
         ComparisonRow("8-bit", "11.3 GB", "8.8 GB", False),
         ComparisonRow("4-bit", "6.9 GB", "13.2 GB", False),
     )
+    # Auditable equation: (W + KV + T + C) * margin = total, matching the worked example.
+    assert view.calculation == "(16.0 + 0.8 + 0.0 + 1.5) * 1.10 = 20.1 GB"
 
 
 def test_hardware_rows_label_count_capacity_and_sharding() -> None:

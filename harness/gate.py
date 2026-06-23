@@ -50,6 +50,7 @@ PROTECTED_PATHS = (
     ".githooks/*",
     ".github/*",
     "pyproject.toml",
+    "docs/plan.md",
 )
 
 FORBIDDEN_PATTERNS = (

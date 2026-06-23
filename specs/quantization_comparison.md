@@ -1,6 +1,6 @@
 # Quantization Comparison Spec
 
-PRIORITY 1 (not yet implemented)
+PRIORITY 2 (not yet implemented)
 
 ## Vision
 
@@ -10,9 +10,9 @@ with the concrete savings behind it instead of a bare suggestion.
 
 ## Current State
 
-The optimization note recommends lowering weight precision first, but the UI never
-quantifies the trade-off. The engineer has to re-run the calculator three times to
-see what 16-bit vs 8-bit vs 4-bit actually costs.
+The pure comparison layer evaluates 16-bit, 8-bit, and 4-bit weight precision for
+one `DeploymentSpec`, with savings measured against 16-bit and the input precision
+flagged as selected. The report and UI do not yet expose it.
 
 ## The math (reuses the existing equation; no new constants)
 
@@ -59,6 +59,6 @@ Worked check (8B / 8k / inference, KV 16-bit):
 - New calculator inputs, changes to the VRAM equation, or new constants.
 - Throughput, tokens per second, accuracy-loss estimates, or live pricing.
 
-- [ ] PRIORITY 1: pure weight-precision comparison layer with savings versus 16-bit
+- [x] PRIORITY 1: pure weight-precision comparison layer with savings versus 16-bit
 - [ ] PRIORITY 2: comparison attached to the report and rendered in the web UI
 - [ ] PRIORITY 3: README examples for the comparison API and web output

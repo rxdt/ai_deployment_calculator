@@ -7,8 +7,11 @@
 - `specs/vram_calculator.md` is implemented through PRIORITY 4.
 - `specs/deployment_plan.md` is implemented through PRIORITY 4.
 - `specs/assumption_transparency.md` is implemented through PRIORITY 1.
+- `specs/quantization_comparison.md` is implemented through PRIORITY 1.
 - Core VRAM math, deployment-plan guidance, presenter, view model, and a
   GET-submitting one-page WSGI app live under `src/` with 100% coverage.
+- `src/quantization_comparison.py` compares 16-bit, 8-bit, and 4-bit weight precision
+  totals with savings versus 16-bit.
 - Reports and the web UI show the primary GPU plan plus the memory optimization note.
 - The web form exposes KV-cache precision alongside weight quantization.
 - Reports and the web UI expose the fixed assumptions behind every estimate.
@@ -24,8 +27,8 @@
 
 ## Next
 
-- `specs/quantization_comparison.md` is the next spec; implement its PRIORITY 1
-  pure weight-precision comparison layer (dataclasses, reuse `total_vram_gb`).
+- `specs/quantization_comparison.md` PRIORITY 2 is next: attach the comparison to
+  `DeploymentReport` and render the compact three-row comparison in the web UI.
 
 ## Blockers
 - None.

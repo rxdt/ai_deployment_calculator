@@ -157,6 +157,11 @@ Te frontend will be one page, no scrolling. You decide what inputs are needed fr
 
 - Another agent will be on the project with you. So plit the work evently and do NOT step on each others work. Organize yourselves. Lay claim to tighly scoped tasks you can complete in <30 miunts and 100K context window. Monitor yourselves carefully.
 
+- These are the frontend lint files to copy over into `web/` from the other `app` which has NOTHING to do with this app
+`web/eslint.config.js`
+`web/stylelint.config.js`
+You will have to follow these lint rules structily while adding the frontend
+
 
 ## Milestones -- SET THESE. THEY SHOULD BE MORE THAN #
 

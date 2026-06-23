@@ -42,6 +42,7 @@ def test_plan_labels_every_catalog_option_and_includes_primary() -> None:
     spec = DeploymentSpec(parameters_b=70, context_tokens=8000, weight_bits=4, task="qlora")
     plan = deployment_plan(spec)
     by_name = {po.option.gpu.name: po.fit for po in plan.options}
+    assert by_name["T4 16GB"] == "tensor_parallel"  # ~52 GB over 16 GB cards -> 4 cards
     assert by_name["RTX 4090"] == "tensor_parallel"  # ~52 GB over 24 GB cards -> 3 cards
     assert by_name["L4 24GB"] == "tensor_parallel"
     assert by_name["A100 80GB"] == "single_gpu"
@@ -52,6 +53,7 @@ def test_large_shard_label_when_more_than_four_cards() -> None:
     # 70B full 16-bit training is enormous, forcing >4 of the 24 GB cards.
     spec = DeploymentSpec(parameters_b=70, context_tokens=8000, task="full_training")
     fits = {po.option.gpu.name: po.fit for po in deployment_plan(spec).options}
+    assert fits["T4 16GB"] == "large_shard"
     assert fits["RTX 4090"] == "large_shard"
     assert fits["L4 24GB"] == "large_shard"
 

@@ -20,7 +20,7 @@
 - `DeploymentSpec` is the only Pydantic model; web form state is a local dataclass.
 - The page CSS keeps both desktop and mobile layouts within one viewport without enabling body scroll.
 - README includes deployment-plan and quantization-comparison API and web-output examples.
-- Hardware missing: T4, B200
+- Hardware missing: B200
 
 ## Checks
 
@@ -30,7 +30,7 @@
 
 ## Next
 
-- Add the remaining hardware catalog entries called out below, starting with T4.
+- Add the remaining hardware catalog entry called out below: B200.
 
 ## Blockers
 - None.

@@ -26,12 +26,15 @@ def test_recommend_hardware_covers_named_catalog_gpus() -> None:
     spec = DeploymentSpec(parameters_b=8, context_tokens=8000)
     names = [opt.gpu.name for opt in recommend_hardware(spec)]
     assert names == [gpu.name for gpu in GPU_CATALOG]
-    assert names == ["RTX 4090", "L4 24GB", "A100 40GB", "A100 80GB", "H100 80GB"]
+    assert names == ["T4 16GB", "RTX 4090", "L4 24GB", "A100 40GB", "A100 80GB", "H100 80GB"]
 
 
-def test_small_deployment_fits_single_gpu_without_tensor_parallel() -> None:
-    spec = DeploymentSpec(parameters_b=8, context_tokens=8000)  # 20.1 GB, under every card
-    for option in recommend_hardware(spec):
+def test_small_deployment_shards_t4_but_fits_larger_cards() -> None:
+    spec = DeploymentSpec(parameters_b=8, context_tokens=8000)  # 20.1 GB, above T4 and under 24 GB cards
+    by_name = {opt.gpu.name: opt for opt in recommend_hardware(spec)}
+    assert by_name["T4 16GB"].gpu_count == 2
+    assert by_name["T4 16GB"].tensor_parallel is True
+    for option in tuple(by_name.values())[1:]:
         assert option.gpu_count == 1
         assert option.tensor_parallel is False
 
@@ -39,6 +42,9 @@ def test_small_deployment_fits_single_gpu_without_tensor_parallel() -> None:
 def test_large_deployment_shards_small_cards_but_not_large_ones() -> None:
     spec = DeploymentSpec(parameters_b=70, context_tokens=8000, weight_bits=4, task="qlora")
     by_name = {opt.gpu.name: opt for opt in recommend_hardware(spec)}
+    t4 = by_name["T4 16GB"]  # ~52 GB need over 16 GB cards -> 4 GPUs, tensor parallel
+    assert t4.gpu_count == 4
+    assert t4.tensor_parallel is True
     rtx = by_name["RTX 4090"]  # ~52 GB need over 24 GB cards -> 3 GPUs, tensor parallel
     assert rtx.gpu_count == 3
     assert rtx.tensor_parallel is True

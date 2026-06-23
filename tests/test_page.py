@@ -66,6 +66,8 @@ def test_page_renders_report_breakdown_and_hardware_rows() -> None:
     assert "64 GB host RAM" in html
     assert "Primary: A100 80GB (single GPU)" in html
     assert "Use an FP8 KV cache" in html
+    assert "<td>T4 16GB</td>" in html
+    assert "<td>4x 16 GB</td>" in html
     assert "<td>RTX 4090</td>" in html
     assert "<td>L4 24GB</td>" in html
     assert "<td>3x 24 GB</td>" in html

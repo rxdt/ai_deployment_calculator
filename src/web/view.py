@@ -42,8 +42,18 @@ class DeploymentView:
 
     total_vram: str
     host_ram: str
+    primary: str
+    primary_fit: str
+    optimization: str
     breakdown: tuple[BreakdownRow, ...]
     hardware: tuple[HardwareRow, ...]
+
+
+def fit_label_text(fit: str) -> str:
+    """Format deployment-plan fit labels for display."""
+    if fit == "single_gpu":
+        return "single GPU"
+    return fit.replace("_", " ")
 
 
 def view_from_report(report: DeploymentReport) -> DeploymentView:
@@ -55,17 +65,21 @@ def view_from_report(report: DeploymentReport) -> DeploymentView:
         BreakdownRow("Task overhead", format_gb(parts.task_overhead)),
         BreakdownRow("CUDA tax", format_gb(parts.cuda_tax)),
     )
+    plan = report.plan
     hardware = tuple(
         HardwareRow(
-            name=option.gpu.name,
-            detail=f"{option.gpu_count}x {option.gpu.vram_gb:.0f} GB",
-            sharding="tensor parallel" if option.tensor_parallel else "single GPU",
+            name=plan_option.option.gpu.name,
+            detail=f"{plan_option.option.gpu_count}x {plan_option.option.gpu.vram_gb:.0f} GB",
+            sharding=fit_label_text(plan_option.fit),
         )
-        for option in report.hardware
+        for plan_option in plan.options
     )
     return DeploymentView(
         total_vram=format_gb(report.total_vram_gb),
         host_ram=f"{report.host_ram_gb} GB host RAM",
+        primary=plan.primary.option.gpu.name,
+        primary_fit=fit_label_text(plan.primary.fit),
+        optimization=plan.optimization,
         breakdown=breakdown,
         hardware=hardware,
     )

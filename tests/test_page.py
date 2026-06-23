@@ -38,6 +38,8 @@ def test_page_renders_report_breakdown_and_hardware_rows() -> None:
     html = render_page(form)
     assert "52.3 GB" in html
     assert "64 GB host RAM" in html
+    assert "Primary: A100 80GB (single GPU)" in html
+    assert "Use an FP8 KV cache" in html
     assert "<td>RTX 4090</td>" in html
     assert "<td>3x 24 GB</td>" in html
     assert "<td>tensor parallel</td>" in html
@@ -60,6 +62,9 @@ def test_page_helpers_render_labels_bits_and_escaped_rows() -> None:
     view = DeploymentView(
         total_vram="20.1 GB",
         host_ram="32 GB host RAM",
+        primary="GPU <A>",
+        primary_fit="single GPU",
+        optimization="Use <less> memory",
         breakdown=(BreakdownRow("KV <cache>", "0.8 GB"),),
         hardware=(HardwareRow("GPU <A>", "1x 24 GB", "single GPU"),),
     )

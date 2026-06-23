@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import pytest
 
+from deployment_plan import deployment_plan
 from hardware import recommend_hardware, recommended_host_ram_gb
 from report import build_report
 from vram_calculator import DeploymentSpec, total_vram_gb
@@ -27,4 +28,6 @@ def test_report_total_hardware_and_host_ram_reuse_the_core() -> None:
     assert report.total_vram_gb == pytest.approx(total_vram_gb(spec))
     assert report.host_ram_gb == recommended_host_ram_gb(spec)
     assert report.hardware == recommend_hardware(spec)
+    assert report.plan == deployment_plan(spec)
+    assert report.plan.primary.option.gpu.name == "A100 80GB"
     assert report.hardware  # non-empty so the UI always has at least one option to render

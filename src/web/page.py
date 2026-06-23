@@ -31,9 +31,11 @@ button {
 .results { display: grid; grid-template-rows: auto auto 1fr; gap: 18px; min-height: 0; }
 .hero { display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: end; }
 .total { font-size: 56px; line-height: .9; font-weight: 800; color: #0f766e; }
+.primary { margin-top: 6px; font-weight: 700; }
 .breakdown { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
 .metric { border-left: 4px solid #2563eb; padding: 8px 10px; background: #f9fafb; }
 .metric strong { display: block; font-size: 20px; }
+.optimization { margin-top: 12px; color: #374151; }
 table { width: 100%; border-collapse: collapse; font-size: 14px; }
 th, td { padding: 10px 8px; border-bottom: 1px solid #e5e7eb; text-align: left; }
 th { color: #4b5563; font-size: 12px; text-transform: uppercase; letter-spacing: 0; }
@@ -127,6 +129,7 @@ def render_page(form: FormInputs | None = None) -> str:
         <div>
           <h2>{task_label(active_form)}</h2>
           <p>{view.breakdown[0].value} weights, {view.breakdown[1].value} KV, {view.host_ram}</p>
+          <p class="primary">Primary: {escape(view.primary)} ({escape(view.primary_fit)})</p>
         </div>
         <p class="total">{view.total_vram}</p>
       </div>
@@ -141,6 +144,7 @@ def render_page(form: FormInputs | None = None) -> str:
 {render_hardware_rows(view)}
           </tbody>
         </table>
+        <p class="optimization">{escape(view.optimization)}</p>
       </section>
     </section>
   </main>

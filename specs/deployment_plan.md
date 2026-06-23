@@ -1,6 +1,6 @@
 # Deployment Plan Spec
 
-PRIORITY 1 (active)
+PRIORITY 3 (active)
 
 ## Vision
 
@@ -49,3 +49,6 @@ which memory lever to try first.
 ## Non-goals
 
 - Throughput, tokens per second, live pricing, cloud availability, or multi-node planning.
+
+- [x] PRIORITY 1: pure deployment-plan layer with primary choice, fit labels, and optimization note
+- [x] PRIORITY 2: primary plan and optimization note shown in the report and web UI

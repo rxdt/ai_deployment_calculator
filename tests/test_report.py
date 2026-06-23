@@ -7,6 +7,7 @@ import pytest
 from assumptions import build_assumption_summary
 from deployment_plan import deployment_plan
 from hardware import recommend_hardware, recommended_host_ram_gb
+from quantization_comparison import quantization_comparison
 from report import build_report
 from vram_calculator import DeploymentSpec, total_vram_gb
 
@@ -33,3 +34,11 @@ def test_report_total_hardware_and_host_ram_reuse_the_core() -> None:
     assert report.assumptions == build_assumption_summary()
     assert report.plan.primary.option.gpu.name == "A100 80GB"
     assert report.hardware  # non-empty so the UI always has at least one option to render
+    assert report.comparison == quantization_comparison(spec)
+
+
+def test_report_exposes_three_precision_comparison_flagging_the_selected_row() -> None:
+    spec = DeploymentSpec(parameters_b=8, context_tokens=8000)
+    rows = build_report(spec).comparison.rows
+    assert [(row.weight_bits, row.total_gb) for row in rows] == [(16, 20.1), (8, 11.3), (4, 6.9)]
+    assert [row.weight_bits for row in rows if row.selected] == [16]

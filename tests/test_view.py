@@ -5,6 +5,7 @@ from __future__ import annotations
 from assumptions import Assumption, AssumptionSummary
 from deployment_plan import OPTIMIZE_NONE, DeploymentPlan, PlanOption
 from hardware import Gpu, HardwareOption
+from quantization_comparison import QuantizationComparison, QuantizationComparisonRow
 from report import DeploymentReport, VramBreakdown
 from web.presenter import FormInputs
 from web.view import (
@@ -34,6 +35,13 @@ def sample_report() -> DeploymentReport:
             items=(
                 Assumption("Safety margin", "10%"),
                 Assumption("CUDA/system tax", "1.5 GB"),
+            )
+        ),
+        comparison=QuantizationComparison(
+            rows=(
+                QuantizationComparisonRow(weight_bits=16, total_gb=20.1, savings_gb=0.0, selected=True),
+                QuantizationComparisonRow(weight_bits=8, total_gb=11.3, savings_gb=8.8, selected=False),
+                QuantizationComparisonRow(weight_bits=4, total_gb=6.9, savings_gb=13.2, selected=False),
             )
         ),
     )

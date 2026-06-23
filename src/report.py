@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from assumptions import AssumptionSummary, build_assumption_summary
 from deployment_plan import DeploymentPlan, deployment_plan
 from hardware import HardwareOption, recommended_host_ram_gb
+from quantization_comparison import QuantizationComparison, quantization_comparison
 from vram_calculator import (
     CUDA_TAX_GB,
     DeploymentSpec,
@@ -42,6 +43,7 @@ class DeploymentReport:
     hardware: tuple[HardwareOption, ...]
     plan: DeploymentPlan
     assumptions: AssumptionSummary
+    comparison: QuantizationComparison
 
 
 def build_report(spec: DeploymentSpec) -> DeploymentReport:
@@ -60,4 +62,5 @@ def build_report(spec: DeploymentSpec) -> DeploymentReport:
         hardware=tuple(plan_option.option for plan_option in plan.options),
         plan=plan,
         assumptions=build_assumption_summary(),
+        comparison=quantization_comparison(spec),
     )

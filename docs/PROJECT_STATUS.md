@@ -20,12 +20,11 @@
 
 - `uv run ruff check . && uv run ruff format --check . && uv run pytest` — green.
 - `uv run ralph verify` — green.
+- Branch: `main`.
 
 ## Next
 
 - Add the next spec before continuing product work; current specs are implemented.
 
 ## Blockers
-- Commit/push blocked in this sandbox because Git cannot create `.git/index.lock`.
--
--
+- None.

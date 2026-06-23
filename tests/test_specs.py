@@ -23,3 +23,10 @@ def test_core_keeps_the_only_pydantic_model() -> None:
         if "pydantic" in path.read_text(encoding="utf-8")
     }
     assert pydantic_users == {"src/vram_calculator.py"}
+
+
+def test_project_status_does_not_report_stale_git_blocker() -> None:
+    status_text = Path("docs/PROJECT_STATUS.md").read_text(encoding="utf-8")
+
+    assert "Git cannot create `.git/index.lock`" not in status_text
+    assert "## Blockers\n- None." in status_text

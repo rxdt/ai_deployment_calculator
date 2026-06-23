@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from assumptions import AssumptionSummary, build_assumption_summary
 from deployment_plan import DeploymentPlan, deployment_plan
 from hardware import HardwareOption, recommended_host_ram_gb
 from vram_calculator import (
@@ -40,6 +41,7 @@ class DeploymentReport:
     host_ram_gb: int
     hardware: tuple[HardwareOption, ...]
     plan: DeploymentPlan
+    assumptions: AssumptionSummary
 
 
 def build_report(spec: DeploymentSpec) -> DeploymentReport:
@@ -57,4 +59,5 @@ def build_report(spec: DeploymentSpec) -> DeploymentReport:
         host_ram_gb=recommended_host_ram_gb(spec),
         hardware=tuple(plan_option.option for plan_option in plan.options),
         plan=plan,
+        assumptions=build_assumption_summary(),
     )

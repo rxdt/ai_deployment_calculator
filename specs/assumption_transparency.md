@@ -1,6 +1,6 @@
 # Assumption Transparency Spec
 
-PRIORITY 1 (not implemented)
+PRIORITY 1 (implemented)
 
 ## Vision
 
@@ -9,9 +9,8 @@ engineer can audit the estimate without reading source code.
 
 ## Current State
 
-The core constants are documented in README and encoded in `src/`, but the
-report and web UI only show computed results. Users can see the answer, not the
-assumptions that shaped it.
+The core constants are documented in README, encoded in `src/`, attached to
+`DeploymentReport`, and rendered as a compact assumptions section in the web UI.
 
 ## Prioritize These Items
 
@@ -37,3 +36,5 @@ assumptions that shaped it.
 
 - Live benchmarks, hardware-specific performance claims, or source citations.
 - Changing the VRAM equation or adding new calculator inputs.
+
+- [x] PRIORITY 1: typed assumption-summary layer, report attachment, and compact web output

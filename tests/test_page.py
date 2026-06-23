@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from web.page import (
+    render_assumptions,
     render_breakdown,
     render_hardware_rows,
     render_page,
@@ -8,7 +9,7 @@ from web.page import (
     task_label,
 )
 from web.presenter import FormInputs
-from web.view import BreakdownRow, DeploymentView, HardwareRow
+from web.view import AssumptionRow, BreakdownRow, DeploymentView, HardwareRow, PlanSummary
 
 
 def test_default_page_renders_required_controls_and_worked_total() -> None:
@@ -22,6 +23,11 @@ def test_default_page_renders_required_controls_and_worked_total() -> None:
     assert 'name="use_adapter" type="checkbox"' in html
     assert "20.1 GB" in html
     assert "32 GB host RAM" in html
+    assert "Safety margin" in html
+    assert "10%" in html
+    assert "CUDA/system tax" in html
+    assert "KV cache heuristic" in html
+    assert "Host RAM rule" in html
 
 
 def test_page_keeps_mobile_layout_to_one_viewport() -> None:
@@ -78,11 +84,10 @@ def test_page_helpers_render_labels_bits_and_escaped_rows() -> None:
     view = DeploymentView(
         total_vram="20.1 GB",
         host_ram="32 GB host RAM",
-        primary="GPU <A>",
-        primary_fit="single GPU",
-        optimization="Use <less> memory",
+        plan=PlanSummary(primary="GPU <A>", primary_fit="single GPU", optimization="Use <less> memory"),
         breakdown=(BreakdownRow("KV <cache>", "0.8 GB"),),
         hardware=(HardwareRow("GPU <A>", "1x 24 GB", "single GPU"),),
+        assumptions=(AssumptionRow("Safety <margin>", "10%"),),
     )
     assert task_label(FormInputs(parameters_b=8, context_tokens=8000)) == "Inference"
     assert selected_bits(form.weight_bits, 8) == " selected"
@@ -92,3 +97,4 @@ def test_page_helpers_render_labels_bits_and_escaped_rows() -> None:
     assert render_hardware_rows(view) == (
         "<tr><td>GPU &lt;A&gt;</td><td>1x 24 GB</td><td>single GPU</td></tr>"
     )
+    assert render_assumptions(view) == "<p>Safety &lt;margin&gt;: <strong>10%</strong></p>"

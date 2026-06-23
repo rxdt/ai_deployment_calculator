@@ -37,16 +37,32 @@ class HardwareRow:
 
 
 @dataclass(frozen=True)
+class PlanSummary:
+    """Primary deployment-plan strings rendered by the one-page UI."""
+
+    primary: str
+    primary_fit: str
+    optimization: str
+
+
+@dataclass(frozen=True)
+class AssumptionRow:
+    """One fixed assumption rendered in compact form."""
+
+    label: str
+    value: str
+
+
+@dataclass(frozen=True)
 class DeploymentView:
     """Display-ready deployment result for the one-page UI: total, breakdown, hardware."""
 
     total_vram: str
     host_ram: str
-    primary: str
-    primary_fit: str
-    optimization: str
+    plan: PlanSummary
     breakdown: tuple[BreakdownRow, ...]
     hardware: tuple[HardwareRow, ...]
+    assumptions: tuple[AssumptionRow, ...]
 
 
 def fit_label_text(fit: str) -> str:
@@ -74,14 +90,18 @@ def view_from_report(report: DeploymentReport) -> DeploymentView:
         )
         for plan_option in plan.options
     )
+    assumptions = tuple(AssumptionRow(item.label, item.value) for item in report.assumptions.items)
     return DeploymentView(
         total_vram=format_gb(report.total_vram_gb),
         host_ram=f"{report.host_ram_gb} GB host RAM",
-        primary=plan.primary.option.gpu.name,
-        primary_fit=fit_label_text(plan.primary.fit),
-        optimization=plan.optimization,
+        plan=PlanSummary(
+            primary=plan.primary.option.gpu.name,
+            primary_fit=fit_label_text(plan.primary.fit),
+            optimization=plan.optimization,
+        ),
         breakdown=breakdown,
         hardware=hardware,
+        assumptions=assumptions,
     )
 
 

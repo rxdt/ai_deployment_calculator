@@ -6,11 +6,12 @@
 
 - `specs/vram_calculator.md` is implemented through PRIORITY 4.
 - `specs/deployment_plan.md` is implemented through PRIORITY 4.
-- `specs/assumption_transparency.md` is the active next spec.
+- `specs/assumption_transparency.md` is implemented through PRIORITY 1.
 - Core VRAM math, deployment-plan guidance, presenter, view model, and a
   GET-submitting one-page WSGI app live under `src/` with 100% coverage.
 - Reports and the web UI show the primary GPU plan plus the memory optimization note.
 - The web form exposes KV-cache precision alongside weight quantization.
+- Reports and the web UI expose the fixed assumptions behind every estimate.
 - `DeploymentSpec` is the only Pydantic model; web form state is a local dataclass.
 - The page CSS keeps both desktop and mobile layouts within one viewport without enabling body scroll.
 - README includes deployment-plan API and web-output examples.
@@ -22,10 +23,9 @@
 
 ## Next
 
-- Implement `specs/assumption_transparency.md` PRIORITY 1: expose the core
-  calculator assumptions in the report and compact web output.
+- Add the next spec before continuing product work; current specs are implemented.
 
 ## Blockers
--
+- Commit/push blocked in this sandbox because Git cannot create `.git/index.lock`.
 -
 -

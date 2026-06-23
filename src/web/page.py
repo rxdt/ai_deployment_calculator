@@ -36,6 +36,8 @@ button {
 .metric { border-left: 4px solid #2563eb; padding: 8px 10px; background: #f9fafb; }
 .metric strong { display: block; font-size: 20px; }
 .optimization { margin-top: 12px; color: #374151; }
+.assumptions { margin-top: 12px; display: grid; gap: 4px; font-size: 12px; color: #374151; }
+.assumptions p { display: inline; }
 table { width: 100%; border-collapse: collapse; font-size: 14px; }
 th, td { padding: 10px 8px; border-bottom: 1px solid #e5e7eb; text-align: left; }
 th { color: #4b5563; font-size: 12px; text-transform: uppercase; letter-spacing: 0; }
@@ -89,6 +91,12 @@ def render_hardware_rows(view: DeploymentView) -> str:
     return "\n".join(rows)
 
 
+def render_assumptions(view: DeploymentView) -> str:
+    """Render compact fixed-assumption rows."""
+    rows = [f"<p>{escape(row.label)}: <strong>{escape(row.value)}</strong></p>" for row in view.assumptions]
+    return "\n".join(rows)
+
+
 def render_page(form: FormInputs | None = None) -> str:
     """Render the single-screen calculator page for the given form state."""
     active_form = form or DEFAULT_FORM
@@ -136,7 +144,7 @@ def render_page(form: FormInputs | None = None) -> str:
         <div>
           <h2>{task_label(active_form)}</h2>
           <p>{view.breakdown[0].value} weights, {view.breakdown[1].value} KV, {view.host_ram}</p>
-          <p class="primary">Primary: {escape(view.primary)} ({escape(view.primary_fit)})</p>
+          <p class="primary">Primary: {escape(view.plan.primary)} ({escape(view.plan.primary_fit)})</p>
         </div>
         <p class="total">{view.total_vram}</p>
       </div>
@@ -151,7 +159,11 @@ def render_page(form: FormInputs | None = None) -> str:
 {render_hardware_rows(view)}
           </tbody>
         </table>
-        <p class="optimization">{escape(view.optimization)}</p>
+        <p class="optimization">{escape(view.plan.optimization)}</p>
+        <section class="assumptions" aria-label="Assumptions">
+          <h2>Assumptions</h2>
+{render_assumptions(view)}
+        </section>
       </section>
     </section>
   </main>

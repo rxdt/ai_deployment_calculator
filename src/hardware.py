@@ -23,6 +23,7 @@ class Gpu:
 # Common deployment targets, ordered from least to most VRAM per card.
 GPU_CATALOG: tuple[Gpu, ...] = (
     Gpu("RTX 4090", 24.0),
+    Gpu("L4 24GB", 24.0),
     Gpu("A100 40GB", 40.0),
     Gpu("A100 80GB", 80.0),
     Gpu("H100 80GB", 80.0),

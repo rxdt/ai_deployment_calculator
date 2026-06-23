@@ -26,8 +26,7 @@ def test_recommend_hardware_covers_named_catalog_gpus() -> None:
     spec = DeploymentSpec(parameters_b=8, context_tokens=8000)
     names = [opt.gpu.name for opt in recommend_hardware(spec)]
     assert names == [gpu.name for gpu in GPU_CATALOG]
-    assert "RTX 4090" in names
-    assert "H100 80GB" in names
+    assert names == ["RTX 4090", "L4 24GB", "A100 40GB", "A100 80GB", "H100 80GB"]
 
 
 def test_small_deployment_fits_single_gpu_without_tensor_parallel() -> None:
@@ -43,6 +42,9 @@ def test_large_deployment_shards_small_cards_but_not_large_ones() -> None:
     rtx = by_name["RTX 4090"]  # ~52 GB need over 24 GB cards -> 3 GPUs, tensor parallel
     assert rtx.gpu_count == 3
     assert rtx.tensor_parallel is True
+    l4 = by_name["L4 24GB"]
+    assert l4.gpu_count == 3
+    assert l4.tensor_parallel is True
     a100_80 = by_name["A100 80GB"]  # fits on one 80 GB card
     assert a100_80.gpu_count == 1
     assert a100_80.tensor_parallel is False

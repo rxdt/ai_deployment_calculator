@@ -87,5 +87,6 @@ def test_view_from_form_matches_view_from_report() -> None:
     assert view.plan.primary == "RTX 4090"
     assert view.plan.primary_fit == "single GPU"
     # Every catalog GPU yields one display row.
-    assert len(view.hardware) == 4
+    assert len(view.hardware) == 5
     assert view.hardware[0] == HardwareRow(name="RTX 4090", detail="1x 24 GB", sharding="single GPU")
+    assert view.hardware[1] == HardwareRow(name="L4 24GB", detail="1x 24 GB", sharding="single GPU")

@@ -57,7 +57,7 @@ The matching web output shows `16-bit`, `8-bit`, and `4-bit` rows with `20.1 GB`
 ## Current Features
 
 - Pure typed calculator core in `src/vram_calculator.py`.
-- Hardware recommendations in `src/hardware.py` for RTX 4090, A100, and H100.
+- Hardware recommendations in `src/hardware.py` for RTX 4090, L4, A100, and H100.
 - Host RAM floor recommendation and display-ready report assembly.
 - GET-submitting one-page web app rendered by `src/web/page.py`.
 - 100% test coverage across product code.

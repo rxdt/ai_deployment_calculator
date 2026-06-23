@@ -4,18 +4,18 @@
 
 ## Now
 
-- First real spec written: `specs/vram_calculator.md` (VRAM = W + KV + T + C, then 1.10 margin).
-- `src/` still empty (`.gitkeep`); core not yet implemented.
+- `specs/vram_calculator.md` is implemented through PRIORITY 3.
+- Core VRAM math, hardware recommendations, presenter, view model, and static one-page HTML
+  renderer live under `src/` with 100% coverage.
 
 ## Checks
 
-- `uv run ruff check . && uv run ruff format --check . && uv run pyright && uv run pytest` — green.
+- `uv run ruff check . && uv run ruff format --check . && uv run pytest` — green.
+- `uv run ralph verify` — green.
 
 ## Next
 
-- PRIORITY 1: implement the pure core in `src/` — `DeploymentSpec` pydantic model plus
-  `weights_gb`, `kv_cache_gb`, `task_overhead_gb`, `total_vram_gb`, with 100%-covered tests
-  pinning the worked checks (8B/16-bit/8k inference -> 20.1).
+- Decide the next spec track; current VRAM spec has no unfinished priority items.
 
 ## Blockers
 -

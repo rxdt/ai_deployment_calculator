@@ -47,7 +47,7 @@ Worked checks (subtotals before margin):
 
 - [x] PRIORITY 1: pydantic model + formula functions, fully tested
 - [x] PRIORITY 2: hardware/optimization recommendation
-- [ ] PRIORITY 3: one-page web UI
+- [x] PRIORITY 3: one-page web UI
 
 ## Non-goals
 

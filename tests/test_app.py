@@ -25,7 +25,11 @@ def test_wsgi_application_serves_submitted_form() -> None:
 
     body = b"".join(
         application(
-            {"QUERY_STRING": "parameters_b=70&context_tokens=8000&weight_bits=4&trained=on&use_adapter=on"},
+            {
+                "QUERY_STRING": (
+                    "parameters_b=70&context_tokens=8000&weight_bits=4&kv_cache_bits=8&trained=on&use_adapter=on"
+                )
+            },
             start_response,
         )
     ).decode("utf-8")
@@ -35,4 +39,4 @@ def test_wsgi_application_serves_submitted_form() -> None:
     assert isinstance(headers, list)
     assert ("Content-Type", "text/html; charset=utf-8") in headers
     assert "<h2>QLoRA</h2>" in body
-    assert "52.3 GB" in body
+    assert "48.4 GB" in body

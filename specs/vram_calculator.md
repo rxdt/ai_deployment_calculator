@@ -38,7 +38,7 @@ Worked checks (subtotals before margin):
 - PRIORITY 2: hardware recommendation — map `total_vram_gb` to GPU options (e.g. RTX 4090 24GB,
   A100 40/80GB, H100 80GB), GPU count, and whether tensor parallelism is needed.
 - PRIORITY 3: one-page web app (no scroll); inputs = trained checkbox, quantization dropdown,
-  parameters, context window, secondary adapter (LoRA). Reuse styling from the fitpick-ai web app.
+  KV-cache precision dropdown, parameters, context window, secondary adapter (LoRA).
 - PRIORITY 4: host RAM floor — report the CPU/system RAM to pair with the deployment as the greater
   of 32 GB and `total_vram_gb` rounded up to the next 16 GB increment.
 

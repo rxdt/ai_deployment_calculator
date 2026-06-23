@@ -66,9 +66,9 @@ def task_label(form: FormInputs) -> str:
     return "Inference"
 
 
-def selected_bits(form: FormInputs, bits: int) -> str:
-    """Return a select-option marker for the active weight precision."""
-    return " selected" if form.weight_bits == bits else ""
+def selected_bits(active_bits: int, bits: int) -> str:
+    """Return a select-option marker for an active precision value."""
+    return " selected" if active_bits == bits else ""
 
 
 def render_breakdown(view: DeploymentView) -> str:
@@ -115,9 +115,16 @@ def render_page(form: FormInputs | None = None) -> str:
       </label>
       <label>Quantization
         <select name="weight_bits">
-          <option value="16"{selected_bits(active_form, 16)}>16-bit</option>
-          <option value="8"{selected_bits(active_form, 8)}>8-bit</option>
-          <option value="4"{selected_bits(active_form, 4)}>4-bit</option>
+          <option value="16"{selected_bits(active_form.weight_bits, 16)}>16-bit</option>
+          <option value="8"{selected_bits(active_form.weight_bits, 8)}>8-bit</option>
+          <option value="4"{selected_bits(active_form.weight_bits, 4)}>4-bit</option>
+        </select>
+      </label>
+      <label>KV cache
+        <select name="kv_cache_bits">
+          <option value="16"{selected_bits(active_form.kv_cache_bits, 16)}>16-bit</option>
+          <option value="8"{selected_bits(active_form.kv_cache_bits, 8)}>8-bit</option>
+          <option value="4"{selected_bits(active_form.kv_cache_bits, 4)}>4-bit</option>
         </select>
       </label>
       <label class="check"><input name="trained" type="checkbox"{trained}> Model is trained</label>

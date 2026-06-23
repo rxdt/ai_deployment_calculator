@@ -1,6 +1,6 @@
 # Deployment Plan Spec
 
-PRIORITY 3 (active)
+PRIORITY 4 (active)
 
 ## Vision
 
@@ -11,9 +11,9 @@ awkward.
 
 ## Current Gap
 
-The app already computes total VRAM, host RAM, and per-GPU card counts. It does
-not yet choose a primary recommendation, label risky multi-card plans, or explain
-which memory lever to try first.
+The app now chooses a primary recommendation, labels sharded plans, explains the
+highest-impact memory lever, and exposes KV-cache precision. README still needs
+deployment-plan API and web-output examples.
 
 ## Prioritize These Items
 
@@ -52,3 +52,4 @@ which memory lever to try first.
 
 - [x] PRIORITY 1: pure deployment-plan layer with primary choice, fit labels, and optimization note
 - [x] PRIORITY 2: primary plan and optimization note shown in the report and web UI
+- [x] PRIORITY 3: KV-cache precision exposed in the web form

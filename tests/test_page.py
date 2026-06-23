@@ -1,6 +1,12 @@
 from __future__ import annotations
 
-from web.page import render_breakdown, render_hardware_rows, render_page, selected_bits, task_label
+from web.page import (
+    render_breakdown,
+    render_hardware_rows,
+    render_page,
+    selected_bits,
+    task_label,
+)
 from web.presenter import FormInputs
 from web.view import BreakdownRow, DeploymentView, HardwareRow
 
@@ -11,6 +17,7 @@ def test_default_page_renders_required_controls_and_worked_total() -> None:
     assert 'name="parameters_b"' in html
     assert 'name="context_tokens"' in html
     assert 'name="weight_bits"' in html
+    assert 'name="kv_cache_bits"' in html
     assert 'name="trained" type="checkbox"' in html
     assert 'name="use_adapter" type="checkbox"' in html
     assert "20.1 GB" in html
@@ -25,9 +32,18 @@ def test_page_keeps_mobile_layout_to_one_viewport() -> None:
 
 
 def test_page_selects_quantization_and_training_state() -> None:
-    form = FormInputs(parameters_b=70, context_tokens=8000, weight_bits=4, trained=True, use_adapter=True)
+    form = FormInputs(
+        parameters_b=70,
+        context_tokens=8000,
+        weight_bits=4,
+        kv_cache_bits=8,
+        trained=True,
+        use_adapter=True,
+    )
     html = render_page(form)
     assert '<option value="4" selected>4-bit</option>' in html
+    assert '<select name="kv_cache_bits">' in html
+    assert '<option value="8" selected>8-bit</option>' in html
     assert 'name="trained" type="checkbox" checked' in html
     assert 'name="use_adapter" type="checkbox" checked' in html
     assert "<h2>QLoRA</h2>" in html
@@ -69,8 +85,9 @@ def test_page_helpers_render_labels_bits_and_escaped_rows() -> None:
         hardware=(HardwareRow("GPU <A>", "1x 24 GB", "single GPU"),),
     )
     assert task_label(FormInputs(parameters_b=8, context_tokens=8000)) == "Inference"
-    assert selected_bits(form, 8) == " selected"
-    assert not selected_bits(form, 4)
+    assert selected_bits(form.weight_bits, 8) == " selected"
+    assert not selected_bits(form.weight_bits, 4)
+    assert selected_bits(FormInputs(parameters_b=8, context_tokens=8000, kv_cache_bits=4).kv_cache_bits, 4)
     assert render_breakdown(view) == '<p class="metric">KV &lt;cache&gt;<strong>0.8 GB</strong></p>'
     assert render_hardware_rows(view) == (
         "<tr><td>GPU &lt;A&gt;</td><td>1x 24 GB</td><td>single GPU</td></tr>"

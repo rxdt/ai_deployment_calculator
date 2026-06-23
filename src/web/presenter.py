@@ -1,9 +1,9 @@
 """Pure presenter bridging the one-page form controls to the deployment report.
 
-PRIORITY 3 of specs/vram_calculator.md exposes exactly five form controls: a trained
-checkbox, a quantization dropdown, parameters, a context window, and a secondary-adapter
-(LoRA) toggle. This module translates those controls into a validated `DeploymentSpec`
-and report, so the Reflex page renders one pure call instead of mapping inputs itself.
+The web form exposes the deployment fields users need to tune memory: parameters,
+context, weight precision, KV-cache precision, training mode, and adapter use. This
+module translates those controls into a validated `DeploymentSpec` and report, so the
+page renders one pure call instead of mapping inputs itself.
 """
 
 from __future__ import annotations
@@ -24,11 +24,12 @@ class FormInputError(ValueError):
 
 @dataclass(frozen=True)
 class FormInputs:
-    """The one-page form's raw controls, mirroring the PRIORITY 3 input list."""
+    """The one-page form's raw controls."""
 
     parameters_b: float
     context_tokens: int
-    weight_bits: Bits = 16  # Quantization dropdown; KV stays 16-bit, so it is not a control.
+    weight_bits: Bits = 16
+    kv_cache_bits: Bits = 16
     trained: bool = False  # "Model is trained" checkbox: unchecked means pure inference.
     use_adapter: bool = False  # Secondary LoRA adapter: distinguishes QLoRA from full training.
 
@@ -40,16 +41,18 @@ class FormInputs:
             raise FormInputError
         if self.weight_bits not in VALID_BITS:
             raise FormInputError
+        if self.kv_cache_bits not in VALID_BITS:
+            raise FormInputError
 
 
 DEFAULT_FORM = FormInputs(parameters_b=8, context_tokens=8000)  # 8B / 8k first-load deployment.
 
 
-def weight_bits_from_query(raw_params: dict[str, str]) -> Bits:
-    """Parse the optional quantization dropdown value into a supported bit-width."""
-    if "weight_bits" not in raw_params:
-        return DEFAULT_FORM.weight_bits
-    parsed_bits = int(raw_params["weight_bits"])
+def bits_from_query(raw_params: dict[str, str], field: str, default: Bits) -> Bits:
+    """Parse an optional precision dropdown value into a supported bit-width."""
+    if field not in raw_params:
+        return default
+    parsed_bits = int(raw_params[field])
     if parsed_bits == 16:
         return 16
     if parsed_bits == 8:
@@ -72,7 +75,8 @@ def form_from_query(query_string: str) -> FormInputs:
         return FormInputs(
             parameters_b=float(raw_params["parameters_b"]),
             context_tokens=int(raw_params["context_tokens"]),
-            weight_bits=weight_bits_from_query(raw_params),
+            weight_bits=bits_from_query(raw_params, "weight_bits", DEFAULT_FORM.weight_bits),
+            kv_cache_bits=bits_from_query(raw_params, "kv_cache_bits", DEFAULT_FORM.kv_cache_bits),
             trained=raw_params.get("trained", "").lower() in CHECKED_VALUES,
             use_adapter=raw_params.get("use_adapter", "").lower() in CHECKED_VALUES,
         )
@@ -97,6 +101,7 @@ def spec_from_form(form: FormInputs) -> DeploymentSpec:
         parameters_b=form.parameters_b,
         context_tokens=form.context_tokens,
         weight_bits=form.weight_bits,
+        kv_cache_bits=form.kv_cache_bits,
         task=deployment_task(form),
     )
 

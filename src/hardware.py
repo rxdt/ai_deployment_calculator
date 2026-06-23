@@ -28,6 +28,7 @@ GPU_CATALOG: tuple[Gpu, ...] = (
     Gpu("A100 40GB", 40.0),
     Gpu("A100 80GB", 80.0),
     Gpu("H100 80GB", 80.0),
+    Gpu("B200 192GB", 192.0),
 )
 HOST_RAM_FLOOR_GB = 32
 HOST_RAM_STEP_GB = 16

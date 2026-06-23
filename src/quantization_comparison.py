@@ -10,7 +10,7 @@ from dataclasses import dataclass
 
 from vram_calculator import Bits, DeploymentSpec, total_vram_gb
 
-SUPPORTED_WEIGHT_BITS: tuple[Bits, ...] = (16, 8, 4)
+SUPPORTED_WEIGHT_BITS: tuple[Bits, ...] = (32, 16, 8, 4)
 
 
 @dataclass(frozen=True)

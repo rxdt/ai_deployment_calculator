@@ -15,23 +15,26 @@ modular formula functions), 100% covered, later wrapped by a one-page web app.
 
 - `W` (weights) `= P * (weight_bits / 8)`; `P` = parameters in billions.
 - `KV` (cache) `= (P / 10) * (context_k / 8) * (kv_cache_bits / 16)`; `context_k` = context tokens / 1000.
-  The KV cache stays 16-bit unless `kv_cache_bits < 16`; it never shrinks with weight quantization,
-  and at long context can exceed the quantized weights.
+  The KV cache scales from the 16-bit reference by `kv_cache_bits / 16`; it never shrinks with
+  weight quantization, and at long context can exceed the quantized weights.
 - `T` (task overhead): inference = 0; QLoRA 4-bit fine-tune ~= 4; full 16-bit training ~= `P * 16`.
 - `C` (CUDA/system tax) = 1.5 (constant).
-- `SAFETY_MARGIN` = 1.10. `weight_bits` in {16, 8, 4}; `kv_cache_bits` in {16, 8, 4}.
+- `SAFETY_MARGIN` = 1.10. `weight_bits` in {32, 16, 8, 4};
+  `kv_cache_bits` in {32, 16, 8, 4}.
 
 Worked checks (subtotals before margin):
 
 - 8B / 16-bit / 8k / inference -> W=16, KV=0.8, T=0, C=1.5 -> 18.3; with margin -> 20.1.
 - 8B / 4-bit / 8k / QLoRA -> 4 + 0.8 + 4 + 1.5 = 10.3.
 - 70B / 4-bit / 8k / QLoRA -> 35 + 7 + 4 + 1.5 = 47.5.
+- 0.0004B / 8-bit / 8k / full training with 8-bit KV -> total rounds to 1.7 GB.
 
 ## Prioritize These Items
 
 - `src/` pure core: ONE pydantic model (`DeploymentSpec`: `parameters_b`, `context_tokens`,
   `weight_bits`, `kv_cache_bits`, `task` = inference|qlora|full_training) plus modular functions
   `weights_gb`, `kv_cache_gb`, `task_overhead_gb`, `total_vram_gb`. 100% covered.
+- Support 32-bit, 16-bit, 8-bit, and 4-bit weight and KV precision.
 
 ## If The Items Above Are Complete, Do These
 
@@ -46,6 +49,7 @@ Worked checks (subtotals before margin):
 
 - `uv run ralph verify` green; 100% coverage on `src/`.
 - `total_vram_gb` for 8B / 16-bit / 8k / inference == 20.1; subtotals match the worked checks above.
+- Tiny 400,000-parameter full-training estimates stay valid and are dominated by CUDA/system tax.
 
 - [x] PRIORITY 1: pydantic model + formula functions, fully tested
 - [x] PRIORITY 2: hardware/optimization recommendation

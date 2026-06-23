@@ -11,5 +11,5 @@ def test_assumption_summary_exposes_exact_labels_and_values() -> None:
         Assumption("CUDA/system tax", "1.5 GB"),
         Assumption("KV cache heuristic", "(parameters / 10) * (context_k / 8)"),
         Assumption("Host RAM rule", "at least 32 GB, rounded up in 16 GB increments"),
-        Assumption("Supported precisions", "16-bit, 8-bit, and 4-bit weights and KV cache"),
+        Assumption("Supported precisions", "32-bit, 16-bit, 8-bit, and 4-bit weights and KV cache"),
     )

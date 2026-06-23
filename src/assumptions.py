@@ -35,6 +35,6 @@ def build_assumption_summary() -> AssumptionSummary:
                 "Host RAM rule",
                 f"at least {HOST_RAM_FLOOR_GB} GB, rounded up in {HOST_RAM_STEP_GB} GB increments",
             ),
-            Assumption("Supported precisions", "16-bit, 8-bit, and 4-bit weights and KV cache"),
+            Assumption("Supported precisions", "32-bit, 16-bit, 8-bit, and 4-bit weights and KV cache"),
         )
     )

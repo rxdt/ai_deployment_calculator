@@ -36,7 +36,7 @@ web-output examples in README.
 ## If The Items Above Are Complete, Do These
 
 - PRIORITY 2: show the primary deployment plan in the report and web UI.
-- PRIORITY 3: expose KV-cache precision in the web form so users can evaluate FP8/FP4 KV cache.
+- PRIORITY 3: expose KV-cache precision in the web form so users can evaluate 32-bit, FP8, and FP4 KV cache.
 - PRIORITY 4: add README examples for the deployment-plan API and web output.
 
 ## Acceptance Signals

@@ -45,6 +45,13 @@ def test_project_status_does_not_report_stale_git_blocker() -> None:
     assert "## Blockers\n- None." in status_text
 
 
+def test_plan_run_checklist_matches_required_local_checks() -> None:
+    plan_text = Path("docs/plan.md").read_text(encoding="utf-8")
+
+    assert "`ruff check . && ruff format --check . && pytest` passes with 100% coverage." in plan_text
+    assert "`ruff format .` passes" not in plan_text
+
+
 def test_markdown_handoff_files_stay_short() -> None:
     too_long = {
         path.as_posix(): line_count

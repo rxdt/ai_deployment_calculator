@@ -21,7 +21,7 @@ CUDA_TAX_GB = 1.5  # Fixed CUDA context / system reservation.
 SAFETY_MARGIN = 1.10  # Headroom so a deployment does not run at the VRAM ceiling.
 
 Task = Literal["inference", "qlora", "full_training"]
-Bits = Literal[16, 8, 4]
+Bits = Literal[32, 16, 8, 4]
 
 
 class DeploymentSpec(BaseModel):

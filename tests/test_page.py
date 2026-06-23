@@ -23,12 +23,15 @@ def test_default_page_renders_required_controls_and_worked_total() -> None:
     assert 'name="use_adapter" type="checkbox"' in html
     assert "20.1 GB" in html
     assert "32 GB host RAM" in html
+    assert '<option value="32">32-bit</option>' in html
     assert "Safety margin" in html
     assert "10%" in html
     assert "CUDA/system tax" in html
     assert "KV cache heuristic" in html
     assert "Host RAM rule" in html
     assert 'aria-label="Quantization comparison"' in html
+    assert "<td>32-bit</td>" in html
+    assert "<td>37.7 GB</td>" in html
     assert "<td>16-bit</td>" in html
     assert "<td>11.3 GB</td>" in html
     assert "<td>13.2 GB</td>" in html

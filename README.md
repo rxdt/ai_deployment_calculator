@@ -48,11 +48,13 @@ from vram_calculator import DeploymentSpec
 comparison = quantization_comparison(DeploymentSpec(parameters_b=8, context_tokens=8000))
 rows = [(row.weight_bits, row.total_gb, row.savings_gb, row.selected) for row in comparison.rows]
 
-assert rows == [(16, 20.1, 0.0, True), (8, 11.3, 8.8, False), (4, 6.9, 13.2, False)]
+assert rows == [
+    (32, 37.7, -17.6, False),
+    (16, 20.1, 0.0, True),
+    (8, 11.3, 8.8, False),
+    (4, 6.9, 13.2, False),
+]
 ```
-
-The matching web output shows `16-bit`, `8-bit`, and `4-bit` rows with `20.1 GB`,
-`11.3 GB`, and `6.9 GB` totals. The active precision row is highlighted.
 
 ## Current Features
 

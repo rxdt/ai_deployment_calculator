@@ -15,7 +15,7 @@ from report import DeploymentReport, build_report
 from vram_calculator import Bits, DeploymentSpec, Task
 
 CHECKED_VALUES = {"1", "true", "on", "yes"}
-VALID_BITS = {16, 8, 4}
+VALID_BITS = {32, 16, 8, 4}
 
 
 class FormInputError(ValueError):
@@ -53,13 +53,18 @@ def bits_from_query(raw_params: dict[str, str], field: str, default: Bits) -> Bi
     if field not in raw_params:
         return default
     parsed_bits = int(raw_params[field])
-    if parsed_bits == 16:
-        return 16
-    if parsed_bits == 8:
-        return 8
-    if parsed_bits == 4:
-        return 4
-    raise FormInputError
+    bits: Bits
+    if parsed_bits == 32:
+        bits = 32
+    elif parsed_bits == 16:
+        bits = 16
+    elif parsed_bits == 8:
+        bits = 8
+    elif parsed_bits == 4:
+        bits = 4
+    else:
+        raise FormInputError
+    return bits
 
 
 def form_from_query(query_string: str) -> FormInputs:

@@ -20,7 +20,7 @@ The core constants are documented in README, encoded in `src/`, attached to
   - CUDA/system tax is 1.5 GB;
   - KV cache uses the `(parameters / 10) * (context_k / 8)` heuristic;
   - host RAM is at least 32 GB and rounds up in 16 GB increments;
-  - supported weight and KV precisions are 16-bit, 8-bit, and 4-bit.
+  - supported weight and KV precisions are 32-bit, 16-bit, 8-bit, and 4-bit.
 - Attach the assumption summary to `DeploymentReport`.
 - Render a compact assumptions section in the web output.
 - Keep the section short enough for the one-page UI; no extra inputs.

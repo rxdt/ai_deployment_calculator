@@ -96,13 +96,13 @@ def test_form_from_query_maps_submitted_controls() -> None:
     )
 
 
-@pytest.mark.parametrize("bits", [16, 8, 4])
+@pytest.mark.parametrize("bits", [32, 16, 8, 4])
 def test_form_from_query_accepts_supported_quantization(bits: int) -> None:
     form = form_from_query(f"parameters_b=8&context_tokens=8000&weight_bits={bits}")
     assert form.weight_bits == bits
 
 
-@pytest.mark.parametrize("bits", [16, 8, 4])
+@pytest.mark.parametrize("bits", [32, 16, 8, 4])
 def test_form_from_query_accepts_supported_kv_cache_precision(bits: int) -> None:
     form = form_from_query(f"parameters_b=8&context_tokens=8000&kv_cache_bits={bits}")
     assert form.kv_cache_bits == bits

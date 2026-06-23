@@ -24,7 +24,7 @@ def test_defaults_are_inference_16bit() -> None:
 
 @pytest.mark.parametrize(
     ("weight_bits", "expected"),
-    [(16, 16.0), (8, 8.0), (4, 4.0)],
+    [(32, 32.0), (16, 16.0), (8, 8.0), (4, 4.0)],
 )
 def test_weights_gb_scales_with_precision(weight_bits: Bits, expected: float) -> None:
     spec = DeploymentSpec(parameters_b=8, context_tokens=0, weight_bits=weight_bits)
@@ -44,6 +44,11 @@ def test_kv_cache_stays_16bit_under_weight_quantization() -> None:
 def test_kv_cache_shrinks_only_when_kv_quantized() -> None:
     spec = DeploymentSpec(parameters_b=8, context_tokens=8000, kv_cache_bits=8)
     assert kv_cache_gb(spec) == pytest.approx(0.4)
+
+
+def test_kv_cache_expands_for_32bit_precision() -> None:
+    spec = DeploymentSpec(parameters_b=8, context_tokens=8000, kv_cache_bits=32)
+    assert kv_cache_gb(spec) == pytest.approx(1.6)
 
 
 def test_kv_cache_zero_context() -> None:
@@ -69,6 +74,21 @@ def test_task_overhead_full_training_scales_with_params() -> None:
 def test_total_vram_8b_inference_acceptance_signal() -> None:
     spec = DeploymentSpec(parameters_b=8, context_tokens=8000)
     assert total_vram_gb(spec) == pytest.approx(20.1)
+
+
+def test_tiny_fp8_full_training_rounds_to_cuda_dominated_total() -> None:
+    spec = DeploymentSpec(
+        parameters_b=0.0004,
+        context_tokens=8000,
+        weight_bits=8,
+        kv_cache_bits=8,
+        task="full_training",
+    )
+
+    assert weights_gb(spec) == pytest.approx(0.0004)
+    assert kv_cache_gb(spec) == pytest.approx(0.00002)
+    assert task_overhead_gb(spec) == pytest.approx(0.0064)
+    assert total_vram_gb(spec) == pytest.approx(1.7)
 
 
 @pytest.mark.parametrize(

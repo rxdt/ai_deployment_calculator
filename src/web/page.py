@@ -108,6 +108,7 @@ def render_page(form: FormInputs | None = None) -> str:
       </label>
       <label>Quantization
         <select name="weight_bits">
+          <option value="32"{selected_bits(active_form.weight_bits, 32)}>32-bit</option>
           <option value="16"{selected_bits(active_form.weight_bits, 16)}>16-bit</option>
           <option value="8"{selected_bits(active_form.weight_bits, 8)}>8-bit</option>
           <option value="4"{selected_bits(active_form.weight_bits, 4)}>4-bit</option>
@@ -115,6 +116,7 @@ def render_page(form: FormInputs | None = None) -> str:
       </label>
       <label>KV cache
         <select name="kv_cache_bits">
+          <option value="32"{selected_bits(active_form.kv_cache_bits, 32)}>32-bit</option>
           <option value="16"{selected_bits(active_form.kv_cache_bits, 16)}>16-bit</option>
           <option value="8"{selected_bits(active_form.kv_cache_bits, 8)}>8-bit</option>
           <option value="4"{selected_bits(active_form.kv_cache_bits, 4)}>4-bit</option>

@@ -1,18 +1,20 @@
 from __future__ import annotations
 
-from web.page import render_page
+from web.page import render_breakdown, render_hardware_rows, render_page, selected_bits, task_label
 from web.presenter import FormInputs
+from web.view import BreakdownRow, DeploymentView, HardwareRow
 
 
 def test_default_page_renders_required_controls_and_worked_total() -> None:
     html = render_page()
-    assert '<form class="panel controls" aria-label="Deployment inputs">' in html
+    assert '<form class="panel controls" method="get" aria-label="Deployment inputs">' in html
     assert 'name="parameters_b"' in html
     assert 'name="context_tokens"' in html
     assert 'name="weight_bits"' in html
     assert 'name="trained" type="checkbox"' in html
     assert 'name="use_adapter" type="checkbox"' in html
     assert "20.1 GB" in html
+    assert "32 GB host RAM" in html
 
 
 def test_page_keeps_mobile_layout_to_one_viewport() -> None:
@@ -35,6 +37,7 @@ def test_page_renders_report_breakdown_and_hardware_rows() -> None:
     form = FormInputs(parameters_b=70, context_tokens=8000, weight_bits=4, trained=True, use_adapter=True)
     html = render_page(form)
     assert "52.3 GB" in html
+    assert "64 GB host RAM" in html
     assert "<td>RTX 4090</td>" in html
     assert "<td>3x 24 GB</td>" in html
     assert "<td>tensor parallel</td>" in html
@@ -50,3 +53,20 @@ def test_page_escapes_gpu_names() -> None:
 def test_page_labels_full_training() -> None:
     html = render_page(FormInputs(parameters_b=8, context_tokens=8000, trained=True))
     assert "<h2>Full training</h2>" in html
+
+
+def test_page_helpers_render_labels_bits_and_escaped_rows() -> None:
+    form = FormInputs(parameters_b=8, context_tokens=8000, weight_bits=8)
+    view = DeploymentView(
+        total_vram="20.1 GB",
+        host_ram="32 GB host RAM",
+        breakdown=(BreakdownRow("KV <cache>", "0.8 GB"),),
+        hardware=(HardwareRow("GPU <A>", "1x 24 GB", "single GPU"),),
+    )
+    assert task_label(FormInputs(parameters_b=8, context_tokens=8000)) == "Inference"
+    assert selected_bits(form, 8) == " selected"
+    assert not selected_bits(form, 4)
+    assert render_breakdown(view) == '<p class="metric">KV &lt;cache&gt;<strong>0.8 GB</strong></p>'
+    assert render_hardware_rows(view) == (
+        "<tr><td>GPU &lt;A&gt;</td><td>1x 24 GB</td><td>single GPU</td></tr>"
+    )

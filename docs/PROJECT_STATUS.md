@@ -4,9 +4,10 @@
 
 ## Now
 
-- `specs/vram_calculator.md` is implemented through PRIORITY 3.
-- Core VRAM math, hardware recommendations, presenter, view model, and static one-page HTML
-  renderer live under `src/` with 100% coverage.
+- `specs/vram_calculator.md` is implemented through PRIORITY 4.
+- `specs/` contains only the active project spec and a test guards against template placeholders.
+- Core VRAM math, GPU and host RAM recommendations, presenter, view model, and a
+  GET-submitting one-page WSGI app live under `src/` with 100% coverage.
 - The page CSS keeps both desktop and mobile layouts within one viewport without enabling body scroll.
 - README now reflects the AI deployment calculator instead of the source harness template.
 
@@ -17,7 +18,7 @@
 
 ## Next
 
-- Decide the next spec track; current VRAM spec has no unfinished priority items.
+- Add the next real spec track; current VRAM spec has no unfinished priority items.
 
 ## Blockers
 -

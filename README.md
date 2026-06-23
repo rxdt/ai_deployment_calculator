@@ -26,8 +26,9 @@ assert total_vram_gb(spec) == 20.1
 
 - Pure typed calculator core in `src/vram_calculator.py`.
 - Hardware recommendations in `src/hardware.py` for RTX 4090, A100, and H100.
+- Host RAM floor recommendation paired with the final VRAM estimate.
 - Display-ready report assembly in `src/report.py`.
-- Static one-page HTML renderer in `src/web/page.py`.
+- GET-submitting one-page web app in `src/web/app.py`, rendered by `src/web/page.py`.
 - 100% test coverage across product code.
 
 ## Run Checks
@@ -46,6 +47,12 @@ PYTHONPATH=src uv run python -c "from web.page import render_page; print(render_
 ```
 
 Open `scratchpad/vram_calculator.html` in a browser to view the static page.
+
+## Serve The Page
+
+```sh
+PYTHONPATH=src uv run python -c "from wsgiref.simple_server import make_server; from web.app import application; make_server('', 8000, application).serve_forever()"
+```
 
 ## Project Map
 

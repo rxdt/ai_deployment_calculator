@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from hardware import GPU_CATALOG, gpus_needed, recommend_hardware
+from hardware import GPU_CATALOG, gpus_needed, recommend_hardware, recommended_host_ram_gb
 from vram_calculator import DeploymentSpec
 
 
@@ -14,6 +14,12 @@ from vram_calculator import DeploymentSpec
 )
 def test_gpus_needed_rounds_up_to_full_card(required_gb: float, gpu_vram_gb: float, expected: int) -> None:
     assert gpus_needed(required_gb, gpu_vram_gb) == expected
+
+
+def test_host_ram_has_floor_and_16gb_steps() -> None:
+    assert recommended_host_ram_gb(DeploymentSpec(parameters_b=8, context_tokens=8000)) == 32
+    spec = DeploymentSpec(parameters_b=70, context_tokens=8000, weight_bits=4, task="qlora")
+    assert recommended_host_ram_gb(spec) == 64
 
 
 def test_recommend_hardware_covers_named_catalog_gpus() -> None:

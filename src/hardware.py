@@ -27,6 +27,8 @@ GPU_CATALOG: tuple[Gpu, ...] = (
     Gpu("A100 80GB", 80.0),
     Gpu("H100 80GB", 80.0),
 )
+HOST_RAM_FLOOR_GB = 32
+HOST_RAM_STEP_GB = 16
 
 
 @dataclass(frozen=True)
@@ -41,6 +43,12 @@ class HardwareOption:
 def gpus_needed(required_gb: float, gpu_vram_gb: float) -> int:
     """Whole GPUs needed to hold `required_gb`, rounding up to the next full card."""
     return math.ceil(required_gb / gpu_vram_gb)
+
+
+def recommended_host_ram_gb(spec: DeploymentSpec) -> int:
+    """CPU/system RAM floor: 32 GB minimum, then 16 GB increments from total VRAM."""
+    rounded_vram = math.ceil(total_vram_gb(spec) / HOST_RAM_STEP_GB) * HOST_RAM_STEP_GB
+    return max(HOST_RAM_FLOOR_GB, rounded_vram)
 
 
 def recommend_hardware(spec: DeploymentSpec) -> tuple[HardwareOption, ...]:

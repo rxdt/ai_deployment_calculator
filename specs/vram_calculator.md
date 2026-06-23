@@ -39,6 +39,8 @@ Worked checks (subtotals before margin):
   A100 40/80GB, H100 80GB), GPU count, and whether tensor parallelism is needed.
 - PRIORITY 3: one-page web app (no scroll); inputs = trained checkbox, quantization dropdown,
   parameters, context window, secondary adapter (LoRA). Reuse styling from the fitpick-ai web app.
+- PRIORITY 4: host RAM floor — report the CPU/system RAM to pair with the deployment as the greater
+  of 32 GB and `total_vram_gb` rounded up to the next 16 GB increment.
 
 ## Acceptance signals
 
@@ -48,6 +50,7 @@ Worked checks (subtotals before margin):
 - [x] PRIORITY 1: pydantic model + formula functions, fully tested
 - [x] PRIORITY 2: hardware/optimization recommendation
 - [x] PRIORITY 3: one-page no-scroll web UI
+- [x] PRIORITY 4: host RAM floor in the report and web UI
 
 ## Non-goals
 

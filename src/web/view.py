@@ -41,6 +41,7 @@ class DeploymentView:
     """Display-ready deployment result for the one-page UI: total, breakdown, hardware."""
 
     total_vram: str
+    host_ram: str
     breakdown: tuple[BreakdownRow, ...]
     hardware: tuple[HardwareRow, ...]
 
@@ -62,7 +63,12 @@ def view_from_report(report: DeploymentReport) -> DeploymentView:
         )
         for option in report.hardware
     )
-    return DeploymentView(total_vram=format_gb(report.total_vram_gb), breakdown=breakdown, hardware=hardware)
+    return DeploymentView(
+        total_vram=format_gb(report.total_vram_gb),
+        host_ram=f"{report.host_ram_gb} GB host RAM",
+        breakdown=breakdown,
+        hardware=hardware,
+    )
 
 
 def view_from_form(form: FormInputs) -> DeploymentView:

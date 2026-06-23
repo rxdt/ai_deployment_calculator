@@ -4,10 +4,8 @@ from __future__ import annotations
 
 from html import escape
 
-from web.presenter import FormInputs, spec_from_form
+from web.presenter import DEFAULT_FORM, FormInputs, spec_from_form
 from web.view import DeploymentView, view_from_form
-
-DEFAULT_FORM = FormInputs(parameters_b=8, context_tokens=8000)
 
 STYLE = """
 :root { color-scheme: light; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
@@ -21,6 +19,10 @@ h2 { font-size: 14px; text-transform: uppercase; color: #4b5563; letter-spacing:
 label { display: grid; gap: 6px; font-size: 13px; color: #374151; }
 input, select {
   width: 100%; min-height: 40px; border: 1px solid #cbd5e1; border-radius: 6px; padding: 8px 10px;
+}
+button {
+  min-height: 40px; border: 0; border-radius: 6px; background: #0f766e; color: #fff;
+  font-size: 14px; font-weight: 600; cursor: pointer;
 }
 .panel { border: 1px solid #d1d5db; border-radius: 8px; background: #ffffff; padding: 18px; }
 .controls { display: grid; gap: 14px; align-content: start; }
@@ -101,7 +103,7 @@ def render_page(form: FormInputs | None = None) -> str:
 </head>
 <body>
   <main>
-    <form class="panel controls" aria-label="Deployment inputs">
+    <form class="panel controls" method="get" aria-label="Deployment inputs">
       <h1>VRAM Deployment Calculator</h1>
       <label>Parameters (billions)
         <input name="parameters_b" type="number" min="0.1" step="0.1" value="{active_form.parameters_b:g}">
@@ -118,12 +120,13 @@ def render_page(form: FormInputs | None = None) -> str:
       </label>
       <label class="check"><input name="trained" type="checkbox"{trained}> Model is trained</label>
       <label class="check"><input name="use_adapter" type="checkbox"{adapter}> LoRA adapter</label>
+      <button type="submit">Calculate</button>
     </form>
     <section class="results">
       <div class="panel hero">
         <div>
           <h2>{task_label(active_form)}</h2>
-          <p>{view.breakdown[0].value} weights, {view.breakdown[1].value} KV</p>
+          <p>{view.breakdown[0].value} weights, {view.breakdown[1].value} KV, {view.host_ram}</p>
         </div>
         <p class="total">{view.total_vram}</p>
       </div>

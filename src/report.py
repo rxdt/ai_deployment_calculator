@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from hardware import HardwareOption, recommend_hardware
+from hardware import HardwareOption, recommend_hardware, recommended_host_ram_gb
 from vram_calculator import (
     CUDA_TAX_GB,
     DeploymentSpec,
@@ -36,6 +36,7 @@ class DeploymentReport:
 
     breakdown: VramBreakdown
     total_vram_gb: float
+    host_ram_gb: int
     hardware: tuple[HardwareOption, ...]
 
 
@@ -50,5 +51,6 @@ def build_report(spec: DeploymentSpec) -> DeploymentReport:
     return DeploymentReport(
         breakdown=breakdown,
         total_vram_gb=total_vram_gb(spec),
+        host_ram_gb=recommended_host_ram_gb(spec),
         hardware=recommend_hardware(spec),
     )

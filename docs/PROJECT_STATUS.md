@@ -5,7 +5,8 @@
 ## Now
 
 - `specs/vram_calculator.md` is implemented through PRIORITY 4.
-- `specs/` contains only the active project spec and a test guards against template placeholders.
+- `specs/deployment_plan.md` is the active next spec track.
+- `specs/` contains the implemented VRAM spec and the active deployment-plan spec.
 - Core VRAM math, GPU and host RAM recommendations, presenter, view model, and a
   GET-submitting one-page WSGI app live under `src/` with 100% coverage.
 - `DeploymentSpec` is the only Pydantic model; web form state is a local dataclass.
@@ -19,7 +20,7 @@
 
 ## Next
 
-- Add the next real spec track; current VRAM spec has no unfinished priority items.
+- Implement deployment-plan guidance: primary GPU recommendation, fit labels, and optimization notes.
 
 ## Blockers
 -

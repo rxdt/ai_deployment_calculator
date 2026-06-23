@@ -1,6 +1,6 @@
 # VRAM Deployment Calculator — Spec
 
-PRIORITY 1 (active)
+PRIORITY 1 (implemented)
 
 ## Vision
 

@@ -61,6 +61,14 @@ Worked checks:
 - Priority 3: one-page web UI and quantization comparison are implemented.
 - Priority 4: deployment plan and assumption transparency are implemented.
 
+## Run often
+
+- `ruff check .` passes.
+- `ruff format .` passes.
+- `pyright` passes
+- `pytest` passes with 100% coverage on product code
+- `semgrep scan --config auto --config p/secrets --error` passes
+
 ## Completion Criteria
 
 - `uv run ralph gate` passes before commit

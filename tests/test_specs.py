@@ -2,6 +2,19 @@ from __future__ import annotations
 
 from pathlib import Path
 
+MAX_MARKDOWN_LINES = 100
+
+
+def markdown_handoff_paths() -> tuple[Path, ...]:
+    paths = [Path("AGENTS.md"), Path("PROMPT.md"), Path("README.md")]
+    paths.extend(Path("specs").glob("*.md"))
+    paths.extend(Path("docs").glob("*.md"))
+    return tuple(paths)
+
+
+def markdown_line_count(path: Path) -> int:
+    return len(path.read_text(encoding="utf-8").splitlines())
+
 
 def test_specs_do_not_include_template_placeholder() -> None:
     spec_text = "\n".join(path.read_text(encoding="utf-8") for path in Path("specs").glob("*.md"))
@@ -30,3 +43,13 @@ def test_project_status_does_not_report_stale_git_blocker() -> None:
 
     assert "Git cannot create `.git/index.lock`" not in status_text
     assert "## Blockers\n- None." in status_text
+
+
+def test_markdown_handoff_files_stay_short() -> None:
+    too_long = {
+        path.as_posix(): line_count
+        for path in markdown_handoff_paths()
+        if (line_count := markdown_line_count(path)) > MAX_MARKDOWN_LINES
+    }
+
+    assert too_long == {}

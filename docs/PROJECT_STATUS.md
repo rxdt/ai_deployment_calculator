@@ -1,9 +1,10 @@
 > Current truth of the repo. Keep it short and current. Human-agent interface point.
 
-## Add missing features
+## Current State
 
--
--
+- Specs are implemented through deployment plan and assumption transparency.
+- `docs/plan.md` is distilled to the durable formula, product shape, and milestones.
+- Markdown handoff files are tested to stay under 100 lines.
 
 ## Checks
 

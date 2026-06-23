@@ -2,13 +2,15 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 import pytest
-from pydantic import ValidationError
 
 from report import build_report
 from vram_calculator import DeploymentSpec
 from web.presenter import (
     DEFAULT_FORM,
+    FormInputError,
     FormInputs,
     deployment_task,
     form_from_query,
@@ -48,19 +50,31 @@ def test_report_from_form_matches_core_pipeline() -> None:
 
 
 def test_invalid_quantization_rejected() -> None:
-    with pytest.raises(ValidationError):
-        FormInputs.model_validate({"parameters_b": 8, "context_tokens": 8000, "weight_bits": 7})
+    bad_bits: Any = 7
+    with pytest.raises(FormInputError):
+        FormInputs(parameters_b=8, context_tokens=8000, weight_bits=bad_bits)
 
 
 def test_nonpositive_parameters_rejected() -> None:
-    with pytest.raises(ValidationError):
+    with pytest.raises(FormInputError):
         FormInputs(parameters_b=0, context_tokens=8000)
+
+
+def test_negative_context_rejected() -> None:
+    with pytest.raises(FormInputError):
+        FormInputs(parameters_b=8, context_tokens=-1)
 
 
 def test_form_from_query_maps_submitted_controls() -> None:
     # A checked checkbox submits "on"; an unchecked one is absent and keeps its False default.
     form = form_from_query("parameters_b=70&context_tokens=8000&weight_bits=4&trained=on")
     assert form == FormInputs(parameters_b=70, context_tokens=8000, weight_bits=4, trained=True)
+
+
+@pytest.mark.parametrize("bits", [16, 8, 4])
+def test_form_from_query_accepts_supported_quantization(bits: int) -> None:
+    form = form_from_query(f"parameters_b=8&context_tokens=8000&weight_bits={bits}")
+    assert form.weight_bits == bits
 
 
 def test_form_from_query_uses_last_repeated_value() -> None:
@@ -77,9 +91,17 @@ def test_form_from_query_falls_back_to_default_on_invalid_input() -> None:
     assert form_from_query("parameters_b=0&context_tokens=8000") == DEFAULT_FORM
 
 
+def test_form_from_query_falls_back_to_default_on_partial_input() -> None:
+    assert form_from_query("parameters_b=8") == DEFAULT_FORM
+
+
 def test_form_from_query_falls_back_to_default_on_malformed_number() -> None:
     assert form_from_query("parameters_b=8&context_tokens=lots") == DEFAULT_FORM
 
 
 def test_form_from_query_falls_back_to_default_on_unparseable_number() -> None:
     assert form_from_query("parameters_b=8&context_tokens=8000&weight_bits=nope") == DEFAULT_FORM
+
+
+def test_form_from_query_falls_back_to_default_on_unsupported_quantization() -> None:
+    assert form_from_query("parameters_b=8&context_tokens=8000&weight_bits=7") == DEFAULT_FORM

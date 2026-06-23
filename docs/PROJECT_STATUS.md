@@ -8,6 +8,7 @@
 - `specs/` contains only the active project spec and a test guards against template placeholders.
 - Core VRAM math, GPU and host RAM recommendations, presenter, view model, and a
   GET-submitting one-page WSGI app live under `src/` with 100% coverage.
+- `DeploymentSpec` is the only Pydantic model; web form state is a local dataclass.
 - The page CSS keeps both desktop and mobile layouts within one viewport without enabling body scroll.
 - README now reflects the AI deployment calculator instead of the source harness template.
 

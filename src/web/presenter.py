@@ -8,47 +8,55 @@ and report, so the Reflex page renders one pure call instead of mapping inputs i
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from dataclasses import dataclass
 from urllib.parse import parse_qs
-
-from pydantic import BaseModel, Field, ValidationError
 
 from report import DeploymentReport, build_report
 from vram_calculator import Bits, DeploymentSpec, Task
 
 CHECKED_VALUES = {"1", "true", "on", "yes"}
-NUMERIC_FIELDS: dict[str, Callable[[str], object]] = {
-    "parameters_b": float,
-    "context_tokens": int,
-    "weight_bits": int,
-}
+VALID_BITS = {16, 8, 4}
 
 
-class FormInputs(BaseModel):
+class FormInputError(ValueError):
+    """Raised when form inputs fail local validation."""
+
+
+@dataclass(frozen=True)
+class FormInputs:
     """The one-page form's raw controls, mirroring the PRIORITY 3 input list."""
 
-    parameters_b: float = Field(gt=0)
-    context_tokens: int = Field(ge=0)
+    parameters_b: float
+    context_tokens: int
     weight_bits: Bits = 16  # Quantization dropdown; KV stays 16-bit, so it is not a control.
     trained: bool = False  # "Model is trained" checkbox: unchecked means pure inference.
     use_adapter: bool = False  # Secondary LoRA adapter: distinguishes QLoRA from full training.
+
+    def __post_init__(self) -> None:
+        """Validate form inputs without adding a second Pydantic model to `src/`."""
+        if self.parameters_b <= 0:
+            raise FormInputError
+        if self.context_tokens < 0:
+            raise FormInputError
+        if self.weight_bits not in VALID_BITS:
+            raise FormInputError
 
 
 DEFAULT_FORM = FormInputs(parameters_b=8, context_tokens=8000)  # 8B / 8k first-load deployment.
 
 
-def query_values(raw_params: dict[str, str]) -> dict[str, object] | None:
-    """Coerce raw query-string values into the typed shape expected by `FormInputs`."""
-    try:
-        params = {key: caster(raw_params[key]) for key, caster in NUMERIC_FIELDS.items() if key in raw_params}
-    except ValueError:
-        return None
-    params.update({
-        checkbox: raw_params[checkbox].lower() in CHECKED_VALUES
-        for checkbox in ("trained", "use_adapter")
-        if checkbox in raw_params
-    })
-    return params
+def weight_bits_from_query(raw_params: dict[str, str]) -> Bits:
+    """Parse the optional quantization dropdown value into a supported bit-width."""
+    if "weight_bits" not in raw_params:
+        return DEFAULT_FORM.weight_bits
+    parsed_bits = int(raw_params["weight_bits"])
+    if parsed_bits == 16:
+        return 16
+    if parsed_bits == 8:
+        return 8
+    if parsed_bits == 4:
+        return 4
+    raise FormInputError
 
 
 def form_from_query(query_string: str) -> FormInputs:
@@ -60,12 +68,15 @@ def form_from_query(query_string: str) -> FormInputs:
     raw_params = {key: values[-1] for key, values in parse_qs(query_string).items()}
     if not raw_params:
         return DEFAULT_FORM
-    params = query_values(raw_params)
-    if params is None:
-        return DEFAULT_FORM
     try:
-        return FormInputs.model_validate(params)
-    except ValidationError:
+        return FormInputs(
+            parameters_b=float(raw_params["parameters_b"]),
+            context_tokens=int(raw_params["context_tokens"]),
+            weight_bits=weight_bits_from_query(raw_params),
+            trained=raw_params.get("trained", "").lower() in CHECKED_VALUES,
+            use_adapter=raw_params.get("use_adapter", "").lower() in CHECKED_VALUES,
+        )
+    except (ValueError, KeyError, FormInputError):
         return DEFAULT_FORM
 
 

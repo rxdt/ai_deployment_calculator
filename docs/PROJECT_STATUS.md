@@ -7,6 +7,7 @@
 - `specs/vram_calculator.md` is implemented through PRIORITY 3.
 - Core VRAM math, hardware recommendations, presenter, view model, and static one-page HTML
   renderer live under `src/` with 100% coverage.
+- The page CSS keeps both desktop and mobile layouts within one viewport without enabling body scroll.
 - README now reflects the AI deployment calculator instead of the source harness template.
 
 ## Checks

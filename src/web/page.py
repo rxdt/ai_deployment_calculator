@@ -36,10 +36,18 @@ table { width: 100%; border-collapse: collapse; font-size: 14px; }
 th, td { padding: 10px 8px; border-bottom: 1px solid #e5e7eb; text-align: left; }
 th { color: #4b5563; font-size: 12px; text-transform: uppercase; letter-spacing: 0; }
 @media (max-width: 760px) {
-  body { overflow: auto; }
-  main { height: auto; min-height: 100vh; grid-template-columns: 1fr; padding: 18px; }
-  .hero, .breakdown { grid-template-columns: 1fr; }
-  .total { font-size: 44px; }
+  main { height: 100dvh; grid-template-columns: 1fr; grid-template-rows: auto 1fr; gap: 10px; padding: 10px; }
+  .panel { padding: 12px; }
+  .controls { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .controls h1 { grid-column: 1 / -1; font-size: 22px; }
+  .check { grid-template-columns: 18px 1fr; }
+  .results { gap: 10px; grid-template-rows: auto auto 1fr; }
+  .hero { grid-template-columns: 1fr auto; align-items: center; }
+  .breakdown { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .metric { padding: 6px 8px; }
+  .metric strong { font-size: 18px; }
+  .total { font-size: 38px; }
+  th, td { padding: 7px 6px; font-size: 12px; }
 }
 """
 

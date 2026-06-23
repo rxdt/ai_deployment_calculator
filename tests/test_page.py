@@ -15,6 +15,13 @@ def test_default_page_renders_required_controls_and_worked_total() -> None:
     assert "20.1 GB" in html
 
 
+def test_page_keeps_mobile_layout_to_one_viewport() -> None:
+    html = render_page()
+    assert "@media (max-width: 760px)" in html
+    assert "body { overflow: auto; }" not in html
+    assert "main { height: 100dvh;" in html
+
+
 def test_page_selects_quantization_and_training_state() -> None:
     form = FormInputs(parameters_b=70, context_tokens=8000, weight_bits=4, trained=True, use_adapter=True)
     html = render_page(form)

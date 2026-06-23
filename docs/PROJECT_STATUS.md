@@ -24,7 +24,8 @@
 
 ## Next
 
-- Add the next spec before continuing product work; current specs are implemented.
+- `specs/quantization_comparison.md` is the next spec; implement its PRIORITY 1
+  pure weight-precision comparison layer (dataclasses, reuse `total_vram_gb`).
 
 ## Blockers
 - None.

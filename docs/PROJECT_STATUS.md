@@ -7,10 +7,10 @@
 - PyTorch MoE sizing is supported: total parameters size weights and active parameters size KV cache.
 - The Vite web UI is dark themed, backend-wired through `/api/report`, accepts decimal model sizes, escapes rendered values, normalizes invalid URL params, and ignores stale report responses.
 - The Vite and static fallback forms expose dense/MoE architecture plus active parameters.
-- The Vite web UI validates `/api/report` payload shape before rendering and falls back to the error state on malformed JSON.
+- The Vite web UI validates `/api/report` payload shape before rendering and falls back to the error state on malformed or partial breakdown JSON.
 - The LoRA adapter checkbox is disabled unless model training is enabled in both the Vite app and static fallback page.
 - `pyrightconfig.json` scopes pyright to `harness`, `src`, and `tests`, avoiding broad scans during Ralph verify.
-- Playwright smoke specs cover the Vite app, assumption labels, supported precisions, stale response handling, and malformed payload rejection.
+- Playwright smoke specs cover the Vite app, assumption labels, supported precisions, stale response handling, malformed payload rejection, and partial breakdown rejection.
 - Markdown handoff files are tested to stay under 100 lines.
 
 ## Checks
@@ -21,6 +21,7 @@
 - `npm run build` in `frontend/` - green.
 - `semgrep scan --config auto --config p/secrets --error` - green.
 - `npm run test:e2e` in `frontend/` - green when Chromium is launched outside the macOS sandbox, 8 passed.
+- Focused Playwright partial-breakdown regression attempted here; Chromium launch is blocked by this macOS sandbox.
 - `uv run ralph gate` - green.
 - `uv run ralph verify` - green.
 

@@ -45,6 +45,7 @@ const DEFAULT_VALUES = {
 const CHECKED_VALUES = new Set(["1", "true", "on", "yes"]);
 const VALID_BITS = new Set(["32", "16", "8", "4"]);
 const VALID_ARCHITECTURES = new Set(["dense", "moe"]);
+const BREAKDOWN_ROW_COUNT = 4;
 
 type FormState = typeof DEFAULT_VALUES & {
   trained: boolean;
@@ -110,7 +111,7 @@ function isReportPayload(value: unknown): value is ReportPayload {
     typeof value.plan.primary_fit === "string" &&
     typeof value.plan.optimization === "string" &&
     Array.isArray(value.breakdown) &&
-    value.breakdown.length >= 2 &&
+    value.breakdown.length === BREAKDOWN_ROW_COUNT &&
     value.breakdown.every(isDisplayRow) &&
     Array.isArray(value.hardware) &&
     value.hardware.every(isHardwareRow) &&

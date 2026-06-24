@@ -251,6 +251,23 @@ test("rejects malformed report payloads before rendering", async ({ page }) => {
   await expect(page.locator(".total")).toHaveCount(0);
 });
 
+test("rejects partial breakdown payloads before rendering", async ({ page }) => {
+  await page.route("**/api/report?**", async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        ...report,
+        breakdown: report.breakdown.slice(0, 2),
+      }),
+    });
+  });
+
+  await page.goto("/");
+
+  await expect(page.getByRole("alert")).toContainText("Report unavailable");
+  await expect(page.getByLabel("VRAM breakdown")).toHaveCount(0);
+});
+
 test("escapes reflected query and report values", async ({ page }) => {
   const hostileQuery = '/?parameters_b=%22%3E%3Cimg%20src=x%20onerror=%22window.injected%20%3D%20true%22%3E';
 

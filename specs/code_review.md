@@ -14,7 +14,8 @@ Vite app ignores stale `/api/report` responses when users submit newer inputs
 before an earlier request finishes. The backend query parser now also drops
 `use_adapter=on` unless `trained` is checked, matching the Vite and static form
 state. The Vite app validates report JSON before rendering so malformed payloads
-fall back to the existing error state instead of producing misleading UI.
+fall back to the existing error state instead of producing misleading UI,
+including partial VRAM breakdown payloads that cannot support the result view.
 
 ## Prioritize These Items
 
@@ -29,6 +30,7 @@ fall back to the existing error state instead of producing misleading UI.
 - [x] Backend query parsing clears adapter state when training is absent.
 - [x] Frontend manifest test matches the current Vite dependency.
 - [x] Malformed `/api/report` payloads are rejected before frontend rendering.
+- [x] Partial frontend breakdown payloads are rejected before rendering.
 
 ## Acceptance Signals
 

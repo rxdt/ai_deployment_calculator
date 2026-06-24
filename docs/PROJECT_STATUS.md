@@ -5,6 +5,7 @@
 - Specs are implemented through deployment plan and assumption transparency.
 - 32-bit weight and KV precision are supported in the core, comparison, and web form.
 - PyTorch MoE sizing is supported: total parameters size weights and active parameters size KV cache.
+- The assumption summary is architecture-aware: MoE shows the `active_parameters * (context_k / 8)` KV heuristic instead of the dense `(parameters / 10)` form, so the displayed assumption matches the core math.
 - The Vite web UI is dark themed, backend-wired through `/api/report`, accepts decimal model sizes, escapes rendered values, normalizes invalid URL params, and ignores stale report responses.
 - The Vite and static fallback forms expose dense/MoE architecture plus active parameters.
 - The Vite web UI validates `/api/report` payload shape before rendering and falls back to the error state on malformed or partial breakdown JSON.
@@ -33,4 +34,6 @@
 
 ## Blockers
 
-- None.
+- Cannot `git push origin main` from this sandbox: network egress to `git@github.com`
+  is denied (nc auth negotiation failed). Commit 40caaaf is ready locally and passes
+  `ralph gate`; a human must push. Agent Claude-assumptions, spec assumption_transparency.

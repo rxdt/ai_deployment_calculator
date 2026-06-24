@@ -61,6 +61,6 @@ def build_report(spec: DeploymentSpec) -> DeploymentReport:
         host_ram_gb=recommended_host_ram_gb(spec),
         hardware=tuple(plan_option.option for plan_option in plan.options),
         plan=plan,
-        assumptions=build_assumption_summary(),
+        assumptions=build_assumption_summary(spec),
         comparison=quantization_comparison(spec),
     )

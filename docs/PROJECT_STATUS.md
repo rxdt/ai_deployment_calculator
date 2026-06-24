@@ -37,6 +37,4 @@
 
 ## Blockers
 
-- `git push origin main` fails in this sandbox: egress to `git@github.com` is
-  denied (nc auth negotiation failed). The HEAD frontend-retheme commit passes
-  `ralph gate` locally; a human must push it. Agent Claude-frontend, spec frontend.
+- None.

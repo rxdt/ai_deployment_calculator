@@ -15,9 +15,9 @@ hand-calculating every model deployment.
 - [ ] Add support for calculating GGUF (running via llama.cpp) where GB = W + KV + T + C  (Notice the * 1.10 multiplier is gone)
 - [ ] Research and record formula for LoRA and QLoRA (only the weights shrink for QLoRA)
 - [ ] Add support for calculating LoRA and QLoRA (only the weights shrink for QLoRA)
-- [ ] Research and add MoE support using total parameters for weights and active parameters for KV cache.
-  - PyTorch Inference (16-bit, 8k context): VRAM = ((47 * 2)_W + (1.3 * 1 * 1)_KV + 0_T + 1.5_C) * 1.10
-  - GGUF Offload (4-bit, 8k context): Memory = ((47 * 0.5)_W + (1.3 * 1 * 1)_KV + 0_T + 0.5_C) * 1.0
+- [x] Add PyTorch MoE support using total parameters for weights and active parameters for KV cache.
+- [ ] Research GGUF MoE offload
+- [ ] MoE as well? Memory = ((47 * 0.5)_W + (1.3 * 1 * 1)_KV + 0_T + 0.5_C) * 1.0
 
 ## Boundaries
 
@@ -52,6 +52,7 @@ Worked checks:
 - 8B, 16-bit weights, 16-bit KV, 8k inference: `20.1 GB`.
 - 8B, 4-bit weights, 16-bit KV, 8k QLoRA: `11.3 GB`.
 - 70B, 4-bit weights, 16-bit KV, 8k QLoRA: `52.3 GB`.
+- MoE 47B total, 1.3B active, 16-bit KV, 8k inference: `106.5 GB`.
 - 400,000 parameters is `0.0004` billion; with 8-bit weights, 8-bit KV,
   8k context, and full training, total VRAM rounds to `1.7 GB`.
 

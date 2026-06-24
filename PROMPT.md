@@ -1,4 +1,4 @@
-You are one fresh-context iteration of the loop. The repo is your memory.
+You are one fresh-context session. The repo is your memory.
 Specs say *what* work to do. You decide *how* and *what is most important next*.
 
 1. Read `specs/`. If there is work outlined in specs, you must implement something.
@@ -20,14 +20,14 @@ Specs say *what* work to do. You decide *how* and *what is most important next*.
     - rebase it onto `main`
     - run `uv run ralph gate`
     - fast-forward merge with `git merge --ff-only <branch>`
-10. You must COMMIT and PUSH work to Github! Use `git push -u origin <current-branch>` which runs full verify.
+9.  You must COMMIT and PUSH work to Github! Use `git push -u origin <current-branch>` which runs full verify.
   - End your turn with pushed commits.
   - End your turn with a successful push.
-9. If `uv run ralph verify` fails for any reason, fix the issue.
+10. If `uv run ralph verify` fails for any reason, fix the issue.
   - If you have tried to fix the issue multiple times and cannot:
     - Commit the files that do pass.
     - Mention the issue / filepath in `docs/PROJECT_STATUS.md` under "Blockers" and state your agent name and spec name.
-10. Update `specs/`, `docs/`, and `docs/PROJECT_STATUS.md` to honestly reflect changes.
+11. Update `specs/`, `docs/`, and `docs/PROJECT_STATUS.md` to honestly reflect changes.
   - Remove items you completed if they do not add context for future agents.
   - Keep each `.md` < 100 lines.
 

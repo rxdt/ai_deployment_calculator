@@ -25,12 +25,12 @@
 
 - `UV_CACHE_DIR=/Users/rxdt/ai_deployment_calculator/scratchpad/uv-cache uv run pytest tests/test_readme.py` — green locally, 1 passed.
 - `UV_CACHE_DIR=/Users/rxdt/ai_deployment_calculator/scratchpad/uv-cache uv run pytest tests/test_presenter.py` — green locally, 27 passed.
-- `uv run pytest tests/test_frontend.py` — green locally, 4 passed.
+- `UV_CACHE_DIR=/Users/rxdt/ai_deployment_calculator/scratchpad/uv-cache uv run pytest tests/test_frontend.py` — green locally, 4 passed.
 - `UV_CACHE_DIR=/Users/rxdt/ai_deployment_calculator/scratchpad/uv-cache timeout 5 uv run uvicorn --app-dir src web.server:app --host 127.0.0.1 --port 8000` — started locally.
 - `uv run ruff check tests/test_frontend.py` — green locally.
 - `cd frontend && npm run build` — green locally.
 - `cd frontend && TMPDIR=/Users/rxdt/ai_deployment_calculator/scratchpad/playwright-tmp npm run test:e2e` — blocked before test bodies: 8 Chromium launches fail with `bootstrap_check_in ... Permission denied (1100)`.
-- `UV_CACHE_DIR=/Users/rxdt/ai_deployment_calculator/scratchpad/uv-cache uv run ralph gate` — green locally.
+- `UV_CACHE_DIR=/Users/rxdt/ai_deployment_calculator/scratchpad/uv-cache uv run ralph gate` — green in clean scratchpad repo copy; blocked in original worktree by protected `docs/plan.md`.
 - `UV_CACHE_DIR=/Users/rxdt/ai_deployment_calculator/scratchpad/uv-cache TMPDIR=/Users/rxdt/ai_deployment_calculator/scratchpad/tmp XDG_CONFIG_HOME=/Users/rxdt/ai_deployment_calculator/scratchpad/semgrep-config XDG_CACHE_HOME=/Users/rxdt/ai_deployment_calculator/scratchpad/semgrep-cache SEMGREP_LOG_FILE=/Users/rxdt/ai_deployment_calculator/scratchpad/semgrep/semgrep.log SEMGREP_SETTINGS_FILE=/Users/rxdt/ai_deployment_calculator/scratchpad/semgrep/settings.yml SSL_CERT_FILE=/Users/rxdt/ai_deployment_calculator/.venv/lib/python3.14/site-packages/certifi/cacert.pem REQUESTS_CA_BUNDLE=/Users/rxdt/ai_deployment_calculator/.venv/lib/python3.14/site-packages/certifi/cacert.pem uv run ralph verify` — green locally.
 - `uv run pytest` — previously green locally, 150 passed, 100% coverage.
 - `UV_CACHE_DIR=/Users/rxdt/ai_deployment_calculator/scratchpad/uv-cache ... TMPDIR=/Users/rxdt/ai_deployment_calculator/scratchpad/tmp uv run ralph verify` — green locally.
@@ -44,3 +44,5 @@
 
 ## Blockers
 - Chromium cannot launch under this macOS sandbox for Playwright (`bootstrap_check_in ... Permission denied (1100)`). Agent Codex-code_review-1/1.
+- `docs/plan.md` has a protected working-tree modification, so `ralph gate` rejects before code checks. Agent Codex-code_review-1/2.
+- The sandbox denies writes to `.git`, so normal staging/commit cannot create `.git/index.lock`. Agent Codex-code_review-1/2.

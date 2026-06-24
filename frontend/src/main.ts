@@ -70,6 +70,55 @@ function escapeHtml(value: string): string {
     .replace(/'/g, "&#39;");
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function isDisplayRow(value: unknown): value is DisplayRow {
+  return isRecord(value) && typeof value.label === "string" && typeof value.value === "string";
+}
+
+function isHardwareRow(value: unknown): value is HardwareRow {
+  return (
+    isRecord(value) &&
+    typeof value.name === "string" &&
+    typeof value.detail === "string" &&
+    typeof value.sharding === "string"
+  );
+}
+
+function isComparisonRow(value: unknown): value is ComparisonRow {
+  return (
+    isRecord(value) &&
+    typeof value.precision === "string" &&
+    typeof value.total === "string" &&
+    typeof value.savings === "string" &&
+    typeof value.selected === "boolean"
+  );
+}
+
+function isReportPayload(value: unknown): value is ReportPayload {
+  return (
+    isRecord(value) &&
+    typeof value.total_vram === "string" &&
+    typeof value.host_ram === "string" &&
+    isRecord(value.plan) &&
+    typeof value.plan.primary === "string" &&
+    typeof value.plan.primary_fit === "string" &&
+    typeof value.plan.optimization === "string" &&
+    Array.isArray(value.breakdown) &&
+    value.breakdown.length >= 2 &&
+    value.breakdown.every(isDisplayRow) &&
+    Array.isArray(value.hardware) &&
+    value.hardware.every(isHardwareRow) &&
+    Array.isArray(value.comparison) &&
+    value.comparison.every(isComparisonRow) &&
+    Array.isArray(value.assumptions) &&
+    value.assumptions.every(isDisplayRow) &&
+    typeof value.calculation === "string"
+  );
+}
+
 function defaultState(): FormState {
   return {
     ...DEFAULT_VALUES,
@@ -285,7 +334,10 @@ async function loadReport(rawSearch: URLSearchParams): Promise<void> {
     if (!response.ok) {
       throw new Error(`Report request failed: ${response.status}`);
     }
-    const report = (await response.json()) as ReportPayload;
+    const report: unknown = await response.json();
+    if (!isReportPayload(report)) {
+      throw new Error("Report payload does not match the frontend contract");
+    }
     if (requestId !== activeReportRequest) {
       return;
     }

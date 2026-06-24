@@ -19,7 +19,8 @@ Invalid URL params are normalized before the Vite form is rendered or the backen
 report is fetched. Local Playwright execution reaches Chromium launch, then is
 blocked by macOS sandbox permission errors. README now documents the backend
 and Vite commands needed to run the app end to end. The stdlib WSGI app still
-serves a static fallback page for simple local viewing.
+serves a static fallback page for simple local viewing. The Vite app validates
+report payload shape before rendering and shows the error state on malformed JSON.
 
 ## Prioritize These Items
 

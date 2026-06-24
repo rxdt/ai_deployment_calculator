@@ -224,6 +224,24 @@ test("keeps the form visible when the report api fails", async ({ page }) => {
   await expect(page.getByRole("alert")).toContainText("Unable to load report");
 });
 
+test("rejects malformed report payloads before rendering", async ({ page }) => {
+  await page.route("**/api/report?**", async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        ...report,
+        comparison: [{ precision: "16-bit", total: "20.1 GB", savings: "0.0 GB", selected: "yes" }],
+      }),
+    });
+  });
+
+  await page.goto("/");
+
+  await expect(page.getByLabel("Parameters (billions)")).toBeVisible();
+  await expect(page.getByRole("alert")).toContainText("Report unavailable");
+  await expect(page.locator(".total")).toHaveCount(0);
+});
+
 test("escapes reflected query and report values", async ({ page }) => {
   const hostileQuery = '/?parameters_b=%22%3E%3Cimg%20src=x%20onerror=%22window.injected%20%3D%20true%22%3E';
 

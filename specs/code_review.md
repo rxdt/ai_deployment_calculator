@@ -13,7 +13,8 @@ rendered or `/api/report` is fetched, matching the backend fallback behavior. Th
 Vite app ignores stale `/api/report` responses when users submit newer inputs
 before an earlier request finishes. The backend query parser now also drops
 `use_adapter=on` unless `trained` is checked, matching the Vite and static form
-state.
+state. The Vite app validates report JSON before rendering so malformed payloads
+fall back to the existing error state instead of producing misleading UI.
 
 ## Prioritize These Items
 
@@ -27,6 +28,7 @@ state.
 - [x] Static fallback clears adapter state when training is disabled.
 - [x] Backend query parsing clears adapter state when training is absent.
 - [x] Frontend manifest test matches the current Vite dependency.
+- [x] Malformed `/api/report` payloads are rejected before frontend rendering.
 
 ## Acceptance Signals
 

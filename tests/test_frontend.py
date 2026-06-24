@@ -40,6 +40,13 @@ def test_vite_frontend_renders_required_controls_and_fetches_report_api() -> Non
     assert 'role="alert"' in script
     assert "Unable to load report" in script
     assert "function escapeHtml(value: string): string" in script
+    assert all(
+        fragment in script
+        for fragment in (
+            "function isReportPayload(value: unknown): value is ReportPayload",
+            'throw new Error("Report payload does not match the frontend contract")',
+        )
+    )
     assert '.replace(/</g, "&lt;")' in script
     assert '.replace(/"/g, "&quot;")' in script
     assert "${escapeHtml(report.total_vram)}" in script
@@ -80,6 +87,13 @@ def test_playwright_harness_exercises_rendered_form_and_report_api() -> None:
     assert 'page.locator(".optimization")' in spec
     assert "status: 503" in spec
     assert 'page.getByRole("alert")' in spec
+    assert all(
+        fragment in spec
+        for fragment in (
+            "rejects malformed report payloads before rendering",
+            'selected: "yes"',
+        )
+    )
     assert "escapes reflected query and report values" in spec
     assert 'await expect(page.locator("img")).toHaveCount(0)' in spec
     assert "clears adapter use when training is turned off" in spec

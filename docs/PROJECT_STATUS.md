@@ -31,6 +31,5 @@
 
 ## Blockers
 - Frontend dependencies are not installed in this checkout, so Playwright cannot run.
-- FastAPI work needs a dependency/spec decision because `pyproject.toml` is protected.
 - Semgrep cannot initialize system trust anchors in this sandbox, so full verify stops in security.
-- Git metadata is not writable in this sandbox, so this iteration could not be committed or pushed.
+- `git push origin main` fails in this sandbox (SOCKS error 2 / no network); Claude-backend-1 committed the FastAPI backend locally but could not push.

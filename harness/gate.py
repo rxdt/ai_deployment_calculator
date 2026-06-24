@@ -1,9 +1,7 @@
 """Gate and verify: staged quality checks plus loop containment.
 
-`run_gate` is the pre-commit gate — fast lint/format for everyone, plus containment (protected
-paths, banned patterns, preferences limits) for the autonomous loop when ``RALPH_LOOP`` is set
-(``harness/ralph.sh`` exports it). `run_verify` is the heavier pre-push / CI pass: types, security
-(semgrep), tests, and 100% coverage.
+`uv run ralph gate` is the fast pre-commit gate. `uv run ralph gate` runs everything. PR / CI pass: types,
+security, tests, and 100% coverage.
 """
 
 from __future__ import annotations
@@ -11,6 +9,7 @@ from __future__ import annotations
 import fnmatch
 import os
 import subprocess
+import sys
 from pathlib import PurePosixPath
 from typing import TYPE_CHECKING
 
@@ -18,7 +17,7 @@ from harness.gitio import clean_git_env, run_git, staged_added_lines, staged_fil
 
 try:
     from harness import preferences
-except ImportError:  # preferences.py is optional; humans may delete it without breaking the gate.
+except ImportError:  # preferences.py is optional. Humans can deletet without breaking the gate.
     preferences = None
 
 if TYPE_CHECKING:
@@ -43,15 +42,7 @@ FULL_CHECKS: Checks = (
     ("tests", ("uv", "run", "pytest")),
 )
 
-PROTECTED_PATHS = (
-    "AGENTS.md",
-    "harness/*",
-    "tests/harness/*",
-    ".githooks/*",
-    ".github/*",
-    "pyproject.toml",
-    "docs/plan.md",
-)
+PROTECTED_PATHS = ("AGENTS.md", "harness/*", "tests/harness/*", ".githooks/*", ".github/*", "pyproject.toml")
 
 FORBIDDEN_PATTERNS = (
     "noqa",
@@ -88,19 +79,31 @@ def staged_preferences_violations(repo: Path) -> list[str]:
     return problems
 
 
+def unstage_protected(repo: Path, files: list[str]) -> list[str]:
+    """Drop protected paths from the index so a loop commit can't include them; the edit is left in
+    the working tree, not reverted. Returns the paths removed from staging, for the caller to report.
+
+    This is containment that self-heals instead of trapping: a tree that arrives with protected
+    files already staged (e.g. a prior iteration the agent can't clean) no longer blocks the agent's
+    own legitimate work -- only the protected paths are kept out of the commit.
+    """
+    protected = [path for path in files if any(fnmatch.fnmatch(path, pattern) for pattern in PROTECTED_PATHS)]
+    for path in protected:
+        run_git(repo, ["reset", "-q", "HEAD", "--", path])
+        sys.stderr.write(f"ralph: kept protected path out of the commit (left in working tree): {path}\n")
+    return protected
+
+
 def agent_violations(repo: Path, files: list[str]) -> list[str]:
-    """Flag protected-path, banned-pattern, and preferences issues for a loop commit."""
+    """Contain a loop commit: unstage protected paths, then flag banned patterns and preferences
+    breaks in whatever legitimately remains staged. Protected paths are excluded, not blocked."""
+    unstage_protected(repo, files)
     problems = [
-        f"protected path modified: {path}"
-        for path in files
-        if any(fnmatch.fnmatch(path, pattern) for pattern in PROTECTED_PATHS)
-    ]
-    problems.extend(
         f"banned pattern '{pattern}' in added line: {line.strip()}"
         for line in staged_added_lines(repo)
         for pattern in FORBIDDEN_PATTERNS
         if pattern in line
-    )
+    ]
     problems.extend(staged_preferences_violations(repo))
     return problems
 

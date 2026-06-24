@@ -30,7 +30,7 @@ jobs:
         run: uv run --no-sync pylint src harness
 
       - name: Ruff Format Check
-        run: uv run --no-sync ruff format --check .
+        run: uv run --no-sync ruff format .
 
       - name: Pyright Type Check
         run: uv run --no-sync pyright

@@ -121,13 +121,30 @@ def test_staged_preferences_skips_deletions(git_repo: Path) -> None:
     assert gate.staged_preferences_violations(git_repo) == []
 
 
-def test_run_gate_blocks_protected_paths_under_loop(monkeypatch: pytest.MonkeyPatch, git_repo: Path) -> None:
-    """Under the loop, protected paths are blocked."""
+def test_run_gate_unstages_protected_paths_under_loop(
+    monkeypatch: pytest.MonkeyPatch, git_repo: Path
+) -> None:
+    """Under the loop, a protected path is dropped from the index (not blocked) and kept in the tree."""
     monkeypatch.setenv("RALPH_LOOP", "1")
     monkeypatch.setattr(gate, "run_checks", fake_checks_clean)
     stage(git_repo, "harness/util.py", "value = 1\n")
-    problems = gate.run_gate(git_repo)
-    assert "protected path modified: harness/util.py" in problems
+    assert gate.run_gate(git_repo) == []  # self-heals instead of rejecting
+    assert "harness/util.py" not in gate.staged_files(git_repo)  # excluded from the commit
+    assert (git_repo / "harness" / "util.py").exists()  # but the edit survives in the working tree
+
+
+def test_run_gate_lets_agent_work_commit_beside_protected_path(
+    monkeypatch: pytest.MonkeyPatch, git_repo: Path
+) -> None:
+    """A protected path staged alongside legit work no longer traps the commit: only it is dropped."""
+    monkeypatch.setenv("RALPH_LOOP", "1")
+    monkeypatch.setattr(gate, "run_checks", fake_checks_clean)
+    stage(git_repo, "harness/util.py", "value = 1\n")  # protected, pre-staged
+    stage(git_repo, "src/feature.py", "y = 2\n")  # the agent's own work
+    assert gate.run_gate(git_repo) == []
+    staged = gate.staged_files(git_repo)
+    assert "harness/util.py" not in staged
+    assert "src/feature.py" in staged  # legit work still commits
 
 
 def test_run_gate_skips_containment_for_humans(monkeypatch: pytest.MonkeyPatch, git_repo: Path) -> None:

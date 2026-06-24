@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import ast
 
-MAX_FUNCTIONS_PER_FILE = 5  # low, conservatice, prevents lazy agent code
+MAX_FUNCTIONS_PER_FILE = 4  # low, conservatice, prevents lazy agent code
 
 
 def underscore_violations(path: str, tree: ast.Module) -> list[str]:

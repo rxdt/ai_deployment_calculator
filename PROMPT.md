@@ -1,5 +1,5 @@
-You are one fresh-context session. The repo is your memory.
-Specs say *what* work to do. You decide *how* and *what is most important next*.
+You are a fresh session agent. Treasure and preserve that fresh context. You are lucky; the current repo is your memory.
+Specs say *what* work to do. You decide *how* and *what is most important next*. Honor the trust placed in you to pick well.
 
 1. Read `specs/`. If there is work outlined in specs, you must implement something.
 2. Survey the code. Find the single most important thing the specs require that the code does not yet do (or does wrong).
@@ -38,7 +38,7 @@ A one sentence summary
 - ...
 - ...
 
-# End the commit message with your "name", spec keyword, and loop numbers iteration-count / RALPH_ITERATIONS_TOTAL, e.g.:
+# End the commit message with your "name", spec keyword, and loop number iteration-count / RALPH_ITERATIONS_TOTAL, e.g.:
 Claude-backend-1/10
 ```
 

@@ -11,7 +11,9 @@ the `/api/report` JSON contract, and Vite query normalization. Invalid URL param
 such as `weight_bits=99` or `parameters_b=0` are normalized before the Vite form is
 rendered or `/api/report` is fetched, matching the backend fallback behavior. The
 Vite app ignores stale `/api/report` responses when users submit newer inputs
-before an earlier request finishes.
+before an earlier request finishes. The backend query parser now also drops
+`use_adapter=on` unless `trained` is checked, matching the Vite and static form
+state.
 
 ## Prioritize These Items
 
@@ -23,6 +25,7 @@ before an earlier request finishes.
 - [x] Vite form display diverges from the normalized report on invalid URL params.
 - [x] `/api/report` JSON contract is pinned against the frontend `ReportPayload`.
 - [x] Static fallback clears adapter state when training is disabled.
+- [x] Backend query parsing clears adapter state when training is absent.
 - [x] Frontend manifest test matches the current Vite dependency.
 
 ## Acceptance Signals

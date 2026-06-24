@@ -8,7 +8,7 @@
 - The Vite web UI is dark themed, backend-wired through `/api/report`, accepts arbitrary positive decimal model sizes, escapes rendered query/report values, keeps the form visible if the API fails, and normalizes invalid URL params before display/fetch.
 - The Vite web UI ignores stale `/api/report` responses so older in-flight requests cannot overwrite newer submitted inputs.
 - The LoRA adapter checkbox is disabled unless model training is enabled in both the Vite app and static fallback page; turning training off clears adapter state before submit.
-- The static fallback also clears stale `use_adapter=on` query state on first render when `trained` is absent.
+- The backend query parser and static fallback clear stale `use_adapter=on` query state when `trained` is absent.
 - Frontend dependency smoke tests now match the current Vite 8 manifest.
 - Playwright config and Vite smoke specs are present under `frontend/`; smoke coverage includes all assumption labels, supported precisions, and invalid URL-param normalization.
 - A FastAPI app (`src/web/server.py`) serves `/api/report` JSON and the `/` fallback page, reusing the pure report path.
@@ -23,12 +23,14 @@
 ## Checks
 
 - `UV_CACHE_DIR=/Users/rxdt/ai_deployment_calculator/scratchpad/uv-cache uv run pytest tests/test_readme.py` — green locally, 1 passed.
+- `UV_CACHE_DIR=/Users/rxdt/ai_deployment_calculator/scratchpad/uv-cache uv run pytest tests/test_presenter.py` — green locally, 27 passed.
 - `uv run pytest tests/test_frontend.py` — previously green locally, 4 passed.
 - `UV_CACHE_DIR=/Users/rxdt/ai_deployment_calculator/scratchpad/uv-cache timeout 5 uv run uvicorn --app-dir src web.server:app --host 127.0.0.1 --port 8000` — started locally.
 - `uv run ruff check tests/test_frontend.py` — green locally.
 - `cd frontend && npm run build` — green locally.
 - `cd frontend && TMPDIR=/Users/rxdt/ai_deployment_calculator/scratchpad/playwright-tmp npm run test:e2e` — blocked before test bodies: Chromium launch fails with `bootstrap_check_in ... Permission denied (1100)`.
 - `UV_CACHE_DIR=/Users/rxdt/ai_deployment_calculator/scratchpad/uv-cache uv run ralph gate` — green locally.
+- `UV_CACHE_DIR=/Users/rxdt/ai_deployment_calculator/scratchpad/uv-cache TMPDIR=/Users/rxdt/ai_deployment_calculator/scratchpad/tmp XDG_CONFIG_HOME=/Users/rxdt/ai_deployment_calculator/scratchpad/semgrep-config XDG_CACHE_HOME=/Users/rxdt/ai_deployment_calculator/scratchpad/semgrep-cache SEMGREP_LOG_FILE=/Users/rxdt/ai_deployment_calculator/scratchpad/semgrep/semgrep.log SEMGREP_SETTINGS_FILE=/Users/rxdt/ai_deployment_calculator/scratchpad/semgrep/settings.yml SSL_CERT_FILE=/Users/rxdt/ai_deployment_calculator/.venv/lib/python3.14/site-packages/certifi/cacert.pem REQUESTS_CA_BUNDLE=/Users/rxdt/ai_deployment_calculator/.venv/lib/python3.14/site-packages/certifi/cacert.pem uv run ralph verify` — green locally.
 - `uv run pytest` — previously green locally, 150 passed, 100% coverage.
 - `UV_CACHE_DIR=/Users/rxdt/ai_deployment_calculator/scratchpad/uv-cache ... TMPDIR=/Users/rxdt/ai_deployment_calculator/scratchpad/tmp uv run ralph verify` — green locally.
 - Branch: `main`.

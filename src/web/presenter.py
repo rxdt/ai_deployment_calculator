@@ -77,13 +77,14 @@ def form_from_query(query_string: str) -> FormInputs:
     if not raw_params:
         return DEFAULT_FORM
     try:
+        trained = raw_params.get("trained", "").lower() in CHECKED_VALUES
         return FormInputs(
             parameters_b=float(raw_params["parameters_b"]),
             context_tokens=int(raw_params["context_tokens"]),
             weight_bits=bits_from_query(raw_params, "weight_bits", DEFAULT_FORM.weight_bits),
             kv_cache_bits=bits_from_query(raw_params, "kv_cache_bits", DEFAULT_FORM.kv_cache_bits),
-            trained=raw_params.get("trained", "").lower() in CHECKED_VALUES,
-            use_adapter=raw_params.get("use_adapter", "").lower() in CHECKED_VALUES,
+            trained=trained,
+            use_adapter=trained and raw_params.get("use_adapter", "").lower() in CHECKED_VALUES,
         )
     except (ValueError, KeyError, FormInputError):
         return DEFAULT_FORM

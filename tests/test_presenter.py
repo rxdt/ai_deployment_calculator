@@ -96,6 +96,11 @@ def test_form_from_query_maps_submitted_controls() -> None:
     )
 
 
+def test_form_from_query_ignores_adapter_without_training() -> None:
+    form = form_from_query("parameters_b=8&context_tokens=8000&use_adapter=on")
+    assert form == FormInputs(parameters_b=8, context_tokens=8000)
+
+
 @pytest.mark.parametrize("bits", [32, 16, 8, 4])
 def test_form_from_query_accepts_supported_quantization(bits: int) -> None:
     form = form_from_query(f"parameters_b=8&context_tokens=8000&weight_bits={bits}")

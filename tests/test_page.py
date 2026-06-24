@@ -9,7 +9,15 @@ from web.fragments import (
 )
 from web.page import render_page, selected_bits, task_label
 from web.presenter import FormInputs
-from web.view import AssumptionRow, BreakdownRow, ComparisonRow, DeploymentView, HardwareRow, PlanSummary
+from web.view import (
+    AssumptionRow,
+    BreakdownRow,
+    ComparisonRow,
+    DeploymentView,
+    HardwareRow,
+    PlanSummary,
+    ResultTables,
+)
 
 
 def test_default_page_renders_required_controls_and_worked_total() -> None:
@@ -118,9 +126,11 @@ def test_page_helpers_render_labels_bits_and_escaped_rows() -> None:
         host_ram="32 GB host RAM",
         plan=PlanSummary(primary="GPU <A>", primary_fit="single GPU", optimization="Use <less> memory"),
         breakdown=(BreakdownRow("KV <cache>", "0.8 GB"),),
-        hardware=(HardwareRow("GPU <A>", "1x 24 GB", "single GPU"),),
-        comparison=(ComparisonRow("8-<bit>", "11.3 GB", "8.8 GB", True),),
-        assumptions=(AssumptionRow("Safety <margin>", "10%"),),
+        tables=ResultTables(
+            hardware=(HardwareRow("GPU <A>", "1x 24 GB", "single GPU"),),
+            comparison=(ComparisonRow("8-<bit>", "11.3 GB", "8.8 GB", True),),
+            assumptions=(AssumptionRow("Safety <margin>", "10%"),),
+        ),
         calculation="(8.0 + 0.8 + 0.0 + 1.5) * 1.10 = 11.3 GB",
     )
     assert task_label(FormInputs(parameters_b=8, context_tokens=8000)) == "Inference"

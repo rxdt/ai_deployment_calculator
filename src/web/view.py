@@ -65,17 +65,39 @@ class ComparisonRow:
 
 
 @dataclass(frozen=True)
+class ResultTables:
+    """Grouped table data for the one-page UI."""
+
+    hardware: tuple[HardwareRow, ...]
+    comparison: tuple[ComparisonRow, ...]
+    assumptions: tuple[AssumptionRow, ...]
+
+
+@dataclass(frozen=True)
 class DeploymentView:
-    """Display-ready deployment result for the one-page UI: total, breakdown, hardware."""
+    """Display-ready deployment result for the one-page UI."""
 
     total_vram: str
     host_ram: str
     plan: PlanSummary
     breakdown: tuple[BreakdownRow, ...]
-    hardware: tuple[HardwareRow, ...]
-    comparison: tuple[ComparisonRow, ...]
-    assumptions: tuple[AssumptionRow, ...]
+    tables: ResultTables
     calculation: str  # Auditable VRAM equation with substituted component values.
+
+    @property
+    def hardware(self) -> tuple[HardwareRow, ...]:
+        """Return rendered hardware recommendation rows."""
+        return self.tables.hardware
+
+    @property
+    def comparison(self) -> tuple[ComparisonRow, ...]:
+        """Return rendered quantization comparison rows."""
+        return self.tables.comparison
+
+    @property
+    def assumptions(self) -> tuple[AssumptionRow, ...]:
+        """Return rendered assumption rows."""
+        return self.tables.assumptions
 
 
 def format_calculation(breakdown: VramBreakdown, total_vram_gb: float) -> str:
@@ -131,9 +153,7 @@ def view_from_report(report: DeploymentReport) -> DeploymentView:
             optimization=plan.optimization,
         ),
         breakdown=breakdown,
-        hardware=hardware,
-        comparison=comparison,
-        assumptions=assumptions,
+        tables=ResultTables(hardware=hardware, comparison=comparison, assumptions=assumptions),
         calculation=format_calculation(parts, report.total_vram_gb),
     )
 

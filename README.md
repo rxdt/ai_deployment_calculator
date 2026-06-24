@@ -61,7 +61,8 @@ assert rows == [
 - Pure typed calculator core in `src/vram_calculator.py`.
 - Hardware recommendations in `src/hardware.py` for T4, RTX 4090, L4, A100, H100, and B200.
 - Host RAM floor recommendation and display-ready report assembly.
-- GET-submitting one-page web app rendered by `src/web/page.py`.
+- Vite web app in `frontend/`, backed by the Python `/api/report` endpoint.
+- Static fallback page rendered by `src/web/page.py`.
 - 100% test coverage across product code.
 
 ## Run Checks
@@ -73,19 +74,14 @@ uv run pytest
 uv run ralph verify
 ```
 
-## Render The Page
-
-```sh
-PYTHONPATH=src uv run python -c "from web.page import render_page; print(render_page())" > scratchpad/vram_calculator.html
-```
-
-Open `scratchpad/vram_calculator.html` in a browser to view the static page.
-
-## Serve The Page
+## Serve The App
 
 ```sh
 PYTHONPATH=src uv run python -c "from wsgiref.simple_server import make_server; from web.app import application; make_server('', 8000, application).serve_forever()"
+cd frontend && npm install && npm run dev
 ```
+
+The Vite dev server proxies `/api/report` to the Python backend on port 8000.
 
 ## Project Map
 

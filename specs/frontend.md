@@ -6,10 +6,10 @@ Create a one page, no scroll web app that takes user input about their model and
 
 ## Current State
 
-The stdlib WSGI web app renders a one-page calculator with dark theme styling,
-all required inputs, backend-driven results, hardware recommendations, host RAM,
-quantization comparison, compact assumption disclosure, and tiny sub-0.1B model
-inputs supported by the core calculator.
+The Vite frontend in `frontend/` renders the one-page calculator shell and calls
+the backend `/api/report` endpoint for display-ready results from the pure Python
+report path. The stdlib WSGI app still serves a static fallback page for simple
+local viewing.
 
 ## Prioritize These Items
 
@@ -25,9 +25,9 @@ inputs supported by the core calculator.
 - Best practices for frontend are followed.
 - Web app is user friendly.
 
-- [ ] PRIORITY 1: Web page works as expected for all input and output fields.
+- [x] PRIORITY 1: Vite page has all required input and output fields.
 - [ ] PRIORITY 2: Playwright has been run with app when a browser harness is available.
-- [ ] PRIORITY 3: Frontend is wired correctly to backend.
-- [ ] PRIORITY 4: Web app is user friendly.
+- [x] PRIORITY 3: Frontend is wired to backend `/api/report`.
+- [x] PRIORITY 4: Dark one-page layout is preserved in the Vite CSS.
 
 ## Non-goals

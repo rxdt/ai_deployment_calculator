@@ -29,7 +29,7 @@ def test_default_page_renders_required_controls_and_worked_total() -> None:
     assert 'name="weight_bits"' in html
     assert 'name="kv_cache_bits"' in html
     assert 'name="trained" type="checkbox"' in html
-    assert 'name="use_adapter" type="checkbox"' in html
+    assert 'name="use_adapter" type="checkbox" disabled' in html
     assert "20.1 GB" in html
     assert "32 GB host RAM" in html
     assert '<option value="32">32-bit</option>' in html
@@ -75,6 +75,14 @@ def test_page_uses_dark_theme_tokens() -> None:
     assert ".total { font-size: 56px; line-height: .9; font-weight: 800; color: #2dd4bf; }" in html
 
 
+def test_page_disables_adapter_until_training_is_enabled() -> None:
+    html = render_page()
+    assert 'name="use_adapter" type="checkbox" disabled' in html
+    assert "function syncAdapterControl()" in html
+    assert "adapter.disabled = !trained.checked;" in html
+    assert "adapter.checked = false;" in html
+
+
 def test_page_selects_quantization_and_training_state() -> None:
     form = FormInputs(
         parameters_b=70,
@@ -90,6 +98,7 @@ def test_page_selects_quantization_and_training_state() -> None:
     assert '<option value="8" selected>8-bit</option>' in html
     assert 'name="trained" type="checkbox" checked' in html
     assert 'name="use_adapter" type="checkbox" checked' in html
+    assert 'name="use_adapter" type="checkbox" checked disabled' not in html
     assert "<h2>QLoRA</h2>" in html
 
 

@@ -92,6 +92,7 @@ def render_page(form: FormInputs | None = None) -> str:
     view = view_from_form(active_form)
     trained = " checked" if active_form.trained else ""
     adapter = " checked" if active_form.use_adapter else ""
+    adapter_disabled = "" if active_form.trained else " disabled"
     return f"""<!doctype html>
 <html lang="en">
 <head>
@@ -128,7 +129,9 @@ def render_page(form: FormInputs | None = None) -> str:
         </select>
       </label>
       <label class="check"><input name="trained" type="checkbox"{trained}> Model is trained</label>
-      <label class="check"><input name="use_adapter" type="checkbox"{adapter}> LoRA adapter</label>
+      <label class="check">
+        <input name="use_adapter" type="checkbox"{adapter}{adapter_disabled}> LoRA adapter
+      </label>
       <button type="submit">Calculate</button>
     </form>
     <section class="results">
@@ -176,6 +179,18 @@ def render_page(form: FormInputs | None = None) -> str:
       </section>
     </section>
   </main>
+  <script>
+    const trained = document.querySelector('input[name="trained"]');
+    const adapter = document.querySelector('input[name="use_adapter"]');
+    function syncAdapterControl() {{
+      adapter.disabled = !trained.checked;
+      if (!trained.checked) {{
+        adapter.checked = false;
+      }}
+    }}
+    trained.addEventListener("change", syncAdapterControl);
+    syncAdapterControl();
+  </script>
 </body>
 </html>
 """

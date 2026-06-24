@@ -75,9 +75,21 @@ def test_optimization_skips_kv_note_when_context_is_zero() -> None:
 
 
 def test_optimization_recommends_avoiding_sharding_when_levers_exhausted() -> None:
-    # Weights at 4-bit and KV at 8-bit, but still too big for one card -> address sharding.
+    # 405B at 4-bit weights and 8-bit KV overflows even the 192 GB card, so the primary plan shards.
+    spec = DeploymentSpec(parameters_b=405, context_tokens=8000, weight_bits=4, kv_cache_bits=8)
+    plan = deployment_plan(spec)
+    assert plan.primary.option.tensor_parallel is True
+    assert plan.optimization == OPTIMIZE_SHARDING
+
+
+def test_optimization_none_when_primary_fits_one_card_despite_weak_gpus_sharding() -> None:
+    # 70B / 4-bit / 8-bit KV needs >1 of the small cards, but a single A100 80GB fits it,
+    # so the note must not tell an already-single-card plan to avoid tensor parallelism.
     spec = DeploymentSpec(parameters_b=70, context_tokens=8000, weight_bits=4, kv_cache_bits=8)
-    assert deployment_plan(spec).optimization == OPTIMIZE_SHARDING
+    plan = deployment_plan(spec)
+    assert plan.primary.option.gpu_count == 1
+    assert any(po.option.tensor_parallel for po in plan.options)
+    assert plan.optimization == OPTIMIZE_NONE
 
 
 def test_optimization_none_when_fitting_single_card_with_minimal_precision() -> None:

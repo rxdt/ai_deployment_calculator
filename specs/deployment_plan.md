@@ -30,7 +30,7 @@ web-output examples in README.
 - Add one optimization note:
   - if `weight_bits` is above 4, recommend lowering weight precision first;
   - else if `kv_cache_bits` is above 8 and context is nonzero, recommend FP8 KV cache;
-  - else if any option needs tensor parallelism, recommend reducing context or using larger-memory GPUs;
+  - else if the primary (recommended) plan needs tensor parallelism, recommend reducing context or using larger-memory GPUs;
   - otherwise say no memory optimization is needed.
 
 ## If The Items Above Are Complete, Do These

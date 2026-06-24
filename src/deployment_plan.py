@@ -58,13 +58,17 @@ def primary_key(indexed: tuple[int, PlanOption]) -> tuple[int, bool, int]:
     return (plan.option.gpu_count, plan.option.tensor_parallel, index)
 
 
-def optimization_note(spec: DeploymentSpec, options: tuple[HardwareOption, ...]) -> str:
-    """Pick the single highest-impact memory lever for this deployment, by spec priority order."""
+def optimization_note(spec: DeploymentSpec, primary: PlanOption) -> str:
+    """Pick the single highest-impact memory lever for this deployment, by spec priority order.
+
+    Sharding advice keys off the recommended (primary) plan, not the weakest catalog card, so a
+    deployment that already fits one large-memory GPU is never told to avoid tensor parallelism.
+    """
     if spec.weight_bits > LOWEST_WEIGHT_BITS:
         return OPTIMIZE_WEIGHTS
     if spec.kv_cache_bits > FP8_KV_BITS and spec.context_tokens > 0:
         return OPTIMIZE_KV_CACHE
-    if any(option.tensor_parallel for option in options):
+    if primary.option.tensor_parallel:
         return OPTIMIZE_SHARDING
     return OPTIMIZE_NONE
 
@@ -77,5 +81,5 @@ def deployment_plan(spec: DeploymentSpec) -> DeploymentPlan:
     return DeploymentPlan(
         options=plan_options,
         primary=primary,
-        optimization=optimization_note(spec, options),
+        optimization=optimization_note(spec, primary),
     )

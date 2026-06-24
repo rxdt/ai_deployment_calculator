@@ -3,6 +3,7 @@
 ## Current State
 
 - Specs are implemented through deployment plan and assumption transparency.
+- The deployment-plan optimization note now keys sharding advice off the primary (recommended) plan, not the weakest catalog GPU, so single-card plans are never told to avoid tensor parallelism.
 - 32-bit weight and KV precision are supported in the core, comparison, and web form.
 - The Vite web UI is dark themed, backend-wired through `/api/report`, accepts arbitrary positive decimal model sizes, escapes rendered query/report values, and keeps the form visible if the API fails.
 - The LoRA adapter checkbox is disabled unless model training is enabled in both the Vite app and static fallback page; turning training off clears adapter state before submit.
@@ -30,6 +31,7 @@
 - Open research questions remain for CPU selection and memory-bandwidth-aware recommendations.
 
 ## Blockers
+- `docs/plan.md` is 105 lines, failing `test_markdown_handoff_files_stay_short`, but it is a gate-protected path so an agent cannot trim it. A human must shorten it to <=100 lines (Claude-deployment_plan-1). Until then `uv run ralph verify`/`gate` fail on this test before reaching security.
 - Frontend dependencies are not installed in this checkout, so Playwright cannot run.
 - Semgrep cannot initialize system trust anchors in this sandbox, so full verify stops in security.
-- `git push origin main` fails in this sandbox (SOCKS error 2 / no network); Claude-backend-1 committed the FastAPI backend locally but could not push.
+- `git push origin main` fails in this sandbox (SSH/SOCKS auth negotiation fails / no network); Claude-backend-1 (FastAPI) and Claude-deployment_plan-1 (sharding-note fix) committed locally but could not push. Local `main` is ahead 4 / behind 1 vs origin.

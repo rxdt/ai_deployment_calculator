@@ -14,7 +14,7 @@
 
 ## Checks
 
-- `ruff check . && ruff format --check . && pytest` — pending this iteration.
+- `ruff check . && ruff format --check . && pytest` — green locally, 144 passed, 100% coverage.
 - `cd frontend && npm run test:e2e` — blocked locally this iteration: `playwright: command not found`.
 - Branch: `main`.
 

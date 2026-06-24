@@ -71,7 +71,9 @@ test("renders the calculator and submits deployment inputs", async ({ page }) =>
   await page.getByLabel("Context window").fill("16000");
   await page.getByLabel("Quantization").selectOption("4");
   await page.getByLabel("KV cache").selectOption("8");
+  await expect(page.getByLabel("LoRA adapter")).toBeDisabled();
   await page.getByLabel("Model is trained").check();
+  await expect(page.getByLabel("LoRA adapter")).toBeEnabled();
   await page.getByLabel("LoRA adapter").check();
   await page.getByRole("button", { name: "Calculate" }).click();
 
@@ -84,6 +86,30 @@ test("renders the calculator and submits deployment inputs", async ({ page }) =>
   await expect(page.locator(".total")).toHaveText("52.3 GB");
   await expect(page.getByLabel("Hardware recommendations")).toContainText("A100 80GB");
   await expect(page.locator(".optimization")).toContainText("Use FP8 KV cache");
+});
+
+test("clears adapter use when training is turned off", async ({ page }) => {
+  const apiRequests: URL[] = [];
+
+  await page.route("**/api/report?**", async (route) => {
+    const url = new URL(route.request().url());
+    apiRequests.push(url);
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify(report),
+    });
+  });
+
+  await page.goto("/?trained=on&use_adapter=on");
+  await expect(page.getByLabel("LoRA adapter")).toBeChecked();
+
+  await page.getByLabel("Model is trained").uncheck();
+  await expect(page.getByLabel("LoRA adapter")).toBeDisabled();
+  await expect(page.getByLabel("LoRA adapter")).not.toBeChecked();
+  await page.getByRole("button", { name: "Calculate" }).click();
+
+  await expect.poll(() => apiRequests.at(-1)?.searchParams.get("trained")).toBe(null);
+  expect(apiRequests.at(-1)?.searchParams.get("use_adapter")).toBe(null);
 });
 
 test("allows tiny decimal model sizes supported by the backend", async ({ page }) => {

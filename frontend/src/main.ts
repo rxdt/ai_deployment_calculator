@@ -78,6 +78,9 @@ function taskLabel(search: URLSearchParams): string {
 function renderForm(search: URLSearchParams): string {
   const weightBits = inputValue(search, "weight_bits");
   const kvCacheBits = inputValue(search, "kv_cache_bits");
+  const trained = search.has("trained");
+  const adapterState = trained ? checked(search, "use_adapter") : "";
+  const adapterDisabled = trained ? "" : " disabled";
   return `
     <form class="panel controls" aria-label="Deployment inputs">
       <h1>VRAM Deployment Calculator</h1>
@@ -100,7 +103,7 @@ function renderForm(search: URLSearchParams): string {
         </select>
       </label>
       <label class="check"><input name="trained" type="checkbox"${checked(search, "trained")}> Model is trained</label>
-      <label class="check"><input name="use_adapter" type="checkbox"${checked(search, "use_adapter")}> LoRA adapter</label>
+      <label class="check"><input name="use_adapter" type="checkbox"${adapterState}${adapterDisabled}> LoRA adapter</label>
       <button type="submit">Calculate</button>
     </form>
   `;
@@ -188,6 +191,18 @@ function renderError(): string {
   `;
 }
 
+function syncAdapterControl(): void {
+  const trained = app.querySelector<HTMLInputElement>('input[name="trained"]');
+  const adapter = app.querySelector<HTMLInputElement>('input[name="use_adapter"]');
+  if (!trained || !adapter) {
+    return;
+  }
+  adapter.disabled = !trained.checked;
+  if (!trained.checked) {
+    adapter.checked = false;
+  }
+}
+
 async function loadReport(search: URLSearchParams): Promise<void> {
   try {
     const response = await fetch(`/api/report?${search.toString()}`);
@@ -199,7 +214,15 @@ async function loadReport(search: URLSearchParams): Promise<void> {
   } catch {
     app.innerHTML = `${renderForm(search)}${renderError()}`;
   }
+  syncAdapterControl();
 }
+
+app.addEventListener("change", (event) => {
+  const target = event.target as HTMLInputElement;
+  if (target.name === "trained") {
+    syncAdapterControl();
+  }
+});
 
 app.addEventListener("submit", (event) => {
   event.preventDefault();

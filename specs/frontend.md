@@ -13,8 +13,10 @@ sizes, including the documented `0.0004B` tiny-model case. Rendered query and
 report values are escaped before insertion into the Vite DOM. The repo includes
 a Playwright smoke harness for the Vite app, including backend failure handling
 and the full assumption-transparency label set, including supported precisions;
-local execution is blocked until frontend dependencies install. The stdlib WSGI
-app still serves a static fallback page for simple local viewing.
+the LoRA adapter toggle is disabled until training is enabled so inference
+submissions do not carry adapter state. Local Playwright execution is blocked
+until frontend dependencies install. The stdlib WSGI app still serves a static
+fallback page for simple local viewing.
 
 ## Prioritize These Items
 
@@ -37,5 +39,6 @@ app still serves a static fallback page for simple local viewing.
 - [x] PRIORITY 4: Dark one-page layout is preserved in the Vite CSS.
 - [x] PRIORITY 5: Browser validation accepts tiny decimal model sizes supported by the core.
 - [x] PRIORITY 6: Vite-rendered query and report values are HTML-escaped.
+- [x] PRIORITY 7: LoRA adapter control is only enabled for trained-model submissions.
 
 ## Non-goals

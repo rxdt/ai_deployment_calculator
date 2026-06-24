@@ -46,6 +46,17 @@ def test_vite_frontend_renders_required_controls_and_fetches_report_api() -> Non
     assert "height: 100dvh;" in styles
 
 
+def test_vite_frontend_disables_adapter_until_training_is_enabled() -> None:
+    script = frontend_text("src/main.ts")
+
+    assert 'const adapterState = trained ? checked(search, "use_adapter") : "";' in script
+    assert 'const adapterDisabled = trained ? "" : " disabled";' in script
+    assert "function syncAdapterControl(): void" in script
+    assert "adapter.disabled = !trained.checked;" in script
+    assert "adapter.checked = false;" in script
+    assert 'target.name === "trained"' in script
+
+
 def test_playwright_harness_exercises_rendered_form_and_report_api() -> None:
     config = frontend_text("playwright.config.ts")
     spec = frontend_text("tests/calculator.spec.ts")
@@ -56,6 +67,8 @@ def test_playwright_harness_exercises_rendered_form_and_report_api() -> None:
     assert 'page.route("**/api/report?**"' in spec
     assert 'page.locator(".total")' in spec
     assert 'page.getByLabel("Parameters (billions)").fill("70")' in spec
+    assert 'page.getByLabel("LoRA adapter")).toBeDisabled()' in spec
+    assert 'page.getByLabel("LoRA adapter")).toBeEnabled()' in spec
     assert 'searchParams.get("kv_cache_bits")).toBe("8")' in spec
     assert 'total_vram: "52.3 GB"' in spec
     assert 'page.getByLabel("Assumptions")' in spec
@@ -67,3 +80,4 @@ def test_playwright_harness_exercises_rendered_form_and_report_api() -> None:
     assert 'page.getByRole("alert")' in spec
     assert "escapes reflected query and report values" in spec
     assert 'await expect(page.locator("img")).toHaveCount(0)' in spec
+    assert "clears adapter use when training is turned off" in spec

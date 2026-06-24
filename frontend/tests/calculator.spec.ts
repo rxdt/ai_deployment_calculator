@@ -26,6 +26,7 @@ const report = {
     { label: "CUDA/system tax", value: "1.5 GB" },
     { label: "KV cache heuristic", value: "(parameters / 10) * (context / 8k)" },
     { label: "Host RAM rule", value: "At least 32 GB, rounded up in 16 GB increments" },
+    { label: "Supported precisions", value: "32-bit, 16-bit, 8-bit, and 4-bit weights and KV cache" },
   ],
   calculation: "(16.0 + 0.8 + 0.0 + 1.5) * 1.10",
 };
@@ -64,6 +65,7 @@ test("renders the calculator and submits deployment inputs", async ({ page }) =>
   await expect(page.getByLabel("Assumptions")).toContainText("CUDA/system tax");
   await expect(page.getByLabel("Assumptions")).toContainText("KV cache heuristic");
   await expect(page.getByLabel("Assumptions")).toContainText("Host RAM rule");
+  await expect(page.getByLabel("Assumptions")).toContainText("Supported precisions");
 
   await page.getByLabel("Parameters (billions)").fill("70");
   await page.getByLabel("Context window").fill("16000");

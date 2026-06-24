@@ -61,6 +61,7 @@ def test_playwright_harness_exercises_rendered_form_and_report_api() -> None:
     assert 'page.getByLabel("Assumptions")' in spec
     assert "KV cache heuristic" in spec
     assert "Host RAM rule" in spec
+    assert "Supported precisions" in spec
     assert 'page.locator(".optimization")' in spec
     assert "status: 503" in spec
     assert 'page.getByRole("alert")' in spec

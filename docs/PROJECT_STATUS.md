@@ -11,6 +11,7 @@
 - Frontend dependency smoke tests now match the current Vite 8 manifest.
 - Playwright config and Vite smoke specs are present under `frontend/`; smoke coverage includes all assumption labels, including supported precisions, but browser execution is blocked until dependencies are installed.
 - A FastAPI app (`src/web/server.py`) serves `/api/report` JSON and the `/` fallback page, reusing the pure report path.
+- `tests/test_api.py` pins the full `/api/report` JSON contract (keys, row counts, string value types) the Vite `ReportPayload` depends on.
 - The stdlib WSGI renderer remains as a static fallback page.
 - `docs/plan.md` is distilled to the durable formula, product shape, and milestones.
 - Tiny 400,000-parameter FP8 full-training sizing is documented and tested.
@@ -20,9 +21,9 @@
 ## Checks
 
 - `uv run pytest tests/test_page.py tests/test_server.py` — behavioral tests passed, then failed coverage because partial pytest covers only 63% of the repo.
-- `uv run pytest` — green locally, 145 passed, 100% coverage.
+- `uv run pytest` — green locally, 150 passed, 100% coverage.
 - `uv run ralph gate` — green locally.
-- `uv run ralph verify` — green locally.
+- `uv run ralph verify` — blocked: the `security` (semgrep) step aborts with a ca-certs/network error in this sandbox; lint, types, tests, and coverage pass.
 - `cd frontend && npm run test:e2e` — blocked locally this iteration: `playwright: command not found`.
 - Commit — local commit created.
 - Push — blocked: `main` is behind `origin/main`, and `git pull --rebase origin main` cannot open `.git/FETCH_HEAD` in this sandbox.
@@ -36,4 +37,6 @@
 
 ## Blockers
 - Frontend dependencies are not installed in this checkout, so Playwright cannot run.
-- `git push -u origin main` is rejected as non-fast-forward, and rebase cannot write `.git/FETCH_HEAD` in this sandbox.
+- `git push -u origin main` and `git fetch` fail with no network in this sandbox.
+- `ralph verify`'s `security` step (semgrep) fails on a ca-certs/network error in this sandbox; the Python gate (`ralph gate`) passes. Agent Claude-codereview-1.
+- Vite form display diverges from the normalized report on invalid URL params; fix needs browser tooling to verify. Agent Claude-codereview-1, spec code_review.

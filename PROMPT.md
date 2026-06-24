@@ -1,3 +1,5 @@
+Do NOT edit or commit protected paths (AGENTS.md, harness/, tests/harness/, .githooks/, .github/, pyproject.toml) — they're human-owned. Commits will be rejected if you do.
+
 The repo is your memory.
 
 1. Read `specs/` — that is what we must build. (If there is work in specs, you MUST implement something. You MUST commit work. Do not exit until your task is complete.)

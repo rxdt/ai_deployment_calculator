@@ -74,11 +74,9 @@ uv run pytest
 uv run ralph verify
 ```
 
-## Serve The App
+## Run the app
+```
 
-```sh
-PYTHONPATH=src uv run python -c "from wsgiref.simple_server import make_server; from web.app import application; make_server('', 8000, application).serve_forever()"
-cd frontend && npm install && npm run dev
 ```
 
 The Vite dev server proxies `/api/report` to the Python backend on port 8000.

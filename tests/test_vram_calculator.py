@@ -92,6 +92,45 @@ def test_tiny_fp8_full_training_rounds_to_cuda_dominated_total() -> None:
 
 
 @pytest.mark.parametrize(
+    ("spec", "weights", "kv_cache", "expected_total"),
+    [
+        (
+            DeploymentSpec(
+                parameters_b=70,
+                context_tokens=128000,
+                weight_bits=4,
+                kv_cache_bits=8,
+            ),
+            35.0,
+            56.0,
+            101.8,
+        ),
+        (
+            DeploymentSpec(
+                parameters_b=104,
+                context_tokens=32000,
+                weight_bits=8,
+                kv_cache_bits=16,
+            ),
+            104.0,
+            41.6,
+            161.8,
+        ),
+    ],
+)
+def test_large_inference_regressions(
+    spec: DeploymentSpec,
+    weights: float,
+    kv_cache: float,
+    expected_total: float,
+) -> None:
+    assert weights_gb(spec) == pytest.approx(weights)
+    assert kv_cache_gb(spec) == pytest.approx(kv_cache)
+    assert task_overhead_gb(spec) == pytest.approx(0.0)
+    assert total_vram_gb(spec) == pytest.approx(expected_total)
+
+
+@pytest.mark.parametrize(
     ("spec", "subtotal"),
     [
         (DeploymentSpec(parameters_b=8, context_tokens=8000, weight_bits=4, task="qlora"), 10.3),

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ast
+from pathlib import Path
 
 import pytest
 
@@ -109,3 +110,17 @@ def test_clean_file_passes() -> None:
         "    return number * 2\n"
     )
     assert preferences_violations("m.py", source, 5) == []
+
+
+def test_markdown_handoff_files_stay_short() -> None:
+    paths = [Path("AGENTS.md"), Path("PROMPT.md"), Path("README.md")]
+    paths.extend(Path("specs").glob("*.md"))
+    paths.extend(Path("docs").glob("*.md"))
+    paths = tuple(paths)
+    too_long_filepaths = {}
+    for path in paths:
+        line_count = len(path.read_text(encoding="utf-8").splitlines())
+        if line_count > 100:
+            too_long_filepaths[path.as_posix()] = line_count
+
+    assert too_long_filepaths == {}

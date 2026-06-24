@@ -1,23 +1,35 @@
-Do NOT edit or commit protected paths (AGENTS.md, harness/, tests/harness/, .githooks/, .github/, pyproject.toml) — they're human-owned. Commits WILL BE REJECTED if you do.
+You are one fresh-context iteration of the loop. The repo is your memory.
+Specs say *what* work to do. You decide *how* and *what is most important next*.
 
-The repo is your memory.
-
-1. Read `specs/` — that is what we must build. (If there is work in specs, you MUST implement something. You MUST commit work. Do not exit until your task is complete.)
-2. Then, survey the code. Find the single most important thing the specs require that the code does not yet do (or does wrong).
-3. Keep the change small and tightly scoped. You should be able to finish in < 20 minutes easily.
-4. Fix the gap you identified from the code and `specs`.
-5. Work in the current checkout. Do not create a worktree unless the user explicitly asked for one. If the working tree is dirty before your iteration, commit it depending on whether the specs require that work.
-6. Run: `ruff check . && ruff format --check . && pytest`. If it is red (lint, format, tests, or <100% coverage on any file with code), fix it to pass.
-7. Add or update a test that proves your change works. Write tests which challenge the source code. Do not create test theater to say you got to 100% code coverage. Add tests or asserts but do not delete tests.
-8. Commit directly on the current branch. If the user explicitly asked for a branch/worktree, rebase it onto `main`, run the full gate there, then fast-forward merge with `git merge --ff-only <branch>`.
-9. COMMIT AND PUSH WORK TO GITHUB EVERY ITERATION! After committing, run `git push` to publish this iteration's commit to the remote (use `git push -u origin <branch>` on a new branch). The pre-push hook runs the full verify; a green push saves your work on GitHub. Never end an iteration with unpushed commits. Never end an iteration with failing lint/tests/checks.
-10. Update the `specs/`, `docs/`, and `PROJECT_STATUS/`, to honestly reflect your changes. Remove or explain items you completed. Keep each `.md` < 100 lines. The next agent will use your updates for their work so make what your write meaningful.
-
-Rules:
-- One tightly set, meaningful change per iteration. Do not batch unrelated work. Do not skip work.
-- Specs say *what* work to do. You decide *how* and *what is most important next*.
-- If a spec is wrong or missing, update the spec instead of guessing.
-- Never weaken the gate, tests, or coverage to make a commit pass.
+1. Read `specs/`. If there is work outlined in specs, you must implement something.
+2. Survey the code. Find the single most important thing the specs require that the code does not yet do (or does wrong).
+3. Fix the gap you identified.
+4. Keep youf change small and TIGHTLY SCOPED! You should be able to finish in < 20 minutes.
+5. Run `uv run ralph gate` to see if your changes pass. Fix failures.
+6. Do not create a branch or worktree.
+  - If git is dirty before your turn, commit it depending on whether the specs require that work.
+  - When a commit is rejected for a forbidden-path, run `git restore --staged <forbidden-path>` to clear the commit blocker.
+  - Leave the working-tree change in place for a human to review and continue your iteration.
+7. Add or update a test that proves your change works.
+  - Write tests which challenge the source code.
+  - Do not create test theater to say you got to 100% code coverage.
+  - Do not delete tests or asserts.
+  - Leave tests stronger than when you started.
+8. Commit on the current branch.
+  - If the user explicitly asked for a branch/worktree:
+    - rebase it onto `main`
+    - run `uv run ralph gate`
+    - fast-forward merge with `git merge --ff-only <branch>`
+10. You must COMMIT and PUSH work to Github! Use `git push -u origin <current-branch>` which runs full verify.
+  - End your turn with pushed commits.
+  - End your turn with a successful push.
+9. If `uv run ralph verify` fails for any reason, fix the issue.
+  - If you have tried to fix the issue multiple times and cannot:
+    - Commit the files that do pass.
+    - Mention the issue / filepath in `docs/PROJECT_STATUS.md` under "Blockers" and state your agent name and spec name.
+10. Update `specs/`, `docs/`, and `docs/PROJECT_STATUS.md` to honestly reflect changes.
+  - Remove items you completed if they do not add context for future agents.
+  - Keep each `.md` < 100 lines.
 
 Commit Message Structure:
 ```
@@ -29,3 +41,12 @@ A one sentence summary
 # End the commit message with your "name", spec keyword, and loop numbers iteration-count / RALPH_ITERATIONS_TOTAL, e.g.:
 Claude-backend-1/10
 ```
+
+Rules:
+- One tightly set, meaningful change per turn.
+- Do not batch unrelated work.
+- Do not skip working during your turn - there is always work to do.
+- If a spec is wrong or missing, update the spec instead of guessing.
+- Never weaken code to make a commit pass.
+
+**Do NOT edit or commit forbidden paths:** AGENTS.md, harness/, tests/harness/, .githooks/, .github/, pyproject.toml. Your commits will be auto-rejected if you do. Forbidden paths are human-owned.

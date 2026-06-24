@@ -9,12 +9,36 @@ Build a deterministic AI deployment calculator that helps engineers estimate GPU
 VRAM, host RAM, hardware fit, and the most useful memory optimization without
 hand-calculating every model deployment.
 
+## Priorities
+
+- [ ] Update README so user knows how to start front and backend and see the app state
+- [ ] Research and record formula for GGUF running via llama.cpp
+- [ ] Add support for calculating GGUF (running via llama.cpp) where GB = W + KV + T + C  (Notice the * 1.10 multiplier is gone)
+- [ ] Research and record formula for LoRA and QLoRA (only the weights shrink for QLoRA)
+- [ ] Add support for calculating LoRA and QLoRA (only the weights shrink for QLoRA)
+- [ ] Research and record formula for MoE (Mixture of Expers) which have 'active' and 'total' parameters.
+- [ ] Add support for MoE. Weight split. VERIFY: MoE examples for 47B where total parameters are used for weights (W), but only active parameters (13b) are used for the KV cache (kv)
+  - PyTorch Inference (16-bit, 8k context): VRAM = ((47 * 2)_W + (1.3 * 1 * 1)_KV + 0_T + 1.5_C) * 1.10
+  - GGUF Offload (4-bit, 8k context): Memory = ((47 * 0.5)_W + (1.3 * 1 * 1)_KV + 0_T + 0.5_C) * 1.0
+
 ## Boundaries
 
 - Do not edit `harness/` or `tests/harness/`.
 - Work in `src/`, `tests/`, `specs/`, `docs/`, `README.md`, and `PROMPT.md`.
 - Keep each change scoped to one spec-backed gap.
 - Keep every markdown file under 100 lines.
+
+## Additional Tests Cases
+
+- 70B parameters, Weights: 4-bit, Context: 128k tokens, KV Cache: 8-bi, Task: Inference, CUDA
+- 7B, 16FP, KV cache 16FP, Task: Full Training, CUDA
+- 3.8B, Context: 8k, KV Cache: 16b, Task: QLoRA, CUDA
+- 104B, int8, Context 32000 tokens, 16-bit KV, Task: Inference, CUDA
+- GGUF using llama.cpp: (1,0 multiplier instead of 1.1) 104B, Context 32000 tokens, 32-bit KV, Task: Inference, CUDA (0.5 multiplier because GGUF)
+- 7B, bf8, Context 1000000, KV cache FP16, Task: Inference, CUDA
+- 8B, 16-bit base, 2% trainable => task-overhead-for-adapters-and-optimizers = trainable-params-percentage * 8
+task-overhead-for-adapters-and-optimizers * buffer=1.10
+
 
 ## Core Equation
 
@@ -63,10 +87,10 @@ Worked checks:
 
 ## Current Milestones
 
-- Priority 1: VRAM formula and validated input model are implemented.
-- Priority 2: hardware fit and host RAM recommendation are implemented.
-- Priority 3: one-page web UI and quantization comparison are implemented.
-- Priority 4: deployment plan and assumption transparency are implemented.
+- [x] Priority 1: VRAM formula and validated input model are implemented.
+- [x] Priority 2: hardware fit and host RAM recommendation are implemented.
+- [x] Priority 3: one-page web UI and quantization comparison are implemented.
+- [x] Priority 4: deployment plan and assumption transparency are implemented.
 
 ## Run often
 

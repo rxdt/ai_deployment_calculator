@@ -50,6 +50,7 @@ Worked checks (subtotals before margin):
 - `uv run ralph verify` green; 100% coverage on `src/`.
 - `total_vram_gb` for 8B / 16-bit / 8k / inference == 20.1; subtotals match the worked checks above.
 - Tiny 400,000-parameter full-training estimates stay valid and are dominated by CUDA/system tax.
+- Long-context 70B and 104B inference regressions are covered with explicit subtotal checks.
 
 - [x] PRIORITY 1: pydantic model + formula functions, fully tested
 - [x] PRIORITY 2: hardware/optimization recommendation

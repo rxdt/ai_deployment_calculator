@@ -112,6 +112,11 @@ button {
   min-height: 0;
 }
 
+.report-panel {
+  min-height: 0;
+  overflow: auto;
+}
+
 .hero {
   display: grid;
   grid-template-columns: 1fr auto;

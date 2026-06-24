@@ -306,7 +306,7 @@ function renderResults(report: ReportPayload, state: FormState): string {
         <p class="total">${escapeHtml(report.total_vram)}</p>
       </div>
       <section class="breakdown" aria-label="VRAM breakdown">${renderBreakdown(report.breakdown)}</section>
-      <section class="panel" aria-label="Hardware recommendations">
+      <section class="panel report-panel" aria-label="Hardware recommendations">
         <div class="tables">
           <section aria-label="Hardware options">
             <h2>Hardware</h2>

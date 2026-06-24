@@ -22,7 +22,8 @@ report is fetched. The Vite and static fallback forms expose dense vs MoE
 architecture and MoE active parameters, which the backend uses for KV sizing.
 Playwright runs against the Vite app when Chromium is launched outside this macOS
 sandbox. README documents the backend and Vite commands needed to run the app end
-to end. The stdlib WSGI app still serves a static fallback page. The Vite app
+to end. The report panel is height-constrained so dense results stay reachable
+without making the document scroll. The stdlib WSGI app still serves a static fallback page. The Vite app
 validates report payload shape before rendering and shows the error state on
 malformed JSON.
 

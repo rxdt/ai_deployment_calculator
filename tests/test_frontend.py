@@ -55,6 +55,15 @@ def test_vite_frontend_renders_required_controls_and_fetches_report_api() -> Non
     assert "height: 100dvh;" in styles
 
 
+def test_vite_frontend_constrains_dense_report_panel() -> None:
+    script = frontend_text("src/main.ts")
+    styles = frontend_text("src/styles.css")
+
+    assert 'class="panel report-panel" aria-label="Hardware recommendations"' in script
+    assert ".report-panel" in styles
+    assert "overflow: auto;" in styles
+
+
 def test_vite_frontend_disables_adapter_until_training_is_enabled() -> None:
     script = frontend_text("src/main.ts")
 

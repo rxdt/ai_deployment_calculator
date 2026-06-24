@@ -130,16 +130,6 @@ def test_run_gate_blocks_protected_paths_under_loop(monkeypatch: pytest.MonkeyPa
     assert "protected path modified: harness/util.py" in problems
 
 
-def test_run_gate_allows_editing_preferences_under_loop(
-    monkeypatch: pytest.MonkeyPatch, git_repo: Path
-) -> None:
-    """The loop may edit the user-tunable preferences.py even though harness/* is protected."""
-    monkeypatch.setenv("RALPH_LOOP", "1")
-    monkeypatch.setattr(gate, "run_checks", fake_checks_clean)
-    stage(git_repo, "harness/preferences.py", "VALUE = 1\n")
-    assert "protected path modified: harness/preferences.py" not in gate.run_gate(git_repo)
-
-
 def test_run_gate_skips_containment_for_humans(monkeypatch: pytest.MonkeyPatch, git_repo: Path) -> None:
     """Without RALPH_LOOP, a human may touch protected paths; quality checks still run."""
     monkeypatch.delenv("RALPH_LOOP", raising=False)

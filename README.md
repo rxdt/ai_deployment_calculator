@@ -90,6 +90,6 @@ has product code, and `tests/` has product plus harness tests.
 
 ## Development Loop
 
-This repo uses the Ralph loop harness. Each iteration should read `specs/`, pick
+This repo uses the [Ralph loop harness](https://github.com/rxdt/py_ralph_frame). Each iteration should read `specs/`, pick
 one unfinished item, keep edits small, update status/spec docs, run the gate, and
 commit through the normal hooks.

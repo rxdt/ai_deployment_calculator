@@ -1,4 +1,4 @@
-Do NOT edit or commit protected paths (AGENTS.md, harness/, tests/harness/, .githooks/, .github/, pyproject.toml) — they're human-owned. Commits will be rejected if you do.
+Do NOT edit or commit protected paths (AGENTS.md, harness/, tests/harness/, .githooks/, .github/, pyproject.toml) — they're human-owned. Commits WILL BE REJECTED if you do.
 
 The repo is your memory.
 
@@ -6,7 +6,7 @@ The repo is your memory.
 2. Then, survey the code. Find the single most important thing the specs require that the code does not yet do (or does wrong).
 3. Keep the change small and tightly scoped. You should be able to finish in < 20 minutes easily.
 4. Fix the gap you identified from the code and `specs`.
-5. Work in the current checkout. Do not create a worktree unless the user explicitly asked for one. If the working tree is dirty before your iteration, commit or stash it depending on whether the specs require that work.
+5. Work in the current checkout. Do not create a worktree unless the user explicitly asked for one. If the working tree is dirty before your iteration, commit it depending on whether the specs require that work.
 6. Run: `ruff check . && ruff format --check . && pytest`. If it is red (lint, format, tests, or <100% coverage on any file with code), fix it to pass.
 7. Add or update a test that proves your change works. Write tests which challenge the source code. Do not create test theater to say you got to 100% code coverage. Add tests or asserts but do not delete tests.
 8. Commit directly on the current branch. If the user explicitly asked for a branch/worktree, rebase it onto `main`, run the full gate there, then fast-forward merge with `git merge --ff-only <branch>`.

@@ -51,6 +51,15 @@ function option(value: string, selected: string): string {
   return `<option value="${value}"${marker}>${value}-bit</option>`;
 }
 
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 function inputValue(search: URLSearchParams, name: keyof typeof DEFAULT_VALUES): string {
   return search.get(name) ?? DEFAULT_VALUES[name];
 }
@@ -73,12 +82,12 @@ function renderForm(search: URLSearchParams): string {
     <form class="panel controls" aria-label="Deployment inputs">
       <h1>VRAM Deployment Calculator</h1>
       <label>Parameters (billions)
-        <input name="parameters_b" type="number" min="0.000001" step="0.0001"
-          value="${inputValue(search, "parameters_b")}">
+        <input name="parameters_b" type="number" min="0.000001" step="any"
+          value="${escapeHtml(inputValue(search, "parameters_b"))}">
       </label>
       <label>Context window
         <input name="context_tokens" type="number" min="0" step="1000"
-          value="${inputValue(search, "context_tokens")}">
+          value="${escapeHtml(inputValue(search, "context_tokens"))}">
       </label>
       <label>Quantization
         <select name="weight_bits">
@@ -98,24 +107,31 @@ function renderForm(search: URLSearchParams): string {
 }
 
 function renderBreakdown(rows: DisplayRow[]): string {
-  return rows.map((row) => `<p class="metric">${row.label}<strong>${row.value}</strong></p>`).join("");
+  return rows
+    .map((row) => `<p class="metric">${escapeHtml(row.label)}<strong>${escapeHtml(row.value)}</strong></p>`)
+    .join("");
 }
 
 function renderHardware(rows: HardwareRow[]): string {
-  return rows.map((row) => `<tr><td>${row.name}</td><td>${row.detail}</td><td>${row.sharding}</td></tr>`).join("");
+  return rows
+    .map(
+      (row) =>
+        `<tr><td>${escapeHtml(row.name)}</td><td>${escapeHtml(row.detail)}</td><td>${escapeHtml(row.sharding)}</td></tr>`,
+    )
+    .join("");
 }
 
 function renderComparison(rows: ComparisonRow[]): string {
   return rows
     .map((row) => {
       const selected = row.selected ? ' class="selected"' : "";
-      return `<tr${selected}><td>${row.precision}</td><td>${row.total}</td><td>${row.savings}</td></tr>`;
+      return `<tr${selected}><td>${escapeHtml(row.precision)}</td><td>${escapeHtml(row.total)}</td><td>${escapeHtml(row.savings)}</td></tr>`;
     })
     .join("");
 }
 
 function renderAssumptions(rows: DisplayRow[]): string {
-  return rows.map((row) => `<p>${row.label}: <strong>${row.value}</strong></p>`).join("");
+  return rows.map((row) => `<p>${escapeHtml(row.label)}: <strong>${escapeHtml(row.value)}</strong></p>`).join("");
 }
 
 function renderResults(report: ReportPayload, search: URLSearchParams): string {
@@ -124,10 +140,10 @@ function renderResults(report: ReportPayload, search: URLSearchParams): string {
       <div class="panel hero">
         <div>
           <h2>${taskLabel(search)}</h2>
-          <p>${report.breakdown[0].value} weights, ${report.breakdown[1].value} KV, ${report.host_ram}</p>
-          <p class="primary">Primary: ${report.plan.primary} (${report.plan.primary_fit})</p>
+          <p>${escapeHtml(report.breakdown[0].value)} weights, ${escapeHtml(report.breakdown[1].value)} KV, ${escapeHtml(report.host_ram)}</p>
+          <p class="primary">Primary: ${escapeHtml(report.plan.primary)} (${escapeHtml(report.plan.primary_fit)})</p>
         </div>
-        <p class="total">${report.total_vram}</p>
+        <p class="total">${escapeHtml(report.total_vram)}</p>
       </div>
       <section class="breakdown" aria-label="VRAM breakdown">${renderBreakdown(report.breakdown)}</section>
       <section class="panel" aria-label="Hardware recommendations">
@@ -147,10 +163,10 @@ function renderResults(report: ReportPayload, search: URLSearchParams): string {
             </table>
           </section>
         </div>
-        <p class="optimization">${report.plan.optimization}</p>
+        <p class="optimization">${escapeHtml(report.plan.optimization)}</p>
         <details class="calc">
           <summary>Calculation used</summary>
-          <code>${report.calculation}</code>
+          <code>${escapeHtml(report.calculation)}</code>
         </details>
         <section class="assumptions" aria-label="Assumptions">
           <h2>Assumptions</h2>

@@ -24,7 +24,7 @@ def test_default_page_renders_required_controls_and_worked_total() -> None:
     html = render_page()
     assert '<form class="panel controls" method="get" aria-label="Deployment inputs">' in html
     assert 'name="parameters_b"' in html
-    assert 'min="0.000001" step="0.0001"' in html
+    assert 'min="0.000001" step="any"' in html
     assert 'name="context_tokens"' in html
     assert 'name="weight_bits"' in html
     assert 'name="kv_cache_bits"' in html
@@ -53,6 +53,7 @@ def test_page_accepts_tiny_parameter_models_supported_by_core() -> None:
         FormInputs(parameters_b=0.0004, context_tokens=8000, weight_bits=8, kv_cache_bits=8, trained=True)
     )
     assert 'value="0.0004"' in html
+    assert 'name="parameters_b" type="number" min="0.000001" step="any"' in html
     assert "1.7 GB" in html
     assert "<h2>Full training</h2>" in html
 

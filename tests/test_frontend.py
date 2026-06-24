@@ -26,6 +26,7 @@ def test_vite_frontend_renders_required_controls_and_fetches_report_api() -> Non
 
     assert "fetch(`/api/report?${search.toString()}`)" in script
     assert 'name="parameters_b"' in script
+    assert 'min="0.000001" step="any"' in script
     assert 'name="context_tokens"' in script
     assert 'name="weight_bits"' in script
     assert 'name="kv_cache_bits"' in script
@@ -36,6 +37,11 @@ def test_vite_frontend_renders_required_controls_and_fetches_report_api() -> Non
     assert "if (!response.ok)" in script
     assert 'role="alert"' in script
     assert "Unable to load report" in script
+    assert "function escapeHtml(value: string): string" in script
+    assert '.replace(/</g, "&lt;")' in script
+    assert '.replace(/"/g, "&quot;")' in script
+    assert "${escapeHtml(report.total_vram)}" in script
+    assert "${escapeHtml(report.plan.optimization)}" in script
     assert "color-scheme: dark;" in styles
     assert "height: 100dvh;" in styles
 
@@ -55,3 +61,5 @@ def test_playwright_harness_exercises_rendered_form_and_report_api() -> None:
     assert 'page.locator(".optimization")' in spec
     assert "status: 503" in spec
     assert 'page.getByRole("alert")' in spec
+    assert "escapes reflected query and report values" in spec
+    assert 'await expect(page.locator("img")).toHaveCount(0)' in spec

@@ -78,6 +78,28 @@ test("renders the calculator and submits deployment inputs", async ({ page }) =>
   await expect(page.locator(".optimization")).toContainText("Use FP8 KV cache");
 });
 
+test("allows tiny decimal model sizes supported by the backend", async ({ page }) => {
+  const apiRequests: URL[] = [];
+
+  await page.route("**/api/report?**", async (route) => {
+    const url = new URL(route.request().url());
+    apiRequests.push(url);
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify(report),
+    });
+  });
+
+  await page.goto("/");
+  const parameters = page.getByLabel("Parameters (billions)");
+
+  await expect(parameters).toHaveAttribute("step", "any");
+  await parameters.fill("0.0004");
+  await page.getByRole("button", { name: "Calculate" }).click();
+
+  await expect.poll(() => apiRequests.at(-1)?.searchParams.get("parameters_b")).toBe("0.0004");
+});
+
 test("keeps the form visible when the report api fails", async ({ page }) => {
   await page.route("**/api/report?**", async (route) => {
     await route.fulfill({
@@ -92,4 +114,32 @@ test("keeps the form visible when the report api fails", async ({ page }) => {
   await expect(page.getByLabel("Parameters (billions)")).toBeVisible();
   await expect(page.getByRole("alert")).toContainText("Report unavailable");
   await expect(page.getByRole("alert")).toContainText("Unable to load report");
+});
+
+test("escapes reflected query and report values", async ({ page }) => {
+  const hostileQuery = '/?parameters_b=%22%3E%3Cimg%20src=x%20onerror=%22window.injected%20%3D%20true%22%3E';
+
+  await page.route("**/api/report?**", async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        ...report,
+        total_vram: '<img src=x onerror="window.injected = true">20.1 GB',
+        plan: {
+          ...report.plan,
+          primary: "<script>window.injected = true</script>RTX 4090",
+          optimization: "<strong>Lower precision</strong>",
+        },
+      }),
+    });
+  });
+
+  await page.goto(hostileQuery);
+
+  await expect(page.locator("img")).toHaveCount(0);
+  await expect(page.locator(".total")).toContainText("20.1 GB");
+  await expect(page.locator(".optimization")).toHaveText("<strong>Lower precision</strong>");
+  await expect
+    .poll(async () => page.evaluate(() => Boolean((window as Window & { injected?: boolean }).injected)))
+    .toBe(false);
 });

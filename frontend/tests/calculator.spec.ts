@@ -24,6 +24,8 @@ const report = {
   assumptions: [
     { label: "Safety margin", value: "10%" },
     { label: "CUDA/system tax", value: "1.5 GB" },
+    { label: "KV cache heuristic", value: "(parameters / 10) * (context / 8k)" },
+    { label: "Host RAM rule", value: "At least 32 GB, rounded up in 16 GB increments" },
   ],
   calculation: "(16.0 + 0.8 + 0.0 + 1.5) * 1.10",
 };
@@ -58,6 +60,10 @@ test("renders the calculator and submits deployment inputs", async ({ page }) =>
   await expect(page.locator(".total")).toHaveText("20.1 GB");
   await expect(page.getByLabel("Hardware recommendations")).toContainText("RTX 4090");
   await expect(page.getByLabel("Quantization comparison")).toContainText("16-bit");
+  await expect(page.getByLabel("Assumptions")).toContainText("Safety margin");
+  await expect(page.getByLabel("Assumptions")).toContainText("CUDA/system tax");
+  await expect(page.getByLabel("Assumptions")).toContainText("KV cache heuristic");
+  await expect(page.getByLabel("Assumptions")).toContainText("Host RAM rule");
 
   await page.getByLabel("Parameters (billions)").fill("70");
   await page.getByLabel("Context window").fill("16000");

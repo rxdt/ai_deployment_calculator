@@ -5,7 +5,7 @@
 - Specs are implemented through deployment plan and assumption transparency.
 - 32-bit weight and KV precision are supported in the core, comparison, and web form.
 - The Vite web UI is dark themed, backend-wired through `/api/report`, accepts arbitrary positive decimal model sizes, escapes rendered query/report values, and keeps the form visible if the API fails.
-- Playwright config and Vite smoke specs are present under `frontend/`; browser execution is blocked until dependencies are installed.
+- Playwright config and Vite smoke specs are present under `frontend/`; smoke coverage includes the full assumptions section, but browser execution is blocked until dependencies are installed.
 - The stdlib WSGI renderer remains as a static fallback page.
 - `docs/plan.md` is distilled to the durable formula, product shape, and milestones.
 - Tiny 400,000-parameter FP8 full-training sizing is documented and tested.
@@ -13,10 +13,8 @@
 
 ## Checks
 
-- `ruff check . && ruff format --check . && pytest` — green locally, 143 passed, 100% coverage.
+- `ruff check . && ruff format --check . && pytest` — green locally, 142 passed, 100% coverage.
 - `cd frontend && npm run test:e2e` — blocked locally: `playwright: command not found`.
-- Commit this iteration — blocked: `.git/index.lock` cannot be created in this sandbox.
-- Push existing local commits — rejected non-fast-forward; `main` is behind `origin/codex-vram-2-12`.
 - Branch: `main`.
 
 ## Next

@@ -17,4 +17,7 @@ def test_readme_describes_deployment_calculator() -> None:
     assert "Primary: A100 80GB (single GPU)" in readme
     assert "3x 24 GB" in readme
     assert "tensor parallel" in readme
+    assert "uv run uvicorn --app-dir src web.server:app --host 127.0.0.1 --port 8000" in readme
+    assert "cd frontend && npm run dev -- --port 5173" in readme
+    assert "http://127.0.0.1:5173" in readme
     assert "A Python Ralph Harness" not in readme

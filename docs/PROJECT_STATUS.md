@@ -12,6 +12,7 @@
 - Frontend dependency smoke tests now match the current Vite 8 manifest.
 - Playwright config and Vite smoke specs are present under `frontend/`; smoke coverage includes all assumption labels, supported precisions, and invalid URL-param normalization.
 - A FastAPI app (`src/web/server.py`) serves `/api/report` JSON and the `/` fallback page, reusing the pure report path.
+- README documents the end-to-end app run path: start `uvicorn --app-dir src` on port 8000, then Vite on port 5173.
 - `tests/test_api.py` pins the full `/api/report` JSON contract (keys, row counts, string value types) the Vite `ReportPayload` depends on.
 - The stdlib WSGI renderer remains as a static fallback page.
 - `docs/plan.md` is distilled to the durable formula, product shape, and milestones.
@@ -21,13 +22,15 @@
 
 ## Checks
 
-- `uv run pytest tests/test_frontend.py` — green locally, 4 passed.
+- `UV_CACHE_DIR=/Users/rxdt/ai_deployment_calculator/scratchpad/uv-cache uv run pytest tests/test_readme.py` — green locally, 1 passed.
+- `uv run pytest tests/test_frontend.py` — previously green locally, 4 passed.
+- `UV_CACHE_DIR=/Users/rxdt/ai_deployment_calculator/scratchpad/uv-cache timeout 5 uv run uvicorn --app-dir src web.server:app --host 127.0.0.1 --port 8000` — started locally.
 - `uv run ruff check tests/test_frontend.py` — green locally.
 - `cd frontend && npm run build` — green locally.
 - `cd frontend && TMPDIR=/Users/rxdt/ai_deployment_calculator/scratchpad/playwright-tmp npm run test:e2e` — blocked before test bodies: Chromium launch fails with `bootstrap_check_in ... Permission denied (1100)`.
-- `uv run ralph gate` — green locally.
+- `UV_CACHE_DIR=/Users/rxdt/ai_deployment_calculator/scratchpad/uv-cache uv run ralph gate` — green locally.
 - `uv run pytest` — previously green locally, 150 passed, 100% coverage.
-- `uv run ralph verify` — green locally.
+- `UV_CACHE_DIR=/Users/rxdt/ai_deployment_calculator/scratchpad/uv-cache ... TMPDIR=/Users/rxdt/ai_deployment_calculator/scratchpad/tmp uv run ralph verify` — green locally.
 - Branch: `main`.
 
 ## Next

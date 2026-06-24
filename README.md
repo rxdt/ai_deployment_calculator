@@ -75,11 +75,13 @@ uv run ralph verify
 ```
 
 ## Run the app
+```sh
+uv run uvicorn --app-dir src web.server:app --host 127.0.0.1 --port 8000
+cd frontend && npm run dev -- --port 5173
 ```
 
-```
-
-The Vite dev server proxies `/api/report` to the Python backend on port 8000.
+Open `http://127.0.0.1:5173`. The Vite dev server proxies `/api/report` to the
+Python backend on port 8000.
 
 ## Project Map
 

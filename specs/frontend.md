@@ -17,8 +17,9 @@ the LoRA adapter toggle is disabled until training is enabled in both the Vite
 app and stdlib fallback page so inference submissions do not carry adapter state.
 Invalid URL params are normalized before the Vite form is rendered or the backend
 report is fetched. Local Playwright execution reaches Chromium launch, then is
-blocked by macOS sandbox permission errors. The stdlib WSGI app still serves a
-static fallback page for simple local viewing.
+blocked by macOS sandbox permission errors. README now documents the backend
+and Vite commands needed to run the app end to end. The stdlib WSGI app still
+serves a static fallback page for simple local viewing.
 
 ## Prioritize These Items
 
@@ -34,7 +35,7 @@ static fallback page for simple local viewing.
 - Best practices for frontend are followed.
 - Web app is user friendly.
 
-- [ ] PRIORITY 0: User is able to start and run app end to end.
+- [x] PRIORITY 0: User is able to start and run app end to end.
 - [x] PRIORITY 1: Vite page has all required input and output fields.
 - [ ] PRIORITY 2: Playwright has been run with app when browser dependencies are available.
 - [x] PRIORITY 2a: Playwright config and smoke tests cover the Vite app shell, API rendering, form submission, all assumption labels, and API failure state.

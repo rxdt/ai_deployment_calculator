@@ -37,4 +37,11 @@ The core constants are documented in README, encoded in `src/`, attached to
 - Live benchmarks, hardware-specific performance claims, or source citations.
 - Changing the VRAM equation or adding new calculator inputs.
 
-- [x] PRIORITY 1: typed assumption-summary layer, report attachment, and compact web output
+## Blockers
+-
+-
+
+## COMPLETE ?
+
+- [ ] TRUE
+- [ ] FALSE

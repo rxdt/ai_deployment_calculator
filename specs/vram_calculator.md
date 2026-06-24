@@ -61,3 +61,12 @@ Worked checks (subtotals before margin):
 
 - Throughput / tokens-per-second prediction; multi-node cluster planning; live GPU price data.
 - No silent assumptions — every constant traces back to docs/plan.md.
+
+## Blockers
+-
+-
+
+## COMPLETE ?
+
+- [ ] TRUE
+- [ ] FALSE

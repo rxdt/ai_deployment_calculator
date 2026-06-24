@@ -100,7 +100,7 @@ test("clears adapter use when training is turned off", async ({ page }) => {
     });
   });
 
-  await page.goto("/?trained=on&use_adapter=on");
+  await page.goto("/?parameters_b=8&context_tokens=8000&weight_bits=16&kv_cache_bits=16&trained=on&use_adapter=on");
   await expect(page.getByLabel("LoRA adapter")).toBeChecked();
 
   await page.getByLabel("Model is trained").uncheck();

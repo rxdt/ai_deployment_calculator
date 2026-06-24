@@ -1,0 +1,4 @@
+{
+  "include": ["harness", "src", "tests"],
+  "exclude": ["frontend", "scratchpad", ".venv"]
+}

@@ -4,7 +4,6 @@
 > plan; this file keeps the research summary short enough to hand off.
 
 ## Goal
-
 Build a deterministic AI deployment calculator that helps engineers estimate GPU
 VRAM, host RAM, hardware fit, and the most useful memory optimization without
 hand-calculating every model deployment.
@@ -27,16 +26,15 @@ hand-calculating every model deployment.
 - Keep each change scoped to one spec-backed gap.
 - Keep every markdown file under 100 lines.
 
-## Additional Tests Cases
+## Add Additional Tests Cases if not present:
 
-- 70B parameters, Weights: 4-bit, Context: 128k tokens, KV Cache: 8-bi, Task: Inference, CUDA
+- 70B parameters, Weights: 4-bit, Context: 128k tokens, KV Cache: 8-bit, Task: Inference, CUDA
 - 7B, 16FP, KV cache 16FP, Task: Full Training, CUDA
 - 3.8B, Context: 8k, KV Cache: 16b, Task: QLoRA, CUDA
 - 104B, int8, Context 32000 tokens, 16-bit KV, Task: Inference, CUDA
-- GGUF using llama.cpp: (1,0 multiplier instead of 1.1) 104B, Context 32000 tokens, 32-bit KV, Task: Inference, CUDA (0.5 multiplier because GGUF)
+- GGUF using llama.cpp: (1.0 multiplier instead of 1.1) 104B, Context 32000 tokens, 32-bit KV, Task: Inference, CUDA (0.5 multiplier because GGUF)
 - 7B, bf8, Context 1000000, KV cache FP16, Task: Inference, CUDA
 - 8B, 16-bit base, 2% trainable => adapter/optimizer overhead = trainable-params-percentage * 8 * buffer 1.10
-
 
 ## Core Equation
 

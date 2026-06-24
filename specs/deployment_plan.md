@@ -54,3 +54,12 @@ web-output examples in README.
 - [x] PRIORITY 2: primary plan and optimization note shown in the report and web UI
 - [x] PRIORITY 3: KV-cache precision exposed in the web form
 - [x] PRIORITY 4: README examples for the deployment-plan API and web output
+
+## Blockers
+-
+-
+
+## COMPLETE ?
+
+- [ ] TRUE
+- [ ] FALSE

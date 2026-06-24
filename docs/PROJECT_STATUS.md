@@ -3,46 +3,32 @@
 ## Current State
 
 - Specs are implemented through deployment plan and assumption transparency.
-- The deployment-plan optimization note now keys sharding advice off the primary (recommended) plan, not the weakest catalog GPU, so single-card plans are never told to avoid tensor parallelism.
 - 32-bit weight and KV precision are supported in the core, comparison, and web form.
-- The Vite web UI is dark themed, backend-wired through `/api/report`, accepts arbitrary positive decimal model sizes, escapes rendered query/report values, keeps the form visible if the API fails, and normalizes invalid URL params before display/fetch.
-- The Vite web UI ignores stale `/api/report` responses so older in-flight requests cannot overwrite newer submitted inputs.
+- The Vite web UI is dark themed, backend-wired through `/api/report`, accepts decimal model sizes, escapes rendered values, normalizes invalid URL params, and ignores stale report responses.
 - The Vite web UI validates `/api/report` payload shape before rendering and falls back to the error state on malformed JSON.
-- The LoRA adapter checkbox is disabled unless model training is enabled in both the Vite app and static fallback page; turning training off clears adapter state before submit.
-- The backend query parser and static fallback clear stale `use_adapter=on` query state when `trained` is absent.
-- Frontend dependency smoke tests now match the current Vite 8 manifest.
-- Playwright config and Vite smoke specs are present under `frontend/`; smoke coverage includes all assumption labels, supported precisions, and invalid URL-param normalization.
-- A FastAPI app (`src/web/server.py`) serves `/api/report` JSON and the `/` fallback page, reusing the pure report path.
-- README documents the end-to-end app run path: start `uvicorn --app-dir src` on port 8000, then Vite on port 5173.
-- `tests/test_api.py` pins the full `/api/report` JSON contract (keys, row counts, string value types) the Vite `ReportPayload` depends on.
-- The stdlib WSGI renderer remains as a static fallback page.
-- `docs/plan.md` is distilled to the durable formula, product shape, and milestones.
-- Tiny 400,000-parameter FP8 full-training sizing is documented and tested.
-- Long-context 70B and 104B inference regression cases now assert weights, KV cache, task overhead, and totals.
+- The LoRA adapter checkbox is disabled unless model training is enabled in both the Vite app and static fallback page.
+- `pyrightconfig.json` scopes pyright to `harness`, `src`, and `tests`, avoiding broad scans during Ralph verify.
+- Playwright smoke specs cover the Vite app, assumption labels, supported precisions, stale response handling, and malformed payload rejection.
 - Markdown handoff files are tested to stay under 100 lines.
 
 ## Checks
 
-- `UV_CACHE_DIR=/Users/rxdt/ai_deployment_calculator/scratchpad/uv-cache uv run pytest tests/test_readme.py` — green locally, 1 passed.
-- `UV_CACHE_DIR=/Users/rxdt/ai_deployment_calculator/scratchpad/uv-cache uv run pytest tests/test_presenter.py` — green locally, 27 passed.
-- `UV_CACHE_DIR=/Users/rxdt/ai_deployment_calculator/scratchpad/uv-cache uv run pytest tests/test_frontend.py` — green locally, 4 passed.
-- `UV_CACHE_DIR=/Users/rxdt/ai_deployment_calculator/scratchpad/uv-cache timeout 5 uv run uvicorn --app-dir src web.server:app --host 127.0.0.1 --port 8000` — started locally.
-- `uv run ruff check tests/test_frontend.py` — green locally.
-- `cd frontend && npm run build` — green locally.
-- `cd frontend && TMPDIR=/Users/rxdt/ai_deployment_calculator/scratchpad/playwright-tmp npm run test:e2e` — blocked before test bodies: 8 Chromium launches fail with `bootstrap_check_in ... Permission denied (1100)`.
-- `UV_CACHE_DIR=/Users/rxdt/ai_deployment_calculator/scratchpad/uv-cache uv run ralph gate` — green in clean scratchpad repo copy; blocked in original worktree by protected `docs/plan.md`.
-- `UV_CACHE_DIR=/Users/rxdt/ai_deployment_calculator/scratchpad/uv-cache TMPDIR=/Users/rxdt/ai_deployment_calculator/scratchpad/tmp XDG_CONFIG_HOME=/Users/rxdt/ai_deployment_calculator/scratchpad/semgrep-config XDG_CACHE_HOME=/Users/rxdt/ai_deployment_calculator/scratchpad/semgrep-cache SEMGREP_LOG_FILE=/Users/rxdt/ai_deployment_calculator/scratchpad/semgrep/semgrep.log SEMGREP_SETTINGS_FILE=/Users/rxdt/ai_deployment_calculator/scratchpad/semgrep/settings.yml SSL_CERT_FILE=/Users/rxdt/ai_deployment_calculator/.venv/lib/python3.14/site-packages/certifi/cacert.pem REQUESTS_CA_BUNDLE=/Users/rxdt/ai_deployment_calculator/.venv/lib/python3.14/site-packages/certifi/cacert.pem uv run ralph verify` — green locally.
-- `uv run pytest` — previously green locally, 150 passed, 100% coverage.
-- `UV_CACHE_DIR=/Users/rxdt/ai_deployment_calculator/scratchpad/uv-cache ... TMPDIR=/Users/rxdt/ai_deployment_calculator/scratchpad/tmp uv run ralph verify` — green locally.
-- Branch: `main`.
+- `ruff check .` - green.
+- `ruff format --check .` - green.
+- `pytest` - green, 152 passed.
+- `npm run build` in `frontend/` - green.
+- `semgrep scan --config auto --config p/secrets --error` - green.
+- `npm run test:e2e` in `frontend/` - green when Chromium is launched outside the macOS sandbox, 8 passed.
+- `uv run ralph gate` - green.
+- `uv run --no-sync ralph verify` - green.
 
 ## Next
 
-- Run Playwright in an environment where Chromium can register its Mach port.
+- Use an unsandboxed/escalated run for Playwright, Git staging, commit, and push in this Codex sandbox.
+- Keep `frontend/example_user_will_delete/` untracked for now; it is only an example reference.
 - Hardware catalog complete through B200 (192 GB). No further catalog entries pending.
 - Open research questions remain for CPU selection and memory-bandwidth-aware recommendations.
 
 ## Blockers
-- Chromium cannot launch under this macOS sandbox for Playwright (`bootstrap_check_in ... Permission denied (1100)`). Agent Codex-code_review-1/1.
-- `docs/plan.md` has a protected working-tree modification, so `ralph gate` rejects before code checks. Agent Codex-code_review-1/2.
-- The sandbox denies writes to `.git`, so normal staging/commit cannot create `.git/index.lock`. Agent Codex-code_review-1/2.
+
+- None in the source tree. Remaining restrictions are this session's sandbox policy.

@@ -11,6 +11,7 @@
 - The Vite report panel is internally constrained so dense results do not force document scrolling.
 - The Vite web UI validates `/api/report` payload shape before rendering and falls back to the error state on malformed or partial breakdown JSON.
 - The LoRA adapter checkbox is disabled unless model training is enabled in both the Vite app and static fallback page.
+- README documents the FastAPI backend start command, deterministic Vite dependency install, and frontend dev command.
 - `pyrightconfig.json` scopes pyright to `harness`, `src`, and `tests`, avoiding broad scans during Ralph verify.
 - Playwright smoke specs cover the Vite app, assumption labels, supported precisions, stale response handling, malformed payload rejection, and partial breakdown rejection.
 - Markdown handoff files are tested to stay under 100 lines.
@@ -24,6 +25,7 @@
 - `semgrep scan --config auto --config p/secrets --error` - green.
 - `npm run test:e2e` in `frontend/` - green when Chromium is launched outside the macOS sandbox, 8 passed.
 - Focused Playwright partial-breakdown regression attempted here; Chromium launch is blocked by this macOS sandbox.
+- `uv run pytest tests/test_readme.py` - green.
 - `uv run ralph gate` - green.
 - `uv run ralph verify` - green.
 
@@ -35,6 +37,4 @@
 
 ## Blockers
 
-- Cannot `git push origin main` from this sandbox: network egress to `git@github.com`
-  is denied (nc auth negotiation failed). Commit 40caaaf is ready locally and passes
-  `ralph gate`; a human must push. Agent Claude-assumptions, spec assumption_transparency.
+- None.

@@ -41,7 +41,7 @@ malformed JSON.
 - Best practices for frontend are followed.
 - Web app is user friendly.
 
-- [ ] PRIORITY 0: User is able to start and run the Vite frontend and FastAPI backend.
+- [x] PRIORITY 0: User is able to start and run the Vite frontend and FastAPI backend.
 - [x] PRIORITY 1: Vite page has required MoE, LoRA, and bit-option inputs.
 - [x] PRIORITY 2: Playwright has been run with app when browser dependencies are available.
 - [ ] PRIORITY 3: App is properly styled like the given examples and elements are properly placed.

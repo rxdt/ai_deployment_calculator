@@ -10,7 +10,6 @@ hand-calculating every model deployment.
 
 ## Priorities
 
-- [ ] Update README so user knows how to start front and backend and see the app state
 - [ ] Research and record formula for GGUF running via llama.cpp
 - [ ] Add support for calculating GGUF (running via llama.cpp) where GB = W + KV + T + C  (Notice the * 1.10 multiplier is gone)
 - [ ] Research and record formula for LoRA and QLoRA (only the weights shrink for QLoRA)

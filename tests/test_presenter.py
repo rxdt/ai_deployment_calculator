@@ -14,7 +14,6 @@ from web.presenter import (
     FormInputs,
     deployment_task,
     form_from_query,
-    report_from_form,
     spec_from_form,
 )
 
@@ -43,6 +42,7 @@ def test_spec_from_form_carries_controls_and_mapped_task() -> None:
         kv_cache_bits=8,
         trained=True,
         use_adapter=True,
+        active_parameters_b=8,
     )
     spec = spec_from_form(form)
     assert spec == DeploymentSpec(
@@ -51,14 +51,15 @@ def test_spec_from_form_carries_controls_and_mapped_task() -> None:
         weight_bits=4,
         kv_cache_bits=8,
         task="qlora",
+        architecture="moe",
+        active_parameters_b=8,
     )
 
 
-def test_report_from_form_matches_core_pipeline() -> None:
+def test_spec_from_form_matches_core_report_pipeline() -> None:
     # specs/vram_calculator.md: 8B / 16-bit / 8k / inference -> 20.1 GB total.
     form = FormInputs(parameters_b=8, context_tokens=8000)
-    report = report_from_form(form)
-    assert report == build_report(spec_from_form(form))
+    report = build_report(spec_from_form(form))
     assert report.total_vram_gb == pytest.approx(20.1)
 
 
@@ -84,14 +85,28 @@ def test_negative_context_rejected() -> None:
         FormInputs(parameters_b=8, context_tokens=-1)
 
 
+def test_form_without_active_parameters_is_dense() -> None:
+    form = FormInputs(parameters_b=47, context_tokens=8000)
+    assert form.architecture == "dense"
+
+
+def test_moe_form_rejects_active_parameters_above_total_parameters() -> None:
+    with pytest.raises(FormInputError):
+        FormInputs(parameters_b=47, context_tokens=8000, active_parameters_b=48)
+
+
 def test_form_from_query_maps_submitted_controls() -> None:
     # A checked checkbox submits "on"; an unchecked one is absent and keeps its False default.
-    form = form_from_query("parameters_b=70&context_tokens=8000&weight_bits=4&kv_cache_bits=8&trained=on")
+    form = form_from_query(
+        "parameters_b=70&context_tokens=8000&weight_bits=4&kv_cache_bits=8"
+        "&architecture=moe&active_parameters_b=8&trained=on"
+    )
     assert form == FormInputs(
         parameters_b=70,
         context_tokens=8000,
         weight_bits=4,
         kv_cache_bits=8,
+        active_parameters_b=8,
         trained=True,
     )
 
@@ -145,3 +160,11 @@ def test_form_from_query_falls_back_to_default_on_unsupported_quantization() -> 
 
 def test_form_from_query_falls_back_to_default_on_unsupported_kv_cache_precision() -> None:
     assert form_from_query("parameters_b=8&context_tokens=8000&kv_cache_bits=7") == DEFAULT_FORM
+
+
+def test_form_from_query_falls_back_to_default_on_unsupported_architecture() -> None:
+    assert form_from_query("parameters_b=8&context_tokens=8000&architecture=hybrid") == DEFAULT_FORM
+
+
+def test_form_from_query_falls_back_to_default_on_missing_moe_active_parameters() -> None:
+    assert form_from_query("parameters_b=47&context_tokens=8000&architecture=moe") == DEFAULT_FORM

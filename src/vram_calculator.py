@@ -6,9 +6,10 @@ Every constant traces back to docs/plan.md; no silent assumptions.
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Literal, Self
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
+from pydantic_core import PydanticCustomError
 
 BITS_PER_BYTE = 8
 CONTEXT_TOKENS_PER_K = 1000
@@ -19,9 +20,14 @@ QLORA_OVERHEAD_GB = 4.0  # 16-bit LoRA adapters plus Adam optimizer states.
 FULL_TRAINING_BYTES_PER_PARAM = 16  # Weights + gradients + optimizer for 16-bit training.
 CUDA_TAX_GB = 1.5  # Fixed CUDA context / system reservation.
 SAFETY_MARGIN = 1.10  # Headroom so a deployment does not run at the VRAM ceiling.
+MISSING_ACTIVE_PARAMETERS_ERROR = "missing_active_parameters"
+MISSING_ACTIVE_PARAMETERS_MESSAGE = "MoE deployments require active_parameters_b"
+ACTIVE_EXCEEDS_TOTAL_ERROR = "active_exceeds_total"
+ACTIVE_EXCEEDS_TOTAL_MESSAGE = "active_parameters_b cannot exceed parameters_b"
 
 Task = Literal["inference", "qlora", "full_training"]
 Bits = Literal[32, 16, 8, 4]
+Architecture = Literal["dense", "moe"]
 
 
 class DeploymentSpec(BaseModel):
@@ -32,6 +38,24 @@ class DeploymentSpec(BaseModel):
     weight_bits: Bits = 16
     kv_cache_bits: Bits = 16
     task: Task = "inference"
+    architecture: Architecture = "dense"
+    active_parameters_b: float | None = Field(default=None, gt=0)
+
+    @model_validator(mode="after")
+    def validate_active_parameters(self) -> Self:
+        """MoE deployments need active parameters for KV cache sizing."""
+        if self.architecture == "moe":
+            if self.active_parameters_b is None:
+                raise PydanticCustomError(
+                    MISSING_ACTIVE_PARAMETERS_ERROR,
+                    MISSING_ACTIVE_PARAMETERS_MESSAGE,
+                )
+            if self.active_parameters_b > self.parameters_b:
+                raise PydanticCustomError(
+                    ACTIVE_EXCEEDS_TOTAL_ERROR,
+                    ACTIVE_EXCEEDS_TOTAL_MESSAGE,
+                )
+        return self
 
 
 def weights_gb(spec: DeploymentSpec) -> float:
@@ -43,6 +67,8 @@ def kv_cache_gb(spec: DeploymentSpec) -> float:
     """KV-cache memory; 16-bit unless `kv_cache_bits` is lower, and never shrinks with weights."""
     context_k = spec.context_tokens / CONTEXT_TOKENS_PER_K
     quant = spec.kv_cache_bits / KV_REFERENCE_BITS
+    if spec.architecture == "moe" and spec.active_parameters_b is not None:
+        return spec.active_parameters_b * (context_k / KV_CONTEXT_DIVISOR) * quant
     return (spec.parameters_b / KV_HEAD_RATIO) * (context_k / KV_CONTEXT_DIVISOR) * quant
 
 

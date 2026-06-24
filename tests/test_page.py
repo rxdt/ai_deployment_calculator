@@ -7,7 +7,7 @@ from web.fragments import (
     render_hardware_rows,
     selected_class,
 )
-from web.page import render_page, selected_bits, task_label
+from web.page import render_page, selected_architecture, selected_bits, task_label
 from web.presenter import FormInputs
 from web.view import (
     AssumptionRow,
@@ -46,6 +46,18 @@ def test_default_page_renders_required_controls_and_worked_total() -> None:
     assert "<td>16-bit</td>" in html
     assert "<td>11.3 GB</td>" in html
     assert "<td>13.2 GB</td>" in html
+
+
+def test_default_page_renders_moe_controls_disabled_for_dense_models() -> None:
+    html = render_page()
+
+    assert 'name="architecture"' in html
+    assert '<option value="moe">MoE</option>' in html
+    assert 'name="active_parameters_b" type="number" min="0.000001" step="any"' in html
+    assert (
+        'name="active_parameters_b" type="number" min="0.000001" step="any"\n          value="1.3" disabled'
+        in html
+    )
 
 
 def test_page_accepts_tiny_parameter_models_supported_by_core() -> None:
@@ -111,6 +123,22 @@ def test_page_selects_quantization_and_training_state() -> None:
     assert "<h2>QLoRA</h2>" in html
 
 
+def test_page_selects_moe_architecture_and_active_parameters() -> None:
+    html = render_page(
+        FormInputs(
+            parameters_b=47,
+            context_tokens=8000,
+            active_parameters_b=1.3,
+        )
+    )
+
+    assert '<option value="moe" selected>MoE</option>' in html
+    assert (
+        'name="active_parameters_b" type="number" min="0.000001" step="any"\n          value="1.3">' in html
+    )
+    assert "<code>(94.0 + 1.3 + 0.0 + 1.5) * 1.10 = 106.5 GB</code>" in html
+
+
 def test_page_renders_report_breakdown_and_hardware_rows() -> None:
     form = FormInputs(parameters_b=70, context_tokens=8000, weight_bits=4, trained=True, use_adapter=True)
     html = render_page(form)
@@ -156,6 +184,8 @@ def test_page_helpers_render_labels_bits_and_escaped_rows() -> None:
     assert selected_bits(form.weight_bits, 8) == " selected"
     assert not selected_bits(form.weight_bits, 4)
     assert selected_bits(FormInputs(parameters_b=8, context_tokens=8000, kv_cache_bits=4).kv_cache_bits, 4)
+    assert selected_architecture("moe", "moe") == " selected"
+    assert not selected_architecture("dense", "moe")
     assert selected_class(True) == ' class="selected"'
     assert not selected_class(False)
     assert render_breakdown(view) == '<p class="metric">KV &lt;cache&gt;<strong>0.8 GB</strong></p>'

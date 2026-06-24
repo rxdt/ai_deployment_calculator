@@ -66,19 +66,44 @@ def test_vite_frontend_disables_adapter_until_training_is_enabled() -> None:
     assert 'target.name === "trained"' in script
 
 
-def test_playwright_harness_exercises_rendered_form_and_report_api() -> None:
+def test_vite_frontend_disables_active_parameters_until_moe_is_selected() -> None:
+    script = frontend_text("src/main.ts")
+
+    assert 'name="architecture"' in script
+    assert 'name="active_parameters_b"' in script
+    assert (
+        "function isValidActiveParameters(value: string | null, totalParameters: string): value is string"
+        in script
+    )
+    assert 'const activeParametersDisabled = state.architecture === "moe" ? "" : " disabled";' in script
+    assert 'activeParameters.disabled = architecture.value !== "moe";' in script
+    assert "function syncArchitectureControl(): void" in script
+    assert 'target.name === "architecture"' in script
+    assert 'search.set("architecture", state.architecture);' in script
+    assert 'search.set("active_parameters_b", state.active_parameters_b);' in script
+
+
+def test_playwright_harness_declares_vite_server() -> None:
     config = frontend_text("playwright.config.ts")
-    spec = frontend_text("tests/calculator.spec.ts")
 
     assert 'testDir: "./tests"' in config
     assert 'command: "npm run dev -- --port 5173"' in config
     assert 'baseURL: "http://127.0.0.1:5173"' in config
+
+
+def test_playwright_harness_exercises_rendered_form_and_report_api() -> None:
+    spec = frontend_text("tests/calculator.spec.ts")
+
     assert 'page.route("**/api/report?**"' in spec
     assert 'page.locator(".total")' in spec
     assert 'page.getByLabel("Parameters (billions)").fill("70")' in spec
+    assert 'page.getByLabel("Architecture").selectOption("moe")' in spec
+    assert 'page.getByLabel("Active parameters (billions)").fill("8")' in spec
     assert 'page.getByLabel("LoRA adapter")).toBeDisabled()' in spec
     assert 'page.getByLabel("LoRA adapter")).toBeEnabled()' in spec
     assert 'searchParams.get("kv_cache_bits")).toBe("8")' in spec
+    assert 'searchParams.get("architecture")).toBe("moe")' in spec
+    assert 'searchParams.get("active_parameters_b")).toBe("8")' in spec
     assert 'total_vram: "52.3 GB"' in spec
     assert 'page.getByLabel("Assumptions")' in spec
     assert "KV cache heuristic" in spec

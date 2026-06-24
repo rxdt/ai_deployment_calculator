@@ -71,6 +71,9 @@ test("renders the calculator and submits deployment inputs", async ({ page }) =>
   await page.getByLabel("Context window").fill("16000");
   await page.locator('select[name="weight_bits"]').selectOption("4");
   await page.getByLabel("KV cache").selectOption("8");
+  await page.getByLabel("Architecture").selectOption("moe");
+  await expect(page.getByLabel("Active parameters (billions)")).toBeEnabled();
+  await page.getByLabel("Active parameters (billions)").fill("8");
   await expect(page.getByLabel("LoRA adapter")).toBeDisabled();
   await page.getByLabel("Model is trained").check();
   await expect(page.getByLabel("LoRA adapter")).toBeEnabled();
@@ -81,6 +84,8 @@ test("renders the calculator and submits deployment inputs", async ({ page }) =>
   expect(apiRequests.at(-1)?.searchParams.get("context_tokens")).toBe("16000");
   expect(apiRequests.at(-1)?.searchParams.get("weight_bits")).toBe("4");
   expect(apiRequests.at(-1)?.searchParams.get("kv_cache_bits")).toBe("8");
+  expect(apiRequests.at(-1)?.searchParams.get("architecture")).toBe("moe");
+  expect(apiRequests.at(-1)?.searchParams.get("active_parameters_b")).toBe("8");
   expect(apiRequests.at(-1)?.searchParams.get("trained")).toBe("on");
   expect(apiRequests.at(-1)?.searchParams.get("use_adapter")).toBe("on");
   await expect(page.locator(".total")).toHaveText("52.3 GB");
@@ -197,12 +202,16 @@ test("normalizes invalid query values before rendering and requesting a report",
   expect(apiRequests.at(0)?.searchParams.get("context_tokens")).toBe("8000");
   expect(apiRequests.at(0)?.searchParams.get("weight_bits")).toBe("16");
   expect(apiRequests.at(0)?.searchParams.get("kv_cache_bits")).toBe("16");
+  expect(apiRequests.at(0)?.searchParams.get("architecture")).toBe("dense");
+  expect(apiRequests.at(0)?.searchParams.get("active_parameters_b")).toBe(null);
   expect(apiRequests.at(0)?.searchParams.get("trained")).toBe(null);
   expect(apiRequests.at(0)?.searchParams.get("use_adapter")).toBe(null);
   await expect(page.getByLabel("Parameters (billions)")).toHaveValue("8");
   await expect(page.getByLabel("Context window")).toHaveValue("8000");
   await expect(page.locator('select[name="weight_bits"]')).toHaveValue("16");
   await expect(page.getByLabel("KV cache")).toHaveValue("16");
+  await expect(page.getByLabel("Architecture")).toHaveValue("dense");
+  await expect(page.getByLabel("Active parameters (billions)")).toBeDisabled();
   await expect(page.getByLabel("Model is trained")).not.toBeChecked();
   await expect(page.getByLabel("LoRA adapter")).toBeDisabled();
   await expect(page.getByLabel("LoRA adapter")).not.toBeChecked();

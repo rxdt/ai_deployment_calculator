@@ -20,6 +20,8 @@ def test_defaults_are_inference_16bit() -> None:
     assert spec.weight_bits == 16
     assert spec.kv_cache_bits == 16
     assert spec.task == "inference"
+    assert spec.architecture == "dense"
+    assert spec.active_parameters_b is None
 
 
 @pytest.mark.parametrize(
@@ -49,6 +51,18 @@ def test_kv_cache_shrinks_only_when_kv_quantized() -> None:
 def test_kv_cache_expands_for_32bit_precision() -> None:
     spec = DeploymentSpec(parameters_b=8, context_tokens=8000, kv_cache_bits=32)
     assert kv_cache_gb(spec) == pytest.approx(1.6)
+
+
+def test_moe_kv_cache_uses_active_parameters_not_total_weights() -> None:
+    spec = DeploymentSpec(
+        parameters_b=47,
+        context_tokens=8000,
+        architecture="moe",
+        active_parameters_b=1.3,
+    )
+    assert weights_gb(spec) == pytest.approx(94.0)
+    assert kv_cache_gb(spec) == pytest.approx(1.3)
+    assert total_vram_gb(spec) == pytest.approx(106.5)
 
 
 def test_kv_cache_zero_context() -> None:
@@ -156,3 +170,18 @@ def test_non_positive_parameters_rejected() -> None:
 def test_negative_context_rejected() -> None:
     with pytest.raises(ValidationError):
         DeploymentSpec(parameters_b=8, context_tokens=-1)
+
+
+def test_moe_requires_active_parameters() -> None:
+    with pytest.raises(ValidationError):
+        DeploymentSpec(parameters_b=47, context_tokens=8000, architecture="moe")
+
+
+def test_moe_active_parameters_cannot_exceed_total_parameters() -> None:
+    with pytest.raises(ValidationError):
+        DeploymentSpec(
+            parameters_b=47,
+            context_tokens=8000,
+            architecture="moe",
+            active_parameters_b=48,
+        )

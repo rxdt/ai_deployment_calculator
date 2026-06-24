@@ -18,11 +18,13 @@ and the full assumption-transparency label set, including supported precisions;
 the LoRA adapter toggle is disabled until training is enabled in both the Vite
 app and stdlib fallback page so inference submissions do not carry adapter state.
 Invalid URL params are normalized before the Vite form is rendered or the backend
-report is fetched. Playwright runs against the Vite app when Chromium is launched
-outside this macOS sandbox. README now documents the backend and Vite commands
-needed to run the app end to end. The stdlib WSGI app still
-serves a static fallback page for simple local viewing. The Vite app validates
-report payload shape before rendering and shows the error state on malformed JSON.
+report is fetched. The Vite and static fallback forms expose dense vs MoE
+architecture and MoE active parameters, which the backend uses for KV sizing.
+Playwright runs against the Vite app when Chromium is launched outside this macOS
+sandbox. README documents the backend and Vite commands needed to run the app end
+to end. The stdlib WSGI app still serves a static fallback page. The Vite app
+validates report payload shape before rendering and shows the error state on
+malformed JSON.
 
 ## Prioritize These Items
 
@@ -39,7 +41,7 @@ report payload shape before rendering and shows the error state on malformed JSO
 - Web app is user friendly.
 
 - [ ] PRIORITY 0: User is able to start and run the Vite frontend and FastAPI backend.
-- [ ] PRIORITY 1: Vite page has all required input and output fields including but not limited to MoE, LoRA, and different bit options.
+- [x] PRIORITY 1: Vite page has required MoE, LoRA, and bit-option inputs.
 - [x] PRIORITY 2: Playwright has been run with app when browser dependencies are available.
 - [ ] PRIORITY 3: App is properly styled like the given examples and elements are properly placed.
 

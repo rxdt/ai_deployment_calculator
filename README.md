@@ -61,6 +61,7 @@ assert rows == [
 - Pure typed calculator core in `src/vram_calculator.py`.
 - Hardware recommendations in `src/hardware.py` for T4, RTX 4090, L4, A100, H100, and B200.
 - Host RAM floor recommendation and display-ready report assembly.
+- PyTorch MoE sizing with total parameters for weights and active parameters for KV cache.
 - Vite web app in `frontend/`, backed by the Python `/api/report` endpoint.
 - Static fallback page rendered by `src/web/page.py`.
 - 100% test coverage across product code.

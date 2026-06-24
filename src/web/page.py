@@ -86,6 +86,11 @@ def selected_bits(active_bits: int, bits: int) -> str:
     return " selected" if active_bits == bits else ""
 
 
+def selected_architecture(active_architecture: str, architecture: str) -> str:
+    """Return a select-option marker for the active model architecture."""
+    return " selected" if active_architecture == architecture else ""
+
+
 def render_page(form: FormInputs | None = None) -> str:
     """Render the single-screen calculator page for the given form state."""
     active_form = form or DEFAULT_FORM
@@ -93,6 +98,8 @@ def render_page(form: FormInputs | None = None) -> str:
     trained = " checked" if active_form.trained else ""
     adapter = " checked" if active_form.trained and active_form.use_adapter else ""
     adapter_disabled = "" if active_form.trained else " disabled"
+    active_parameters_disabled = "" if active_form.architecture == "moe" else " disabled"
+    active_parameters_value = active_form.active_parameters_b or 1.3
     return f"""<!doctype html>
 <html lang="en">
 <head>
@@ -127,6 +134,16 @@ def render_page(form: FormInputs | None = None) -> str:
           <option value="8"{selected_bits(active_form.kv_cache_bits, 8)}>8-bit</option>
           <option value="4"{selected_bits(active_form.kv_cache_bits, 4)}>4-bit</option>
         </select>
+      </label>
+      <label>Architecture
+        <select name="architecture">
+          <option value="dense"{selected_architecture(active_form.architecture, "dense")}>Dense</option>
+          <option value="moe"{selected_architecture(active_form.architecture, "moe")}>MoE</option>
+        </select>
+      </label>
+      <label>Active parameters (billions)
+        <input name="active_parameters_b" type="number" min="0.000001" step="any"
+          value="{active_parameters_value:g}"{active_parameters_disabled}>
       </label>
       <label class="check"><input name="trained" type="checkbox"{trained}> Model is trained</label>
       <label class="check">
@@ -182,14 +199,21 @@ def render_page(form: FormInputs | None = None) -> str:
   <script>
     const trained = document.querySelector('input[name="trained"]');
     const adapter = document.querySelector('input[name="use_adapter"]');
+    const architecture = document.querySelector('select[name="architecture"]');
+    const activeParameters = document.querySelector('input[name="active_parameters_b"]');
     function syncAdapterControl() {{
       adapter.disabled = !trained.checked;
       if (!trained.checked) {{
         adapter.checked = false;
       }}
     }}
+    function syncArchitectureControl() {{
+      activeParameters.disabled = architecture.value !== "moe";
+    }}
     trained.addEventListener("change", syncAdapterControl);
+    architecture.addEventListener("change", syncArchitectureControl);
     syncAdapterControl();
+    syncArchitectureControl();
   </script>
 </body>
 </html>

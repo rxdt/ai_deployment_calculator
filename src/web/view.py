@@ -10,9 +10,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from report import DeploymentReport, VramBreakdown
+from report import DeploymentReport, VramBreakdown, build_report
 from vram_calculator import SAFETY_MARGIN
-from web.presenter import FormInputs, report_from_form
+from web.presenter import FormInputs, spec_from_form
 
 
 def format_gb(value: float) -> str:
@@ -160,4 +160,4 @@ def view_from_report(report: DeploymentReport) -> DeploymentView:
 
 def view_from_form(form: FormInputs) -> DeploymentView:
     """Assemble the display-ready view straight from the one-page form controls."""
-    return view_from_report(report_from_form(form))
+    return view_from_report(build_report(spec_from_form(form)))

@@ -38,10 +38,13 @@ const DEFAULT_VALUES = {
   context_tokens: "8000",
   weight_bits: "16",
   kv_cache_bits: "16",
+  architecture: "dense",
+  active_parameters_b: "1.3",
 };
 
 const CHECKED_VALUES = new Set(["1", "true", "on", "yes"]);
 const VALID_BITS = new Set(["32", "16", "8", "4"]);
+const VALID_ARCHITECTURES = new Set(["dense", "moe"]);
 
 type FormState = typeof DEFAULT_VALUES & {
   trained: boolean;
@@ -140,6 +143,11 @@ function isNonNegativeInteger(value: string | null): value is string {
   return value !== null && Number.isInteger(Number(value)) && Number(value) >= 0;
 }
 
+function isValidActiveParameters(value: string | null, totalParameters: string): value is string {
+  const activeParameters = Number(value);
+  return value !== null && Number.isFinite(activeParameters) && activeParameters > 0 && activeParameters <= Number(totalParameters);
+}
+
 function selectedBits(
   search: URLSearchParams,
   name: keyof Pick<FormState, "weight_bits" | "kv_cache_bits">,
@@ -160,7 +168,16 @@ function normalizedState(search: URLSearchParams): FormState {
   const context = lastValue(search, "context_tokens");
   const weightBits = selectedBits(search, "weight_bits");
   const kvCacheBits = selectedBits(search, "kv_cache_bits");
-  if (!isPositiveNumber(parameters) || !isNonNegativeInteger(context) || !weightBits || !kvCacheBits) {
+  const architecture = lastValue(search, "architecture") ?? DEFAULT_VALUES.architecture;
+  const activeParameters = lastValue(search, "active_parameters_b") ?? DEFAULT_VALUES.active_parameters_b;
+  if (
+    !isPositiveNumber(parameters) ||
+    !isNonNegativeInteger(context) ||
+    !weightBits ||
+    !kvCacheBits ||
+    !VALID_ARCHITECTURES.has(architecture) ||
+    (architecture === "moe" && !isValidActiveParameters(activeParameters, parameters))
+  ) {
     return defaultState();
   }
   const trained = isChecked(lastValue(search, "trained"));
@@ -169,6 +186,8 @@ function normalizedState(search: URLSearchParams): FormState {
     context_tokens: context,
     weight_bits: weightBits,
     kv_cache_bits: kvCacheBits,
+    architecture,
+    active_parameters_b: activeParameters,
     trained,
     use_adapter: trained && isChecked(lastValue(search, "use_adapter")),
   };
@@ -180,6 +199,10 @@ function searchFromState(state: FormState): URLSearchParams {
   search.set("context_tokens", state.context_tokens);
   search.set("weight_bits", state.weight_bits);
   search.set("kv_cache_bits", state.kv_cache_bits);
+  search.set("architecture", state.architecture);
+  if (state.architecture === "moe") {
+    search.set("active_parameters_b", state.active_parameters_b);
+  }
   if (state.trained) {
     search.set("trained", "on");
   }
@@ -203,6 +226,7 @@ function taskLabel(state: FormState): string {
 function renderForm(state: FormState): string {
   const adapterState = state.trained ? checked(state.use_adapter) : "";
   const adapterDisabled = state.trained ? "" : " disabled";
+  const activeParametersDisabled = state.architecture === "moe" ? "" : " disabled";
   return `
     <form class="panel controls" aria-label="Deployment inputs">
       <h1>VRAM Deployment Calculator</h1>
@@ -223,6 +247,16 @@ function renderForm(state: FormState): string {
         <select name="kv_cache_bits">
           ${["32", "16", "8", "4"].map((bits) => option(bits, state.kv_cache_bits)).join("")}
         </select>
+      </label>
+      <label>Architecture
+        <select name="architecture">
+          <option value="dense"${state.architecture === "dense" ? " selected" : ""}>Dense</option>
+          <option value="moe"${state.architecture === "moe" ? " selected" : ""}>MoE</option>
+        </select>
+      </label>
+      <label>Active parameters (billions)
+        <input name="active_parameters_b" type="number" min="0.000001" step="any"
+          value="${escapeHtml(state.active_parameters_b)}"${activeParametersDisabled}>
       </label>
       <label class="check"><input name="trained" type="checkbox"${checked(state.trained)}> Model is trained</label>
       <label class="check"><input name="use_adapter" type="checkbox"${adapterState}${adapterDisabled}> LoRA adapter</label>
@@ -325,6 +359,15 @@ function syncAdapterControl(): void {
   }
 }
 
+function syncArchitectureControl(): void {
+  const architecture = app.querySelector<HTMLSelectElement>('select[name="architecture"]');
+  const activeParameters = app.querySelector<HTMLInputElement>('input[name="active_parameters_b"]');
+  if (!architecture || !activeParameters) {
+    return;
+  }
+  activeParameters.disabled = architecture.value !== "moe";
+}
+
 async function loadReport(rawSearch: URLSearchParams): Promise<void> {
   const requestId = (activeReportRequest += 1);
   const state = normalizedState(rawSearch);
@@ -349,12 +392,16 @@ async function loadReport(rawSearch: URLSearchParams): Promise<void> {
     app.innerHTML = `${renderForm(state)}${renderError()}`;
   }
   syncAdapterControl();
+  syncArchitectureControl();
 }
 
 app.addEventListener("change", (event) => {
   const target = event.target as HTMLInputElement;
   if (target.name === "trained") {
     syncAdapterControl();
+  }
+  if (target.name === "architecture") {
+    syncArchitectureControl();
   }
 });
 

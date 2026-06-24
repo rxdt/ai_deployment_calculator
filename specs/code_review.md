@@ -6,7 +6,10 @@ Do not add tests simply to say you added tests. Write tests because you have ver
 
 ## Current State
 
-No code reviewer has run, ever.
+Frontend review has started. A regression now covers the static fallback page
+clearing stale LoRA adapter query state when training is disabled, matching the
+Vite behavior and inference task mapping. A stale Vite dependency assertion was
+updated to match the current frontend manifest.
 
 ## Prioritize These Items
 
@@ -14,6 +17,8 @@ No code reviewer has run, ever.
 - [ ] Tests truly push at brittle code, weak assumptions, bad logic, and stale statements.
 - [ ] The frontend has been code reviewed. Adversarial tests have been written.
 - [ ] The frontend has been code reviewed. Adversarial tests have been written against it.
+- [x] Static fallback clears adapter state when training is disabled.
+- [x] Frontend manifest test matches the current Vite dependency.
 
 ## Acceptance Signals
 

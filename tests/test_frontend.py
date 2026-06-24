@@ -15,7 +15,7 @@ def test_vite_frontend_declares_dev_entry_and_backend_proxy() -> None:
     assert '"dev": "vite --host 127.0.0.1"' in package
     assert '"test:e2e": "playwright test"' in package
     assert '"@playwright/test": "^1.45.0"' in package
-    assert '"vite": "^5.4.0"' in package
+    assert '"vite": "^8.1.0"' in package
     assert '<script type="module" src="/src/main.ts"></script>' in index
     assert '"/api": "http://127.0.0.1:8000"' in config
 

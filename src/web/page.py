@@ -91,7 +91,7 @@ def render_page(form: FormInputs | None = None) -> str:
     active_form = form or DEFAULT_FORM
     view = view_from_form(active_form)
     trained = " checked" if active_form.trained else ""
-    adapter = " checked" if active_form.use_adapter else ""
+    adapter = " checked" if active_form.trained and active_form.use_adapter else ""
     adapter_disabled = "" if active_form.trained else " disabled"
     return f"""<!doctype html>
 <html lang="en">

@@ -7,6 +7,8 @@
 - 32-bit weight and KV precision are supported in the core, comparison, and web form.
 - The Vite web UI is dark themed, backend-wired through `/api/report`, accepts arbitrary positive decimal model sizes, escapes rendered query/report values, and keeps the form visible if the API fails.
 - The LoRA adapter checkbox is disabled unless model training is enabled in both the Vite app and static fallback page; turning training off clears adapter state before submit.
+- The static fallback also clears stale `use_adapter=on` query state on first render when `trained` is absent.
+- Frontend dependency smoke tests now match the current Vite 8 manifest.
 - Playwright config and Vite smoke specs are present under `frontend/`; smoke coverage includes all assumption labels, including supported precisions, but browser execution is blocked until dependencies are installed.
 - A FastAPI app (`src/web/server.py`) serves `/api/report` JSON and the `/` fallback page, reusing the pure report path.
 - The stdlib WSGI renderer remains as a static fallback page.
@@ -17,11 +19,13 @@
 
 ## Checks
 
-- `uv run ruff check . && uv run ruff format --check . && uv run pytest` — green locally, 145 passed, 100% coverage.
+- `uv run pytest tests/test_page.py tests/test_server.py` — behavioral tests passed, then failed coverage because partial pytest covers only 63% of the repo.
+- `uv run pytest` — green locally, 145 passed, 100% coverage.
 - `uv run ralph gate` — green locally.
-- `uv run ralph verify` — blocked locally in Semgrep CA setup: `ca-certs: empty trust anchors`.
+- `uv run ralph verify` — green locally.
 - `cd frontend && npm run test:e2e` — blocked locally this iteration: `playwright: command not found`.
-- Commit/push — blocked locally: `.git/index.lock` cannot be created because `.git` is read-only.
+- Commit — local commit created.
+- Push — blocked: `main` is behind `origin/main`, and `git pull --rebase origin main` cannot open `.git/FETCH_HEAD` in this sandbox.
 - Branch: `main`.
 
 ## Next
@@ -31,7 +35,5 @@
 - Open research questions remain for CPU selection and memory-bandwidth-aware recommendations.
 
 ## Blockers
-- `docs/plan.md` is 105 lines, failing `test_markdown_handoff_files_stay_short`, but it is a gate-protected path so an agent cannot trim it. A human must shorten it to <=100 lines (Claude-deployment_plan-1). Until then `uv run ralph verify`/`gate` fail on this test before reaching security.
 - Frontend dependencies are not installed in this checkout, so Playwright cannot run.
-- Semgrep cannot initialize system trust anchors in this sandbox, so full verify stops in security.
-- `git push origin main` fails in this sandbox (SSH/SOCKS auth negotiation fails / no network); Claude-backend-1 (FastAPI) and Claude-deployment_plan-1 (sharding-note fix) committed locally but could not push. Local `main` is ahead 4 / behind 1 vs origin.
+- `git push -u origin main` is rejected as non-fast-forward, and rebase cannot write `.git/FETCH_HEAD` in this sandbox.

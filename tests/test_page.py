@@ -83,6 +83,15 @@ def test_page_disables_adapter_until_training_is_enabled() -> None:
     assert "adapter.checked = false;" in html
 
 
+def test_page_clears_adapter_when_training_is_disabled() -> None:
+    html = render_page(FormInputs(parameters_b=8, context_tokens=8000, trained=False, use_adapter=True))
+
+    assert 'name="trained" type="checkbox" checked' not in html
+    assert 'name="use_adapter" type="checkbox" disabled' in html
+    assert 'name="use_adapter" type="checkbox" checked disabled' not in html
+    assert "<h2>Inference</h2>" in html
+
+
 def test_page_selects_quantization_and_training_state() -> None:
     form = FormInputs(
         parameters_b=70,

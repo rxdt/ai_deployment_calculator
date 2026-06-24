@@ -15,8 +15,10 @@ a Playwright smoke harness for the Vite app, including backend failure handling
 and the full assumption-transparency label set, including supported precisions;
 the LoRA adapter toggle is disabled until training is enabled in both the Vite
 app and stdlib fallback page so inference submissions do not carry adapter state.
-Local Playwright execution is blocked until frontend dependencies install. The
-stdlib WSGI app still serves a static fallback page for simple local viewing.
+Invalid URL params are normalized before the Vite form is rendered or the backend
+report is fetched. Local Playwright execution reaches Chromium launch, then is
+blocked by macOS sandbox permission errors. The stdlib WSGI app still serves a
+static fallback page for simple local viewing.
 
 ## Prioritize These Items
 
@@ -32,6 +34,7 @@ stdlib WSGI app still serves a static fallback page for simple local viewing.
 - Best practices for frontend are followed.
 - Web app is user friendly.
 
+- [ ] PRIORITY 0: User is able to start and run app end to end.
 - [x] PRIORITY 1: Vite page has all required input and output fields.
 - [ ] PRIORITY 2: Playwright has been run with app when browser dependencies are available.
 - [x] PRIORITY 2a: Playwright config and smoke tests cover the Vite app shell, API rendering, form submission, all assumption labels, and API failure state.
@@ -41,5 +44,6 @@ stdlib WSGI app still serves a static fallback page for simple local viewing.
 - [x] PRIORITY 6: Vite-rendered query and report values are HTML-escaped.
 - [x] PRIORITY 7: LoRA adapter control is only enabled for trained-model submissions.
 - [x] PRIORITY 8: Static fallback page clears and disables adapter use until training is enabled.
+- [x] PRIORITY 9: Vite form normalizes invalid URL params before display and report fetch.
 
 ## Non-goals

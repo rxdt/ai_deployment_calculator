@@ -82,10 +82,10 @@ Worked checks:
 
 ## Current Milestones
 
-- [x] Priority 1: VRAM formula and validated input model are implemented.
-- [x] Priority 2: hardware fit and host RAM recommendation are implemented.
-- [x] Priority 3: one-page web UI and quantization comparison are implemented.
-- [x] Priority 4: deployment plan and assumption transparency are implemented.
+- [ ] Priority 1:
+- [ ] Priority 2:
+- [ ] Priority 3:
+- [ ] Priority 4:
 
 ## Run often
 

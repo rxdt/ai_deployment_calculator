@@ -69,7 +69,7 @@ test("renders the calculator and submits deployment inputs", async ({ page }) =>
 
   await page.getByLabel("Parameters (billions)").fill("70");
   await page.getByLabel("Context window").fill("16000");
-  await page.getByLabel("Quantization").selectOption("4");
+  await page.locator('select[name="weight_bits"]').selectOption("4");
   await page.getByLabel("KV cache").selectOption("8");
   await expect(page.getByLabel("LoRA adapter")).toBeDisabled();
   await page.getByLabel("Model is trained").check();
@@ -132,6 +132,37 @@ test("allows tiny decimal model sizes supported by the backend", async ({ page }
   await page.getByRole("button", { name: "Calculate" }).click();
 
   await expect.poll(() => apiRequests.at(-1)?.searchParams.get("parameters_b")).toBe("0.0004");
+});
+
+test("normalizes invalid query values before rendering and requesting a report", async ({ page }) => {
+  const apiRequests: URL[] = [];
+
+  await page.route("**/api/report?**", async (route) => {
+    const url = new URL(route.request().url());
+    apiRequests.push(url);
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify(report),
+    });
+  });
+
+  await page.goto(
+    "/?parameters_b=0&context_tokens=8000&weight_bits=99&kv_cache_bits=4&trained=on&use_adapter=on",
+  );
+
+  await expect.poll(() => apiRequests.at(0)?.searchParams.get("parameters_b")).toBe("8");
+  expect(apiRequests.at(0)?.searchParams.get("context_tokens")).toBe("8000");
+  expect(apiRequests.at(0)?.searchParams.get("weight_bits")).toBe("16");
+  expect(apiRequests.at(0)?.searchParams.get("kv_cache_bits")).toBe("16");
+  expect(apiRequests.at(0)?.searchParams.get("trained")).toBe(null);
+  expect(apiRequests.at(0)?.searchParams.get("use_adapter")).toBe(null);
+  await expect(page.getByLabel("Parameters (billions)")).toHaveValue("8");
+  await expect(page.getByLabel("Context window")).toHaveValue("8000");
+  await expect(page.locator('select[name="weight_bits"]')).toHaveValue("16");
+  await expect(page.getByLabel("KV cache")).toHaveValue("16");
+  await expect(page.getByLabel("Model is trained")).not.toBeChecked();
+  await expect(page.getByLabel("LoRA adapter")).toBeDisabled();
+  await expect(page.getByLabel("LoRA adapter")).not.toBeChecked();
 });
 
 test("keeps the form visible when the report api fails", async ({ page }) => {

@@ -32,6 +32,8 @@ def test_vite_frontend_renders_required_controls_and_fetches_report_api() -> Non
     assert 'name="kv_cache_bits"' in script
     assert 'name="trained" type="checkbox"' in script
     assert 'name="use_adapter" type="checkbox"' in script
+    assert "function normalizedState(search: URLSearchParams): FormState" in script
+    assert "function searchFromState(state: FormState): URLSearchParams" in script
     assert 'aria-label="Hardware recommendations"' in script
     assert 'aria-label="Quantization comparison"' in script
     assert "if (!response.ok)" in script
@@ -49,8 +51,8 @@ def test_vite_frontend_renders_required_controls_and_fetches_report_api() -> Non
 def test_vite_frontend_disables_adapter_until_training_is_enabled() -> None:
     script = frontend_text("src/main.ts")
 
-    assert 'const adapterState = trained ? checked(search, "use_adapter") : "";' in script
-    assert 'const adapterDisabled = trained ? "" : " disabled";' in script
+    assert 'const adapterState = state.trained ? checked(state.use_adapter) : "";' in script
+    assert 'const adapterDisabled = state.trained ? "" : " disabled";' in script
     assert "function syncAdapterControl(): void" in script
     assert "adapter.disabled = !trained.checked;" in script
     assert "adapter.checked = false;" in script
@@ -81,3 +83,4 @@ def test_playwright_harness_exercises_rendered_form_and_report_api() -> None:
     assert "escapes reflected query and report values" in spec
     assert 'await expect(page.locator("img")).toHaveCount(0)' in spec
     assert "clears adapter use when training is turned off" in spec
+    assert "normalizes invalid query values before rendering and requesting a report" in spec

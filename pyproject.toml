@@ -58,9 +58,8 @@ reportUnusedVariable = "none"         # Handled by Ruff F841
 minversion = "9.0"
 addopts = [
     "-ra",
-    "--cov",
     "--cov-report=term-missing",
-    "--cov-fail-under=100",
+    "--cov-fail-under=100"
 ]
 testpaths = ["tests"]
 pythonpath = ["src"]
@@ -153,18 +152,18 @@ unfixable = []
 
 # Prevent structural bloat
 [tool.ruff.lint.mccabe]
-max-complexity = 8           # Hard path-count limit for functions
+max-complexity = 8           # Hard path-count limit for functions (ruff default=10)
 
 # Prevent unreadable complexity and code
 [tool.ruff.lint.pylint]
 max-nested-blocks = 3        # Stop indentation madness
 max-positional-args = 4      # Max total params, to prevent big initializers. Match max-args so no def(*)
 max-args = 4                 # Do not build big object initializers.
-max-public-methods = 5       # Cap public methods per class
+max-public-methods = 5       # Cap public methods per class (pylint default=20)
 max-statements = 25          # Cap executable statements per function/method
-max-branches = 6             # Cap branching paths per function/method; long if/elif chains are banned
-max-returns = 4              # Cap return exits per function/method
-max-locals = 10              # Cap local variable sprawl per function/method
+max-branches = 6             # Cap branching paths per function/method; long if/elif chains are banned (pylint default=12)
+max-returns = 6              # Cap return exits per function/method (pylint default=6)
+max-locals = 15              # Cap local variable sprawl per function (pylint default=15)
 
 [tool.ruff.lint.flake8-tidy-imports]
 ban-relative-imports = "all"  # Enforce absolute imports

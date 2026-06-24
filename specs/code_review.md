@@ -6,19 +6,10 @@ Do not add tests simply to say you added tests. Write tests because you have ver
 
 ## Current State
 
-Frontend review has started. A regression now covers the static fallback page
-clearing stale LoRA adapter query state when training is disabled, matching the
-Vite behavior and inference task mapping. A stale Vite dependency assertion was
-updated to match the current frontend manifest. `tests/test_api.py` now pins the
-full `/api/report` JSON contract (keys, row counts, and string value types) that
-the Vite `ReportPayload` type and `escapeHtml` depend on, so a renamed/dropped key
-or a leaked float can no longer pass CI while silently breaking the frontend.
-
-Outstanding frontend finding (needs browser tooling to fix and verify): the Vite
-form renders dropdowns and number inputs from raw URL params, so an out-of-range
-or rejected value (e.g. `weight_bits=99`, `parameters_b=0`) is displayed even
-though the backend computed the report from normalized defaults. The static page
-does not diverge because it renders from the normalized form.
+Frontend review has started. Regression coverage now includes stale adapter state,
+the `/api/report` JSON contract, and Vite query normalization. Invalid URL params
+such as `weight_bits=99` or `parameters_b=0` are normalized before the Vite form is
+rendered or `/api/report` is fetched, matching the backend fallback behavior.
 
 ## Prioritize These Items
 
@@ -26,7 +17,7 @@ does not diverge because it renders from the normalized form.
 - [ ] Tests truly push at brittle code, weak assumptions, bad logic, and stale statements.
 - [ ] The frontend has been code reviewed. Adversarial tests have been written.
 - [ ] The frontend has been code reviewed. Adversarial tests have been written against it.
-- [ ] Vite form display diverges from the normalized report on invalid URL params.
+- [x] Vite form display diverges from the normalized report on invalid URL params.
 - [x] `/api/report` JSON contract is pinned against the frontend `ReportPayload`.
 - [x] Static fallback clears adapter state when training is disabled.
 - [x] Frontend manifest test matches the current Vite dependency.

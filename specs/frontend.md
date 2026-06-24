@@ -7,9 +7,11 @@ Create a one page, no scroll web app that takes user input about their model and
 ## Current State
 
 The Vite frontend in `frontend/` renders the one-page calculator shell and calls
-the backend `/api/report` endpoint for display-ready results from the pure Python
-report path. The stdlib WSGI app still serves a static fallback page for simple
-local viewing.
+the backend `/api/report` endpoint for display-ready results from the pure
+Python report path. The repo now includes a Playwright smoke harness for the
+Vite app, including backend failure handling; local execution is blocked until
+frontend dependencies install. The stdlib WSGI app still serves a static
+fallback page for simple local viewing.
 
 ## Prioritize These Items
 
@@ -26,7 +28,8 @@ local viewing.
 - Web app is user friendly.
 
 - [x] PRIORITY 1: Vite page has all required input and output fields.
-- [ ] PRIORITY 2: Playwright has been run with app when a browser harness is available.
+- [ ] PRIORITY 2: Playwright has been run with app when browser dependencies are available.
+- [x] PRIORITY 2a: Playwright config and smoke tests cover the Vite app shell, API rendering, form submission, and API failure state.
 - [x] PRIORITY 3: Frontend is wired to backend `/api/report`.
 - [x] PRIORITY 4: Dark one-page layout is preserved in the Vite CSS.
 

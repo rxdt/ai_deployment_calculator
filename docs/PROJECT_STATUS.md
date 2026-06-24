@@ -4,7 +4,8 @@
 
 - Specs are implemented through deployment plan and assumption transparency.
 - 32-bit weight and KV precision are supported in the core, comparison, and web form.
-- The Vite web UI is dark themed, backend-wired through `/api/report`, and accepts tiny models.
+- The Vite web UI is dark themed, backend-wired through `/api/report`, accepts tiny models, and keeps the form visible if the API fails.
+- Playwright config and Vite smoke specs are present under `frontend/`; browser execution is blocked until dependencies are installed.
 - The stdlib WSGI renderer remains as a static fallback page.
 - `docs/plan.md` is distilled to the durable formula, product shape, and milestones.
 - Tiny 400,000-parameter FP8 full-training sizing is documented and tested.
@@ -12,15 +13,17 @@
 
 ## Checks
 
-- `ruff check . && ruff format --check . && pytest` — green locally, 142 passed, 100% coverage.
-- `uv run ralph verify` — green.
-- Branch: `main`.
+- `ruff check . && ruff format --check . && pytest` — green locally, 143 passed, 100% coverage.
+- `cd frontend && npm run test:e2e` — blocked locally: `playwright: command not found`.
+- Pre-push hook — green before non-fast-forward rejection.
+- Branch: `main`, ahead 2 and behind `origin/codex-vram-2-12` by 1.
 
 ## Next
 
+- Run `cd frontend && npm install && npm run test:e2e` when browser dependencies are available.
 - Switch to simple FastAPI backend.
 - Hardware catalog complete through B200 (192 GB). No further catalog entries pending.
 - Open research questions remain for CPU selection and memory-bandwidth-aware recommendations.
 
 ## Blockers
-- None.
+- Push is blocked: remote is ahead, and `git pull --rebase --autostash origin codex-vram-2-12` fails because `.git/FETCH_HEAD` is not writable in this sandbox.

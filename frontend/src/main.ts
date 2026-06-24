@@ -161,10 +161,28 @@ function renderResults(report: ReportPayload, search: URLSearchParams): string {
   `;
 }
 
+function renderError(): string {
+  return `
+    <section class="results">
+      <div class="panel error" role="alert">
+        <h2>Report unavailable</h2>
+        <p>Unable to load report. Check the backend and retry.</p>
+      </div>
+    </section>
+  `;
+}
+
 async function loadReport(search: URLSearchParams): Promise<void> {
-  const response = await fetch(`/api/report?${search.toString()}`);
-  const report = (await response.json()) as ReportPayload;
-  app.innerHTML = `${renderForm(search)}${renderResults(report, search)}`;
+  try {
+    const response = await fetch(`/api/report?${search.toString()}`);
+    if (!response.ok) {
+      throw new Error(`Report request failed: ${response.status}`);
+    }
+    const report = (await response.json()) as ReportPayload;
+    app.innerHTML = `${renderForm(search)}${renderResults(report, search)}`;
+  } catch {
+    app.innerHTML = `${renderForm(search)}${renderError()}`;
+  }
 }
 
 app.addEventListener("submit", (event) => {

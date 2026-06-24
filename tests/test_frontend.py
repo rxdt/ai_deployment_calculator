@@ -84,3 +84,12 @@ def test_playwright_harness_exercises_rendered_form_and_report_api() -> None:
     assert 'await expect(page.locator("img")).toHaveCount(0)' in spec
     assert "clears adapter use when training is turned off" in spec
     assert "normalizes invalid query values before rendering and requesting a report" in spec
+    assert all(
+        fragment in spec
+        for fragment in (
+            "keeps the latest submitted report when an earlier request finishes late",
+            "releaseStaleRequest",
+            "13.0 GB",
+            "70.0 GB",
+        )
+    )

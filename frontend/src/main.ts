@@ -54,6 +54,8 @@ if (!app) {
   throw new Error("Missing app root");
 }
 
+let activeReportRequest = 0;
+
 function option(value: string, selected: string): string {
   const marker = value === selected ? " selected" : "";
   return `<option value="${value}"${marker}>${value}-bit</option>`;
@@ -275,6 +277,7 @@ function syncAdapterControl(): void {
 }
 
 async function loadReport(rawSearch: URLSearchParams): Promise<void> {
+  const requestId = (activeReportRequest += 1);
   const state = normalizedState(rawSearch);
   const search = searchFromState(state);
   try {
@@ -283,8 +286,14 @@ async function loadReport(rawSearch: URLSearchParams): Promise<void> {
       throw new Error(`Report request failed: ${response.status}`);
     }
     const report = (await response.json()) as ReportPayload;
+    if (requestId !== activeReportRequest) {
+      return;
+    }
     app.innerHTML = `${renderForm(state)}${renderResults(report, state)}`;
   } catch {
+    if (requestId !== activeReportRequest) {
+      return;
+    }
     app.innerHTML = `${renderForm(state)}${renderError()}`;
   }
   syncAdapterControl();

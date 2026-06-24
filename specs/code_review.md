@@ -9,7 +9,9 @@ Do not add tests simply to say you added tests. Write tests because you have ver
 Frontend review has started. Regression coverage now includes stale adapter state,
 the `/api/report` JSON contract, and Vite query normalization. Invalid URL params
 such as `weight_bits=99` or `parameters_b=0` are normalized before the Vite form is
-rendered or `/api/report` is fetched, matching the backend fallback behavior.
+rendered or `/api/report` is fetched, matching the backend fallback behavior. The
+Vite app ignores stale `/api/report` responses when users submit newer inputs
+before an earlier request finishes.
 
 ## Prioritize These Items
 
@@ -17,6 +19,7 @@ rendered or `/api/report` is fetched, matching the backend fallback behavior.
 - [ ] Tests truly push at brittle code, weak assumptions, bad logic, and stale statements.
 - [ ] The frontend has been code reviewed. Adversarial tests have been written.
 - [ ] The frontend has been code reviewed. Adversarial tests have been written against it.
+- [x] Stale frontend report responses cannot overwrite the latest submitted inputs.
 - [x] Vite form display diverges from the normalized report on invalid URL params.
 - [x] `/api/report` JSON contract is pinned against the frontend `ReportPayload`.
 - [x] Static fallback clears adapter state when training is disabled.

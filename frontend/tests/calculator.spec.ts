@@ -134,6 +134,49 @@ test("allows tiny decimal model sizes supported by the backend", async ({ page }
   await expect.poll(() => apiRequests.at(-1)?.searchParams.get("parameters_b")).toBe("0.0004");
 });
 
+test("keeps the latest submitted report when an earlier request finishes late", async ({ page }) => {
+  let releaseStaleRequest: (() => void) | undefined;
+  let markStaleRequestDone: (() => void) | undefined;
+  const staleRequestDone = new Promise<void>((resolve) => {
+    markStaleRequestDone = resolve;
+  });
+
+  await page.route("**/api/report?**", async (route) => {
+    const url = new URL(route.request().url());
+    const parameters = url.searchParams.get("parameters_b");
+    if (parameters === "70") {
+      await new Promise<void>((resolve) => {
+        releaseStaleRequest = resolve;
+      });
+      await route.fulfill({
+        contentType: "application/json",
+        body: JSON.stringify({ ...report, total_vram: "70.0 GB" }),
+      });
+      markStaleRequestDone?.();
+      return;
+    }
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify(parameters === "13" ? { ...report, total_vram: "13.0 GB" } : report),
+    });
+  });
+
+  await page.goto("/");
+  await expect(page.locator(".total")).toHaveText("20.1 GB");
+
+  await page.getByLabel("Parameters (billions)").fill("70");
+  await page.getByRole("button", { name: "Calculate" }).click();
+  await expect.poll(() => Boolean(releaseStaleRequest)).toBe(true);
+
+  await page.getByLabel("Parameters (billions)").fill("13");
+  await page.getByRole("button", { name: "Calculate" }).click();
+  await expect(page.locator(".total")).toHaveText("13.0 GB");
+
+  releaseStaleRequest?.();
+  await staleRequestDone;
+  await expect(page.locator(".total")).toHaveText("13.0 GB");
+});
+
 test("normalizes invalid query values before rendering and requesting a report", async ({ page }) => {
   const apiRequests: URL[] = [];
 

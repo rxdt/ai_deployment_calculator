@@ -1,4 +1,14 @@
 {
   "include": ["harness", "src", "tests"],
-  "exclude": ["frontend", "scratchpad", ".venv"]
+  "exclude": ["frontend", "scratchpad", ".venv"],
+  "typeCheckingMode": "strict",
+  "reportUnknownVariableType": "none",
+  "reportUnknownArgumentType": "none",
+  "reportUnknownMemberType": "none",
+  "reportUnknownParameterType": "none",
+  "reportUntypedFunctionDecorator": "none",
+  "reportMissingTypeStubs": "none",
+  "reportAssertAlwaysTrue": "none",
+  "reportUnusedImport": "none",
+  "reportUnusedVariable": "none"
 }

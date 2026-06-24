@@ -35,3 +35,12 @@ fall back to the existing error state instead of producing misleading UI.
 The app works reliably 99.9% of the time.
 
 ## Non-goals
+
+## Blockers
+-
+-
+
+## COMPLETE ?
+
+- [ ] TRUE
+- [ ] FALSE

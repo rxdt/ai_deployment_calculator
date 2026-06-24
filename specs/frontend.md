@@ -8,8 +8,11 @@ It should be styled like [this screenshot](src/web/examples_sites/model_recommen
 
 ## Current State
 
-The Vite frontend in `frontend/` renders the one-page calculator shell and calls
-the backend `/api/report` endpoint for display-ready results from the pure
+The Vite frontend now wears the reference terminal theme (green accent on a
+near-black background, monospace font) toward PRIORITY 3, matching
+`model_recommendation.png`; element placement is unchanged and still pending user
+sign-off. The Vite frontend in `frontend/` renders the one-page calculator shell
+and calls the backend `/api/report` endpoint for display-ready results from the pure
 Python report path. Browser number inputs allow arbitrary positive decimal model
 sizes, including the documented `0.0004B` tiny-model case. Rendered query and
 report values are escaped before insertion into the Vite DOM. The repo includes

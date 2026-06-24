@@ -1,6 +1,6 @@
 :root {
   color-scheme: dark;
-  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  font-family: ui-monospace, "JetBrains Mono", "SFMono-Regular", Menlo, monospace;
 }
 
 * {
@@ -11,8 +11,8 @@ body {
   margin: 0;
   min-height: 100vh;
   overflow: hidden;
-  background: #0f172a;
-  color: #e5edf7;
+  background: #070b0a;
+  color: #d6e2da;
 }
 
 button,
@@ -48,43 +48,43 @@ h1 {
 h2 {
   font-size: 14px;
   text-transform: uppercase;
-  color: #93c5fd;
-  letter-spacing: 0;
+  color: #4ade80;
+  letter-spacing: 0.08em;
 }
 
 label {
   display: grid;
   gap: 6px;
   font-size: 13px;
-  color: #cbd5e1;
+  color: #a7b6ad;
 }
 
 input,
 select {
   width: 100%;
   min-height: 40px;
-  border: 1px solid #334155;
+  border: 1px solid #1f352a;
   border-radius: 6px;
   padding: 8px 10px;
-  background: #0b1220;
-  color: #f8fafc;
+  background: #050807;
+  color: #ecfdf3;
 }
 
 button {
   min-height: 40px;
   border: 0;
   border-radius: 6px;
-  background: #14b8a6;
-  color: #042f2e;
+  background: #22c55e;
+  color: #04140a;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
 }
 
 .panel {
-  border: 1px solid #243247;
+  border: 1px solid #14301f;
   border-radius: 8px;
-  background: #162033;
+  background: #0a100d;
   padding: 18px;
 }
 
@@ -128,7 +128,7 @@ button {
   font-size: 56px;
   line-height: .9;
   font-weight: 800;
-  color: #2dd4bf;
+  color: #4ade80;
 }
 
 .primary {
@@ -143,9 +143,9 @@ button {
 }
 
 .metric {
-  border-left: 4px solid #60a5fa;
+  border-left: 4px solid #22c55e;
   padding: 8px 10px;
-  background: #111827;
+  background: #050807;
 }
 
 .metric strong {
@@ -161,7 +161,7 @@ button {
 }
 
 .selected td {
-  background: #134e4a;
+  background: #14532d;
   font-weight: 700;
 }
 
@@ -178,7 +178,7 @@ button {
 
 .calc summary {
   cursor: pointer;
-  color: #93c5fd;
+  color: #4ade80;
 }
 
 .calc code {
@@ -208,15 +208,15 @@ table {
 th,
 td {
   padding: 10px 8px;
-  border-bottom: 1px solid #243247;
+  border-bottom: 1px solid #14301f;
   text-align: left;
 }
 
 th {
-  color: #93c5fd;
+  color: #4ade80;
   font-size: 12px;
   text-transform: uppercase;
-  letter-spacing: 0;
+  letter-spacing: 0.08em;
 }
 
 @media (max-width: 760px) {

@@ -64,6 +64,26 @@ def test_vite_frontend_constrains_dense_report_panel() -> None:
     assert "overflow: auto;" in styles
 
 
+def test_vite_frontend_uses_reference_terminal_theme() -> None:
+    """Pin the green-on-near-black monospace identity from the model_recommendation reference."""
+    styles = frontend_text("src/styles.css")
+
+    # Near-black background, not the prior slate blue.
+    assert "background: #070b0a;" in styles
+    assert "#0f172a" not in styles
+    # Monospace technical font, not Inter.
+    assert "ui-monospace" in styles
+    assert "Inter" not in styles
+    # Green accent on the primary button and result total, not teal.
+    assert "background: #22c55e;" in styles
+    assert "color: #4ade80;" in styles
+    assert "#14b8a6" not in styles
+    assert "#2dd4bf" not in styles
+    # Blue heading/label accents are replaced by green.
+    assert "#93c5fd" not in styles
+    assert "#60a5fa" not in styles
+
+
 def test_vite_frontend_disables_adapter_until_training_is_enabled() -> None:
     script = frontend_text("src/main.ts")
 

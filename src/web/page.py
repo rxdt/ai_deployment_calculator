@@ -91,6 +91,11 @@ def selected_architecture(active_architecture: str, architecture: str) -> str:
     return " selected" if active_architecture == architecture else ""
 
 
+def selected_runtime(active_runtime: str, runtime: str) -> str:
+    """Return a select-option marker for the active runtime value."""
+    return " selected" if active_runtime == runtime else ""
+
+
 def render_page(form: FormInputs | None = None) -> str:
     """Render the single-screen calculator page for the given form state."""
     active_form = form or DEFAULT_FORM
@@ -101,6 +106,8 @@ def render_page(form: FormInputs | None = None) -> str:
     adapter_disabled = "" if active_task != "inference" else " disabled"
     active_parameters_disabled = "" if active_form.architecture == "moe" else " disabled"
     active_parameters_value = active_form.active_parameters_b or 1.3
+    pytorch_runtime = selected_runtime(active_form.runtime, "pytorch")
+    gguf_runtime = selected_runtime(active_form.runtime, "llama_cpp_gguf")
     return f"""<!doctype html>
 <html lang="en">
 <head>
@@ -134,6 +141,12 @@ def render_page(form: FormInputs | None = None) -> str:
           <option value="16"{selected_bits(active_form.kv_cache_bits, 16)}>16-bit</option>
           <option value="8"{selected_bits(active_form.kv_cache_bits, 8)}>8-bit</option>
           <option value="4"{selected_bits(active_form.kv_cache_bits, 4)}>4-bit</option>
+        </select>
+      </label>
+      <label>Runtime
+        <select name="runtime">
+          <option value="pytorch"{pytorch_runtime}>PyTorch</option>
+          <option value="llama_cpp_gguf"{gguf_runtime}>llama.cpp GGUF</option>
         </select>
       </label>
       <label>Architecture

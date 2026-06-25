@@ -45,6 +45,8 @@ def test_vite_frontend_renders_required_controls_and_fetches_report_api() -> Non
         for fragment in (
             "function isReportPayload(value: unknown, selectedWeightBits: string): value is ReportPayload",
             'throw new Error("Report payload does not match the frontend contract")',
+            'name="runtime"',
+            'value="llama_cpp_gguf"',
             'aria-label="Deployment status"',
             "~/vram-calc",
             "value.hardware.length > 0",
@@ -147,7 +149,6 @@ def test_playwright_harness_exercises_rendered_form_and_report_api() -> None:
     assert 'page.getByLabel("Active parameters (billions)").fill("8")' in spec
     assert 'page.getByLabel("LoRA adapter")).toBeDisabled()' in spec
     assert 'page.getByLabel("LoRA adapter")).toBeEnabled()' in spec
-    assert 'searchParams.get("kv_cache_bits")).toBe("8")' in spec
     assert 'searchParams.get("architecture")).toBe("moe")' in spec
     assert 'searchParams.get("active_parameters_b")).toBe("8")' in spec
     assert 'total_vram: "52.3 GB"' in spec
@@ -173,6 +174,8 @@ def test_playwright_harness_exercises_rendered_form_and_report_api() -> None:
             "selected: true",
             "rejects selected quantization comparisons that do not match the submitted precision",
             'selected: row.precision === "8-bit"',
+            'searchParams.get("kv_cache_bits")).toBe("8")',
+            'searchParams.get("runtime")).toBe("llama_cpp_gguf")',
         )
     )
     assert "escapes reflected query and report values" in spec

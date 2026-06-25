@@ -7,7 +7,7 @@ from web.fragments import (
     render_hardware_rows,
     selected_class,
 )
-from web.page import render_page, selected_architecture, selected_bits, task_label
+from web.page import render_page, selected_architecture, selected_bits, selected_runtime, task_label
 from web.presenter import FormInputs
 from web.view import (
     AssumptionRow,
@@ -28,6 +28,7 @@ def test_default_page_renders_required_controls_and_worked_total() -> None:
     assert 'name="context_tokens"' in html
     assert 'name="weight_bits"' in html
     assert 'name="kv_cache_bits"' in html
+    assert 'name="runtime"' in html
     assert 'name="trained" type="checkbox"' in html
     assert 'name="use_adapter" type="checkbox" disabled' in html
     assert "20.1 GB" in html
@@ -46,6 +47,13 @@ def test_default_page_renders_required_controls_and_worked_total() -> None:
     assert "<td>16-bit</td>" in html
     assert "<td>11.3 GB</td>" in html
     assert "<td>13.2 GB</td>" in html
+    assert all(
+        fragment in html
+        for fragment in (
+            '<option value="pytorch" selected>PyTorch</option>',
+            '<option value="llama_cpp_gguf">llama.cpp GGUF</option>',
+        )
+    )
 
 
 def test_default_page_renders_moe_controls_disabled_for_dense_models() -> None:
@@ -139,6 +147,18 @@ def test_page_selects_moe_architecture_and_active_parameters() -> None:
     assert "<code>(94.0 + 1.3 + 0.0 + 1.5) * 1.10 = 106.5 GB</code>" in html
 
 
+def test_page_selects_gguf_runtime_without_safety_margin() -> None:
+    html = render_page(
+        FormInputs(
+            parameters_b=104, context_tokens=32000, weight_bits=4, kv_cache_bits=32, runtime="llama_cpp_gguf"
+        )
+    )
+
+    assert '<option value="llama_cpp_gguf" selected>llama.cpp GGUF</option>' in html
+    assert "136.7 GB" in html
+    assert "<code>(52.0 + 83.2 + 0.0 + 1.5) * 1.00 = 136.7 GB</code>" in html
+
+
 def test_page_renders_report_breakdown_and_hardware_rows() -> None:
     form = FormInputs(parameters_b=70, context_tokens=8000, weight_bits=4, trained=True, use_adapter=True)
     html = render_page(form)
@@ -186,6 +206,8 @@ def test_page_helpers_render_labels_bits_and_escaped_rows() -> None:
     assert selected_bits(FormInputs(parameters_b=8, context_tokens=8000, kv_cache_bits=4).kv_cache_bits, 4)
     assert selected_architecture("moe", "moe") == " selected"
     assert not selected_architecture("dense", "moe")
+    assert selected_runtime("llama_cpp_gguf", "llama_cpp_gguf") == " selected"
+    assert not selected_runtime("pytorch", "llama_cpp_gguf")
     assert selected_class(True) == ' class="selected"'
     assert not selected_class(False)
     assert render_breakdown(view) == '<p class="metric">KV &lt;cache&gt;<strong>0.8 GB</strong></p>'

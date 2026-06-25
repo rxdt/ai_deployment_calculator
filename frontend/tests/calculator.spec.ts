@@ -41,6 +41,7 @@ const submittedReport = {
     optimization: "Use FP8 KV cache to reduce long-context memory.",
   },
   hardware: [{ name: "A100 80GB", detail: "1 x 80 GB", sharding: "single GPU" }],
+  comparison: report.comparison.map((row) => ({ ...row, selected: row.precision === "4-bit" })),
 };
 
 test("renders the calculator and submits deployment inputs", async ({ page }) => {
@@ -73,6 +74,7 @@ test("renders the calculator and submits deployment inputs", async ({ page }) =>
   await page.getByLabel("Context window").fill("16000");
   await page.locator('select[name="weight_bits"]').selectOption("4");
   await page.getByLabel("KV cache").selectOption("8");
+  await page.getByLabel("Runtime").selectOption("llama_cpp_gguf");
   await page.getByLabel("Architecture").selectOption("moe");
   await expect(page.getByLabel("Active parameters (billions)")).toBeEnabled();
   await page.getByLabel("Active parameters (billions)").fill("8");
@@ -86,6 +88,7 @@ test("renders the calculator and submits deployment inputs", async ({ page }) =>
   expect(apiRequests.at(-1)?.searchParams.get("context_tokens")).toBe("16000");
   expect(apiRequests.at(-1)?.searchParams.get("weight_bits")).toBe("4");
   expect(apiRequests.at(-1)?.searchParams.get("kv_cache_bits")).toBe("8");
+  expect(apiRequests.at(-1)?.searchParams.get("runtime")).toBe("llama_cpp_gguf");
   expect(apiRequests.at(-1)?.searchParams.get("architecture")).toBe("moe");
   expect(apiRequests.at(-1)?.searchParams.get("active_parameters_b")).toBe("8");
   expect(apiRequests.at(-1)?.searchParams.get("trained")).toBe("on");
@@ -197,13 +200,14 @@ test("normalizes invalid query values before rendering and requesting a report",
   });
 
   await page.goto(
-    "/?parameters_b=0&context_tokens=8000&weight_bits=99&kv_cache_bits=4&trained=on&use_adapter=on",
+    "/?parameters_b=0&context_tokens=8000&weight_bits=99&kv_cache_bits=4&runtime=tensorflow&trained=on&use_adapter=on",
   );
 
   await expect.poll(() => apiRequests.at(0)?.searchParams.get("parameters_b")).toBe("8");
   expect(apiRequests.at(0)?.searchParams.get("context_tokens")).toBe("8000");
   expect(apiRequests.at(0)?.searchParams.get("weight_bits")).toBe("16");
   expect(apiRequests.at(0)?.searchParams.get("kv_cache_bits")).toBe("16");
+  expect(apiRequests.at(0)?.searchParams.get("runtime")).toBe("pytorch");
   expect(apiRequests.at(0)?.searchParams.get("architecture")).toBe("dense");
   expect(apiRequests.at(0)?.searchParams.get("active_parameters_b")).toBe(null);
   expect(apiRequests.at(0)?.searchParams.get("trained")).toBe(null);
@@ -212,6 +216,7 @@ test("normalizes invalid query values before rendering and requesting a report",
   await expect(page.getByLabel("Context window")).toHaveValue("8000");
   await expect(page.locator('select[name="weight_bits"]')).toHaveValue("16");
   await expect(page.getByLabel("KV cache")).toHaveValue("16");
+  await expect(page.getByLabel("Runtime")).toHaveValue("pytorch");
   await expect(page.getByLabel("Architecture")).toHaveValue("dense");
   await expect(page.getByLabel("Active parameters (billions)")).toBeDisabled();
   await expect(page.getByLabel("Model is trained")).not.toBeChecked();

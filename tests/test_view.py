@@ -45,6 +45,7 @@ def sample_report() -> DeploymentReport:
                 QuantizationComparisonRow(weight_bits=4, total_gb=6.9, savings_gb=13.2, selected=False),
             )
         ),
+        runtime_margin=1.10,
     )
 
 

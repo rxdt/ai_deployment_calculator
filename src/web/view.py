@@ -11,7 +11,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from report import DeploymentReport, VramBreakdown, build_report
-from vram_calculator import SAFETY_MARGIN
 from web.presenter import FormInputs, spec_from_form
 
 
@@ -100,12 +99,12 @@ class DeploymentView:
         return self.tables.assumptions
 
 
-def format_calculation(breakdown: VramBreakdown, total_vram_gb: float) -> str:
+def format_calculation(breakdown: VramBreakdown, runtime_margin: float, total_vram_gb: float) -> str:
     """Render the auditable VRAM equation so an engineer can check the estimate by hand."""
     return (
         f"({breakdown.weights:.1f} + {breakdown.kv_cache:.1f} + "
         f"{breakdown.task_overhead:.1f} + {breakdown.cuda_tax:.1f}) "
-        f"* {SAFETY_MARGIN:.2f} = {total_vram_gb:.1f} GB"
+        f"* {runtime_margin:.2f} = {total_vram_gb:.1f} GB"
     )
 
 
@@ -154,7 +153,7 @@ def view_from_report(report: DeploymentReport) -> DeploymentView:
         ),
         breakdown=breakdown,
         tables=ResultTables(hardware=hardware, comparison=comparison, assumptions=assumptions),
-        calculation=format_calculation(parts, report.total_vram_gb),
+        calculation=format_calculation(parts, report.runtime_margin, report.total_vram_gb),
     )
 
 

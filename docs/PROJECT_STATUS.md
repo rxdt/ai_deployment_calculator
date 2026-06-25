@@ -33,6 +33,9 @@
 - The calculation card renders the deployment's real safety margin via `DeploymentReport.runtime_margin`
   instead of back-computing `total / subtotal`. Tiny CUDA-tax-bound runs (e.g. 400k-param full
   training) rounded to a fabricated `1.13` multiplier that contradicted the `10%` assumption panel.
+- `form_from_query` parses `context_tokens` via `parse_context_tokens`, matching the frontend's
+  `Number.isInteger` guard. A bare `int("8000.0")`/`int("8e3")` raised `ValueError` and silently
+  reset every input to the default 8B deployment, contradicting the form the user still saw.
 
 ## Checks
 
@@ -46,6 +49,8 @@
 - `uv run ralph gate` - green after rendering the real safety margin in the calculation card.
 - `uv run ralph gate` - green after pinning the GGUF runtime margin through the quantization
   comparison (mutation-checked: forcing `with_weight_bits` to `pytorch` fails the new test 150.4 vs 136.7).
+- `uv run ralph gate` - green after accepting integer-valued `context_tokens`
+  (mutation-checked: reverting to `int()` fails `8000.0`/`8e3` acceptance with `ValueError`).
 
 ## Next
 

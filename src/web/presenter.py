@@ -26,6 +26,19 @@ class FormInputError(ValueError):
     """Raised when form inputs fail local validation."""
 
 
+def parse_context_tokens(raw: str) -> int:
+    """Parse context tokens like the frontend's `Number.isInteger` guard.
+
+    The Vite form accepts integer-valued floats such as "8000.0" or "8e3"; a bare
+    `int()` rejects those and would silently drop every input back to the default
+    deployment, so the rendered report would contradict the form the user sees.
+    """
+    value = float(raw)
+    if not value.is_integer():
+        raise FormInputError
+    return int(value)
+
+
 @dataclass(frozen=True)
 class FormInputs:
     """The one-page form's raw controls."""
@@ -88,7 +101,7 @@ def form_from_query(query_string: str) -> FormInputs:
         active_parameters_b = float(raw_params["active_parameters_b"]) if architecture == "moe" else None
         return FormInputs(
             parameters_b=float(raw_params["parameters_b"]),
-            context_tokens=int(raw_params["context_tokens"]),
+            context_tokens=parse_context_tokens(raw_params["context_tokens"]),
             weight_bits=BIT_VALUES[raw_weight_bits],
             kv_cache_bits=BIT_VALUES[raw_kv_cache_bits],
             trained=trained,

@@ -184,6 +184,23 @@ def test_form_from_query_falls_back_to_default_on_missing_moe_active_parameters(
     assert form_from_query("parameters_b=47&context_tokens=8000&architecture=moe") == DEFAULT_FORM
 
 
+@pytest.mark.parametrize("context_tokens", ["8000.0", "8e3", "32000.00"])
+def test_form_from_query_accepts_integer_valued_context_tokens(context_tokens: str) -> None:
+    # The Vite form's Number.isInteger guard accepts "8000.0"/"8e3"; a bare int() rejects them
+    # and would silently drop every input back to the default deployment, so the rendered report
+    # would contradict the form shown to the user. The backend must accept them and keep the spec.
+    form = form_from_query(f"parameters_b=70&context_tokens={context_tokens}&weight_bits=4")
+    assert form.parameters_b == 70
+    assert form.context_tokens == int(float(context_tokens))
+
+
+@pytest.mark.parametrize("context_tokens", ["8000.5", "3.14", "nan", "inf"])
+def test_form_from_query_rejects_non_integer_context_tokens(context_tokens: str) -> None:
+    # Non-integer or non-finite context counts have no meaning in tokens; mirror the frontend
+    # by normalizing them to the default deployment instead of truncating silently.
+    assert form_from_query(f"parameters_b=70&context_tokens={context_tokens}") == DEFAULT_FORM
+
+
 @pytest.mark.parametrize("parameters", ["inf", "-inf", "nan"])
 def test_form_from_query_falls_back_to_default_on_non_finite_parameters(parameters: str) -> None:
     # inf crashes hardware sizing and nan yields nonsense totals; the frontend rejects both

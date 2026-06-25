@@ -65,6 +65,7 @@ Worked checks (subtotals before margin):
 - [x] PRIORITY 4: host RAM floor in the report and web UI
 - [x] MoE support using total parameters for weights and active parameters for KV cache
 - [x] GGUF llama.cpp runtime support with no final safety multiplier
+- [x] GGUF MoE regression for quantized total weights, active-parameter KV cache, and 1.0 margin
 - [x] LoRA/QLoRA adapter overhead from trainable parameter percent
 
 ## Non-goals

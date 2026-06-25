@@ -123,6 +123,23 @@ def test_llama_cpp_gguf_uses_additive_total_without_safety_margin() -> None:
     assert total_vram_gb(spec) == pytest.approx(136.7)
 
 
+def test_llama_cpp_gguf_moe_uses_quantized_total_weights_and_active_kv() -> None:
+    spec = DeploymentSpec(
+        parameters_b=47,
+        context_tokens=8000,
+        weight_bits=4,
+        architecture="moe",
+        active_parameters_b=1.3,
+        runtime="llama_cpp_gguf",
+    )
+
+    assert weights_gb(spec) == pytest.approx(23.5)
+    assert kv_cache_gb(spec) == pytest.approx(1.3)
+    assert task_overhead_gb(spec) == pytest.approx(0.0)
+    assert RUNTIME_MARGINS[spec.runtime] == pytest.approx(1.0)
+    assert total_vram_gb(spec) == pytest.approx(26.3)
+
+
 def test_tiny_fp8_full_training_rounds_to_cuda_dominated_total() -> None:
     spec = DeploymentSpec(
         parameters_b=0.0004,

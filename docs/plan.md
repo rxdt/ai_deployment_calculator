@@ -15,8 +15,7 @@ hand-calculating every model deployment.
 - [x] Research and record formula for LoRA and QLoRA (only the weights shrink for QLoRA)
 - [x] Add core support for LoRA/QLoRA adapter overhead from trainable parameter percent
 - [x] Add PyTorch MoE support using total parameters for weights and active parameters for KV cache.
-- [ ] Research GGUF MoE offload
-- [ ] MoE as well? Memory = ((47 * 0.5)_W + (1.3 * 1 * 1)_KV + 0_T + 0.5_C) * 1.0
+- [x] Add GGUF MoE coverage: `((47 * 0.5)_W + (1.3 * 1)_KV + 0_T + 1.5_C) * 1.0 = 26.3 GB`
 
 ## Boundaries
 

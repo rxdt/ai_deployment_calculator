@@ -4,9 +4,8 @@
 
 - Specs are implemented through deployment plan and assumption transparency.
 - 32-bit weight and KV precision are supported in the core, comparison, and web form.
-- PyTorch MoE sizing is supported: total parameters size weights and active parameters size KV cache.
-- llama.cpp GGUF runtime sizing is supported in the pure core with the final multiplier set to 1.0,
-  and the presenter plus Vite/static forms parse/thread `runtime` from requests so GGUF is reachable end-to-end.
+- PyTorch and llama.cpp GGUF MoE sizing is supported: total parameters size weights, active
+  parameters size KV cache, and GGUF uses the additive total with no final safety multiplier.
 - LoRA/QLoRA adapter overhead can now be sized from trainable parameter percent in the core,
   while the legacy 4 GB QLoRA default remains for forms that do not expose that knob.
 - The assumption summary is architecture-aware: MoE shows the `active_parameters * (context_k / 8)` KV heuristic instead of the dense `(parameters / 10)` form, so the displayed assumption matches the core math.
@@ -77,17 +76,19 @@
 - `TMPDIR=/Users/rxdt/ai_deployment_calculator/scratchpad/playwright-tmp npm run test:e2e` - Chromium launch remains blocked by macOS Mach port permissions.
 - `uv run pytest tests/test_frontend.py` and `npm run build` - green after blank top-level report string validation.
 - `uv run ralph gate` and `uv run ralph verify` - green after blank top-level report string validation.
+- `uv run pytest tests/test_vram_calculator.py` - green after GGUF MoE regression coverage.
+- `uv run ralph gate` and `uv run ralph verify` - green after GGUF MoE regression coverage.
 
 ## Next
 
 - Keep `frontend/example_user_will_delete/` untracked for now; it is only an example reference.
 - Hardware catalog complete through B200 (192 GB). No further catalog entries pending.
-- Open research questions remain for GGUF MoE offload, CPU selection, and memory-bandwidth-aware recommendations.
+- Open research questions remain for CPU selection and memory-bandwidth-aware recommendations.
 
 ## Blockers
 
 - Codex code_review-4/4: Playwright cannot launch Chromium in this sandbox due to macOS Mach port permission denial.
-- Codex code_review-3/6: commit blocked because this sandbox cannot create `.git/index.lock`.
+- Codex vram_calculator-4/6: unrelated staged deletion `claude_test.json` could not be unstaged here.
 ## Resolved
 
 - The semgrep `ca-certs: empty trust anchors` failure and SSH `git push` failure were

@@ -44,6 +44,8 @@
 - Codex code_review-6/6: Playwright cannot launch Chromium in this sandbox due to macOS Mach port permission denial.
 - Codex vram_calculator-4/6: unrelated working-tree deletion `claude_test.json` remains outside this commit.
 - Codex code_review-1/1: commit blocked because `.git` is read-only in this session; `git add` cannot create `.git/index.lock`.
+- Claude code_review-1/3: `ralph verify` security gate fails on `ca-certs: empty trust anchors`; unsandboxed retries were refused by the harness. `ralph gate` is green and the commit landed.
+
 ## Resolved
 
 - The semgrep `ca-certs: empty trust anchors` failure and SSH `git push` failure were

@@ -25,7 +25,8 @@ the highlighted selected precision remains unambiguous. The selected comparison
 row must also match the submitted weight precision, and the payload must contain
 the four supported precision labels. Assumption summaries must contain the five
 required audit labels and non-empty values, so stale or blank audit payloads are
-rejected before rendering.
+rejected before rendering. Top-level report totals, plan text, and calculation
+strings must also be non-empty before the frontend renders success.
 
 ## Prioritize These Items
 
@@ -48,6 +49,7 @@ rejected before rendering.
 - [x] Mismatched frontend assumption labels are rejected before rendering.
 - [x] Blank frontend assumption values are rejected before rendering.
 - [x] Mismatched frontend breakdown labels are rejected before rendering.
+- [x] Blank top-level frontend report strings are rejected before rendering.
 
 ## Acceptance Signals
 

@@ -91,6 +91,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
+function hasText(value: string): boolean {
+  return value.trim().length > 0;
+}
+
 function isDisplayRow(value: unknown): value is DisplayRow {
   return isRecord(value) && typeof value.label === "string" && typeof value.value === "string";
 }
@@ -128,7 +132,7 @@ function hasSupportedComparisonRows(rows: ComparisonRow[], selectedWeightBits: s
 function hasRequiredAssumptionRows(rows: DisplayRow[]): boolean {
   const assumptionLabels = new Set(rows.map((row) => row.label));
   return (
-    rows.every((row) => row.value.trim().length > 0) &&
+    rows.every((row) => hasText(row.value)) &&
     assumptionLabels.size === REQUIRED_ASSUMPTION_LABELS.size &&
     Array.from(REQUIRED_ASSUMPTION_LABELS).every((label) => assumptionLabels.has(label))
   );
@@ -136,7 +140,7 @@ function hasRequiredAssumptionRows(rows: DisplayRow[]): boolean {
 
 function hasRequiredBreakdownRows(rows: DisplayRow[]): boolean {
   return rows.every(
-    (row, index) => row.label === REQUIRED_BREAKDOWN_LABELS[index] && row.value.trim().length > 0,
+    (row, index) => row.label === REQUIRED_BREAKDOWN_LABELS[index] && hasText(row.value),
   );
 }
 
@@ -144,11 +148,16 @@ function isReportPayload(value: unknown, selectedWeightBits: string): value is R
   return (
     isRecord(value) &&
     typeof value.total_vram === "string" &&
+    hasText(value.total_vram) &&
     typeof value.host_ram === "string" &&
+    hasText(value.host_ram) &&
     isRecord(value.plan) &&
     typeof value.plan.primary === "string" &&
+    hasText(value.plan.primary) &&
     typeof value.plan.primary_fit === "string" &&
+    hasText(value.plan.primary_fit) &&
     typeof value.plan.optimization === "string" &&
+    hasText(value.plan.optimization) &&
     Array.isArray(value.breakdown) &&
     value.breakdown.length === BREAKDOWN_ROW_COUNT &&
     value.breakdown.every(isDisplayRow) &&
@@ -164,7 +173,8 @@ function isReportPayload(value: unknown, selectedWeightBits: string): value is R
     value.assumptions.length === ASSUMPTION_ROW_COUNT &&
     value.assumptions.every(isDisplayRow) &&
     hasRequiredAssumptionRows(value.assumptions) &&
-    typeof value.calculation === "string"
+    typeof value.calculation === "string" &&
+    hasText(value.calculation)
   );
 }
 

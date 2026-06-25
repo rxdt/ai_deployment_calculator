@@ -258,6 +258,28 @@ test("rejects malformed report payloads before rendering", async ({ page }) => {
   await expect(page.locator(".total")).toHaveCount(0);
 });
 
+test("rejects blank top-level report strings before rendering", async ({ page }) => {
+  await page.route("**/api/report?**", async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        ...report,
+        total_vram: " ",
+        plan: {
+          ...report.plan,
+          primary: "",
+        },
+      }),
+    });
+  });
+
+  await page.goto("/");
+
+  await expect(page.getByRole("alert")).toContainText("Report unavailable");
+  await expect(page.locator(".total")).toHaveCount(0);
+  await expect(page.getByText("Primary:")).toHaveCount(0);
+});
+
 test("rejects partial breakdown payloads before rendering", async ({ page }) => {
   await page.route("**/api/report?**", async (route) => {
     await route.fulfill({

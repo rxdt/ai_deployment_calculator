@@ -44,6 +44,10 @@ def test_vite_frontend_renders_required_controls_and_fetches_report_api() -> Non
         fragment in script
         for fragment in (
             "function isReportPayload(value: unknown, selectedWeightBits: string): value is ReportPayload",
+            "function hasText(value: string): boolean",
+            "hasText(value.total_vram)",
+            "hasText(value.plan.primary)",
+            "hasText(value.calculation)",
             'throw new Error("Report payload does not match the frontend contract")',
             'name="runtime"',
             'value="llama_cpp_gguf"',
@@ -61,7 +65,7 @@ def test_vite_frontend_renders_required_controls_and_fetches_report_api() -> Non
             "function hasRequiredBreakdownRows(rows: DisplayRow[]): boolean",
             "hasRequiredBreakdownRows(value.breakdown)",
             "function hasRequiredAssumptionRows(rows: DisplayRow[]): boolean",
-            "rows.every((row) => row.value.trim().length > 0)",
+            "rows.every((row) => hasText(row.value))",
             "hasRequiredAssumptionRows(value.assumptions)",
             "function hasSupportedComparisonRows(rows: ComparisonRow[], selectedWeightBits: string): boolean",
             "selectedRows[0].precision === `${selectedWeightBits}-bit`",
@@ -171,6 +175,9 @@ def test_playwright_harness_exercises_rendered_form_and_report_api() -> None:
         fragment in spec
         for fragment in (
             "rejects malformed report payloads before rendering",
+            "rejects blank top-level report strings before rendering",
+            'total_vram: " "',
+            'primary: ""',
             'selected: "yes"',
             "rejects breakdown payloads with unexpected labels before rendering",
             'label: "Unknown subtotal"',

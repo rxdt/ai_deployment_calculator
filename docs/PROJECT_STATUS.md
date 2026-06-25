@@ -22,6 +22,7 @@
 - The Vite web UI validates the five required assumption labels, rejecting stale same-shape payloads before rendering.
 - The Vite web UI rejects assumption summaries with blank values, keeping the audit section meaningful.
 - The Vite web UI validates the four required VRAM breakdown labels in order before rendering.
+- The Vite web UI rejects blank top-level totals, plan text, and calculation strings before rendering success.
 - The LoRA adapter checkbox is disabled unless model training is enabled in both the Vite app and static fallback page.
 - README documents the FastAPI backend start command, deterministic Vite dependency install, and frontend dev command.
 - `pyrightconfig.json` scopes pyright to `harness`, `src`, and `tests`, avoiding broad scans during Ralph verify.
@@ -74,6 +75,8 @@
 - `uv run ralph verify` - green after assumption-label contract validation.
 - `git push -u origin main` - green after selected-precision and assumption contract validation.
 - `TMPDIR=/Users/rxdt/ai_deployment_calculator/scratchpad/playwright-tmp npm run test:e2e` - Chromium launch remains blocked by macOS Mach port permissions.
+- `uv run pytest tests/test_frontend.py` and `npm run build` - green after blank top-level report string validation.
+- `uv run ralph gate` and `uv run ralph verify` - green after blank top-level report string validation.
 
 ## Next
 
@@ -84,6 +87,7 @@
 ## Blockers
 
 - Codex code_review-4/4: Playwright cannot launch Chromium in this sandbox due to macOS Mach port permission denial.
+- Codex code_review-3/6: commit blocked because this sandbox cannot create `.git/index.lock`.
 ## Resolved
 
 - The semgrep `ca-certs: empty trust anchors` failure and SSH `git push` failure were

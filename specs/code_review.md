@@ -16,6 +16,12 @@ before an earlier request finishes. The backend query parser now also drops
 state. The Vite app validates report JSON before rendering so malformed payloads
 fall back to the existing error state instead of producing misleading UI,
 including partial VRAM breakdown payloads that cannot support the result view.
+Empty hardware recommendation payloads are rejected before rendering, so the
+frontend cannot show an apparently successful report with no deployable option.
+Partial quantization-comparison payloads are also rejected before rendering, so
+the frontend cannot silently show fewer than the four supported precision totals.
+Comparison payloads with multiple selected precision rows are rejected too, so
+the highlighted selected precision remains unambiguous.
 
 ## Prioritize These Items
 
@@ -31,6 +37,9 @@ including partial VRAM breakdown payloads that cannot support the result view.
 - [x] Frontend manifest test matches the current Vite dependency.
 - [x] Malformed `/api/report` payloads are rejected before frontend rendering.
 - [x] Partial frontend breakdown payloads are rejected before rendering.
+- [x] Empty frontend hardware recommendations are rejected before rendering.
+- [x] Partial frontend quantization comparisons are rejected before rendering.
+- [x] Ambiguous selected frontend quantization comparisons are rejected before rendering.
 
 ## Acceptance Signals
 

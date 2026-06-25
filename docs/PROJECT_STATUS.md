@@ -9,11 +9,12 @@
 - The Vite web UI uses the reference terminal theme (green accent on near-black grid, monospace font, terminal status strip, results-left/control-right desktop layout), is backend-wired through `/api/report`, accepts decimal model sizes, escapes rendered values, normalizes invalid URL params, and ignores stale report responses.
 - The Vite and static fallback forms expose dense/MoE architecture plus active parameters.
 - The Vite report panel is internally constrained so dense results do not force document scrolling.
-- The Vite web UI validates `/api/report` payload shape before rendering and falls back to the error state on malformed or partial breakdown JSON.
+- The Vite web UI validates `/api/report` payload shape before rendering and falls back to the error state on malformed, partial breakdown, or empty hardware JSON.
+- The Vite web UI rejects partial or ambiguously selected quantization-comparison payloads, preserving the four-row, one-selected-row precision comparison contract.
 - The LoRA adapter checkbox is disabled unless model training is enabled in both the Vite app and static fallback page.
 - README documents the FastAPI backend start command, deterministic Vite dependency install, and frontend dev command.
 - `pyrightconfig.json` scopes pyright to `harness`, `src`, and `tests`, avoiding broad scans during Ralph verify.
-- Playwright smoke specs cover the Vite app, assumption labels, supported precisions, stale response handling, malformed payload rejection, and partial breakdown rejection.
+- Playwright smoke specs cover the Vite app, assumption labels, supported precisions, stale response handling, malformed payload rejection, and partial breakdown/comparison ambiguity rejection.
 - Markdown handoff files are tested to stay under 100 lines.
 
 ## Checks
@@ -24,12 +25,18 @@
 - `npm run build` in `frontend/` - green.
 - `semgrep scan --config auto --config p/secrets --error` - green.
 - `npm run test:e2e` in `frontend/` - green when Chromium is launched outside the macOS sandbox, 8 passed.
-- `TMPDIR=/Users/rxdt/ai_deployment_calculator/scratchpad/playwright-tmp npm run test:e2e` collected 9 specs here; Chromium launch is blocked by macOS Mach port sandbox permissions.
+- `TMPDIR=/Users/rxdt/ai_deployment_calculator/scratchpad/playwright-tmp npm run test:e2e` collected 12 specs here; Chromium launch is blocked by macOS Mach port sandbox permissions.
 - `uv run pytest tests/test_readme.py` - green.
 - `uv run pytest tests/test_frontend.py` - green, 8 passed.
 - `npm run build` in `frontend/` - green after the terminal-layout pass.
+- `uv run pytest tests/test_frontend.py` - green, 8 passed after comparison contract validation.
+- `npm run build` in `frontend/` - green after comparison contract validation.
+- `uv run pytest tests/test_frontend.py` - green, 8 passed after hardware contract validation.
+- `npm run build` in `frontend/` - green after hardware contract validation.
 - `uv run ralph gate` - green.
-- `uv run ralph verify` - green.
+- `uv run ralph verify` - green after hardware contract validation.
+- `git add ...` - blocked by `.git/index.lock` creation permission in this sandbox after hardware contract validation.
+- `TMPDIR=/Users/rxdt/ai_deployment_calculator/scratchpad/playwright-tmp npm run test:e2e` - 12 specs fail before execution because Chromium launch is blocked by macOS Mach port permissions.
 
 ## Next
 
@@ -39,4 +46,5 @@
 
 ## Blockers
 
-- Codex frontend-2/2: commit and push are blocked because this sandbox cannot create `.git/index.lock`.
+- Codex code_review-1/4: Playwright cannot launch Chromium in this sandbox due to macOS Mach port permission denial.
+- Codex code_review-3/4: commit and push are blocked because this sandbox cannot create `.git/index.lock`.

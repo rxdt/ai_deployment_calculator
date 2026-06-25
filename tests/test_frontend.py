@@ -47,6 +47,11 @@ def test_vite_frontend_renders_required_controls_and_fetches_report_api() -> Non
             'throw new Error("Report payload does not match the frontend contract")',
             'aria-label="Deployment status"',
             "~/vram-calc",
+            "value.hardware.length > 0",
+            "const COMPARISON_ROW_COUNT = 4;",
+            "value.comparison.length === COMPARISON_ROW_COUNT",
+            "function hasOneSelectedComparison(rows: ComparisonRow[]): boolean",
+            "hasOneSelectedComparison(value.comparison)",
         )
     )
     assert '.replace(/</g, "&lt;")' in script
@@ -154,6 +159,12 @@ def test_playwright_harness_exercises_rendered_form_and_report_api() -> None:
         for fragment in (
             "rejects malformed report payloads before rendering",
             'selected: "yes"',
+            "rejects empty hardware recommendations before rendering",
+            "hardware: []",
+            "rejects partial quantization comparisons before rendering",
+            "comparison: report.comparison.slice(0, 2)",
+            "rejects ambiguous selected quantization comparisons before rendering",
+            "selected: true",
         )
     )
     assert "escapes reflected query and report values" in spec

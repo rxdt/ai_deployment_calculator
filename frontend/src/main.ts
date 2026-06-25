@@ -46,6 +46,7 @@ const CHECKED_VALUES = new Set(["1", "true", "on", "yes"]);
 const VALID_BITS = new Set(["32", "16", "8", "4"]);
 const VALID_ARCHITECTURES = new Set(["dense", "moe"]);
 const BREAKDOWN_ROW_COUNT = 4;
+const COMPARISON_ROW_COUNT = 4;
 
 type FormState = typeof DEFAULT_VALUES & {
   trained: boolean;
@@ -101,6 +102,10 @@ function isComparisonRow(value: unknown): value is ComparisonRow {
   );
 }
 
+function hasOneSelectedComparison(rows: ComparisonRow[]): boolean {
+  return rows.filter((row) => row.selected).length === 1;
+}
+
 function isReportPayload(value: unknown): value is ReportPayload {
   return (
     isRecord(value) &&
@@ -114,9 +119,12 @@ function isReportPayload(value: unknown): value is ReportPayload {
     value.breakdown.length === BREAKDOWN_ROW_COUNT &&
     value.breakdown.every(isDisplayRow) &&
     Array.isArray(value.hardware) &&
+    value.hardware.length > 0 &&
     value.hardware.every(isHardwareRow) &&
     Array.isArray(value.comparison) &&
+    value.comparison.length === COMPARISON_ROW_COUNT &&
     value.comparison.every(isComparisonRow) &&
+    hasOneSelectedComparison(value.comparison) &&
     Array.isArray(value.assumptions) &&
     value.assumptions.every(isDisplayRow) &&
     typeof value.calculation === "string"

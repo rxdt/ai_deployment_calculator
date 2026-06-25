@@ -8,13 +8,15 @@ Specs say *what* work to do. You decide *how* and *what is most important next*.
 2. Fix the gap you identified.
 3. Keep youf change small and TIGHTLY SCOPED! You have 20 minutes max.
 4. Run `uv run ralph gate` to see if your changes pass. Fix failures.
-5. Do not create a branch or worktree.
+5. NEVER create a branch or worktree. Keep a strictly linear history on the current branch.
+  - Do not run `git branch`, `git checkout -b`, `git switch -c`, or `git worktree`.
+  - Commit only on the current branch. No merges, no rebases that fork history.
   - If git is dirty before your turn, commit it depending on whether the specs require that work.
   - When a commit is rejected for a forbidden-path, run `git restore --staged <forbidden-path>` to clear the commit blocker.
   - Leave the working-tree change in place for a human to review
 6. Add or update a test that proves your change works.
   - Write tests which challenge the source code.
-7. Commit on the current branch.
+7. Commit on the current branch only — never branch, fork, or merge.
 8.  If `uv run ralph verify` fails for any reason, fix the issue.
   - If you have tried to fix the issue multiple times and cannot:
     - Commit the files that do pass.
@@ -40,5 +42,6 @@ Rules:
 - Do not skip working during your turn.
 - If a spec is wrong or missing, update the spec instead of guessing.
 - Never weaken code to make a commit pass.
+- NO branches, NO worktrees, NO merges. Linear history only.
 
 **Do NOT edit or commit forbidden paths:** AGENTS.md, harness/, tests/harness/, .githooks/, .github/, pyproject.toml. Your commits will be auto-rejected if you do.

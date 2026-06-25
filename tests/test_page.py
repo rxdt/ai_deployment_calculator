@@ -28,12 +28,10 @@ def test_default_page_renders_required_controls_and_worked_total() -> None:
     assert 'name="context_tokens"' in html
     assert 'name="weight_bits"' in html
     assert 'name="kv_cache_bits"' in html
-    assert 'name="runtime"' in html
     assert 'name="trained" type="checkbox"' in html
     assert 'name="use_adapter" type="checkbox" disabled' in html
     assert "20.1 GB" in html
     assert "32 GB host RAM" in html
-    assert '<option value="32">32-bit</option>' in html
     assert "<summary>Calculation used</summary>" in html
     assert "<code>(16.0 + 0.8 + 0.0 + 1.5) * 1.10 = 20.1 GB</code>" in html
     assert "Safety margin" in html
@@ -50,6 +48,8 @@ def test_default_page_renders_required_controls_and_worked_total() -> None:
     assert all(
         fragment in html
         for fragment in (
+            '<option value="32">32-bit</option>',
+            'name="runtime"',
             '<option value="pytorch" selected>PyTorch</option>',
             '<option value="llama_cpp_gguf">llama.cpp GGUF</option>',
         )

@@ -54,6 +54,7 @@ contain non-empty name, detail, and sharding text.
 - [x] Blank top-level frontend report strings are rejected before rendering.
 - [x] Blank frontend hardware recommendation text is rejected before rendering.
 - [x] Blank frontend quantization comparison values are rejected before rendering.
+- [x] Backend `/api/report` breakdown labels match the frontend `REQUIRED_BREAKDOWN_LABELS` contract.
 
 ## Acceptance Signals
 

@@ -26,6 +26,11 @@
   partial/mismatched comparison rejection.
 - Markdown handoff files are tested to stay under 100 lines.
 
+- The `/api/report` breakdown labels now match the Vite contract (`Weights`, `KV cache`,
+  `Task`, `CUDA/system`). Previously the backend emitted `Task overhead`/`CUDA tax`, which
+  `isReportPayload` rejected, so the live app always showed "Report unavailable" while the
+  mocked e2e suite stayed green. `tests/test_api.py` now pins these labels.
+
 ## Checks
 
 - `uv run pytest tests/test_frontend.py` - green, 8 passed after blank comparison-value validation.
@@ -47,6 +52,7 @@
 - Codex vram_calculator-4/6: unrelated working-tree deletion `claude_test.json` remains outside this commit.
 - Codex code_review-1/1: commit blocked because `.git` is read-only in this session; `git add` cannot create `.git/index.lock`.
 - Claude vram_calculator-2/3: `ralph verify` security gate fails on `ca-certs: empty trust anchors`; unsandboxed retries were refused by the harness. `ralph gate` is green and the commit landed.
+- Claude code_review-3/3: `ralph verify` security gate again fails on `ca-certs: empty trust anchors`; unsandboxed retries refused by harness. `ralph gate` and `pytest` green; commit landed.
 
 ## Resolved
 

@@ -96,8 +96,8 @@ def view_from_report(report: DeploymentReport) -> DeploymentView:
     breakdown = (
         BreakdownRow("Weights", f"{parts.weights:.1f} GB"),
         BreakdownRow("KV cache", f"{parts.kv_cache:.1f} GB"),
-        BreakdownRow("Task overhead", f"{parts.task_overhead:.1f} GB"),
-        BreakdownRow("CUDA tax", f"{parts.cuda_tax:.1f} GB"),
+        BreakdownRow("Task", f"{parts.task_overhead:.1f} GB"),
+        BreakdownRow("CUDA/system", f"{parts.cuda_tax:.1f} GB"),
     )
     plan = report.plan
     hardware = tuple(

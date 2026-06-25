@@ -57,8 +57,8 @@ def test_total_and_breakdown_are_formatted_to_one_decimal() -> None:
     assert view.breakdown == (
         BreakdownRow("Weights", "16.0 GB"),
         BreakdownRow("KV cache", "0.8 GB"),
-        BreakdownRow("Task overhead", "0.0 GB"),
-        BreakdownRow("CUDA tax", "1.5 GB"),
+        BreakdownRow("Task", "0.0 GB"),
+        BreakdownRow("CUDA/system", "1.5 GB"),
     )
     assert view.tables.assumptions == (
         AssumptionRow("Safety margin", "10%"),

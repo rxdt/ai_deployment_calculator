@@ -72,6 +72,15 @@ def test_payload_display_fields_are_strings_so_escapehtml_cannot_throw() -> None
     assert all(isinstance(row["selected"], bool) for row in data["comparison"])
 
 
+def test_payload_breakdown_labels_match_the_frontend_contract() -> None:
+    # frontend/src/main.ts REQUIRED_BREAKDOWN_LABELS pins this exact order; a mismatch
+    # makes isReportPayload reject every real /api/report response, so the live Vite app
+    # shows "Report unavailable" even though the mocked e2e suite stays green.
+    data = payload()
+
+    assert [row["label"] for row in data["breakdown"]] == ["Weights", "KV cache", "Task", "CUDA/system"]
+
+
 def test_payload_is_json_serializable() -> None:
     # The endpoint returns this via JSONResponse; a leaked dataclass/float would break that.
     assert json.loads(json.dumps(payload())) == payload()

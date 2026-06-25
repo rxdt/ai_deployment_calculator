@@ -79,10 +79,13 @@ class DeploymentView:
     calculation: str  # Auditable VRAM equation with substituted component values.
 
 
-def format_calculation(breakdown: VramBreakdown, total_vram_gb: float) -> str:
-    """Render the auditable VRAM equation so an engineer can check the estimate by hand."""
-    subtotal = breakdown.weights + breakdown.kv_cache + breakdown.task_overhead + breakdown.cuda_tax
-    runtime_margin = total_vram_gb / subtotal
+def format_calculation(breakdown: VramBreakdown, total_vram_gb: float, runtime_margin: float) -> str:
+    """Render the auditable VRAM equation so an engineer can check the estimate by hand.
+
+    The margin is the deployment's actual safety margin, not a value back-computed from the
+    rounded total; otherwise tiny deployments would display a fabricated multiplier (e.g. 1.13)
+    that contradicts the documented 1.10/1.00 margins shown in the assumptions panel.
+    """
     return (
         f"({breakdown.weights:.1f} + {breakdown.kv_cache:.1f} + "
         f"{breakdown.task_overhead:.1f} + {breakdown.cuda_tax:.1f}) "
@@ -130,7 +133,7 @@ def view_from_report(report: DeploymentReport) -> DeploymentView:
         ),
         breakdown=breakdown,
         tables=ResultTables(hardware=hardware, comparison=comparison, assumptions=assumptions),
-        calculation=format_calculation(parts, report.total_vram_gb),
+        calculation=format_calculation(parts, report.total_vram_gb, report.runtime_margin),
     )
 
 

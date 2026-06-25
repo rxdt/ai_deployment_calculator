@@ -6,7 +6,8 @@ from assumptions import Assumption, AssumptionSummary
 from deployment_plan import OPTIMIZE_NONE, DeploymentPlan, PlanOption
 from hardware import GPU_CATALOG, Gpu, HardwareOption
 from quantization_comparison import QuantizationComparison, QuantizationComparisonRow
-from report import DeploymentReport, VramBreakdown
+from report import DeploymentReport, VramBreakdown, build_report
+from vram_calculator import DeploymentSpec
 from web.presenter import FormInputs
 from web.view import (
     AssumptionRow,
@@ -81,11 +82,23 @@ def test_hardware_rows_label_count_capacity_and_sharding() -> None:
     )
 
 
-def test_format_calculation_derives_gguf_runtime_margin_from_total() -> None:
+def test_format_calculation_renders_gguf_runtime_margin() -> None:
     breakdown = VramBreakdown(weights=52.0, kv_cache=83.2, task_overhead=0.0, cuda_tax=1.5)
-    assert format_calculation(breakdown, total_vram_gb=136.7) == (
+    assert format_calculation(breakdown, total_vram_gb=136.7, runtime_margin=1.0) == (
         "(52.0 + 83.2 + 0.0 + 1.5) * 1.00 = 136.7 GB"
     )
+
+
+def test_tiny_deployment_calculation_margin_matches_assumptions() -> None:
+    # A 400k-parameter full-training run is dominated by the 1.5 GB CUDA tax, so rounding the
+    # total (1.7) against the raw subtotal once back-computed a fabricated 1.13 margin that
+    # contradicted the "Safety margin 10%" assumption. The shown margin must stay the real 1.10.
+    spec = DeploymentSpec(
+        parameters_b=0.0004, context_tokens=8000, weight_bits=8, kv_cache_bits=8, task="full_training"
+    )
+    view = view_from_report(build_report(spec))
+    assert view.calculation == "(0.0 + 0.0 + 0.0 + 1.5) * 1.10 = 1.7 GB"
+    assert AssumptionRow("Safety margin", "10%") in view.tables.assumptions
 
 
 def test_view_from_form_matches_view_from_report() -> None:

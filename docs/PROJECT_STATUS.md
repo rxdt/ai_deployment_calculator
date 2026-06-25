@@ -30,6 +30,9 @@
   `Task`, `CUDA/system`). Previously the backend emitted `Task overhead`/`CUDA tax`, which
   `isReportPayload` rejected, so the live app always showed "Report unavailable" while the
   mocked e2e suite stayed green. `tests/test_api.py` now pins these labels.
+- The calculation card renders the deployment's real safety margin via `DeploymentReport.runtime_margin`
+  instead of back-computing `total / subtotal`. Tiny CUDA-tax-bound runs (e.g. 400k-param full
+  training) rounded to a fabricated `1.13` multiplier that contradicted the `10%` assumption panel.
 
 ## Checks
 
@@ -40,7 +43,7 @@
 - `uv run pytest tests/test_vram_calculator.py` - green, 34 passed after the 7B full-training acceptance case.
 - `uv run ralph verify` - green after blank comparison-value validation.
 - `TMPDIR=/Users/rxdt/ai_deployment_calculator/scratchpad/playwright-tmp npm run test:e2e` cannot launch Chromium here because of macOS Mach port permissions; the current suite has 19 specs.
-- `uv run pytest` - green, 185 passed after rejecting non-finite `parameters_b`/`active_parameters_b` in the form layer.
+- `uv run ralph gate` - green after rendering the real safety margin in the calculation card.
 
 ## Next
 

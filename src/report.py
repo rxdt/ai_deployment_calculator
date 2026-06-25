@@ -15,6 +15,8 @@ from hardware import HardwareOption, recommended_host_ram_gb
 from quantization_comparison import QuantizationComparison, quantization_comparison
 from vram_calculator import (
     CUDA_TAX_GB,
+    RUNTIME_MARGINS,
+    SAFETY_MARGIN,
     DeploymentSpec,
     kv_cache_gb,
     task_overhead_gb,
@@ -44,6 +46,7 @@ class DeploymentReport:
     plan: DeploymentPlan
     assumptions: AssumptionSummary
     comparison: QuantizationComparison
+    runtime_margin: float = SAFETY_MARGIN  # The actual (W+KV+T+C) multiplier this deployment used.
 
 
 def build_report(spec: DeploymentSpec) -> DeploymentReport:
@@ -63,4 +66,5 @@ def build_report(spec: DeploymentSpec) -> DeploymentReport:
         plan=plan,
         assumptions=build_assumption_summary(spec),
         comparison=quantization_comparison(spec),
+        runtime_margin=RUNTIME_MARGINS[spec.runtime],
     )

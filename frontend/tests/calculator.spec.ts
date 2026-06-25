@@ -287,6 +287,23 @@ test("rejects empty hardware recommendations before rendering", async ({ page })
   await expect(page.getByLabel("Hardware recommendations")).toHaveCount(0);
 });
 
+test("rejects empty assumption summaries before rendering", async ({ page }) => {
+  await page.route("**/api/report?**", async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        ...report,
+        assumptions: [],
+      }),
+    });
+  });
+
+  await page.goto("/");
+
+  await expect(page.getByRole("alert")).toContainText("Report unavailable");
+  await expect(page.getByLabel("Assumptions")).toHaveCount(0);
+});
+
 test("rejects partial quantization comparisons before rendering", async ({ page }) => {
   await page.route("**/api/report?**", async (route) => {
     await route.fulfill({
@@ -316,6 +333,26 @@ test("rejects ambiguous selected quantization comparisons before rendering", asy
   });
 
   await page.goto("/");
+
+  await expect(page.getByRole("alert")).toContainText("Report unavailable");
+  await expect(page.getByLabel("Quantization comparison")).toHaveCount(0);
+});
+
+test("rejects selected quantization comparisons that do not match the submitted precision", async ({ page }) => {
+  await page.route("**/api/report?**", async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        ...report,
+        comparison: report.comparison.map((row) => ({
+          ...row,
+          selected: row.precision === "8-bit",
+        })),
+      }),
+    });
+  });
+
+  await page.goto("/?parameters_b=8&context_tokens=8000&weight_bits=16&kv_cache_bits=16");
 
   await expect(page.getByRole("alert")).toContainText("Report unavailable");
   await expect(page.getByLabel("Quantization comparison")).toHaveCount(0);

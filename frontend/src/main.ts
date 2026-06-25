@@ -44,9 +44,11 @@ const DEFAULT_VALUES = {
 
 const CHECKED_VALUES = new Set(["1", "true", "on", "yes"]);
 const VALID_BITS = new Set(["32", "16", "8", "4"]);
+const SUPPORTED_PRECISION_LABELS = new Set(["32-bit", "16-bit", "8-bit", "4-bit"]);
 const VALID_ARCHITECTURES = new Set(["dense", "moe"]);
 const BREAKDOWN_ROW_COUNT = 4;
 const COMPARISON_ROW_COUNT = 4;
+const ASSUMPTION_ROW_COUNT = 5;
 
 type FormState = typeof DEFAULT_VALUES & {
   trained: boolean;
@@ -102,11 +104,18 @@ function isComparisonRow(value: unknown): value is ComparisonRow {
   );
 }
 
-function hasOneSelectedComparison(rows: ComparisonRow[]): boolean {
-  return rows.filter((row) => row.selected).length === 1;
+function hasSupportedComparisonRows(rows: ComparisonRow[], selectedWeightBits: string): boolean {
+  const selectedRows = rows.filter((row) => row.selected);
+  const precisionLabels = new Set(rows.map((row) => row.precision));
+  return (
+    selectedRows.length === 1 &&
+    selectedRows[0].precision === `${selectedWeightBits}-bit` &&
+    precisionLabels.size === SUPPORTED_PRECISION_LABELS.size &&
+    Array.from(SUPPORTED_PRECISION_LABELS).every((precision) => precisionLabels.has(precision))
+  );
 }
 
-function isReportPayload(value: unknown): value is ReportPayload {
+function isReportPayload(value: unknown, selectedWeightBits: string): value is ReportPayload {
   return (
     isRecord(value) &&
     typeof value.total_vram === "string" &&
@@ -124,8 +133,9 @@ function isReportPayload(value: unknown): value is ReportPayload {
     Array.isArray(value.comparison) &&
     value.comparison.length === COMPARISON_ROW_COUNT &&
     value.comparison.every(isComparisonRow) &&
-    hasOneSelectedComparison(value.comparison) &&
+    hasSupportedComparisonRows(value.comparison, selectedWeightBits) &&
     Array.isArray(value.assumptions) &&
+    value.assumptions.length === ASSUMPTION_ROW_COUNT &&
     value.assumptions.every(isDisplayRow) &&
     typeof value.calculation === "string"
   );
@@ -398,7 +408,7 @@ async function loadReport(rawSearch: URLSearchParams): Promise<void> {
       throw new Error(`Report request failed: ${response.status}`);
     }
     const report: unknown = await response.json();
-    if (!isReportPayload(report)) {
+    if (!isReportPayload(report, state.weight_bits)) {
       throw new Error("Report payload does not match the frontend contract");
     }
     if (requestId !== activeReportRequest) {

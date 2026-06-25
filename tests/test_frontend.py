@@ -43,15 +43,19 @@ def test_vite_frontend_renders_required_controls_and_fetches_report_api() -> Non
     assert all(
         fragment in script
         for fragment in (
-            "function isReportPayload(value: unknown): value is ReportPayload",
+            "function isReportPayload(value: unknown, selectedWeightBits: string): value is ReportPayload",
             'throw new Error("Report payload does not match the frontend contract")',
             'aria-label="Deployment status"',
             "~/vram-calc",
             "value.hardware.length > 0",
             "const COMPARISON_ROW_COUNT = 4;",
+            'const SUPPORTED_PRECISION_LABELS = new Set(["32-bit", "16-bit", "8-bit", "4-bit"]);',
             "value.comparison.length === COMPARISON_ROW_COUNT",
-            "function hasOneSelectedComparison(rows: ComparisonRow[]): boolean",
-            "hasOneSelectedComparison(value.comparison)",
+            "const ASSUMPTION_ROW_COUNT = 5;",
+            "value.assumptions.length === ASSUMPTION_ROW_COUNT",
+            "function hasSupportedComparisonRows(rows: ComparisonRow[], selectedWeightBits: string): boolean",
+            "selectedRows[0].precision === `${selectedWeightBits}-bit`",
+            "hasSupportedComparisonRows(value.comparison, selectedWeightBits)",
         )
     )
     assert '.replace(/</g, "&lt;")' in script
@@ -161,10 +165,14 @@ def test_playwright_harness_exercises_rendered_form_and_report_api() -> None:
             'selected: "yes"',
             "rejects empty hardware recommendations before rendering",
             "hardware: []",
+            "rejects empty assumption summaries before rendering",
+            "assumptions: []",
             "rejects partial quantization comparisons before rendering",
             "comparison: report.comparison.slice(0, 2)",
             "rejects ambiguous selected quantization comparisons before rendering",
             "selected: true",
+            "rejects selected quantization comparisons that do not match the submitted precision",
+            'selected: row.precision === "8-bit"',
         )
     )
     assert "escapes reflected query and report values" in spec

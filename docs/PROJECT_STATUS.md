@@ -11,6 +11,7 @@
 - The Vite report panel is internally constrained so dense results do not force document scrolling.
 - The Vite web UI validates `/api/report` payload shape before rendering and falls back to the error state on malformed, partial breakdown, or empty hardware JSON.
 - The Vite web UI rejects partial or ambiguously selected quantization-comparison payloads, preserving the four-row, one-selected-row precision comparison contract.
+- The Vite web UI rejects quantization-comparison payloads whose selected row does not match the submitted weight precision.
 - The LoRA adapter checkbox is disabled unless model training is enabled in both the Vite app and static fallback page.
 - README documents the FastAPI backend start command, deterministic Vite dependency install, and frontend dev command.
 - `pyrightconfig.json` scopes pyright to `harness`, `src`, and `tests`, avoiding broad scans during Ralph verify.
@@ -33,8 +34,11 @@
 - `npm run build` in `frontend/` - green after comparison contract validation.
 - `uv run pytest tests/test_frontend.py` - green, 8 passed after hardware contract validation.
 - `npm run build` in `frontend/` - green after hardware contract validation.
+- `uv run pytest tests/test_frontend.py` - green, 8 passed after selected-precision contract validation.
+- `npm run build` in `frontend/` - green after selected-precision contract validation.
 - `uv run ralph gate` - green.
 - `uv run ralph verify` - green after hardware contract validation.
+- `uv run ralph verify` - green after selected-precision contract validation.
 - `git push -u origin main` - green at `0c919e2`.
 - `TMPDIR=/Users/rxdt/ai_deployment_calculator/scratchpad/playwright-tmp npm run test:e2e` - 12 specs fail before execution because Chromium launch is blocked by macOS Mach port permissions.
 

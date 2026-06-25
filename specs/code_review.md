@@ -21,7 +21,9 @@ frontend cannot show an apparently successful report with no deployable option.
 Partial quantization-comparison payloads are also rejected before rendering, so
 the frontend cannot silently show fewer than the four supported precision totals.
 Comparison payloads with multiple selected precision rows are rejected too, so
-the highlighted selected precision remains unambiguous.
+the highlighted selected precision remains unambiguous. The selected comparison
+row must also match the submitted weight precision, and the payload must contain
+the four supported precision labels.
 
 ## Prioritize These Items
 
@@ -40,6 +42,7 @@ the highlighted selected precision remains unambiguous.
 - [x] Empty frontend hardware recommendations are rejected before rendering.
 - [x] Partial frontend quantization comparisons are rejected before rendering.
 - [x] Ambiguous selected frontend quantization comparisons are rejected before rendering.
+- [x] Mismatched frontend quantization selected rows are rejected before rendering.
 
 ## Acceptance Signals
 

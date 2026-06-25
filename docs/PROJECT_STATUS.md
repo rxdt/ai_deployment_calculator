@@ -16,7 +16,9 @@
 - The LoRA adapter checkbox is disabled unless model training is enabled in both the Vite app and static fallback page.
 - README documents the FastAPI backend start command, deterministic Vite dependency install, and frontend dev command.
 - `pyrightconfig.json` scopes pyright to `harness`, `src`, and `tests`, avoiding broad scans during Ralph verify.
-- Playwright smoke specs cover the Vite app, assumption labels, supported precisions, stale response handling, malformed payload rejection, and partial breakdown/comparison ambiguity rejection.
+- Playwright smoke specs cover the Vite app, assumption labels, supported precisions,
+  stale response handling, malformed payload rejection, empty assumptions, and
+  partial/mismatched comparison rejection.
 - Markdown handoff files are tested to stay under 100 lines.
 
 ## Checks
@@ -27,7 +29,7 @@
 - `npm run build` in `frontend/` - green.
 - `semgrep scan --config auto --config p/secrets --error` - green.
 - `npm run test:e2e` in `frontend/` - green when Chromium is launched outside the macOS sandbox, 8 passed.
-- `TMPDIR=/Users/rxdt/ai_deployment_calculator/scratchpad/playwright-tmp npm run test:e2e` collected 12 specs here; Chromium launch is blocked by macOS Mach port sandbox permissions.
+- `TMPDIR=/Users/rxdt/ai_deployment_calculator/scratchpad/playwright-tmp npm run test:e2e` cannot launch Chromium here because of macOS Mach port sandbox permissions; the current suite has 14 specs.
 - `uv run pytest tests/test_readme.py` - green.
 - `uv run pytest tests/test_frontend.py` - green, 8 passed.
 - `npm run build` in `frontend/` - green after the terminal-layout pass.
@@ -40,8 +42,8 @@
 - `uv run ralph gate` - green.
 - `uv run ralph verify` - green after hardware contract validation.
 - `uv run ralph verify` - green after selected-precision contract validation.
-- `git push -u origin main` - green at `0c919e2`.
-- `TMPDIR=/Users/rxdt/ai_deployment_calculator/scratchpad/playwright-tmp npm run test:e2e` - 12 specs fail before execution because Chromium launch is blocked by macOS Mach port permissions.
+- `git push -u origin main` - green after selected-precision and assumption contract validation.
+- `TMPDIR=/Users/rxdt/ai_deployment_calculator/scratchpad/playwright-tmp npm run test:e2e` - Chromium launch remains blocked by macOS Mach port permissions.
 
 ## Next
 
@@ -51,5 +53,4 @@
 
 ## Blockers
 
-- Codex code_review-1/4: Playwright cannot launch Chromium in this sandbox due to macOS Mach port permission denial.
-- Claude-code_review-1/1: `git push origin main` fails; SSH to github.com is blocked by the sandbox network policy. Commit bd9a85b (empty-assumption rejection) is committed locally but unpushed; a human must push.
+- Codex code_review-4/4: Playwright cannot launch Chromium in this sandbox due to macOS Mach port permission denial.

@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from hardware import HOST_RAM_FLOOR_GB, HOST_RAM_STEP_GB
-from vram_calculator import CUDA_TAX_GB, SAFETY_MARGIN, DeploymentSpec
+from vram_calculator import CUDA_TAX_GB, RUNTIME_MARGINS, DeploymentSpec
 
 DENSE_KV_HEURISTIC = "(parameters / 10) * (context_k / 8)"
 MOE_KV_HEURISTIC = "active_parameters * (context_k / 8)"
@@ -32,7 +32,7 @@ def build_assumption_summary(spec: DeploymentSpec) -> AssumptionSummary:
     The KV-cache heuristic differs by architecture: MoE deployments size KV from the
     active parameters, so the displayed formula matches what the core actually computes.
     """
-    safety_margin_percent = round((SAFETY_MARGIN - 1) * 100)
+    safety_margin_percent = round((RUNTIME_MARGINS[spec.runtime] - 1) * 100)
     kv_heuristic = MOE_KV_HEURISTIC if spec.architecture == "moe" else DENSE_KV_HEURISTIC
     return AssumptionSummary(
         items=(

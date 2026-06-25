@@ -6,7 +6,7 @@ tax so quantization does not get applied to memory that does not shrink.
 
 ## What It Calculates
 
-`VRAM_GB = (W + KV + T + C) * 1.10`
+`VRAM_GB = (W + KV + T + C) * runtime_margin`
 
 - `W`: model weights from parameter count and weight precision.
 - `KV`: context-window cache, sized independently from weight quantization.
@@ -59,6 +59,7 @@ assert rows == [
 ## Current Features
 
 - Pure typed calculator core in `src/vram_calculator.py`.
+- PyTorch sizing uses a 1.10 margin; llama.cpp GGUF sizing uses the additive total directly.
 - Hardware recommendations in `src/hardware.py` for T4, RTX 4090, L4, A100, H100, and B200.
 - Host RAM floor recommendation and display-ready report assembly.
 - PyTorch MoE sizing with total parameters for weights and active parameters for KV cache.

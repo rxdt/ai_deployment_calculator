@@ -10,8 +10,8 @@ hand-calculating every model deployment.
 
 ## Priorities
 
-- [ ] Research and record formula for GGUF running via llama.cpp
-- [ ] Add support for calculating GGUF (running via llama.cpp) where GB = W + KV + T + C  (Notice the * 1.10 multiplier is gone)
+- [x] Research and record formula for GGUF running via llama.cpp
+- [x] Add support for calculating GGUF (running via llama.cpp) where GB = W + KV + T + C  (Notice the * 1.10 multiplier is gone)
 - [ ] Research and record formula for LoRA and QLoRA (only the weights shrink for QLoRA)
 - [ ] Add support for calculating LoRA and QLoRA (only the weights shrink for QLoRA)
 - [x] Add PyTorch MoE support using total parameters for weights and active parameters for KV cache.
@@ -65,7 +65,7 @@ Worked checks:
   deployment sizing, not throughput or training-performance prediction.
 - Hardware recommendations are fit estimates, not live availability or price data.
 - Open questions: CPU selection, memory-bandwidth-aware recommendations, and
-  non-PyTorch backend formulas for GGUF/llama.cpp, vLLM, and Apple MLX.
+  non-PyTorch backend formulas for vLLM and Apple MLX.
 
 ## Product Shape
 

@@ -1,6 +1,6 @@
 """Pure, deterministic GPU VRAM deployment calculator core.
 
-Implements `VRAM_GB = (W + KV + T + C) * SAFETY_MARGIN` from specs/vram_calculator.md.
+Implements `VRAM_GB = (W + KV + T + C) * RUNTIME_MARGINS[runtime]` from specs/vram_calculator.md.
 Every constant traces back to docs/plan.md; no silent assumptions.
 """
 
@@ -20,6 +20,9 @@ QLORA_OVERHEAD_GB = 4.0  # 16-bit LoRA adapters plus Adam optimizer states.
 FULL_TRAINING_BYTES_PER_PARAM = 16  # Weights + gradients + optimizer for 16-bit training.
 CUDA_TAX_GB = 1.5  # Fixed CUDA context / system reservation.
 SAFETY_MARGIN = 1.10  # Headroom so a deployment does not run at the VRAM ceiling.
+GGUF_RUNTIME_MARGIN = 1.0  # llama.cpp GGUF sizing uses the additive components directly.
+RUNTIME_MARGINS = {"pytorch": SAFETY_MARGIN, "llama_cpp_gguf": GGUF_RUNTIME_MARGIN}
+FIXED_TASK_OVERHEAD_GB = {"inference": 0.0, "qlora": QLORA_OVERHEAD_GB}
 MISSING_ACTIVE_PARAMETERS_ERROR = "missing_active_parameters"
 MISSING_ACTIVE_PARAMETERS_MESSAGE = "MoE deployments require active_parameters_b"
 ACTIVE_EXCEEDS_TOTAL_ERROR = "active_exceeds_total"
@@ -28,6 +31,7 @@ ACTIVE_EXCEEDS_TOTAL_MESSAGE = "active_parameters_b cannot exceed parameters_b"
 Task = Literal["inference", "qlora", "full_training"]
 Bits = Literal[32, 16, 8, 4]
 Architecture = Literal["dense", "moe"]
+Runtime = Literal["pytorch", "llama_cpp_gguf"]
 
 
 class DeploymentSpec(BaseModel):
@@ -40,6 +44,7 @@ class DeploymentSpec(BaseModel):
     task: Task = "inference"
     architecture: Architecture = "dense"
     active_parameters_b: float | None = Field(default=None, gt=0)
+    runtime: Runtime = "pytorch"
 
     @model_validator(mode="after")
     def validate_active_parameters(self) -> Self:
@@ -74,14 +79,12 @@ def kv_cache_gb(spec: DeploymentSpec) -> float:
 
 def task_overhead_gb(spec: DeploymentSpec) -> float:
     """Gradient/optimizer/adapter memory: 0 for inference, fixed for QLoRA, P*16 for full training."""
-    if spec.task == "qlora":
-        return QLORA_OVERHEAD_GB
     if spec.task == "full_training":
         return spec.parameters_b * FULL_TRAINING_BYTES_PER_PARAM
-    return 0.0
+    return FIXED_TASK_OVERHEAD_GB[spec.task]
 
 
 def total_vram_gb(spec: DeploymentSpec) -> float:
-    """Total VRAM in GB: (W + KV + T + C) scaled by the safety margin, rounded to 1 decimal."""
+    """Total VRAM in GB: (W + KV + T + C) scaled by the runtime margin, rounded to 1 decimal."""
     subtotal = weights_gb(spec) + kv_cache_gb(spec) + task_overhead_gb(spec) + CUDA_TAX_GB
-    return round(subtotal * SAFETY_MARGIN, 1)
+    return round(subtotal * RUNTIME_MARGINS[spec.runtime], 1)

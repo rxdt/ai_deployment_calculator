@@ -63,6 +63,11 @@ def test_spec_from_form_matches_core_report_pipeline() -> None:
     assert report.total_vram_gb == pytest.approx(20.1)
 
 
+def test_spec_from_form_preserves_gguf_runtime() -> None:
+    form = FormInputs(parameters_b=104, context_tokens=32000, weight_bits=4, runtime="llama_cpp_gguf")
+    assert spec_from_form(form).runtime == "llama_cpp_gguf"
+
+
 def test_invalid_quantization_rejected() -> None:
     bad_bits: Any = 7
     with pytest.raises(FormInputError):
@@ -128,6 +133,11 @@ def test_form_from_query_accepts_supported_kv_cache_precision(bits: int) -> None
     assert form.kv_cache_bits == bits
 
 
+def test_form_from_query_accepts_gguf_runtime() -> None:
+    form = form_from_query("parameters_b=104&context_tokens=32000&weight_bits=4&runtime=llama_cpp_gguf")
+    assert form.runtime == "llama_cpp_gguf"
+
+
 def test_form_from_query_uses_last_repeated_value() -> None:
     form = form_from_query("parameters_b=8&parameters_b=13&context_tokens=8000")
     assert form.parameters_b == 13
@@ -164,6 +174,10 @@ def test_form_from_query_falls_back_to_default_on_unsupported_kv_cache_precision
 
 def test_form_from_query_falls_back_to_default_on_unsupported_architecture() -> None:
     assert form_from_query("parameters_b=8&context_tokens=8000&architecture=hybrid") == DEFAULT_FORM
+
+
+def test_form_from_query_falls_back_to_default_on_unsupported_runtime() -> None:
+    assert form_from_query("parameters_b=8&context_tokens=8000&runtime=tensorflow") == DEFAULT_FORM
 
 
 def test_form_from_query_falls_back_to_default_on_missing_moe_active_parameters() -> None:

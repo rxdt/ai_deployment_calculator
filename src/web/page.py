@@ -10,7 +10,7 @@ from web.fragments import (
     render_comparison_rows,
     render_hardware_rows,
 )
-from web.presenter import DEFAULT_FORM, FormInputs, spec_from_form
+from web.presenter import DEFAULT_FORM, FormInputs, deployment_task, spec_from_form
 from web.view import view_from_form
 
 STYLE = """
@@ -95,9 +95,10 @@ def render_page(form: FormInputs | None = None) -> str:
     """Render the single-screen calculator page for the given form state."""
     active_form = form or DEFAULT_FORM
     view = view_from_form(active_form)
-    trained = " checked" if active_form.trained else ""
-    adapter = " checked" if active_form.trained and active_form.use_adapter else ""
-    adapter_disabled = "" if active_form.trained else " disabled"
+    active_task = deployment_task(active_form)
+    trained = " checked" if active_task != "inference" else ""
+    adapter = " checked" if active_task == "qlora" else ""
+    adapter_disabled = "" if active_task != "inference" else " disabled"
     active_parameters_disabled = "" if active_form.architecture == "moe" else " disabled"
     active_parameters_value = active_form.active_parameters_b or 1.3
     return f"""<!doctype html>

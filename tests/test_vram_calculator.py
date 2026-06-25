@@ -6,6 +6,7 @@ import pytest
 from pydantic import ValidationError
 
 from vram_calculator import (
+    RUNTIME_MARGINS,
     Bits,
     DeploymentSpec,
     kv_cache_gb,
@@ -22,6 +23,7 @@ def test_defaults_are_inference_16bit() -> None:
     assert spec.task == "inference"
     assert spec.architecture == "dense"
     assert spec.active_parameters_b is None
+    assert spec.runtime == "pytorch"
 
 
 @pytest.mark.parametrize(
@@ -88,6 +90,22 @@ def test_task_overhead_full_training_scales_with_params() -> None:
 def test_total_vram_8b_inference_acceptance_signal() -> None:
     spec = DeploymentSpec(parameters_b=8, context_tokens=8000)
     assert total_vram_gb(spec) == pytest.approx(20.1)
+
+
+def test_llama_cpp_gguf_uses_additive_total_without_safety_margin() -> None:
+    spec = DeploymentSpec(
+        parameters_b=104,
+        context_tokens=32000,
+        weight_bits=4,
+        kv_cache_bits=32,
+        runtime="llama_cpp_gguf",
+    )
+
+    assert weights_gb(spec) == pytest.approx(52.0)
+    assert kv_cache_gb(spec) == pytest.approx(83.2)
+    assert task_overhead_gb(spec) == pytest.approx(0.0)
+    assert RUNTIME_MARGINS[spec.runtime] == pytest.approx(1.0)
+    assert total_vram_gb(spec) == pytest.approx(136.7)
 
 
 def test_tiny_fp8_full_training_rounds_to_cuda_dominated_total() -> None:

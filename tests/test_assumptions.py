@@ -23,3 +23,11 @@ def test_assumption_summary_reflects_moe_kv_heuristic() -> None:
         item for item in build_assumption_summary(spec).items if item.label == "KV cache heuristic"
     )
     assert kv_assumption.value == "active_parameters * (context_k / 8)"
+
+
+def test_assumption_summary_reflects_gguf_runtime_margin() -> None:
+    spec = DeploymentSpec(parameters_b=104, context_tokens=32000, weight_bits=4, runtime="llama_cpp_gguf")
+    margin_assumption = next(
+        item for item in build_assumption_summary(spec).items if item.label == "Safety margin"
+    )
+    assert margin_assumption.value == "0%"

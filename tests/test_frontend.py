@@ -45,6 +45,8 @@ def test_vite_frontend_renders_required_controls_and_fetches_report_api() -> Non
         for fragment in (
             "function isReportPayload(value: unknown): value is ReportPayload",
             'throw new Error("Report payload does not match the frontend contract")',
+            'aria-label="Deployment status"',
+            "~/vram-calc",
         )
     )
     assert '.replace(/</g, "&lt;")' in script
@@ -69,7 +71,7 @@ def test_vite_frontend_uses_reference_terminal_theme() -> None:
     styles = frontend_text("src/styles.css")
 
     # Near-black background, not the prior slate blue.
-    assert "background: #070b0a;" in styles
+    assert "#070b0a" in styles
     assert "#0f172a" not in styles
     # Monospace technical font, not Inter.
     assert "ui-monospace" in styles
@@ -82,6 +84,12 @@ def test_vite_frontend_uses_reference_terminal_theme() -> None:
     # Blue heading/label accents are replaced by green.
     assert "#93c5fd" not in styles
     assert "#60a5fa" not in styles
+    # Reference-style terminal shell: status strip, grid background, results left/control panel right.
+    assert ".terminal-bar" in styles
+    assert "background-size: 40px 40px;" in styles
+    assert 'grid-template-areas:\n    "status status"\n    "results controls";' in styles
+    assert "grid-area: results;" in styles
+    assert "grid-area: controls;" in styles
 
 
 def test_vite_frontend_disables_adapter_until_training_is_enabled() -> None:

@@ -266,6 +266,17 @@ function renderForm(state: FormState): string {
   `;
 }
 
+function renderStatusBar(): string {
+  return `
+    <nav class="terminal-bar" aria-label="Deployment status">
+      <strong>~/vram-calc</strong>
+      <span>&gt; system: <b>online</b></span>
+      <span>&gt; inference: <b>local</b></span>
+      <span>&gt; precisions: 32 / 16 / 8 / 4</span>
+    </nav>
+  `;
+}
+
 function renderBreakdown(rows: DisplayRow[]): string {
   return rows
     .map((row) => `<p class="metric">${escapeHtml(row.label)}<strong>${escapeHtml(row.value)}</strong></p>`)
@@ -385,12 +396,12 @@ async function loadReport(rawSearch: URLSearchParams): Promise<void> {
     if (requestId !== activeReportRequest) {
       return;
     }
-    app.innerHTML = `${renderForm(state)}${renderResults(report, state)}`;
+    app.innerHTML = `${renderStatusBar()}${renderForm(state)}${renderResults(report, state)}`;
   } catch {
     if (requestId !== activeReportRequest) {
       return;
     }
-    app.innerHTML = `${renderForm(state)}${renderError()}`;
+    app.innerHTML = `${renderStatusBar()}${renderForm(state)}${renderError()}`;
   }
   syncAdapterControl();
   syncArchitectureControl();

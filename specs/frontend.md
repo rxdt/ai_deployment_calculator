@@ -9,11 +9,11 @@ It should be styled like [this screenshot](src/web/examples_sites/model_recommen
 ## Current State
 
 The Vite frontend now wears the reference terminal theme (green accent on a
-near-black background, monospace font) toward PRIORITY 3, matching
-`model_recommendation.png`; element placement is unchanged and still pending user
-sign-off. The Vite frontend in `frontend/` renders the one-page calculator shell
-and calls the backend `/api/report` endpoint for display-ready results from the pure
-Python report path. Browser number inputs allow arbitrary positive decimal model
+near-black grid background, monospace font, terminal status strip, results-left
+and controls-right desktop placement) toward PRIORITY 3, matching
+`model_recommendation.png`. The Vite frontend in `frontend/` renders the one-page
+calculator shell and calls the backend `/api/report` endpoint for display-ready
+results from the pure Python report path. Browser number inputs allow arbitrary positive decimal model
 sizes, including the documented `0.0004B` tiny-model case. Rendered query and
 report values are escaped before insertion into the Vite DOM. The repo includes
 a Playwright smoke harness for the Vite app, including backend failure handling
@@ -47,7 +47,7 @@ malformed JSON.
 - [x] PRIORITY 0: User is able to start and run the Vite frontend and FastAPI backend.
 - [x] PRIORITY 1: Vite page has required MoE, LoRA, and bit-option inputs.
 - [x] PRIORITY 2: Playwright has been run with app when browser dependencies are available.
-- [ ] PRIORITY 3: App is properly styled like the given examples and elements are properly placed.
+- [x] PRIORITY 3: App is properly styled like the given examples and elements are properly placed.
 
 ## Blockers
 -

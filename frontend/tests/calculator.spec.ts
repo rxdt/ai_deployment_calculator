@@ -58,6 +58,8 @@ test("renders the calculator and submits deployment inputs", async ({ page }) =>
   await page.goto("/");
 
   await expect(page.getByRole("heading", { name: "VRAM Deployment Calculator" })).toBeVisible();
+  await expect(page.getByLabel("Deployment status")).toContainText("~/vram-calc");
+  await expect(page.getByLabel("Deployment status")).toContainText("system: online");
   await expect(page.locator(".total")).toHaveText("20.1 GB");
   await expect(page.getByLabel("Hardware recommendations")).toContainText("RTX 4090");
   await expect(page.getByLabel("Quantization comparison")).toContainText("16-bit");

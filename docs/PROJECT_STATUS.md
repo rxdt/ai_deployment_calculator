@@ -6,7 +6,7 @@
 - 32-bit weight and KV precision are supported in the core, comparison, and web form.
 - PyTorch MoE sizing is supported: total parameters size weights and active parameters size KV cache.
 - The assumption summary is architecture-aware: MoE shows the `active_parameters * (context_k / 8)` KV heuristic instead of the dense `(parameters / 10)` form, so the displayed assumption matches the core math.
-- The Vite web UI uses the reference terminal theme (green accent on near-black, monospace font) matching `model_recommendation.png`, is backend-wired through `/api/report`, accepts decimal model sizes, escapes rendered values, normalizes invalid URL params, and ignores stale report responses.
+- The Vite web UI uses the reference terminal theme (green accent on near-black grid, monospace font, terminal status strip, results-left/control-right desktop layout), is backend-wired through `/api/report`, accepts decimal model sizes, escapes rendered values, normalizes invalid URL params, and ignores stale report responses.
 - The Vite and static fallback forms expose dense/MoE architecture plus active parameters.
 - The Vite report panel is internally constrained so dense results do not force document scrolling.
 - The Vite web UI validates `/api/report` payload shape before rendering and falls back to the error state on malformed or partial breakdown JSON.
@@ -24,8 +24,10 @@
 - `npm run build` in `frontend/` - green.
 - `semgrep scan --config auto --config p/secrets --error` - green.
 - `npm run test:e2e` in `frontend/` - green when Chromium is launched outside the macOS sandbox, 8 passed.
-- Focused Playwright partial-breakdown regression attempted here; Chromium launch is blocked by this macOS sandbox.
+- `TMPDIR=/Users/rxdt/ai_deployment_calculator/scratchpad/playwright-tmp npm run test:e2e` collected 9 specs here; Chromium launch is blocked by macOS Mach port sandbox permissions.
 - `uv run pytest tests/test_readme.py` - green.
+- `uv run pytest tests/test_frontend.py` - green, 8 passed.
+- `npm run build` in `frontend/` - green after the terminal-layout pass.
 - `uv run ralph gate` - green.
 - `uv run ralph verify` - green.
 
@@ -37,4 +39,4 @@
 
 ## Blockers
 
-- None.
+- Codex frontend-2/2: commit and push are blocked because this sandbox cannot create `.git/index.lock`.

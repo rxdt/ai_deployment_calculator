@@ -6,6 +6,8 @@
 - 32-bit weight and KV precision are supported in the core, comparison, and web form.
 - PyTorch and llama.cpp GGUF MoE sizing is supported: total parameters size weights, active
   parameters size KV cache, and GGUF uses the additive total with no final safety multiplier.
+- A 1M-token long-context inference regression proves the calculator stays KV-cache bound
+  (87.5 GB KV vs 7.0 GB weights at 8-bit) for 7B at 1,000,000 context.
 - LoRA/QLoRA adapter overhead can now be sized from trainable parameter percent in the core,
   while the legacy 4 GB QLoRA default remains for forms that do not expose that knob.
 - The assumption summary is architecture-aware: MoE shows the `active_parameters * (context_k / 8)` KV heuristic instead of the dense `(parameters / 10)` form, so the displayed assumption matches the core math.
@@ -44,7 +46,7 @@
 - Codex code_review-6/6: Playwright cannot launch Chromium in this sandbox due to macOS Mach port permission denial.
 - Codex vram_calculator-4/6: unrelated working-tree deletion `claude_test.json` remains outside this commit.
 - Codex code_review-1/1: commit blocked because `.git` is read-only in this session; `git add` cannot create `.git/index.lock`.
-- Claude code_review-1/3: `ralph verify` security gate fails on `ca-certs: empty trust anchors`; unsandboxed retries were refused by the harness. `ralph gate` is green and the commit landed.
+- Claude vram_calculator-2/3: `ralph verify` security gate fails on `ca-certs: empty trust anchors`; unsandboxed retries were refused by the harness. `ralph gate` is green and the commit landed.
 
 ## Resolved
 

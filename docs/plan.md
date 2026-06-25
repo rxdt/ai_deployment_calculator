@@ -31,7 +31,6 @@ hand-calculating every model deployment.
 - 3.8B, Context: 8k, KV Cache: 16b, Task: QLoRA, CUDA
 - 104B, int8, Context 32000 tokens, 16-bit KV, Task: Inference, CUDA
 - GGUF using llama.cpp: (1.0 multiplier instead of 1.1) 104B, Context 32000 tokens, 32-bit KV, Task: Inference, CUDA (0.5 multiplier because GGUF)
-- 7B, bf8, Context 1000000, KV cache FP16, Task: Inference, CUDA
 - 8B, 16-bit base, 2% trainable => adapter/optimizer overhead = trainable-params-percentage * 8 * buffer 1.10
 
 ## Core Equation

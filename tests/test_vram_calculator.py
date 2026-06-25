@@ -180,6 +180,19 @@ def test_tiny_fp8_full_training_rounds_to_cuda_dominated_total() -> None:
             41.6,
             161.8,
         ),
+        (
+            # 7B 8-bit weights with a 1M-token context stays KV-cache bound:
+            # KV (87.5 GB) dwarfs the 7.0 GB of weights even at low precision.
+            DeploymentSpec(
+                parameters_b=7,
+                context_tokens=1_000_000,
+                weight_bits=8,
+                kv_cache_bits=16,
+            ),
+            7.0,
+            87.5,
+            105.6,
+        ),
     ],
 )
 def test_large_inference_regressions(

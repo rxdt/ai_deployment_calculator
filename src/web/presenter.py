@@ -8,6 +8,7 @@ page renders one pure call instead of mapping inputs itself.
 
 from __future__ import annotations
 
+import math
 from dataclasses import InitVar, dataclass, field
 from urllib.parse import parse_qs
 
@@ -43,10 +44,14 @@ class FormInputs:
         """Validate form inputs without adding a second Pydantic model to `src/`."""
         task: Task = "inference" if not trained else "qlora" if use_adapter else "full_training"
         object.__setattr__(self, "task", task)
-        active_parameters_valid = (
-            self.active_parameters_b is None or 0 < self.active_parameters_b <= self.parameters_b
+        active_parameters_valid = self.active_parameters_b is None or (
+            math.isfinite(self.active_parameters_b) and 0 < self.active_parameters_b <= self.parameters_b
         )
-        invalid_size = self.parameters_b <= 0 or self.context_tokens < 0
+        # Reject inf/nan to match the frontend's Number.isFinite guard; otherwise the
+        # report path produces inf/nan totals or crashes when sizing hardware.
+        invalid_size = (
+            not math.isfinite(self.parameters_b) or self.parameters_b <= 0 or self.context_tokens < 0
+        )
         invalid_precision = self.weight_bits not in VALID_BITS or self.kv_cache_bits not in VALID_BITS
         invalid_runtime = self.runtime not in VALID_RUNTIMES
         if invalid_size or invalid_precision or invalid_runtime or not active_parameters_valid:

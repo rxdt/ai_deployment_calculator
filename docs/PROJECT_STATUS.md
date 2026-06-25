@@ -40,6 +40,7 @@
 - `uv run pytest tests/test_vram_calculator.py` - green, 34 passed after the 7B full-training acceptance case.
 - `uv run ralph verify` - green after blank comparison-value validation.
 - `TMPDIR=/Users/rxdt/ai_deployment_calculator/scratchpad/playwright-tmp npm run test:e2e` cannot launch Chromium here because of macOS Mach port permissions; the current suite has 19 specs.
+- `uv run pytest` - green, 185 passed after rejecting non-finite `parameters_b`/`active_parameters_b` in the form layer.
 
 ## Next
 
@@ -52,10 +53,9 @@
 - Codex code_review-6/6: Playwright cannot launch Chromium in this sandbox due to macOS Mach port permission denial.
 - Codex vram_calculator-4/6: unrelated working-tree deletion `claude_test.json` remains outside this commit.
 - Codex code_review-1/1: commit blocked because `.git` is read-only in this session; `git add` cannot create `.git/index.lock`.
-- Claude vram_calculator-2/3: `ralph verify` security gate fails on `ca-certs: empty trust anchors`; unsandboxed retries were refused by the harness. `ralph gate` is green and the commit landed.
-- Claude code_review-3/3: `ralph verify` security gate again fails on `ca-certs: empty trust anchors`; unsandboxed retries refused by harness. `ralph gate` and `pytest` green; commit landed.
-- Claude vram_calculator-1/7: `ralph verify` again fails on `ca-certs: empty trust anchors`; harness refused the unsandboxed retry. `ralph gate` and `pytest` green; commit landed.
-- Claude vram_calculator-2/7: `ralph verify` again fails on `ca-certs: empty trust anchors`; harness refused the unsandboxed retry. `ralph gate` and `pytest` green; commit landed.
+- Claude (vram_calculator-2/3, code_review-3/3, vram_calculator-1/7 & 2/7, code_review-3/7):
+  `ralph verify` security gate repeatedly fails on `ca-certs: empty trust anchors`; the
+  harness refuses the unsandboxed retry. `ralph gate` and `pytest` are green; commits landed.
 
 ## Resolved
 

@@ -182,3 +182,15 @@ def test_form_from_query_falls_back_to_default_on_unsupported_runtime() -> None:
 
 def test_form_from_query_falls_back_to_default_on_missing_moe_active_parameters() -> None:
     assert form_from_query("parameters_b=47&context_tokens=8000&architecture=moe") == DEFAULT_FORM
+
+
+@pytest.mark.parametrize("parameters", ["inf", "-inf", "nan"])
+def test_form_from_query_falls_back_to_default_on_non_finite_parameters(parameters: str) -> None:
+    # inf crashes hardware sizing and nan yields nonsense totals; the frontend rejects both
+    # via Number.isFinite, so the backend must normalize them to the default deployment too.
+    assert form_from_query(f"parameters_b={parameters}&context_tokens=8000") == DEFAULT_FORM
+
+
+def test_form_from_query_falls_back_to_default_on_non_finite_active_parameters() -> None:
+    query = "parameters_b=47&context_tokens=8000&architecture=moe&active_parameters_b=inf"
+    assert form_from_query(query) == DEFAULT_FORM

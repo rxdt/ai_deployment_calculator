@@ -55,6 +55,7 @@ contain non-empty name, detail, and sharding text.
 - [x] Blank frontend hardware recommendation text is rejected before rendering.
 - [x] Blank frontend quantization comparison values are rejected before rendering.
 - [x] Backend `/api/report` breakdown labels match the frontend `REQUIRED_BREAKDOWN_LABELS` contract.
+- [x] Non-finite `parameters_b`/`active_parameters_b` are rejected in the form layer, matching the frontend's `Number.isFinite` guard (inf crashed hardware sizing; nan produced nonsense totals).
 
 ## Acceptance Signals
 

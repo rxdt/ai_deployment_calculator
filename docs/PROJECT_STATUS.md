@@ -52,3 +52,4 @@
 ## Blockers
 
 - Codex code_review-1/4: Playwright cannot launch Chromium in this sandbox due to macOS Mach port permission denial.
+- Claude-code_review-1/1: `git push origin main` fails; SSH to github.com is blocked by the sandbox network policy. Commit bd9a85b (empty-assumption rejection) is committed locally but unpushed; a human must push.

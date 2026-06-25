@@ -35,7 +35,7 @@
 - `npm run build` in `frontend/` - green after hardware contract validation.
 - `uv run ralph gate` - green.
 - `uv run ralph verify` - green after hardware contract validation.
-- `git add ...` - blocked by `.git/index.lock` creation permission in this sandbox after hardware contract validation.
+- `git push -u origin main` - green at `0c919e2`.
 - `TMPDIR=/Users/rxdt/ai_deployment_calculator/scratchpad/playwright-tmp npm run test:e2e` - 12 specs fail before execution because Chromium launch is blocked by macOS Mach port permissions.
 
 ## Next
@@ -47,4 +47,3 @@
 ## Blockers
 
 - Codex code_review-1/4: Playwright cannot launch Chromium in this sandbox due to macOS Mach port permission denial.
-- Codex code_review-3/4: commit and push are blocked because this sandbox cannot create `.git/index.lock`.

@@ -9,6 +9,7 @@ import pytest
 from report import build_report
 from vram_calculator import DeploymentSpec
 from web.presenter import (
+    DEFAULT_ACTIVE_PARAMETERS_B,
     DEFAULT_FORM,
     FormInputError,
     FormInputs,
@@ -180,8 +181,14 @@ def test_form_from_query_falls_back_to_default_on_unsupported_runtime() -> None:
     assert form_from_query("parameters_b=8&context_tokens=8000&runtime=tensorflow") == DEFAULT_FORM
 
 
-def test_form_from_query_falls_back_to_default_on_missing_moe_active_parameters() -> None:
-    assert form_from_query("parameters_b=47&context_tokens=8000&architecture=moe") == DEFAULT_FORM
+def test_form_from_query_defaults_missing_moe_active_parameters() -> None:
+    # The Vite normalizedState defaults a missing active_parameters_b to DEFAULT_VALUES (1.3) and
+    # renders an MoE deployment; a bare KeyError reset to the dense 8B default would make the no-JS
+    # server page contradict the JS app for the same URL. Mirror the frontend default instead.
+    form = form_from_query("parameters_b=47&context_tokens=8000&architecture=moe")
+    assert form.architecture == "moe"
+    assert form.parameters_b == 47
+    assert form.active_parameters_b == DEFAULT_ACTIVE_PARAMETERS_B
 
 
 @pytest.mark.parametrize("context_tokens", ["8000.0", "8e3", "32000.00"])

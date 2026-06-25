@@ -59,6 +59,7 @@ contain non-empty name, detail, and sharding text.
 - [x] The calculation card renders the deployment's real safety margin, not a value back-computed from the rounded total (tiny CUDA-tax-bound runs showed a fabricated `1.13` that contradicted the `10%` assumption).
 - [x] The quantization comparison preserves the deployment's runtime, so GGUF rows keep the additive `1.0` margin instead of silently inflating by the `1.10` PyTorch multiplier.
 - [x] Integer-valued context tokens (`8000.0`, `8e3`) parse like the frontend's `Number.isInteger` guard, so the backend stops silently dropping every input back to the default deployment.
+- [x] A missing MoE `active_parameters_b` defaults to the frontend's `1.3`, so the no-JS server page renders the same MoE deployment as the JS app instead of resetting to the dense 8B default.
 
 ## Acceptance Signals
 

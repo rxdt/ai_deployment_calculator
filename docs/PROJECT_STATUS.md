@@ -36,6 +36,9 @@
 - `form_from_query` parses `context_tokens` via `parse_context_tokens`, matching the frontend's
   `Number.isInteger` guard. A bare `int("8000.0")`/`int("8e3")` raised `ValueError` and silently
   reset every input to the default 8B deployment, contradicting the form the user still saw.
+- `form_from_query` defaults a missing MoE `active_parameters_b` to `1.3` (the frontend
+  `DEFAULT_VALUES`), so the no-JS server page renders the same MoE deployment the JS app would
+  instead of a `KeyError` reset to the dense 8B default.
 
 ## Checks
 
@@ -51,6 +54,8 @@
   comparison (mutation-checked: forcing `with_weight_bits` to `pytorch` fails the new test 150.4 vs 136.7).
 - `uv run ralph gate` - green after accepting integer-valued `context_tokens`
   (mutation-checked: reverting to `int()` fails `8000.0`/`8e3` acceptance with `ValueError`).
+- `uv run ralph gate` - green after defaulting missing MoE active parameters
+  (mutation-checked: reverting to `raw_params["active_parameters_b"]` fails the new MoE-default test).
 
 ## Next
 

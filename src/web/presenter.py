@@ -18,6 +18,7 @@ CHECKED_VALUES = {"1", "true", "on", "yes"}
 VALID_BITS = {32, 16, 8, 4}
 BIT_VALUES: dict[str, Bits] = {"32": 32, "16": 16, "8": 8, "4": 4}
 ARCHITECTURE_VALUES: dict[str, Architecture] = {"dense": "dense", "moe": "moe"}
+DEFAULT_ACTIVE_PARAMETERS_B = 1.3  # Frontend DEFAULT_VALUES.active_parameters_b for missing MoE input.
 VALID_RUNTIMES: set[Runtime] = {"pytorch", "llama_cpp_gguf"}
 RUNTIME_VALUES: dict[str, Runtime] = {"pytorch": "pytorch", "llama_cpp_gguf": "llama_cpp_gguf"}
 
@@ -98,7 +99,11 @@ def form_from_query(query_string: str) -> FormInputs:
         return DEFAULT_FORM
     try:
         trained = raw_params.get("trained", "").lower() in CHECKED_VALUES
-        active_parameters_b = float(raw_params["active_parameters_b"]) if architecture == "moe" else None
+        active_parameters_b = (
+            float(raw_params.get("active_parameters_b", DEFAULT_ACTIVE_PARAMETERS_B))
+            if architecture == "moe"
+            else None
+        )
         return FormInputs(
             parameters_b=float(raw_params["parameters_b"]),
             context_tokens=parse_context_tokens(raw_params["context_tokens"]),

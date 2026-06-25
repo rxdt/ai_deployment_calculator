@@ -107,6 +107,15 @@ def test_total_vram_8b_inference_acceptance_signal() -> None:
     assert total_vram_gb(spec) == pytest.approx(20.1)
 
 
+def test_total_vram_7b_full_training_acceptance_signal() -> None:
+    # 7B 16-bit weights, 16-bit KV, 8k full training: W 14.0 + KV 0.7 + T 112.0 + 1.5 CUDA.
+    spec = DeploymentSpec(parameters_b=7, context_tokens=8000, task="full_training")
+    assert weights_gb(spec) == pytest.approx(14.0)
+    assert kv_cache_gb(spec) == pytest.approx(0.7)
+    assert task_overhead_gb(spec) == pytest.approx(112.0)
+    assert total_vram_gb(spec) == pytest.approx(141.0)
+
+
 def test_llama_cpp_gguf_uses_additive_total_without_safety_margin() -> None:
     spec = DeploymentSpec(
         parameters_b=104,

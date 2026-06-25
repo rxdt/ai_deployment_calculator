@@ -37,7 +37,7 @@
 - `npm run build` in `frontend/` - green after blank comparison-value validation.
 - `TMPDIR=/Users/rxdt/ai_deployment_calculator/scratchpad/playwright-tmp npm run test:e2e -- --grep "blank values"` - blocked before test execution by macOS Chromium Mach port permission denial.
 - `uv run ralph gate` - green after adding the 3.8B QLoRA acceptance row.
-- `uv run pytest tests/test_vram_calculator.py` - green, 33 passed.
+- `uv run pytest tests/test_vram_calculator.py` - green, 34 passed after the 7B full-training acceptance case.
 - `uv run ralph verify` - green after blank comparison-value validation.
 - `TMPDIR=/Users/rxdt/ai_deployment_calculator/scratchpad/playwright-tmp npm run test:e2e` cannot launch Chromium here because of macOS Mach port permissions; the current suite has 19 specs.
 
@@ -55,6 +55,7 @@
 - Claude vram_calculator-2/3: `ralph verify` security gate fails on `ca-certs: empty trust anchors`; unsandboxed retries were refused by the harness. `ralph gate` is green and the commit landed.
 - Claude code_review-3/3: `ralph verify` security gate again fails on `ca-certs: empty trust anchors`; unsandboxed retries refused by harness. `ralph gate` and `pytest` green; commit landed.
 - Claude vram_calculator-1/7: `ralph verify` again fails on `ca-certs: empty trust anchors`; harness refused the unsandboxed retry. `ralph gate` and `pytest` green; commit landed.
+- Claude vram_calculator-2/7: `ralph verify` again fails on `ca-certs: empty trust anchors`; harness refused the unsandboxed retry. `ralph gate` and `pytest` green; commit landed.
 
 ## Resolved
 

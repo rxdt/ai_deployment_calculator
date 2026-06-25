@@ -47,6 +47,7 @@ rejected before rendering.
 - [x] Mismatched frontend quantization selected rows are rejected before rendering.
 - [x] Mismatched frontend assumption labels are rejected before rendering.
 - [x] Blank frontend assumption values are rejected before rendering.
+- [x] Mismatched frontend breakdown labels are rejected before rendering.
 
 ## Acceptance Signals
 

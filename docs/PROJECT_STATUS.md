@@ -21,6 +21,7 @@
 - The Vite web UI pins the five-row assumption summary and rejects empty assumption payloads, so the transparency section never renders blank.
 - The Vite web UI validates the five required assumption labels, rejecting stale same-shape payloads before rendering.
 - The Vite web UI rejects assumption summaries with blank values, keeping the audit section meaningful.
+- The Vite web UI validates the four required VRAM breakdown labels in order before rendering.
 - The LoRA adapter checkbox is disabled unless model training is enabled in both the Vite app and static fallback page.
 - README documents the FastAPI backend start command, deterministic Vite dependency install, and frontend dev command.
 - `pyrightconfig.json` scopes pyright to `harness`, `src`, and `tests`, avoiding broad scans during Ralph verify.
@@ -63,6 +64,10 @@
 - `npm run build` in `frontend/` - green after assumption-label contract validation.
 - `uv run pytest tests/test_frontend.py` - green after blank-assumption-value contract validation.
 - `npm run build` in `frontend/` - green after blank-assumption-value contract validation.
+- `uv run pytest tests/test_frontend.py` - green after breakdown-label contract validation.
+- `npm run build` in `frontend/` - green after breakdown-label contract validation.
+- `uv run ralph gate` - green after breakdown-label contract validation.
+- `uv run ralph verify` - green after breakdown-label contract validation.
 - `uv run ralph gate` - green after blank-assumption-value contract validation.
 - `uv run ralph verify` - green after blank-assumption-value contract validation.
 - `uv run ralph gate` - green after assumption-label contract validation.
@@ -79,10 +84,6 @@
 ## Blockers
 
 - Codex code_review-4/4: Playwright cannot launch Chromium in this sandbox due to macOS Mach port permission denial.
-- Codex-frontend-2/6: commit blocked because this sandbox cannot create `.git/index.lock`
-  to refresh the stale staged index; working-tree `uv run ralph verify` is green.
-- Codex-code_review-6/6: commit blocked because this sandbox cannot create `.git/index.lock`;
-  assumption-label contract validation and LoRA sizing changes are unstaged after green gate/verify.
 ## Resolved
 
 - The semgrep `ca-certs: empty trust anchors` failure and SSH `git push` failure were

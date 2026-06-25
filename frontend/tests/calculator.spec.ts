@@ -275,6 +275,23 @@ test("rejects partial breakdown payloads before rendering", async ({ page }) => 
   await expect(page.getByLabel("VRAM breakdown")).toHaveCount(0);
 });
 
+test("rejects breakdown payloads with unexpected labels before rendering", async ({ page }) => {
+  await page.route("**/api/report?**", async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        ...report,
+        breakdown: report.breakdown.map((row) => ({ ...row, label: "Unknown subtotal" })),
+      }),
+    });
+  });
+
+  await page.goto("/");
+
+  await expect(page.getByRole("alert")).toContainText("Report unavailable");
+  await expect(page.getByLabel("VRAM breakdown")).toHaveCount(0);
+});
+
 test("rejects empty hardware recommendations before rendering", async ({ page }) => {
   await page.route("**/api/report?**", async (route) => {
     await route.fulfill({

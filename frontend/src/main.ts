@@ -53,6 +53,7 @@ const REQUIRED_ASSUMPTION_LABELS = new Set([
   "Host RAM rule",
   "Supported precisions",
 ]);
+const REQUIRED_BREAKDOWN_LABELS = ["Weights", "KV cache", "Task", "CUDA/system"];
 const VALID_RUNTIMES = new Set(["pytorch", "llama_cpp_gguf"]);
 const VALID_ARCHITECTURES = new Set(["dense", "moe"]);
 const BREAKDOWN_ROW_COUNT = 4;
@@ -133,6 +134,12 @@ function hasRequiredAssumptionRows(rows: DisplayRow[]): boolean {
   );
 }
 
+function hasRequiredBreakdownRows(rows: DisplayRow[]): boolean {
+  return rows.every(
+    (row, index) => row.label === REQUIRED_BREAKDOWN_LABELS[index] && row.value.trim().length > 0,
+  );
+}
+
 function isReportPayload(value: unknown, selectedWeightBits: string): value is ReportPayload {
   return (
     isRecord(value) &&
@@ -145,6 +152,7 @@ function isReportPayload(value: unknown, selectedWeightBits: string): value is R
     Array.isArray(value.breakdown) &&
     value.breakdown.length === BREAKDOWN_ROW_COUNT &&
     value.breakdown.every(isDisplayRow) &&
+    hasRequiredBreakdownRows(value.breakdown) &&
     Array.isArray(value.hardware) &&
     value.hardware.length > 0 &&
     value.hardware.every(isHardwareRow) &&

@@ -14,14 +14,7 @@
 - The Vite and static fallback forms expose PyTorch vs llama.cpp GGUF runtime, and calculation text
   uses the selected runtime multiplier.
 - The Vite report panel is internally constrained so dense results do not force document scrolling.
-- The Vite web UI validates `/api/report` payload shape before rendering and falls back to the error state on malformed, partial breakdown, or empty hardware JSON.
-- The Vite web UI rejects partial or ambiguously selected quantization-comparison payloads, preserving the four-row, one-selected-row precision comparison contract.
-- The Vite web UI rejects quantization-comparison payloads whose selected row does not match the submitted weight precision.
-- The Vite web UI pins the five-row assumption summary and rejects empty assumption payloads, so the transparency section never renders blank.
-- The Vite web UI validates the five required assumption labels, rejecting stale same-shape payloads before rendering.
-- The Vite web UI rejects assumption summaries with blank values, keeping the audit section meaningful.
-- The Vite web UI validates the four required VRAM breakdown labels in order before rendering.
-- The Vite web UI rejects blank top-level totals, plan text, and calculation strings before rendering success.
+- The Vite web UI validates `/api/report` payload shape before rendering and rejects malformed JSON, partial or mislabeled breakdowns, empty or blank hardware rows, invalid comparison rows, blank assumptions, and blank top-level report strings.
 - The LoRA adapter checkbox is disabled unless model training is enabled in both the Vite app and static fallback page.
 - README documents the FastAPI backend start command, deterministic Vite dependency install, and frontend dev command.
 - `pyrightconfig.json` scopes pyright to `harness`, `src`, and `tests`, avoiding broad scans during Ralph verify.
@@ -32,52 +25,11 @@
 
 ## Checks
 
-- `ruff check .` - green.
-- `ruff format --check .` - green.
-- Focused pytest for VRAM, presenter, page, and frontend manifest tests - green, 76 passed.
-- `npm run build` in `frontend/` - green.
-- `semgrep scan --config auto --config p/secrets --error` - green.
-- `npm run test:e2e` in `frontend/` - green when Chromium is launched outside the macOS sandbox, 8 passed.
-- `TMPDIR=/Users/rxdt/ai_deployment_calculator/scratchpad/playwright-tmp npm run test:e2e` cannot launch Chromium here because of macOS Mach port sandbox permissions; the current suite has 14 specs.
-- `uv run pytest tests/test_readme.py` - green.
-- `uv run pytest tests/test_frontend.py` - green, 8 passed.
-- `npm run build` in `frontend/` - green after the terminal-layout pass.
-- `uv run pytest tests/test_frontend.py` - green, 8 passed after comparison contract validation.
-- `npm run build` in `frontend/` - green after comparison contract validation.
-- `uv run pytest tests/test_frontend.py` - green, 8 passed after hardware contract validation.
-- `npm run build` in `frontend/` - green after hardware contract validation.
-- `uv run pytest tests/test_frontend.py` - green, 8 passed after selected-precision contract validation.
-- `npm run build` in `frontend/` - green after selected-precision contract validation.
-- `uv run pytest tests/test_view.py tests/test_page.py` - green, 18 passed after runtime calculation formatter coverage.
-- `npm run build` in `frontend/` - green after frontend runtime wiring.
-- `uv run ralph gate` - green after frontend runtime wiring.
-- `uv run ralph verify` - green after frontend runtime wiring.
-- `uv run ralph gate` - green.
-- `uv run ralph gate` - green after GGUF runtime support.
-- `uv run ralph verify` - green after hardware contract validation.
-- `uv run ralph verify` - green after selected-precision contract validation.
-- `uv run ralph verify` - green after GGUF runtime support.
-- `uv run pytest tests/test_vram_calculator.py` - green after LoRA adapter-percent sizing.
-- `uv run ralph gate` - green after LoRA adapter-percent sizing.
-- `uv run ralph verify` - green after LoRA adapter-percent sizing.
-- `uv run pytest tests/test_frontend.py` - green after assumption-label contract validation.
-- `npm run build` in `frontend/` - green after assumption-label contract validation.
-- `uv run pytest tests/test_frontend.py` - green after blank-assumption-value contract validation.
-- `npm run build` in `frontend/` - green after blank-assumption-value contract validation.
-- `uv run pytest tests/test_frontend.py` - green after breakdown-label contract validation.
-- `npm run build` in `frontend/` - green after breakdown-label contract validation.
-- `uv run ralph gate` - green after breakdown-label contract validation.
-- `uv run ralph verify` - green after breakdown-label contract validation.
-- `uv run ralph gate` - green after blank-assumption-value contract validation.
-- `uv run ralph verify` - green after blank-assumption-value contract validation.
-- `uv run ralph gate` - green after assumption-label contract validation.
-- `uv run ralph verify` - green after assumption-label contract validation.
-- `git push -u origin main` - green after selected-precision and assumption contract validation.
-- `TMPDIR=/Users/rxdt/ai_deployment_calculator/scratchpad/playwright-tmp npm run test:e2e` - Chromium launch remains blocked by macOS Mach port permissions.
-- `uv run pytest tests/test_frontend.py` and `npm run build` - green after blank top-level report string validation.
-- `uv run ralph gate` and `uv run ralph verify` - green after blank top-level report string validation.
-- `uv run pytest tests/test_vram_calculator.py` - green after GGUF MoE regression coverage.
-- `uv run ralph gate` and `uv run ralph verify` - green after GGUF MoE regression coverage.
+- `uv run pytest tests/test_frontend.py` - green, 8 passed after blank hardware-row validation.
+- `npm run build` in `frontend/` - green after blank hardware-row validation.
+- `uv run ralph gate` - green after blank hardware-row validation.
+- `uv run ralph verify` - green after blank hardware-row validation.
+- `TMPDIR=/Users/rxdt/ai_deployment_calculator/scratchpad/playwright-tmp npm run test:e2e` cannot launch Chromium here because of macOS Mach port permissions; the current suite has 19 specs.
 
 ## Next
 
@@ -87,8 +39,8 @@
 
 ## Blockers
 
-- Codex code_review-4/4: Playwright cannot launch Chromium in this sandbox due to macOS Mach port permission denial.
-- Codex vram_calculator-4/6: unrelated staged deletion `claude_test.json` could not be unstaged here.
+- Codex code_review-6/6: Playwright cannot launch Chromium in this sandbox due to macOS Mach port permission denial.
+- Codex vram_calculator-4/6: unrelated working-tree deletion `claude_test.json` remains outside this commit.
 ## Resolved
 
 - The semgrep `ca-certs: empty trust anchors` failure and SSH `git push` failure were

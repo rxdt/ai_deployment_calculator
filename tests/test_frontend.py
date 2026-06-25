@@ -45,6 +45,9 @@ def test_vite_frontend_renders_required_controls_and_fetches_report_api() -> Non
         for fragment in (
             "function isReportPayload(value: unknown, selectedWeightBits: string): value is ReportPayload",
             "function hasText(value: string): boolean",
+            "hasText(value.name)",
+            "hasText(value.detail)",
+            "hasText(value.sharding)",
             "hasText(value.total_vram)",
             "hasText(value.plan.primary)",
             "hasText(value.calculation)",
@@ -183,6 +186,8 @@ def test_playwright_harness_exercises_rendered_form_and_report_api() -> None:
             'label: "Unknown subtotal"',
             "rejects empty hardware recommendations before rendering",
             "hardware: []",
+            "rejects hardware recommendations with blank text before rendering",
+            'hardware: [{ name: "", detail: " ", sharding: "" }]',
             "rejects empty assumption summaries before rendering",
             "assumptions: []",
             "rejects assumption summaries with unexpected labels before rendering",

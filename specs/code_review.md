@@ -26,7 +26,8 @@ row must also match the submitted weight precision, and the payload must contain
 the four supported precision labels. Assumption summaries must contain the five
 required audit labels and non-empty values, so stale or blank audit payloads are
 rejected before rendering. Top-level report totals, plan text, and calculation
-strings must also be non-empty before the frontend renders success.
+strings must also be non-empty before the frontend renders success. Hardware
+recommendation rows must contain non-empty name, detail, and sharding text.
 
 ## Prioritize These Items
 
@@ -50,6 +51,7 @@ strings must also be non-empty before the frontend renders success.
 - [x] Blank frontend assumption values are rejected before rendering.
 - [x] Mismatched frontend breakdown labels are rejected before rendering.
 - [x] Blank top-level frontend report strings are rejected before rendering.
+- [x] Blank frontend hardware recommendation text is rejected before rendering.
 
 ## Acceptance Signals
 

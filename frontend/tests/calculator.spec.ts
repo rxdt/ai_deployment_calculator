@@ -331,6 +331,23 @@ test("rejects empty hardware recommendations before rendering", async ({ page })
   await expect(page.getByLabel("Hardware recommendations")).toHaveCount(0);
 });
 
+test("rejects hardware recommendations with blank text before rendering", async ({ page }) => {
+  await page.route("**/api/report?**", async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        ...report,
+        hardware: [{ name: "", detail: " ", sharding: "" }],
+      }),
+    });
+  });
+
+  await page.goto("/");
+
+  await expect(page.getByRole("alert")).toContainText("Report unavailable");
+  await expect(page.getByLabel("Hardware recommendations")).toHaveCount(0);
+});
+
 test("rejects empty assumption summaries before rendering", async ({ page }) => {
   await page.route("**/api/report?**", async (route) => {
     await route.fulfill({

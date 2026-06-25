@@ -103,8 +103,11 @@ function isHardwareRow(value: unknown): value is HardwareRow {
   return (
     isRecord(value) &&
     typeof value.name === "string" &&
+    hasText(value.name) &&
     typeof value.detail === "string" &&
-    typeof value.sharding === "string"
+    hasText(value.detail) &&
+    typeof value.sharding === "string" &&
+    hasText(value.sharding)
   );
 }
 

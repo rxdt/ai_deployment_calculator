@@ -64,10 +64,8 @@
 ## Blockers
 
 - Codex code_review-4/4: Playwright cannot launch Chromium in this sandbox due to macOS Mach port permission denial.
-- Claude-prompt: `src/report.py:38` DeploymentReport trips pylint R0902 (8 attrs > 7)
-  after `runtime_margin` was added in de98bc2. `hardware` is redundant — it is
-  `tuple(o.option for o in plan.options)`; drop it and expose a property to get to 7.
-  Blocks `uv run ralph verify`.
+- Codex-frontend-2/6: commit blocked because this sandbox cannot create `.git/index.lock`
+  to refresh the stale staged index; working-tree `uv run ralph verify` is green.
 
 ## Resolved
 

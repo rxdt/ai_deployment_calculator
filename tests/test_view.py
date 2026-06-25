@@ -15,6 +15,7 @@ from web.view import (
     DeploymentView,
     HardwareRow,
     PlanSummary,
+    format_calculation,
     view_from_form,
     view_from_report,
 )
@@ -45,7 +46,6 @@ def sample_report() -> DeploymentReport:
                 QuantizationComparisonRow(weight_bits=4, total_gb=6.9, savings_gb=13.2, selected=False),
             )
         ),
-        runtime_margin=1.10,
     )
 
 
@@ -60,11 +60,11 @@ def test_total_and_breakdown_are_formatted_to_one_decimal() -> None:
         BreakdownRow("Task overhead", "0.0 GB"),
         BreakdownRow("CUDA tax", "1.5 GB"),
     )
-    assert view.assumptions == (
+    assert view.tables.assumptions == (
         AssumptionRow("Safety margin", "10%"),
         AssumptionRow("CUDA/system tax", "1.5 GB"),
     )
-    assert view.comparison == (
+    assert view.tables.comparison == (
         ComparisonRow("16-bit", "20.1 GB", "0.0 GB", True),
         ComparisonRow("8-bit", "11.3 GB", "8.8 GB", False),
         ComparisonRow("4-bit", "6.9 GB", "13.2 GB", False),
@@ -75,9 +75,16 @@ def test_total_and_breakdown_are_formatted_to_one_decimal() -> None:
 
 def test_hardware_rows_label_count_capacity_and_sharding() -> None:
     view = view_from_report(sample_report())
-    assert view.hardware == (
+    assert view.tables.hardware == (
         HardwareRow(name="RTX 4090", detail="1x 24 GB", sharding="single GPU"),
         HardwareRow(name="A100 80GB", detail="2x 80 GB", sharding="tensor parallel"),
+    )
+
+
+def test_format_calculation_derives_gguf_runtime_margin_from_total() -> None:
+    breakdown = VramBreakdown(weights=52.0, kv_cache=83.2, task_overhead=0.0, cuda_tax=1.5)
+    assert format_calculation(breakdown, total_vram_gb=136.7) == (
+        "(52.0 + 83.2 + 0.0 + 1.5) * 1.00 = 136.7 GB"
     )
 
 
@@ -90,7 +97,9 @@ def test_view_from_form_matches_view_from_report() -> None:
     assert view.plan.primary == "RTX 4090"
     assert view.plan.primary_fit == "single GPU"
     # Every catalog GPU yields one display row.
-    assert len(view.hardware) == len(GPU_CATALOG)
-    assert view.hardware[0] == HardwareRow(name="T4 16GB", detail="2x 16 GB", sharding="tensor parallel")
-    assert view.hardware[1] == HardwareRow(name="RTX 4090", detail="1x 24 GB", sharding="single GPU")
-    assert view.hardware[2] == HardwareRow(name="L4 24GB", detail="1x 24 GB", sharding="single GPU")
+    assert len(view.tables.hardware) == len(GPU_CATALOG)
+    assert view.tables.hardware[0] == HardwareRow(
+        name="T4 16GB", detail="2x 16 GB", sharding="tensor parallel"
+    )
+    assert view.tables.hardware[1] == HardwareRow(name="RTX 4090", detail="1x 24 GB", sharding="single GPU")
+    assert view.tables.hardware[2] == HardwareRow(name="L4 24GB", detail="1x 24 GB", sharding="single GPU")

@@ -22,7 +22,8 @@ the LoRA adapter toggle is disabled until training is enabled in both the Vite
 app and stdlib fallback page so inference submissions do not carry adapter state.
 Invalid URL params are normalized before the Vite form is rendered or the backend
 report is fetched. The Vite and static fallback forms expose dense vs MoE
-architecture and MoE active parameters, which the backend uses for KV sizing.
+architecture, MoE active parameters, and PyTorch vs llama.cpp GGUF runtime, which
+the backend uses for KV sizing and runtime margin.
 Playwright runs against the Vite app when Chromium is launched outside this macOS
 sandbox. README documents the backend and Vite commands needed to run the app end
 to end. The report panel is height-constrained so dense results stay reachable

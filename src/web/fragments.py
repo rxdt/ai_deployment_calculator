@@ -25,7 +25,7 @@ def render_hardware_rows(view: DeploymentView) -> str:
     """Render GPU recommendation rows."""
     rows = [
         (f"<tr><td>{escape(row.name)}</td><td>{escape(row.detail)}</td><td>{escape(row.sharding)}</td></tr>")
-        for row in view.hardware
+        for row in view.tables.hardware
     ]
     return "\n".join(rows)
 
@@ -37,12 +37,14 @@ def render_comparison_rows(view: DeploymentView) -> str:
             f"<tr{selected_class(row.selected)}><td>{escape(row.precision)}</td>"
             f"<td>{escape(row.total)}</td><td>{escape(row.savings)}</td></tr>"
         )
-        for row in view.comparison
+        for row in view.tables.comparison
     ]
     return "\n".join(rows)
 
 
 def render_assumptions(view: DeploymentView) -> str:
     """Render compact fixed-assumption rows."""
-    rows = [f"<p>{escape(row.label)}: <strong>{escape(row.value)}</strong></p>" for row in view.assumptions]
+    rows = [
+        f"<p>{escape(row.label)}: <strong>{escape(row.value)}</strong></p>" for row in view.tables.assumptions
+    ]
     return "\n".join(rows)

@@ -14,11 +14,6 @@ from report import DeploymentReport, VramBreakdown, build_report
 from web.presenter import FormInputs, spec_from_form
 
 
-def format_gb(value: float) -> str:
-    """Format a GB quantity to one decimal place, matching the spec's rounding."""
-    return f"{value:.1f} GB"
-
-
 @dataclass(frozen=True)
 class BreakdownRow:
     """One VRAM component line: its name and formatted GB value."""
@@ -83,24 +78,11 @@ class DeploymentView:
     tables: ResultTables
     calculation: str  # Auditable VRAM equation with substituted component values.
 
-    @property
-    def hardware(self) -> tuple[HardwareRow, ...]:
-        """Return rendered hardware recommendation rows."""
-        return self.tables.hardware
 
-    @property
-    def comparison(self) -> tuple[ComparisonRow, ...]:
-        """Return rendered quantization comparison rows."""
-        return self.tables.comparison
-
-    @property
-    def assumptions(self) -> tuple[AssumptionRow, ...]:
-        """Return rendered assumption rows."""
-        return self.tables.assumptions
-
-
-def format_calculation(breakdown: VramBreakdown, runtime_margin: float, total_vram_gb: float) -> str:
+def format_calculation(breakdown: VramBreakdown, total_vram_gb: float) -> str:
     """Render the auditable VRAM equation so an engineer can check the estimate by hand."""
+    subtotal = breakdown.weights + breakdown.kv_cache + breakdown.task_overhead + breakdown.cuda_tax
+    runtime_margin = total_vram_gb / subtotal
     return (
         f"({breakdown.weights:.1f} + {breakdown.kv_cache:.1f} + "
         f"{breakdown.task_overhead:.1f} + {breakdown.cuda_tax:.1f}) "
@@ -108,28 +90,21 @@ def format_calculation(breakdown: VramBreakdown, runtime_margin: float, total_vr
     )
 
 
-def fit_label_text(fit: str) -> str:
-    """Format deployment-plan fit labels for display."""
-    if fit == "single_gpu":
-        return "single GPU"
-    return fit.replace("_", " ")
-
-
 def view_from_report(report: DeploymentReport) -> DeploymentView:
     """Convert a pure deployment report into display-ready strings for the one-page UI."""
     parts = report.breakdown
     breakdown = (
-        BreakdownRow("Weights", format_gb(parts.weights)),
-        BreakdownRow("KV cache", format_gb(parts.kv_cache)),
-        BreakdownRow("Task overhead", format_gb(parts.task_overhead)),
-        BreakdownRow("CUDA tax", format_gb(parts.cuda_tax)),
+        BreakdownRow("Weights", f"{parts.weights:.1f} GB"),
+        BreakdownRow("KV cache", f"{parts.kv_cache:.1f} GB"),
+        BreakdownRow("Task overhead", f"{parts.task_overhead:.1f} GB"),
+        BreakdownRow("CUDA tax", f"{parts.cuda_tax:.1f} GB"),
     )
     plan = report.plan
     hardware = tuple(
         HardwareRow(
             name=plan_option.option.gpu.name,
             detail=f"{plan_option.option.gpu_count}x {plan_option.option.gpu.vram_gb:.0f} GB",
-            sharding=fit_label_text(plan_option.fit),
+            sharding="single GPU" if plan_option.fit == "single_gpu" else plan_option.fit.replace("_", " "),
         )
         for plan_option in plan.options
     )
@@ -137,23 +112,25 @@ def view_from_report(report: DeploymentReport) -> DeploymentView:
     comparison = tuple(
         ComparisonRow(
             precision=f"{row.weight_bits}-bit",
-            total=format_gb(row.total_gb),
-            savings=format_gb(row.savings_gb),
+            total=f"{row.total_gb:.1f} GB",
+            savings=f"{row.savings_gb:.1f} GB",
             selected=row.selected,
         )
         for row in report.comparison.rows
     )
     return DeploymentView(
-        total_vram=format_gb(report.total_vram_gb),
+        total_vram=f"{report.total_vram_gb:.1f} GB",
         host_ram=f"{report.host_ram_gb} GB host RAM",
         plan=PlanSummary(
             primary=plan.primary.option.gpu.name,
-            primary_fit=fit_label_text(plan.primary.fit),
+            primary_fit=(
+                "single GPU" if plan.primary.fit == "single_gpu" else plan.primary.fit.replace("_", " ")
+            ),
             optimization=plan.optimization,
         ),
         breakdown=breakdown,
         tables=ResultTables(hardware=hardware, comparison=comparison, assumptions=assumptions),
-        calculation=format_calculation(parts, report.runtime_margin, report.total_vram_gb),
+        calculation=format_calculation(parts, report.total_vram_gb),
     )
 
 

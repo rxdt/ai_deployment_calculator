@@ -16,8 +16,8 @@ def report_payload(query_string: str) -> dict[str, object]:
         "host_ram": view.host_ram,
         "plan": asdict(view.plan),
         "breakdown": [asdict(row) for row in view.breakdown],
-        "hardware": [asdict(row) for row in view.hardware],
-        "comparison": [asdict(row) for row in view.comparison],
-        "assumptions": [asdict(row) for row in view.assumptions],
+        "hardware": [asdict(row) for row in view.tables.hardware],
+        "comparison": [asdict(row) for row in view.tables.comparison],
+        "assumptions": [asdict(row) for row in view.tables.assumptions],
         "calculation": view.calculation,
     }

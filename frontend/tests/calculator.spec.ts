@@ -309,6 +309,40 @@ test("rejects empty assumption summaries before rendering", async ({ page }) => 
   await expect(page.getByLabel("Assumptions")).toHaveCount(0);
 });
 
+test("rejects assumption summaries with unexpected labels before rendering", async ({ page }) => {
+  await page.route("**/api/report?**", async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        ...report,
+        assumptions: report.assumptions.map((row) => ({ ...row, label: "Unknown assumption" })),
+      }),
+    });
+  });
+
+  await page.goto("/");
+
+  await expect(page.getByRole("alert")).toContainText("Report unavailable");
+  await expect(page.getByLabel("Assumptions")).toHaveCount(0);
+});
+
+test("rejects assumption summaries with empty values before rendering", async ({ page }) => {
+  await page.route("**/api/report?**", async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        ...report,
+        assumptions: report.assumptions.map((row) => ({ ...row, value: "" })),
+      }),
+    });
+  });
+
+  await page.goto("/");
+
+  await expect(page.getByRole("alert")).toContainText("Report unavailable");
+  await expect(page.getByLabel("Assumptions")).toHaveCount(0);
+});
+
 test("rejects partial quantization comparisons before rendering", async ({ page }) => {
   await page.route("**/api/report?**", async (route) => {
     await route.fulfill({

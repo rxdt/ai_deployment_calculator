@@ -23,7 +23,9 @@ the frontend cannot silently show fewer than the four supported precision totals
 Comparison payloads with multiple selected precision rows are rejected too, so
 the highlighted selected precision remains unambiguous. The selected comparison
 row must also match the submitted weight precision, and the payload must contain
-the four supported precision labels.
+the four supported precision labels. Assumption summaries must contain the five
+required audit labels and non-empty values, so stale or blank audit payloads are
+rejected before rendering.
 
 ## Prioritize These Items
 
@@ -43,6 +45,8 @@ the four supported precision labels.
 - [x] Partial frontend quantization comparisons are rejected before rendering.
 - [x] Ambiguous selected frontend quantization comparisons are rejected before rendering.
 - [x] Mismatched frontend quantization selected rows are rejected before rendering.
+- [x] Mismatched frontend assumption labels are rejected before rendering.
+- [x] Blank frontend assumption values are rejected before rendering.
 
 ## Acceptance Signals
 

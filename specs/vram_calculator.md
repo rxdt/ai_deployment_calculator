@@ -18,7 +18,8 @@ modular formula functions), 100% covered, later wrapped by a one-page web app.
   The KV cache scales from the 16-bit reference by `kv_cache_bits / 16`; it never shrinks with
   weight quantization, and at long context can exceed the quantized weights.
   MoE deployments still use total parameters for `W`, but use active parameters directly for `KV`.
-- `T` (task overhead): inference = 0; QLoRA 4-bit fine-tune ~= 4; full 16-bit training ~= `P * 16`.
+- `T` (task overhead): inference = 0; QLoRA default ~= 4; adapter fine-tuning with a trainable
+  percentage = `P * trainable% * 8 * 1.10`; full 16-bit training ~= `P * 16`.
 - `C` (CUDA/system tax) = 1.5 (constant).
 - `runtime_margin` = 1.10 for PyTorch and 1.0 for llama.cpp GGUF.
   `weight_bits` in {32, 16, 8, 4};
@@ -40,6 +41,7 @@ Worked checks (subtotals before margin):
   optional `active_parameters_b`, `runtime`) plus modular functions
   `weights_gb`, `kv_cache_gb`, `task_overhead_gb`, `total_vram_gb`. 100% covered.
 - Support 32-bit, 16-bit, 8-bit, and 4-bit weight and KV precision.
+- Support percentage-based LoRA/QLoRA adapter overhead without shrinking KV cache.
 
 ## If The Items Above Are Complete, Do These
 
@@ -63,6 +65,7 @@ Worked checks (subtotals before margin):
 - [x] PRIORITY 4: host RAM floor in the report and web UI
 - [x] MoE support using total parameters for weights and active parameters for KV cache
 - [x] GGUF llama.cpp runtime support with no final safety multiplier
+- [x] LoRA/QLoRA adapter overhead from trainable parameter percent
 
 ## Non-goals
 
@@ -75,5 +78,5 @@ Worked checks (subtotals before margin):
 
 ## COMPLETE ?
 
-- [ ] TRUE
+- [x] TRUE
 - [ ] FALSE

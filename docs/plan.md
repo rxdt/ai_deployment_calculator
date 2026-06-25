@@ -12,8 +12,8 @@ hand-calculating every model deployment.
 
 - [x] Research and record formula for GGUF running via llama.cpp
 - [x] Add support for calculating GGUF (running via llama.cpp) where GB = W + KV + T + C  (Notice the * 1.10 multiplier is gone)
-- [ ] Research and record formula for LoRA and QLoRA (only the weights shrink for QLoRA)
-- [ ] Add support for calculating LoRA and QLoRA (only the weights shrink for QLoRA)
+- [x] Research and record formula for LoRA and QLoRA (only the weights shrink for QLoRA)
+- [x] Add core support for LoRA/QLoRA adapter overhead from trainable parameter percent
 - [x] Add PyTorch MoE support using total parameters for weights and active parameters for KV cache.
 - [ ] Research GGUF MoE offload
 - [ ] MoE as well? Memory = ((47 * 0.5)_W + (1.3 * 1 * 1)_KV + 0_T + 0.5_C) * 1.0
@@ -41,7 +41,7 @@ hand-calculating every model deployment.
 
 - `W = parameters_b * (weight_bits / 8)`.
 - `KV = (parameters_b / 10) * (context_tokens / 1000 / 8) * (kv_cache_bits / 16)`.
-- `T = 0` for inference, `4 GB` for QLoRA, and `parameters_b * 16` for full training.
+- `T = 0` for inference, `4 GB` default for QLoRA, `P * trainable% * 8 * 1.10` for adapter fine-tuning, and `parameters_b * 16` for full training.
 - `C = 1.5 GB` CUDA/system tax.
 - Weight and KV precision support: 32-bit, 16-bit, 8-bit, and 4-bit.
 - Host RAM floor: at least 32 GB, rounded up in 16 GB increments from total VRAM.

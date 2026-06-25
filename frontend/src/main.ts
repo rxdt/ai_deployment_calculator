@@ -46,6 +46,13 @@ const DEFAULT_VALUES = {
 const CHECKED_VALUES = new Set(["1", "true", "on", "yes"]);
 const VALID_BITS = new Set(["32", "16", "8", "4"]);
 const SUPPORTED_PRECISION_LABELS = new Set(["32-bit", "16-bit", "8-bit", "4-bit"]);
+const REQUIRED_ASSUMPTION_LABELS = new Set([
+  "Safety margin",
+  "CUDA/system tax",
+  "KV cache heuristic",
+  "Host RAM rule",
+  "Supported precisions",
+]);
 const VALID_RUNTIMES = new Set(["pytorch", "llama_cpp_gguf"]);
 const VALID_ARCHITECTURES = new Set(["dense", "moe"]);
 const BREAKDOWN_ROW_COUNT = 4;
@@ -117,6 +124,15 @@ function hasSupportedComparisonRows(rows: ComparisonRow[], selectedWeightBits: s
   );
 }
 
+function hasRequiredAssumptionRows(rows: DisplayRow[]): boolean {
+  const assumptionLabels = new Set(rows.map((row) => row.label));
+  return (
+    rows.every((row) => row.value.trim().length > 0) &&
+    assumptionLabels.size === REQUIRED_ASSUMPTION_LABELS.size &&
+    Array.from(REQUIRED_ASSUMPTION_LABELS).every((label) => assumptionLabels.has(label))
+  );
+}
+
 function isReportPayload(value: unknown, selectedWeightBits: string): value is ReportPayload {
   return (
     isRecord(value) &&
@@ -139,6 +155,7 @@ function isReportPayload(value: unknown, selectedWeightBits: string): value is R
     Array.isArray(value.assumptions) &&
     value.assumptions.length === ASSUMPTION_ROW_COUNT &&
     value.assumptions.every(isDisplayRow) &&
+    hasRequiredAssumptionRows(value.assumptions) &&
     typeof value.calculation === "string"
   );
 }

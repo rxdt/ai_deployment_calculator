@@ -82,6 +82,21 @@ def test_task_overhead_qlora_is_fixed() -> None:
     assert task_overhead_gb(spec) == pytest.approx(4.0)
 
 
+def test_task_overhead_lora_scales_with_trainable_parameters() -> None:
+    spec = DeploymentSpec(
+        parameters_b=8,
+        context_tokens=8000,
+        weight_bits=16,
+        task="qlora",
+        trainable_parameters_percent=2,
+    )
+
+    assert weights_gb(spec) == pytest.approx(16.0)
+    assert kv_cache_gb(spec) == pytest.approx(0.8)
+    assert task_overhead_gb(spec) == pytest.approx(1.408)
+    assert total_vram_gb(spec) == pytest.approx(21.7)
+
+
 def test_task_overhead_full_training_scales_with_params() -> None:
     spec = DeploymentSpec(parameters_b=8, context_tokens=8000, task="full_training")
     assert task_overhead_gb(spec) == pytest.approx(128.0)
@@ -188,6 +203,17 @@ def test_non_positive_parameters_rejected() -> None:
 def test_negative_context_rejected() -> None:
     with pytest.raises(ValidationError):
         DeploymentSpec(parameters_b=8, context_tokens=-1)
+
+
+@pytest.mark.parametrize("trainable_parameters_percent", [0, 101])
+def test_invalid_trainable_parameters_percent_rejected(trainable_parameters_percent: float) -> None:
+    with pytest.raises(ValidationError):
+        DeploymentSpec(
+            parameters_b=8,
+            context_tokens=8000,
+            task="qlora",
+            trainable_parameters_percent=trainable_parameters_percent,
+        )
 
 
 def test_moe_requires_active_parameters() -> None:

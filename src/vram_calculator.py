@@ -17,6 +17,8 @@ KV_REFERENCE_BITS = 16  # KV cache is sized in 16-bit; quantizing below this shr
 KV_HEAD_RATIO = 10  # Grouped-query-attention heuristic: KV scales with P / 10.
 KV_CONTEXT_DIVISOR = 8  # Per-1k-token context divisor from the worked examples.
 QLORA_OVERHEAD_GB = 4.0  # 16-bit LoRA adapters plus Adam optimizer states.
+LORA_OPTIMIZER_BYTES_PER_PARAM = 8  # LoRA adapter weights plus optimizer states.
+LORA_OVERHEAD_BUFFER = 1.10
 FULL_TRAINING_BYTES_PER_PARAM = 16  # Weights + gradients + optimizer for 16-bit training.
 CUDA_TAX_GB = 1.5  # Fixed CUDA context / system reservation.
 SAFETY_MARGIN = 1.10  # Headroom so a deployment does not run at the VRAM ceiling.
@@ -45,6 +47,7 @@ class DeploymentSpec(BaseModel):
     architecture: Architecture = "dense"
     active_parameters_b: float | None = Field(default=None, gt=0)
     runtime: Runtime = "pytorch"
+    trainable_parameters_percent: float | None = Field(default=None, gt=0, le=100)
 
     @model_validator(mode="after")
     def validate_active_parameters(self) -> Self:
@@ -78,9 +81,12 @@ def kv_cache_gb(spec: DeploymentSpec) -> float:
 
 
 def task_overhead_gb(spec: DeploymentSpec) -> float:
-    """Gradient/optimizer/adapter memory: 0 for inference, fixed for QLoRA, P*16 for full training."""
+    """Gradient/optimizer/adapter memory: 0 for inference, adapter-sized for LoRA, P*16 for training."""
     if spec.task == "full_training":
         return spec.parameters_b * FULL_TRAINING_BYTES_PER_PARAM
+    if spec.task == "qlora" and spec.trainable_parameters_percent is not None:
+        trainable_parameters_b = spec.parameters_b * (spec.trainable_parameters_percent / 100)
+        return trainable_parameters_b * LORA_OPTIMIZER_BYTES_PER_PARAM * LORA_OVERHEAD_BUFFER
     return FIXED_TASK_OVERHEAD_GB[spec.task]
 
 

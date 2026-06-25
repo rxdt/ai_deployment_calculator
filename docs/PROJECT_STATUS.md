@@ -7,6 +7,8 @@
 - PyTorch MoE sizing is supported: total parameters size weights and active parameters size KV cache.
 - llama.cpp GGUF runtime sizing is supported in the pure core with the final multiplier set to 1.0,
   and the presenter plus Vite/static forms parse/thread `runtime` from requests so GGUF is reachable end-to-end.
+- LoRA/QLoRA adapter overhead can now be sized from trainable parameter percent in the core,
+  while the legacy 4 GB QLoRA default remains for forms that do not expose that knob.
 - The assumption summary is architecture-aware: MoE shows the `active_parameters * (context_k / 8)` KV heuristic instead of the dense `(parameters / 10)` form, so the displayed assumption matches the core math.
 - The Vite web UI uses the reference terminal theme (green accent on near-black grid, monospace font, terminal status strip, results-left/control-right desktop layout), is backend-wired through `/api/report`, accepts decimal model sizes, escapes rendered values, normalizes invalid URL params, and ignores stale report responses.
 - The Vite and static fallback forms expose dense/MoE architecture plus active parameters.
@@ -17,6 +19,8 @@
 - The Vite web UI rejects partial or ambiguously selected quantization-comparison payloads, preserving the four-row, one-selected-row precision comparison contract.
 - The Vite web UI rejects quantization-comparison payloads whose selected row does not match the submitted weight precision.
 - The Vite web UI pins the five-row assumption summary and rejects empty assumption payloads, so the transparency section never renders blank.
+- The Vite web UI validates the five required assumption labels, rejecting stale same-shape payloads before rendering.
+- The Vite web UI rejects assumption summaries with blank values, keeping the audit section meaningful.
 - The LoRA adapter checkbox is disabled unless model training is enabled in both the Vite app and static fallback page.
 - README documents the FastAPI backend start command, deterministic Vite dependency install, and frontend dev command.
 - `pyrightconfig.json` scopes pyright to `harness`, `src`, and `tests`, avoiding broad scans during Ralph verify.
@@ -52,6 +56,17 @@
 - `uv run ralph verify` - green after hardware contract validation.
 - `uv run ralph verify` - green after selected-precision contract validation.
 - `uv run ralph verify` - green after GGUF runtime support.
+- `uv run pytest tests/test_vram_calculator.py` - green after LoRA adapter-percent sizing.
+- `uv run ralph gate` - green after LoRA adapter-percent sizing.
+- `uv run ralph verify` - green after LoRA adapter-percent sizing.
+- `uv run pytest tests/test_frontend.py` - green after assumption-label contract validation.
+- `npm run build` in `frontend/` - green after assumption-label contract validation.
+- `uv run pytest tests/test_frontend.py` - green after blank-assumption-value contract validation.
+- `npm run build` in `frontend/` - green after blank-assumption-value contract validation.
+- `uv run ralph gate` - green after blank-assumption-value contract validation.
+- `uv run ralph verify` - green after blank-assumption-value contract validation.
+- `uv run ralph gate` - green after assumption-label contract validation.
+- `uv run ralph verify` - green after assumption-label contract validation.
 - `git push -u origin main` - green after selected-precision and assumption contract validation.
 - `TMPDIR=/Users/rxdt/ai_deployment_calculator/scratchpad/playwright-tmp npm run test:e2e` - Chromium launch remains blocked by macOS Mach port permissions.
 
@@ -66,7 +81,8 @@
 - Codex code_review-4/4: Playwright cannot launch Chromium in this sandbox due to macOS Mach port permission denial.
 - Codex-frontend-2/6: commit blocked because this sandbox cannot create `.git/index.lock`
   to refresh the stale staged index; working-tree `uv run ralph verify` is green.
-
+- Codex-code_review-6/6: commit blocked because this sandbox cannot create `.git/index.lock`;
+  assumption-label contract validation and LoRA sizing changes are unstaged after green gate/verify.
 ## Resolved
 
 - The semgrep `ca-certs: empty trust anchors` failure and SSH `git push` failure were

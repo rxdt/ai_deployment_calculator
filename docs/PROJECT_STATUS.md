@@ -44,6 +44,8 @@
 - `uv run ralph verify` - green after blank comparison-value validation.
 - `TMPDIR=/Users/rxdt/ai_deployment_calculator/scratchpad/playwright-tmp npm run test:e2e` cannot launch Chromium here because of macOS Mach port permissions; the current suite has 19 specs.
 - `uv run ralph gate` - green after rendering the real safety margin in the calculation card.
+- `uv run ralph gate` - green after pinning the GGUF runtime margin through the quantization
+  comparison (mutation-checked: forcing `with_weight_bits` to `pytorch` fails the new test 150.4 vs 136.7).
 
 ## Next
 

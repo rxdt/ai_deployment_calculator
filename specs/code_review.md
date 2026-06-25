@@ -57,6 +57,7 @@ contain non-empty name, detail, and sharding text.
 - [x] Backend `/api/report` breakdown labels match the frontend `REQUIRED_BREAKDOWN_LABELS` contract.
 - [x] Non-finite `parameters_b`/`active_parameters_b` are rejected in the form layer, matching the frontend's `Number.isFinite` guard (inf crashed hardware sizing; nan produced nonsense totals).
 - [x] The calculation card renders the deployment's real safety margin, not a value back-computed from the rounded total (tiny CUDA-tax-bound runs showed a fabricated `1.13` that contradicted the `10%` assumption).
+- [x] The quantization comparison preserves the deployment's runtime, so GGUF rows keep the additive `1.0` margin instead of silently inflating by the `1.10` PyTorch multiplier.
 
 ## Acceptance Signals
 

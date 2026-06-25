@@ -212,6 +212,8 @@ def test_large_inference_regressions(
     [
         (DeploymentSpec(parameters_b=8, context_tokens=8000, weight_bits=4, task="qlora"), 10.3),
         (DeploymentSpec(parameters_b=70, context_tokens=8000, weight_bits=4, task="qlora"), 47.5),
+        # 3.8B 4-bit base, 16-bit KV, 8k QLoRA: W 1.9 + KV 0.38 + 4 GB adapter + 1.5 CUDA.
+        (DeploymentSpec(parameters_b=3.8, context_tokens=8000, weight_bits=4, task="qlora"), 7.78),
     ],
 )
 def test_total_vram_applies_margin_to_worked_subtotals(spec: DeploymentSpec, subtotal: float) -> None:

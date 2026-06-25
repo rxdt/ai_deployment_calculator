@@ -15,6 +15,7 @@
   uses the selected runtime multiplier.
 - The Vite report panel is internally constrained so dense results do not force document scrolling.
 - The Vite web UI validates `/api/report` payload shape before rendering and rejects malformed JSON, partial or mislabeled breakdowns, empty or blank hardware rows, invalid comparison rows, blank assumptions, and blank top-level report strings.
+- Quantization comparison rows must include non-empty total and savings text before the Vite UI renders a successful report.
 - The LoRA adapter checkbox is disabled unless model training is enabled in both the Vite app and static fallback page.
 - README documents the FastAPI backend start command, deterministic Vite dependency install, and frontend dev command.
 - `pyrightconfig.json` scopes pyright to `harness`, `src`, and `tests`, avoiding broad scans during Ralph verify.
@@ -25,10 +26,11 @@
 
 ## Checks
 
-- `uv run pytest tests/test_frontend.py` - green, 8 passed after blank hardware-row validation.
-- `npm run build` in `frontend/` - green after blank hardware-row validation.
-- `uv run ralph gate` - green after blank hardware-row validation.
-- `uv run ralph verify` - green after blank hardware-row validation.
+- `uv run pytest tests/test_frontend.py` - green, 8 passed after blank comparison-value validation.
+- `npm run build` in `frontend/` - green after blank comparison-value validation.
+- `TMPDIR=/Users/rxdt/ai_deployment_calculator/scratchpad/playwright-tmp npm run test:e2e -- --grep "blank values"` - blocked before test execution by macOS Chromium Mach port permission denial.
+- `uv run ralph gate` - green after blank comparison-value validation.
+- `uv run ralph verify` - green after blank comparison-value validation.
 - `TMPDIR=/Users/rxdt/ai_deployment_calculator/scratchpad/playwright-tmp npm run test:e2e` cannot launch Chromium here because of macOS Mach port permissions; the current suite has 19 specs.
 
 ## Next
@@ -41,6 +43,7 @@
 
 - Codex code_review-6/6: Playwright cannot launch Chromium in this sandbox due to macOS Mach port permission denial.
 - Codex vram_calculator-4/6: unrelated working-tree deletion `claude_test.json` remains outside this commit.
+- Codex code_review-1/1: commit blocked because `.git` is read-only in this session; `git add` cannot create `.git/index.lock`.
 ## Resolved
 
 - The semgrep `ca-certs: empty trust anchors` failure and SSH `git push` failure were

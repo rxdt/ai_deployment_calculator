@@ -200,6 +200,8 @@ def test_playwright_harness_exercises_rendered_form_and_report_api() -> None:
             "selected: true",
             "rejects selected quantization comparisons that do not match the submitted precision",
             'selected: row.precision === "8-bit"',
+            "rejects quantization comparisons with blank values before rendering",
+            'total: "", savings: " "',
             'searchParams.get("kv_cache_bits")).toBe("8")',
             'searchParams.get("runtime")).toBe("llama_cpp_gguf")',
         )

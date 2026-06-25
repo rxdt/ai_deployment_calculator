@@ -22,12 +22,13 @@ Partial quantization-comparison payloads are also rejected before rendering, so
 the frontend cannot silently show fewer than the four supported precision totals.
 Comparison payloads with multiple selected precision rows are rejected too, so
 the highlighted selected precision remains unambiguous. The selected comparison
-row must also match the submitted weight precision, and the payload must contain
-the four supported precision labels. Assumption summaries must contain the five
-required audit labels and non-empty values, so stale or blank audit payloads are
-rejected before rendering. Top-level report totals, plan text, and calculation
-strings must also be non-empty before the frontend renders success. Hardware
-recommendation rows must contain non-empty name, detail, and sharding text.
+row must also match the submitted weight precision, the payload must contain
+the four supported precision labels, and comparison total/savings values must be
+non-empty. Assumption summaries must contain the five required audit labels and
+non-empty values, so stale or blank audit payloads are rejected before rendering.
+Top-level report totals, plan text, and calculation strings must also be
+non-empty before the frontend renders success. Hardware recommendation rows must
+contain non-empty name, detail, and sharding text.
 
 ## Prioritize These Items
 
@@ -52,6 +53,7 @@ recommendation rows must contain non-empty name, detail, and sharding text.
 - [x] Mismatched frontend breakdown labels are rejected before rendering.
 - [x] Blank top-level frontend report strings are rejected before rendering.
 - [x] Blank frontend hardware recommendation text is rejected before rendering.
+- [x] Blank frontend quantization comparison values are rejected before rendering.
 
 ## Acceptance Signals
 

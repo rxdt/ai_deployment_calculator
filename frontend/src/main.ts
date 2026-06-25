@@ -116,7 +116,9 @@ function isComparisonRow(value: unknown): value is ComparisonRow {
     isRecord(value) &&
     typeof value.precision === "string" &&
     typeof value.total === "string" &&
+    hasText(value.total) &&
     typeof value.savings === "string" &&
+    hasText(value.savings) &&
     typeof value.selected === "boolean"
   );
 }

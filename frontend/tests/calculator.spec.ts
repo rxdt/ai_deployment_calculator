@@ -453,6 +453,23 @@ test("rejects selected quantization comparisons that do not match the submitted 
   await expect(page.getByLabel("Quantization comparison")).toHaveCount(0);
 });
 
+test("rejects quantization comparisons with blank values before rendering", async ({ page }) => {
+  await page.route("**/api/report?**", async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        ...report,
+        comparison: report.comparison.map((row) => ({ ...row, total: "", savings: " " })),
+      }),
+    });
+  });
+
+  await page.goto("/");
+
+  await expect(page.getByRole("alert")).toContainText("Report unavailable");
+  await expect(page.getByLabel("Quantization comparison")).toHaveCount(0);
+});
+
 test("escapes reflected query and report values", async ({ page }) => {
   const hostileQuery = '/?parameters_b=%22%3E%3Cimg%20src=x%20onerror=%22window.injected%20%3D%20true%22%3E';
 

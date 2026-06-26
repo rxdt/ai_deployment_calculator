@@ -7,8 +7,31 @@
 Launch the Vite AI deployment calculator with a Python API backend. The calculator is reliable enough to be a real calculator.
 
 ## User requested changes. Put these in more exact wording in specs:
-- Clean up this document of items already contained in specs
+- Clean up this document of items already contained in specs. This is written in messy human language. Optimize language for AI agents to understand and NOT miss any details.
 - Clean up the README.md to only contain useful information to a human user
+
+Ensure the app is following these 4 rules:
+
+1. SEMANTIC HTML & A11Y FIRST
+- Do not use generic <div> or <span> elements for interactive components. Use <button>, <main>, <nav>, <header>, <section>, and <article>.
+- Every interactive element must be fully focusable and usable via Keyboard alone (Tab, Enter, Space).
+- Ensure all forms use explicit <label> tags bound to inputs via `htmlFor` / `id`.
+- Use descriptive text for buttons and links. Avoid "Click Here" or "Read More".
+- Never rely solely on color to convey meaning (e.g., error states must include text, not just a red border).
+
+1. PLAYWRIGHT-READY LOCATORS
+- Write code that can be easily targeted by Playwright's user-centric locators.
+- Prefer explicit ARIA roles and labels (e.g., use `aria-label="Close menu"` on icon-only buttons).
+- If a component has complex UI states, use standard `aria-expanded`, `aria-checked`, or `aria-selected` attributes so tests can instantly validate the state.
+
+1. RESILIENT HYDRATION & STATE
+- Ensure all asynchronous data fetching handles Loading, Error, and Empty states gracefully.
+- Disable form submission buttons while an API request is pending to prevent duplicate submissions.
+
+1. VITE & PERFORMANCE METRICS
+- Keep components modular and optimized for Vite's bundling.
+- Avoid heavy layout shifts. Images must have explicit `width` and `height` properties or aspect-ratio boxes to prevent Cumulative Layout Shift (CLS).
+
 
 UX/UI
 
@@ -77,6 +100,13 @@ GPU	Cards	Mode"
         - Framework Tax ($C$): X GB
         - Safety Buffer: X GB (Only show if PyTorch is selected)
 - Note: Why only show the "Safety Buffer" if PyTorch is selected? Because of how PyTorch handles memory versus C++ engines. PyTorch dynamically allocates memory on the fly. As it creates and destroys tensors, the VRAM gets fragmented (like Swiss cheese), so you need a 10% safety buffer (* 1.10) to prevent the GPU from panicking and crashing. llama.cpp and GGUF files use memory-mapping (mmap). It looks at the file, calculates the exact byte size, and carves out exactly that much space. 10 GB calculated is exactly 10.0 GB used. No buffer required.
+- And add 2 missing outputs
+1. Tokens Per Second (TPS) Estimation:
+  - Logic: Roughly Memory_Bandwidth (GB/s) / Model_Size (GB).
+  - Why add this? DevOps engineers care about throughput. If a model fits on a Mac but generates 0.5 tokens/sec, they can't use it for a chatbot.
+2. Cost Estimates (for Cloud):
+  - Logic: Take the estimated GPU count and multiply by current cloud hourly rates (e.g., $2.00/hr for an A100).
+   - Why add this? DevOps engineers usually have to justify their budget.
 
 - for the fits-on-hardware messaging you can do simple messaging like:
 if (TotalGB <= 8): "Fits easily on budget consumer GPUs (e.g., RTX 4060) or any M-series Mac."
@@ -89,6 +119,20 @@ else: "Requires a multi-GPU Enterprise Cluster (e.g., 2x A100s, 8x RTX 4090s)."
 - Address issues from this report: file:///Users/rxdt/ai_deployment_calculator/127.0.0.1_2026-06-26_03-17-43.report.html
 
 - Add disclaimer at bottom like 'Estimates use standard heuristics and rules-of-thumb. Real usage varies with framework (vLLM, etc.), optimizations, and exact model architecture.'
+
+- The "Slow Mode" Warning (For Edge/Local). Add this logic: If Total_Memory > GPU_VRAM_Capacity, display a warning: "⚠️ Warning: Memory exceeds GPU capacity. Backend will offload to System RAM, which will significantly reduce generation speed."
+
+To be very specific, AI Model Hardware Calculator: UI/UX Specification.
+The Core FormulaTotal_Memory = (W + KV_Scaled + T + C) * Buffer2. The Inputs (User Interface)Group 1: Model SpecsTotal Parameters:UI: Number Field + Unit Dropdown (Billions (B) [Default], Millions (M), Thousands (K)).Logic: Convert to Billions for math (P).Mixture of Experts (MoE):UI: Toggle switch.Logic: If ON, reveal Active Parameters input. If OFF, Active_P = Total_P.Group 2: Quantization & PrecisionWeight Precision: Dropdown (32-bit (fp32), 16-bit (fp16/bf16) [Default], 8-bit (int8), 4-bit (GGUF/QLoRA)).KV Cache Precision: Dropdown (16-bit Standard [Default], 8-bit (fp8)).Group 3: Context & WorkloadContext Window: Number input (Tokens). Default: 8000.Batch Size: Number input. Default: 1.Group 4: Environment & TaskBackend: Dropdown (Production Server -> Buffer 1.10, Tax 1.5GB | Local -> Buffer 1.0, Tax 0.5GB).Task Type: Dropdown (Inference, LoRA, QLoRA, Full Training).3. The Math Engine (Behind the Scenes)Weights ($W$): Total_P * (Weight_Bits / 8)Base KV Cache: (Active_P / 10) * (Context_Window / 8000) * (KV_Bits / 16)Scaled KV Cache ($KV_{Scaled}$): Base_KV * Batch_SizeNote: Batch size only scales the KV Cache, not the weights or overhead.Task Overhead ($T$):Inference = 0LoRA = (Total_P * 0.02) * 8QLoRA = 4 (Flat GB)Full Training = Total_P * 16Framework Tax ($C$): Based on Backend.Final Calculation: Total_Memory = (W + KV_Scaled + T + C) * Buffer4. The Outputs (Display to User)A. The HeadlineValue: [Total_Memory] GBB. The Breakdown (Transparency)Weights: [W] GBKV Cache (Total for all batches): [KV_Scaled] GBDisplay helper: "Calculated as [Base_KV] GB x [Batch_Size] batches."Task Overhead: [T] GBFramework Tax: [C] GBSafety Buffer: [Safety Buffer] GB (Hide row if Local/Edge backend selected).
+<= 8 GB: Entry-level (e.g., RTX 4060, 16GB RAM)
+<= 12 GB: Mid-range consumer (e.g., RTX 4070)
+<= 24 GB: High-end desktop (e.g., RTX 3090/4090)
+<= 48 GB: Pro workstation (e.g., 2x 3090s or 1x A6000)
+<= 80 GB: Enterprise server (e.g., 1x A100/H100)
+<= 160 GB: High-performance cluster (e.g., 2x A100s)
+<= 320 GB: Enterprise cluster (e.g., 4x A100s)
+> 320 GB: Distributed multi-node cluster
+
 
 ## Plus: Remaining Work
 

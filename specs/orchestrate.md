@@ -40,10 +40,13 @@ behavior, checks, and blockers.
 
 ## Blockers
 
-- Current `main` is ahead 7 and behind 1 against `origin/main`; the loop forbids
+- Current `main` is ahead 9 and behind 1 against `origin/main`; the loop forbids
   merge or rebase, so a normal push cannot be completed from this state.
-- `git push origin main` runs the gate then fails with `Empty commit rejected.
-  Commit real work.`
+- `git commit` is blocked by the already-modified protected
+  `.githooks/pre-commit`, which currently exits with
+  `line 12: $1: unbound variable` after preflight passes.
+- `git push origin main` runs the gate then fails with a non-fast-forward
+  rejection because `main` is behind `origin/main`.
 - `.github/workflows/frontend-ci.yml` cannot be installed by agents because
   `.github/` is protected.
 
@@ -53,3 +56,5 @@ behavior, checks, and blockers.
   state after confirming `harness gate` and `harness preflight` are green.
 - Codex-orchestrate-1/1: stopped rendering optimization advice in calculator
   UIs while leaving the API payload contract intact.
+- Codex-orchestrate-1/1: refreshed stale orchestration blockers/status, but the
+  commit is blocked by protected hook edits outside this iteration's scope.

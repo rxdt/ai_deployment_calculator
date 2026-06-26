@@ -3,8 +3,7 @@
 ## Current State
 
 - The active implementation spec is `specs/frontend.md`.
-- Current branch is `main`, ahead 9 and behind 1 against `origin/main` after
-  this commit.
+- Current branch is `main`, ahead 9 and behind 1 against `origin/main`.
 - Advice-removal implementation commit is `f6acfbf`.
 - Fallback no-JS control implementation is the latest commit on `main`.
 - This pass keeps fallback QLoRA and MoE dependent controls submittable before
@@ -42,8 +41,8 @@
 1. Copy `frontend/ci.yml` to `.github/workflows/frontend-ci.yml` when protected
    workflow edits are allowed.
 2. Human owner reviews remaining protected/unrelated working-tree edits,
-   including `harness/cli.py`, `uv.lock`, `docs/plan.md`, and
-   `claude-output.jsonl`.
+   including `.githooks/pre-commit`, `docs/plan.md`, generated report HTML,
+   and `frontend/example_user_will_delete/`.
 3. Reconcile `main` with `origin/main` outside this no-merge/no-rebase loop,
    then push.
 
@@ -56,9 +55,15 @@
   Playwright tests, and 1 real-backend Playwright test.
 - `harness preflight` - green.
 - `harness gate` - green.
-- `git commit` - green; pre-commit ran `harness gate`.
+- This pass: `harness gate` - green.
+- This pass: `harness preflight` - green.
+- This pass: `git commit` - blocked after preflight by the already-modified
+  protected `.githooks/pre-commit`: `line 12: $1: unbound variable`.
+- Prior pass: `git commit` - green; pre-commit ran `harness gate`.
 - `git push origin main` - fails after gate with non-fast-forward rejection
   because `main` is behind `origin/main`.
+- This pass: selected the orchestration spec because launch behavior is already
+  implemented and the remaining actionable gap was stale blocker/status text.
 
 ## Working Tree Notes
 

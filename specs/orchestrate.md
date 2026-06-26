@@ -40,8 +40,10 @@ behavior, checks, and blockers.
 
 ## Blockers
 
-- Current `main` is ahead 5 and behind 1 against `origin/main`; the loop forbids
+- Current `main` is ahead 7 and behind 1 against `origin/main`; the loop forbids
   merge or rebase, so a normal push cannot be completed from this state.
+- `git push origin main` runs the gate then fails with `Empty commit rejected.
+  Commit real work.`
 - `.github/workflows/frontend-ci.yml` cannot be installed by agents because
   `.github/` is protected.
 

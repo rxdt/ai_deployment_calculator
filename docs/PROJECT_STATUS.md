@@ -3,7 +3,8 @@
 ## Current State
 
 - The active spec is `specs/orchestrate.md`.
-- Current branch is `main`, ahead 5 and behind 1 against `origin/main`.
+- Current branch is `main`, ahead 7 and behind 1 against `origin/main`.
+- Advice-removal implementation commit is `f6acfbf`.
 - This pass removes rendered memory-optimization advice from both calculator
   UIs; the `/api/report` plan field remains unchanged.
 - Finished specs have been removed so agents do not select stale work.
@@ -39,7 +40,7 @@
    including `harness/cli.py`, `uv.lock`, `docs/plan.md`, and
    `claude-output.jsonl`.
 3. Reconcile `main` with `origin/main` outside this no-merge/no-rebase loop,
-   then push.
+   then resolve the push hook rejection and push.
 
 ## Checks From This Pass
 
@@ -61,6 +62,9 @@
 - `harness gate` - green.
 - `cd frontend && npm run gate` - green: build, 20 Vitest tests, 22 mocked
   Playwright tests, and 1 real-backend Playwright test.
+- `git commit` - green; pre-commit ran `harness gate`.
+- `git push origin main` - fails after gate with `Empty commit rejected.
+  Commit real work.`
 
 ## Working Tree Notes
 

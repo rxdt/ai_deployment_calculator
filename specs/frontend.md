@@ -13,7 +13,8 @@ Users open the Vite calculator first. FastAPI is the only backend/server path.
   remains available before a frontend build, and `/assets` is mounted only when
   `frontend/dist/assets` exists.
 - FastAPI app creation now accepts explicit frontend index and asset paths, so
-  no-build fallback coverage does not mutate module globals.
+  no-build fallback coverage does not mutate module globals and configured
+  assets are served from the requested directory.
 - `/api/report` is served by the same FastAPI process.
 - `src/web/page.py` remains only as a no-build fallback when `frontend/dist` is absent.
 - The no-build fallback keeps QLoRA and MoE dependent controls submittable in
@@ -34,6 +35,7 @@ Users open the Vite calculator first. FastAPI is the only backend/server path.
 - `cd frontend && npm run gate` passes.
 - `uv run harness preflight` passes.
 - `pytest` passes.
+- `pytest tests/test_server.py -q` passes.
 - `harness gate` passes.
 
 ## Acceptance Signals

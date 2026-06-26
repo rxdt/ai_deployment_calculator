@@ -52,6 +52,22 @@ def test_index_serves_configured_frontend_build(tmp_path: Path) -> None:
     assert '<div id="app"></div>' in response.text
 
 
+def test_assets_served_from_configured_frontend_build(tmp_path: Path) -> None:
+    """A configured asset directory is mounted instead of relying on default dist paths."""
+    assets = tmp_path / "dist" / "assets"
+    assets.mkdir(parents=True)
+    (assets / "app.js").write_text("console.log('configured asset');", encoding="utf-8")
+    built_app_client = TestClient(web.server.create_app(asset_dir=assets))
+
+    response = built_app_client.get("/assets/app.js")
+
+    assert response.status_code == 200
+    assert response.text == "console.log('configured asset');"
+    assert response.headers["content-type"].startswith("text/javascript") or response.headers[
+        "content-type"
+    ].startswith("application/javascript")
+
+
 def test_assets_served_from_dist() -> None:
     index_html = web.server.DIST_INDEX.read_text(encoding="utf-8")
     asset_path = index_html.split('src="', 1)[1].split('"', 1)[0]

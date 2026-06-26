@@ -3,8 +3,7 @@
 ## Current State
 
 - The active implementation spec is `specs/frontend.md`.
-- Current branch is `main`, aligned with `origin/main` after fetch before this
-  pass's status-only commit.
+- Current branch is `main`; `git fetch origin` completed before this pass.
 - Advice-removal implementation is in current history.
 - Fallback QLoRA and MoE dependent controls are submittable before JavaScript
   runs; the enhancement script still disables them when appropriate.
@@ -17,8 +16,8 @@
   still works, and missing `/assets` requests return 404 instead of breaking
   startup.
 - FastAPI app creation now accepts explicit frontend index and asset paths; tests
-  cover a configured build path and no-build fallback without monkeypatching
-  module globals.
+  cover a configured build path, configured asset path, and no-build fallback
+  without monkeypatching module globals.
 - The no-build fallback now lets plain HTML submissions choose QLoRA or MoE.
 - The dense architecture option now renders as `Dense (Typical inference)` in
   both the Vite UI and the no-build fallback.
@@ -47,10 +46,11 @@
 ## Checks From This Pass
 
 - `git fetch origin` - green; `main` was aligned with `origin/main`.
+- `pytest tests/test_server.py -q` - green.
 - `harness gate` - green.
 - `harness preflight` - green.
-- Selected the orchestration spec because launch behavior is already implemented
-  and the actionable gap was stale blocker/status text.
+- Selected the frontend spec because configured asset-path behavior needed direct
+  server coverage.
 
 ## Working Tree Notes
 

@@ -6,24 +6,17 @@ PRIORITY 1
 
 Users open the Vite calculator first. FastAPI is the only backend/server path.
 
-## Remaining Items
+## Current State
 
-1. Run the real-backend Playwright smoke (`cd frontend && npm run test:e2e:real`) in
-   an environment that allows TCP port binding and Chromium launch. In this macOS
-   sandbox both are blocked (see Blockers); the test, config, and script exist.
-
-Done: a no-mock browser smoke now exists. `frontend/tests/real-api.spec.ts` drives
-the built SPA against a live uvicorn process (built `dist` + real `/api/report` from
-`web.server:app`), wired by `frontend/playwright.real-api.config.ts` and run via the
-`test:e2e:real` script. It asserts the rendered total matches the backend's computed
-`48.4 GB` for the same query as `tests/test_server.py`. The default
-`playwright.config.ts` `testIgnore`s this spec so the mocked suite is unaffected.
-
-Done: WSGI is gone (`src/web/app.py` and `tests/test_app.py` deleted); its form
-HTML and `/api/report` behaviors are now covered by `tests/test_server.py`.
-FastAPI serves the built `frontend/dist` SPA at `/` and mounts `/assets`,
-falling back to `src/web/page.py` (no-JS render) only when no build exists.
-`/api/report` stays on the same process. README has the manual start/test steps.
+- FastAPI serves the built `frontend/dist` SPA at `/` and mounts `/assets`.
+- `/api/report` is served by the same FastAPI process.
+- `src/web/page.py` remains only as a no-build fallback when `frontend/dist` is absent.
+- WSGI is removed.
+- Mocked and real-backend Playwright suites are wired; this sandbox blocks
+  Chromium Mach-port registration, so rerun them outside the sandbox.
+- `uv run pytest` and `uv run harness preflight` pass.
+- `uv run harness gate` is blocked here by an external ca-certs security-step
+  environment error; see `docs/PROJECT_STATUS.md`.
 
 ## Acceptance Signals
 
@@ -31,13 +24,18 @@ falling back to `src/web/page.py` (no-JS render) only when no build exists.
 - `cd frontend && npm run build` passes.
 - `cd frontend && npm run test:e2e` passes for frontend changes, or the exact
   browser launch blocker is documented.
+- `cd frontend && npm run test:e2e:real` passes for launch-path changes, or the
+  exact browser launch blocker is documented.
 - `uv run harness preflight` passes.
 - `uv run harness gate` passes or an external blocker is documented.
 - The launch URL serves the Vite UI after build.
-- `/api/report` returns JSON from the same FastAPI process.
+- `/api/report` returns JSON from FastAPI.
 - No WSGI app remains.
-- Browser e2e either passes against the real API or has a documented browser
-  permission blocker.
+
+## If Browser Tests Fail
+
+Run them outside the restricted agent sandbox first. If they still fail, record
+the exact command and error in `docs/PROJECT_STATUS.md`.
 
 ## Non-goals
 

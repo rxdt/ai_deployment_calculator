@@ -54,11 +54,14 @@ uv run pytest tests/test_api.py tests/test_server.py tests/test_frontend.py
 cd frontend && npm run build
 ```
 
-Browser e2e, when Chromium can launch locally:
+Browser e2e:
 
 ```sh
 cd frontend && npm run test:e2e
 ```
+
+If an agent cannot bind localhost or launch Chromium in its sandbox, rerun the
+same command unsandboxed.
 
 ## Owner Notes
 

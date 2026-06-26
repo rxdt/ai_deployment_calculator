@@ -70,7 +70,7 @@ test("renders the calculator and submits deployment inputs", async ({ page }) =>
   await expect(page.getByLabel("Assumptions")).toContainText("Host RAM rule");
   await expect(page.getByLabel("Assumptions")).toContainText("Supported precisions");
 
-  await page.getByLabel("Parameters (billions)").fill("70");
+  await page.getByRole("spinbutton", { name: "Parameters (billions)", exact: true }).fill("70");
   await page.getByLabel("Context window").fill("16000");
   await page.locator('select[name="weight_bits"]').selectOption("4");
   await page.getByLabel("KV cache").selectOption("8");
@@ -135,7 +135,7 @@ test("allows tiny decimal model sizes supported by the backend", async ({ page }
   });
 
   await page.goto("/");
-  const parameters = page.getByLabel("Parameters (billions)");
+  const parameters = page.getByRole("spinbutton", { name: "Parameters (billions)", exact: true });
 
   await expect(parameters).toHaveAttribute("step", "any");
   await parameters.fill("0.0004");
@@ -174,11 +174,11 @@ test("keeps the latest submitted report when an earlier request finishes late", 
   await page.goto("/");
   await expect(page.locator(".total")).toHaveText("20.1 GB");
 
-  await page.getByLabel("Parameters (billions)").fill("70");
+  await page.getByRole("spinbutton", { name: "Parameters (billions)", exact: true }).fill("70");
   await page.getByRole("button", { name: "Calculate" }).click();
   await expect.poll(() => Boolean(releaseStaleRequest)).toBe(true);
 
-  await page.getByLabel("Parameters (billions)").fill("13");
+  await page.getByRole("spinbutton", { name: "Parameters (billions)", exact: true }).fill("13");
   await page.getByRole("button", { name: "Calculate" }).click();
   await expect(page.locator(".total")).toHaveText("13.0 GB");
 
@@ -212,7 +212,7 @@ test("normalizes invalid query values before rendering and requesting a report",
   expect(apiRequests.at(0)?.searchParams.get("active_parameters_b")).toBe(null);
   expect(apiRequests.at(0)?.searchParams.get("trained")).toBe(null);
   expect(apiRequests.at(0)?.searchParams.get("use_adapter")).toBe(null);
-  await expect(page.getByLabel("Parameters (billions)")).toHaveValue("8");
+  await expect(page.getByRole("spinbutton", { name: "Parameters (billions)", exact: true })).toHaveValue("8");
   await expect(page.getByLabel("Context window")).toHaveValue("8000");
   await expect(page.locator('select[name="weight_bits"]')).toHaveValue("16");
   await expect(page.getByLabel("KV cache")).toHaveValue("16");
@@ -240,7 +240,7 @@ test("rejects non-decimal numeric query values before requesting a report", asyn
 
   await expect.poll(() => apiRequests.at(0)?.searchParams.get("parameters_b")).toBe("8");
   expect(apiRequests.at(0)?.searchParams.get("context_tokens")).toBe("8000");
-  await expect(page.getByLabel("Parameters (billions)")).toHaveValue("8");
+  await expect(page.getByRole("spinbutton", { name: "Parameters (billions)", exact: true })).toHaveValue("8");
 });
 
 test("drops stale active parameters from dense query state", async ({ page }) => {
@@ -274,7 +274,7 @@ test("keeps the form visible when the report api fails", async ({ page }) => {
 
   await page.goto("/");
 
-  await expect(page.getByLabel("Parameters (billions)")).toBeVisible();
+  await expect(page.getByRole("spinbutton", { name: "Parameters (billions)", exact: true })).toBeVisible();
   await expect(page.getByRole("alert")).toContainText("Report unavailable");
   await expect(page.getByRole("alert")).toContainText("Unable to load report");
 });
@@ -292,7 +292,7 @@ test("rejects malformed report payloads before rendering", async ({ page }) => {
 
   await page.goto("/");
 
-  await expect(page.getByLabel("Parameters (billions)")).toBeVisible();
+  await expect(page.getByRole("spinbutton", { name: "Parameters (billions)", exact: true })).toBeVisible();
   await expect(page.getByRole("alert")).toContainText("Report unavailable");
   await expect(page.locator(".total")).toHaveCount(0);
 });

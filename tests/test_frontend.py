@@ -159,7 +159,7 @@ def test_playwright_harness_exercises_rendered_form_and_report_api() -> None:
 
     assert 'page.route("**/api/report?**"' in spec
     assert 'page.locator(".total")' in spec
-    assert 'page.getByLabel("Parameters (billions)").fill("70")' in spec
+    assert 'page.getByRole("spinbutton", { name: "Parameters (billions)", exact: true }).fill("70")' in spec
     assert 'page.getByLabel("Architecture").selectOption("moe")' in spec
     assert 'page.getByLabel("Active parameters (billions)").fill("8")' in spec
     assert 'page.getByLabel("LoRA adapter")).toBeDisabled()' in spec

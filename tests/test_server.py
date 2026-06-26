@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -46,6 +48,17 @@ def test_assets_served_from_dist() -> None:
     assert response.headers["content-type"].startswith("text/javascript") or response.headers[
         "content-type"
     ].startswith("application/javascript")
+
+
+def test_app_can_start_before_frontend_assets_are_built(tmp_path: Path) -> None:
+    missing_assets_app = web.server.create_app(asset_dir=tmp_path / "dist" / "assets")
+    missing_assets_client = TestClient(missing_assets_app)
+
+    report_response = missing_assets_client.get(f"/api/report?{QUERY}")
+    asset_response = missing_assets_client.get("/assets/app.js")
+
+    assert report_response.status_code == 200
+    assert asset_response.status_code == 404
 
 
 def test_index_falls_back_to_no_js_page_without_build(monkeypatch: pytest.MonkeyPatch) -> None:

@@ -9,14 +9,18 @@ Users open the Vite calculator first. FastAPI is the only backend/server path.
 ## Current State
 
 - FastAPI serves the built `frontend/dist` SPA at `/` and mounts `/assets`.
+- FastAPI app creation no longer depends on built assets being present; `/api/report`
+  remains available before a frontend build, and `/assets` is mounted only when
+  `frontend/dist/assets` exists.
 - `/api/report` is served by the same FastAPI process.
 - `src/web/page.py` remains only as a no-build fallback when `frontend/dist` is absent.
 - WSGI is removed.
 - Mocked and real-backend Playwright suites pass in this environment.
 - `cd frontend && npm run build` passes.
 - `uv run harness preflight` passes.
-- `uv run pytest` is currently blocked by a human-owned harness preset change in
-  forbidden paths; see `docs/PROJECT_STATUS.md`.
+- `uv run pytest` and `uv run harness gate` are currently blocked by a
+  human-owned harness preset change in forbidden paths; see
+  `docs/PROJECT_STATUS.md`.
 
 ## Acceptance Signals
 

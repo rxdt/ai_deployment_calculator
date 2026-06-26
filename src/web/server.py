@@ -21,16 +21,12 @@ from web.page import render_page
 DIST_DIR = Path(__file__).resolve().parents[2] / "frontend" / "dist"
 DIST_INDEX = DIST_DIR / "index.html"
 
-app = FastAPI(title="AI Deployment Calculator")
 
-
-@app.get("/api/report")
 def report(request: Request) -> JSONResponse:
     """Return the display-ready deployment payload for the request query string."""
     return JSONResponse(report_payload(request.url.query))
 
 
-@app.get("/", response_class=HTMLResponse, response_model=None)
 def index(request: Request) -> HTMLResponse | FileResponse:
     """Serve the built Vite app, or the no-JS fallback page when there is no build."""
     if DIST_INDEX.is_file():
@@ -38,5 +34,20 @@ def index(request: Request) -> HTMLResponse | FileResponse:
     return HTMLResponse(render_page(form_from_query(request.url.query)))
 
 
-if (DIST_DIR / "assets").is_dir():
-    app.mount("/assets", StaticFiles(directory=DIST_DIR / "assets"), name="assets")
+def create_app(asset_dir: Path = DIST_DIR / "assets") -> FastAPI:
+    """Build the FastAPI app without requiring frontend assets at import time."""
+    application = FastAPI(title="AI Deployment Calculator")
+    application.add_api_route("/api/report", report, methods=["GET"])
+    application.add_api_route(
+        "/",
+        index,
+        methods=["GET"],
+        response_class=HTMLResponse,
+        response_model=None,
+    )
+    if asset_dir.is_dir():
+        application.mount("/assets", StaticFiles(directory=asset_dir), name="assets")
+    return application
+
+
+app = create_app()

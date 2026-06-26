@@ -9,8 +9,9 @@ comparison, and the assumptions behind the estimate.
 - The Vite frontend lives in `frontend/`.
 - The FastAPI backend lives in `src/web/server.py`.
 - The active finish spec is `specs/frontend.md`.
-- The next launch task is to serve the built Vite app from FastAPI and remove
-  the old WSGI server path if it still exists.
+- FastAPI serves the built Vite app at `/`, mounts `/assets`, and falls back to
+  the no-JS page only when no `frontend/dist` build exists. There is no WSGI
+  server.
 
 ## Start Manually
 
@@ -31,8 +32,8 @@ npm run dev -- --port 5173
 Open the Vite dev app at `http://127.0.0.1:5173`. It proxies `/api/report` to
 the FastAPI backend on port 8000.
 
-Temporary FastAPI fallback page: `http://127.0.0.1:8000`. This should stop being
-the main launch page after FastAPI serves the built Vite app.
+After `cd frontend && npm run build`, FastAPI serves the built Vite app directly
+at `http://127.0.0.1:8000`. Without a build it renders the no-JS fallback page.
 
 ## Test Manually
 

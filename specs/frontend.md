@@ -8,15 +8,14 @@ Users open the Vite calculator first. FastAPI is the only backend/server path.
 
 ## Remaining Items
 
-1. Remove WSGI if it still exists: delete `src/web/app.py` and replace/remove
-   `tests/test_app.py` so no agent keeps maintaining a second server.
-2. Add or run one Playwright browser smoke that uses the real backend API, not a mocked
+1. Add or run one Playwright browser smoke that uses the real backend API, not a mocked
    `/api/report`.
-3. Update README with concise human/user instructions for manual start and test.
 
-Done: FastAPI serves the built `frontend/dist` SPA at `/` and mounts `/assets`,
+Done: WSGI is gone (`src/web/app.py` and `tests/test_app.py` deleted); its form
+HTML and `/api/report` behaviors are now covered by `tests/test_server.py`.
+FastAPI serves the built `frontend/dist` SPA at `/` and mounts `/assets`,
 falling back to `src/web/page.py` (no-JS render) only when no build exists.
-`/api/report` stays on the same process.
+`/api/report` stays on the same process. README has the manual start/test steps.
 
 ## Acceptance Signals
 

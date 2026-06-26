@@ -8,18 +8,18 @@
 - FastAPI backend serves `/api/report`.
 - FastAPI `/` now serves the built `frontend/dist` SPA and mounts `/assets`; it
   falls back to the server-rendered no-JS page only when no build exists.
-- WSGI still exists and should be removed once FastAPI covers launch.
+- WSGI removed: `src/web/app.py` and `tests/test_app.py` deleted. Its form HTML
+  and `/api/report` behaviors are covered by `tests/test_server.py`. FastAPI is
+  the only server path. README updated to match.
 
 ## Next
 
-1. Remove WSGI: delete `src/web/app.py` and replace/remove `tests/test_app.py`.
-2. Run one real browser smoke against the real API. If Chromium is blocked,
+1. Run one real browser smoke against the real API. If Chromium is blocked,
    record the exact command and error.
-3. Update README with final launch commands and checks.
 
 ## Checks From This Pass
 
-- `uv run pytest` - green, 272 passed.
+- `uv run pytest` - green, 270 passed (2 WSGI tests removed).
 - `uv run harness preflight` - green.
 - `cd frontend && npm run build` - dist present and served at `/`.
 - `uv run ruff check` / `uv run pyright` - clean on changed files.

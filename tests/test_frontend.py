@@ -11,17 +11,36 @@ def test_vite_frontend_declares_dev_entry_and_backend_proxy() -> None:
     package = frontend_text("package.json")
     index = frontend_text("index.html")
     config = frontend_text("vite.config.ts")
+    bootstrap = frontend_text("src/main.ts")
+    workflow = frontend_text("ci.yml")
 
     assert '"dev": "vite --host 127.0.0.1"' in package
+    assert '"test:coverage": "vitest run --coverage"' in package
     assert '"test:e2e": "playwright test"' in package
+    assert (
+        '"gate": "npm run build && npm run test:coverage && npm run test:e2e && npm run test:e2e:real"'
+        in package
+    )
     assert '"@playwright/test": "^1.45.0"' in package
+    assert '"@vitest/coverage-v8": "^4.1.9"' in package
+    assert '"vitest": "^4.1.9"' in package
     assert '"vite": "^8.1.0"' in package
     assert '<script type="module" src="/src/main.ts"></script>' in index
+    assert 'import { mountCalculator } from "./app";' in bootstrap
+    assert "mountCalculator(app);" in bootstrap
     assert '"/api": "http://127.0.0.1:8000"' in config
+    assert "thresholds: {" in config
+    assert "branches: 100" in config
+    assert "functions: 100" in config
+    assert "lines: 100" in config
+    assert "statements: 100" in config
+    assert "name: frontend-gate" in workflow
+    assert "uses: actions/setup-node@v4" in workflow
+    assert "run: npm run gate" in workflow
 
 
 def test_vite_frontend_renders_required_controls_and_fetches_report_api() -> None:
-    script = frontend_text("src/main.ts")
+    script = frontend_text("src/app.ts")
     styles = frontend_text("src/styles.css")
 
     assert "fetch(`/api/report?${search.toString()}`)" in script
@@ -84,7 +103,7 @@ def test_vite_frontend_renders_required_controls_and_fetches_report_api() -> Non
 
 
 def test_vite_frontend_constrains_dense_report_panel() -> None:
-    script = frontend_text("src/main.ts")
+    script = frontend_text("src/app.ts")
     styles = frontend_text("src/styles.css")
 
     assert 'class="panel report-panel" aria-label="Hardware recommendations"' in script
@@ -119,18 +138,18 @@ def test_vite_frontend_uses_reference_terminal_theme() -> None:
 
 
 def test_vite_frontend_disables_adapter_until_training_is_enabled() -> None:
-    script = frontend_text("src/main.ts")
+    script = frontend_text("src/app.ts")
 
     assert 'const adapterState = state.trained ? checked(state.use_adapter) : "";' in script
     assert 'const adapterDisabled = state.trained ? "" : " disabled";' in script
-    assert "function syncAdapterControl(): void" in script
+    assert "function syncAdapterControl(app: HTMLDivElement): void" in script
     assert "adapter.disabled = !trained.checked;" in script
     assert "adapter.checked = false;" in script
     assert 'target.name === "trained"' in script
 
 
 def test_vite_frontend_disables_active_parameters_until_moe_is_selected() -> None:
-    script = frontend_text("src/main.ts")
+    script = frontend_text("src/app.ts")
 
     assert 'name="architecture"' in script
     assert 'name="active_parameters_b"' in script
@@ -140,7 +159,7 @@ def test_vite_frontend_disables_active_parameters_until_moe_is_selected() -> Non
     )
     assert 'const activeParametersDisabled = state.architecture === "moe" ? "" : " disabled";' in script
     assert 'activeParameters.disabled = architecture.value !== "moe";' in script
-    assert "function syncArchitectureControl(): void" in script
+    assert "function syncArchitectureControl(app: HTMLDivElement): void" in script
     assert 'target.name === "architecture"' in script
     assert 'search.set("architecture", state.architecture);' in script
     assert 'search.set("active_parameters_b", state.active_parameters_b);' in script

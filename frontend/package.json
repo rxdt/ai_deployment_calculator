@@ -6,12 +6,18 @@
     "dev": "vite --host 127.0.0.1",
     "build": "vite build",
     "preview": "vite preview --host 127.0.0.1",
+    "test:unit": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
-    "test:e2e:real": "playwright test --config playwright.real-api.config.ts"
+    "test:e2e:real": "playwright test --config playwright.real-api.config.ts",
+    "gate": "npm run build && npm run test:coverage && npm run test:e2e && npm run test:e2e:real"
   },
   "devDependencies": {
     "@playwright/test": "^1.45.0",
+    "@vitest/coverage-v8": "^4.1.9",
+    "jsdom": "^29.1.1",
     "typescript": "^5.5.0",
-    "vite": "^8.1.0"
+    "vite": "^8.1.0",
+    "vitest": "^4.1.9"
   }
 }

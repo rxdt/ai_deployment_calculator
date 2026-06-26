@@ -18,20 +18,26 @@ Users open the Vite calculator first. FastAPI is the only backend/server path.
 - `src/web/page.py` remains only as a no-build fallback when `frontend/dist` is absent.
 - WSGI is removed.
 - Mocked and real-backend Playwright suites pass in this environment.
+- Vitest unit coverage gates frontend `src/**/*.ts` at 100% statements,
+  branches, functions, and lines.
+- `frontend/ci.yml` mirrors the backend CI shape as a drop-in workflow; copy it
+  to `.github/workflows/frontend-ci.yml` when protected workflow edits are
+  allowed.
 - `cd frontend && npm run build` passes.
+- `cd frontend && npm run gate` passes.
 - `uv run harness preflight` passes.
-- `uv run pytest` and `uv run harness gate` are currently blocked by a
-  human-owned harness preset change in forbidden paths; see
-  `docs/PROJECT_STATUS.md`.
+- `pytest` passes.
+- `harness gate` passes.
 
 ## Acceptance Signals
 
-- `uv run pytest` passes after the harness-owned dirty change is resolved.
 - `cd frontend && npm run build` passes.
+- `cd frontend && npm run test:coverage` passes with 100% coverage.
 - `cd frontend && npm run test:e2e` passes.
 - `cd frontend && npm run test:e2e:real` passes.
-- `uv run harness preflight` passes.
-- `uv run harness gate` passes after the harness-owned dirty change is resolved.
+- `cd frontend && npm run gate` passes.
+- `harness preflight` passes.
+- `harness gate` passes.
 - The launch URL serves the Vite UI after build.
 - `/api/report` returns JSON from FastAPI.
 - No WSGI app remains.

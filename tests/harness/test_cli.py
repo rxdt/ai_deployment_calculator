@@ -7,6 +7,7 @@ import io
 import os
 import subprocess
 import tomllib
+from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -66,10 +67,10 @@ def fake_agent(captured: dict[str, list[list[str]]], code: int = 0) -> Callable[
 
 
 def write_log(repo: Path, name: str) -> None:
-    """Drop a run receipt under scratchpad/runs."""
-    runs = repo / "scratchpad" / "runs"
-    runs.mkdir(parents=True, exist_ok=True)
-    (runs / name).write_text("{}\n", encoding="utf-8")
+    """Drop a run receipt under scratchpad/runs (name may be a nested agent/date/seq path)."""
+    log = repo / "scratchpad" / "runs" / name
+    log.parent.mkdir(parents=True, exist_ok=True)
+    log.write_text("{}\n", encoding="utf-8")
 
 
 def write_executable(path: Path, text: str) -> None:
@@ -193,15 +194,15 @@ def test_status_reports_zero_when_empty(monkeypatch: pytest.MonkeyPatch, tmp_pat
 
 
 def test_status_counts_logs_and_names_newest(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
-    """status counts the *.jsonl receipts and points at the newest (last sorted)."""
+    """status counts the *.jsonl logs and points at the newest (last sorted)."""
     monkeypatch.chdir(tmp_path)
-    write_log(tmp_path, "0001-claude.jsonl")
-    write_log(tmp_path, "0002-codex.jsonl")
+    write_log(tmp_path, "claude/2026-06-26/0001.jsonl")
+    write_log(tmp_path, "codex/2026-06-26/0002.jsonl")
     result = runner.invoke(cli.app, ["status"])
     assert result.exit_code == 0
     assert "2 run log(s)" in result.stdout
     assert "newest: " in result.stdout
-    assert "0002-codex.jsonl" in result.stdout
+    assert str(Path("codex", "2026-06-26", "0002.jsonl")) in result.stdout
 
 
 def test_cli_does_not_shadow_builtin_print() -> None:
@@ -274,7 +275,7 @@ def test_run_builds_ralph_command_and_writes_sequential_log(
     assert command[0].endswith("ralph.sh")
     assert command[1:3] == ["1", "2"]
     assert command[3:] == list(cli.AGENTS["claude"])  # preset expanded verbatim
-    log = tmp_path / "scratchpad" / "runs" / "0001-claude.jsonl"
+    (log,) = (tmp_path / "scratchpad" / "runs").glob("claude/*/0001.jsonl")
     assert log.read_text(encoding="utf-8") == '{"type":"result","result":"ok"}\n'
 
 
@@ -290,13 +291,9 @@ def test_agent_presets_are_frozen() -> None:
             "stream-json",
             "--verbose",
         ),
-        "codex": ("codex", "exec", "-m", "gpt-5.5", "--json", "--sandbox", "workspace-write", "-"),
+        "codex": ("codex", "exec", "-m", "gpt-5.5", "--json", "--sandbox", "danger-full-access", "-"),
         "agy": ("agy", "--log-file", "agy.log", "--print"),
-        "copilot": (
-            "sh",
-            "-c",
-            'copilot --output-format json --stream on --allow-all-tools -p "$(cat)"',
-        ),
+        "copilot": ("sh", "-c", 'copilot --output-format json --stream on --allow-all-tools -p "$(cat)"'),
     }
 
 
@@ -348,19 +345,22 @@ def test_run_claude_executes_real_loop_twice_with_prompt(
         "stream-json",
         "--verbose",
     ]
-    assert (tmp_path / "scratchpad" / "runs" / "0001-claude.jsonl").read_text(
-        encoding="utf-8"
-    ) == '{ "type" : "result", "result" : "ok" }\n{ "type" : "result", "result" : "ok" }\n'
+    (log,) = (tmp_path / "scratchpad" / "runs").glob("claude/*/0001.jsonl")
+    assert (
+        log.read_text(encoding="utf-8")
+        == '{ "type" : "result", "result" : "ok" }\n{ "type" : "result", "result" : "ok" }\n'
+    )
     assert result.stdout == '{"type":"result","result":"ok"}\n{"type":"result","result":"ok"}\n'
 
 
 def test_run_log_sequence_increments_past_existing(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
-    """The receipt number is max(existing leading int) + 1, so a prior run is never overwritten."""
-    write_log(tmp_path, "0007-codex.jsonl")
+    """The receipt number is max(existing seq for this agent+date) + 1, never overwriting a prior run."""
+    today = datetime.now().astimezone().strftime("%Y-%m-%d")
+    write_log(tmp_path, f"claude/{today}/0007.jsonl")
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(subprocess, "run", fake_agent({}))
     assert runner.invoke(cli.app, ["run", "claude", "2", "20", "False"]).exit_code == 0
-    assert (tmp_path / "scratchpad" / "runs" / "0008-claude.jsonl").exists()
+    assert (tmp_path / "scratchpad" / "runs" / "claude" / today / "0008.jsonl").exists()
 
 
 @pytest.mark.parametrize("args", [["claude", "0", "1"], ["claude", "1", "0"]])
@@ -427,6 +427,5 @@ def test_run_accepts_python_verbose_false(monkeypatch: pytest.MonkeyPatch, tmp_p
     with pytest.raises(typer.Exit) as exit_info:
         cli.run("claude", 2, 20, verbose=False)
     assert exit_info.value.exit_code == 0
-    assert (tmp_path / "scratchpad" / "runs" / "0001-claude.jsonl").read_text(
-        encoding="utf-8"
-    ) == '{"type":"result","result":"ok"}\n'
+    (log,) = (tmp_path / "scratchpad" / "runs").glob("claude/*/0001.jsonl")
+    assert log.read_text(encoding="utf-8") == '{"type":"result","result":"ok"}\n'

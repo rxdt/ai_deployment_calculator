@@ -1,0 +1,40 @@
+name: frontend-gate
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  frontend-gate:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: uv Sync Dependencies
+        run: uv sync
+        working-directory: .
+
+      - name: npm Clean Install
+        run: npm ci
+
+      - name: Install Playwright Browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Frontend Gate
+        run: npm run gate

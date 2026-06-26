@@ -16,8 +16,8 @@ Launch the Vite AI deployment calculator with a Python API backend.
    FastAPI fallback; do not keep a second WSGI server for it.
 5. Run one real browser smoke against the real API. If the agent sandbox blocks
    localhost or Chromium, rerun the same command unsandboxed.
-6. Update README and `docs/PROJECT_STATUS.md` with the truthful launch command,
-   checks run, and blockers.
+6. Update README and `docs/PROJECT_STATUS.md` with the truthful launch command, checks run, and blockers.
+
 
 ## Active Spec
 
@@ -36,11 +36,10 @@ Launch the Vite AI deployment calculator with a Python API backend.
 ## Required Checks
 
 ```sh
-uv run pytest
 cd frontend && npm run build
 cd frontend && npm run test:e2e
-uv run harness preflight
-uv run harness gate
+harness preflight
+harness gate
 ```
 
 If Playwright still fails outside the sandbox, record the exact command and

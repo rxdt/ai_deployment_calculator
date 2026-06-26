@@ -224,6 +224,25 @@ test("normalizes invalid query values before rendering and requesting a report",
   await expect(page.getByLabel("LoRA adapter")).not.toBeChecked();
 });
 
+test("rejects non-decimal numeric query values before requesting a report", async ({ page }) => {
+  const apiRequests: URL[] = [];
+
+  await page.route("**/api/report?**", async (route) => {
+    const url = new URL(route.request().url());
+    apiRequests.push(url);
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify(report),
+    });
+  });
+
+  await page.goto("/?parameters_b=0x10&context_tokens=8000");
+
+  await expect.poll(() => apiRequests.at(0)?.searchParams.get("parameters_b")).toBe("8");
+  expect(apiRequests.at(0)?.searchParams.get("context_tokens")).toBe("8000");
+  await expect(page.getByLabel("Parameters (billions)")).toHaveValue("8");
+});
+
 test("drops stale active parameters from dense query state", async ({ page }) => {
   const apiRequests: URL[] = [];
 

@@ -46,34 +46,19 @@
 - `form_from_query` parses numbers via `parse_decimal`, which rejects underscore-grouped values
   (`1_000`) that Python `float()` accepts but the frontend's `Number()` rejects, so the no-JS page
   and JS app size the same deployment for any URL.
+- The Vite query parser now accepts only decimal number strings before calling `Number()`, so
+  URL-only values like `parameters_b=0x10` normalize to defaults instead of disagreeing with the backend.
+- `parse_decimal` also rejects non-ASCII numerals; Python `float()` normalizes full-width Unicode
+  digits to a value, so a crafted URL had sized a deployment on the no-JS page that the decimal-only
+  JS parser reset to the default.
 
 ## Checks
 
-- `uv run pytest tests/test_frontend.py` - green, 8 passed after blank comparison-value validation.
-- `npm run build` in `frontend/` - green after blank comparison-value validation.
-- `TMPDIR=/Users/rxdt/ai_deployment_calculator/scratchpad/playwright-tmp npm run test:e2e -- --grep "blank values"` - blocked before test execution by macOS Chromium Mach port permission denial.
-- `uv run ralph gate` - green after adding the 3.8B QLoRA acceptance row.
-- `uv run pytest tests/test_vram_calculator.py` - green, 34 passed after the 7B full-training acceptance case.
-- `uv run ralph verify` - green after blank comparison-value validation.
-- `TMPDIR=/Users/rxdt/ai_deployment_calculator/scratchpad/playwright-tmp npm run test:e2e` cannot launch Chromium here because of macOS Mach port permissions; the current suite has 19 specs.
-- `uv run ralph gate` - green after rendering the real safety margin in the calculation card.
-- `uv run ralph gate` - green after pinning the GGUF runtime margin through the quantization
-  comparison (mutation-checked: forcing `with_weight_bits` to `pytorch` fails the new test 150.4 vs 136.7).
-- `uv run ralph gate` - green after accepting integer-valued `context_tokens`
-  (mutation-checked: reverting to `int()` fails `8000.0`/`8e3` acceptance with `ValueError`).
-- `uv run ralph gate` - green after rejecting underscore-grouped numbers in `parse_decimal`
-  (mutation-checked: reverting to bare `float()` parses `1_000` as 1000B and fails the new test).
-- `uv run ralph gate` - green after defaulting missing MoE active parameters
-  (mutation-checked: reverting to `raw_params["active_parameters_b"]` fails the new MoE-default test).
-- `uv run pytest tests/test_frontend.py` - green after pinning stale dense `active_parameters_b`
-  normalization.
-- `npm run build` in `frontend/` - green after stale dense `active_parameters_b` normalization.
-- `uv run pytest tests/test_report.py tests/test_view.py tests/test_frontend.py` - green after
-  the report table grouping.
-- `uv run ralph gate` - green after stale dense `active_parameters_b` normalization and report
-  table grouping.
-- `uv run ralph verify` - green after stale dense `active_parameters_b` normalization and report
-  table grouping.
+- `npm run build` in `frontend/` - green after decimal-only Vite query parsing.
+- `uv run pytest tests/test_frontend.py` - green, 8 passed after decimal-only Vite query parsing.
+- `TMPDIR=/Users/rxdt/ai_deployment_calculator/scratchpad/playwright-tmp npm run test:e2e -- --grep "non-decimal numeric"` - blocked before test execution by macOS Chromium Mach port permission denial.
+- `uv run ralph gate` - green after rejecting non-ASCII numerals in `parse_decimal`.
+- `uv run ralph verify` - green after decimal-only Vite query parsing.
 
 ## Next
 

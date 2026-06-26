@@ -232,3 +232,19 @@ def test_form_from_query_rejects_underscore_grouped_numbers(field: str) -> None:
     base[field] = "1_000"
     query = "&".join(f"{key}={value}" for key, value in base.items())
     assert form_from_query(query) == DEFAULT_FORM
+
+
+@pytest.mark.parametrize("field", ["parameters_b", "context_tokens", "active_parameters_b"])
+def test_form_from_query_rejects_non_ascii_numerals(field: str) -> None:
+    # Python float() normalizes full-width Unicode digits (U+FF11.. -> 123.0) but the Vite form's
+    # Number() returns NaN and rejects them. Without matching that, the no-JS server page would
+    # size a 123B deployment from a URL the JS app resets to the default 8B.
+    base = {
+        "parameters_b": "8",
+        "context_tokens": "8000",
+        "architecture": "moe",
+        "active_parameters_b": "1.3",
+    }
+    base[field] = "\uff11\uff12\uff13"  # full-width digits for "123"
+    query = "&".join(f"{key}={value}" for key, value in base.items())
+    assert form_from_query(query) == DEFAULT_FORM

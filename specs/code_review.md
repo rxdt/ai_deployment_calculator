@@ -29,7 +29,9 @@ non-empty values, so stale or blank audit payloads are rejected before rendering
 Top-level report totals, plan text, and calculation strings must also be
 non-empty before the frontend renders success. Hardware recommendation rows must
 contain non-empty name, detail, and sharding text. Dense query state drops stale
-MoE-only active parameter values before rendering the disabled input.
+MoE-only active parameter values before rendering the disabled input. Vite query
+normalization rejects URL-only numeric forms such as `0x10`, matching the backend
+decimal parser instead of sending a report request the backend will default.
 
 ## Prioritize These Items
 
@@ -63,6 +65,8 @@ MoE-only active parameter values before rendering the disabled input.
 - [x] A missing MoE `active_parameters_b` defaults to the frontend's `1.3`, so the no-JS server page renders the same MoE deployment as the JS app instead of resetting to the dense 8B default.
 - [x] Dense frontend query state drops stale `active_parameters_b`, so a MoE-only URL value is neither sent to `/api/report` nor displayed in the disabled dense-model control.
 - [x] Underscore-grouped numbers (`1_000`) are rejected like the frontend's `Number()`, so the no-JS server page stops sizing a different deployment than the JS app for the same URL.
+- [x] Non-ASCII numerals (full-width Unicode digits) are rejected like the frontend's `Number()`; Python `float()` normalizes them to a value, so a crafted URL sized a different deployment on the no-JS page than the JS app reset to default.
+- [x] Hex-like Vite query numbers (`0x10`) are rejected before `/api/report`, so the JS app matches the backend decimal parser.
 
 ## Acceptance Signals
 

@@ -95,6 +95,10 @@ function hasText(value: string): boolean {
   return value.trim().length > 0;
 }
 
+function isDecimalNumber(value: string | null): value is string {
+  return value !== null && /^[-+]?(?:\d+\.?\d*|\.\d+)(?:e[-+]?\d+)?$/iu.test(value.trim());
+}
+
 function isDisplayRow(value: unknown): value is DisplayRow {
   return isRecord(value) && typeof value.label === "string" && typeof value.value === "string";
 }
@@ -197,16 +201,21 @@ function lastValue(search: URLSearchParams, name: string): string | null {
 }
 
 function isPositiveNumber(value: string | null): value is string {
-  return value !== null && Number.isFinite(Number(value)) && Number(value) > 0;
+  return isDecimalNumber(value) && Number.isFinite(Number(value)) && Number(value) > 0;
 }
 
 function isNonNegativeInteger(value: string | null): value is string {
-  return value !== null && Number.isInteger(Number(value)) && Number(value) >= 0;
+  return isDecimalNumber(value) && Number.isInteger(Number(value)) && Number(value) >= 0;
 }
 
 function isValidActiveParameters(value: string | null, totalParameters: string): value is string {
   const activeParameters = Number(value);
-  return value !== null && Number.isFinite(activeParameters) && activeParameters > 0 && activeParameters <= Number(totalParameters);
+  return (
+    isDecimalNumber(value) &&
+    Number.isFinite(activeParameters) &&
+    activeParameters > 0 &&
+    activeParameters <= Number(totalParameters)
+  );
 }
 
 function selectedBits(

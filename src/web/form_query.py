@@ -25,11 +25,12 @@ from web.presenter import (
 def parse_decimal(raw: str) -> float:
     """Parse a decimal like the frontend's `Number()` so the no-JS page agrees with the JS app.
 
-    Python's `float()` accepts digit-group underscores ("1_000" -> 1000.0) that the Vite form's
-    `Number()` rejects as `NaN`. Without this guard the static server page would silently size a
-    different deployment than the JS app for the same URL.
+    Python's `float()` accepts inputs the Vite form's `Number()` rejects as `NaN`, which would let
+    the static server page silently size a different deployment than the JS app for the same URL:
+    digit-group underscores ("1_000" -> 1000.0) and non-ASCII numerals such as full-width Unicode
+    digits (U+FF11.. -> 123.0), which `float()` normalizes but `Number()` rejects as `NaN`.
     """
-    if "_" in raw:
+    if "_" in raw or not raw.isascii():
         raise FormInputError(INVALID_FORM_MESSAGE)
     return float(raw)
 

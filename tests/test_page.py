@@ -29,7 +29,7 @@ def test_default_page_renders_required_controls_and_worked_total() -> None:
     assert 'name="weight_bits"' in html
     assert 'name="kv_cache_bits"' in html
     assert 'name="trained" type="checkbox"' in html
-    assert 'name="use_adapter" type="checkbox" disabled' in html
+    assert 'name="use_adapter" type="checkbox"' in html
     assert "20.1 GB" in html
     assert "32 GB host RAM" in html
     assert "<summary>Calculation used</summary>" in html
@@ -56,16 +56,20 @@ def test_default_page_renders_required_controls_and_worked_total() -> None:
     )
 
 
-def test_default_page_renders_moe_controls_disabled_for_dense_models() -> None:
+def test_default_page_keeps_dependent_controls_submittable_without_javascript() -> None:
+    """The fallback page must let plain HTML submissions choose QLoRA or MoE."""
     html = render_page()
+    active_parameters_input = (
+        'name="active_parameters_b" type="number" min="0.000001" step="any"\n          value="1.3"'
+    )
 
     assert 'name="architecture"' in html
     assert '<option value="moe">MoE</option>' in html
     assert 'name="active_parameters_b" type="number" min="0.000001" step="any"' in html
-    assert (
-        'name="active_parameters_b" type="number" min="0.000001" step="any"\n          value="1.3" disabled'
-        in html
-    )
+    assert f"{active_parameters_input}>" in html
+    assert 'name="use_adapter" type="checkbox" disabled' not in html
+    assert f"{active_parameters_input} disabled" not in html
+    assert 'activeParameters.disabled = architecture.value !== "moe";' in html
 
 
 def test_page_accepts_tiny_parameter_models_supported_by_core() -> None:
@@ -116,9 +120,9 @@ def test_page_uses_dark_theme_tokens() -> None:
     assert ".total { font-size: 56px; line-height: .9; font-weight: 800; color: #2dd4bf; }" in html
 
 
-def test_page_disables_adapter_until_training_is_enabled() -> None:
+def test_page_script_disables_adapter_until_training_is_enabled() -> None:
     html = render_page()
-    assert 'name="use_adapter" type="checkbox" disabled' in html
+    assert 'name="use_adapter" type="checkbox" disabled' not in html
     assert "function syncAdapterControl()" in html
     assert "adapter.disabled = !trained.checked;" in html
     assert "adapter.checked = false;" in html
@@ -128,7 +132,6 @@ def test_page_clears_adapter_when_training_is_disabled() -> None:
     html = render_page(FormInputs(parameters_b=8, context_tokens=8000, trained=False, use_adapter=True))
 
     assert 'name="trained" type="checkbox" checked' not in html
-    assert 'name="use_adapter" type="checkbox" disabled' in html
     assert 'name="use_adapter" type="checkbox" checked disabled' not in html
     assert "<h2>Inference</h2>" in html
 

@@ -105,8 +105,6 @@ def render_page(form: FormInputs | None = None) -> str:
     active_task = active_form.task
     trained = " checked" if active_task != "inference" else ""
     adapter = " checked" if active_task == "qlora" else ""
-    adapter_disabled = "" if active_task != "inference" else " disabled"
-    active_parameters_disabled = "" if active_form.architecture == "moe" else " disabled"
     active_parameters_value = active_form.active_parameters_b or 1.3
     pytorch_runtime = selected_option(active_form.runtime, "pytorch")
     gguf_runtime = selected_option(active_form.runtime, "llama_cpp_gguf")
@@ -159,11 +157,11 @@ def render_page(form: FormInputs | None = None) -> str:
       </label>
       <label>Active parameters (billions)
         <input name="active_parameters_b" type="number" min="0.000001" step="any"
-          value="{form_number(active_parameters_value)}"{active_parameters_disabled}>
+          value="{form_number(active_parameters_value)}">
       </label>
       <label class="check"><input name="trained" type="checkbox"{trained}> Model is trained</label>
       <label class="check">
-        <input name="use_adapter" type="checkbox"{adapter}{adapter_disabled}> LoRA adapter
+        <input name="use_adapter" type="checkbox"{adapter}> LoRA adapter
       </label>
       <button type="submit">Calculate</button>
     </form>

@@ -2,11 +2,13 @@
 
 ## Current State
 
-- The active spec is `specs/orchestrate.md`.
-- Current branch is `main`, ahead 7 and behind 1 against `origin/main`.
+- The active implementation spec is `specs/frontend.md`.
+- Current branch is `main`, ahead 8 and behind 1 against `origin/main` after
+  this commit.
 - Advice-removal implementation commit is `f6acfbf`.
-- This pass removes rendered memory-optimization advice from both calculator
-  UIs; the `/api/report` plan field remains unchanged.
+- Fallback no-JS control implementation is the latest commit on `main`.
+- This pass keeps fallback QLoRA and MoE dependent controls submittable before
+  JavaScript runs; the enhancement script still disables them when appropriate.
 - Finished specs have been removed so agents do not select stale work.
 - Vite frontend builds and calls `/api/report`.
 - FastAPI backend serves `/api/report`.
@@ -18,6 +20,7 @@
 - FastAPI app creation now accepts explicit frontend index and asset paths; tests
   cover a configured build path and no-build fallback without monkeypatching
   module globals.
+- The no-build fallback now lets plain HTML submissions choose QLoRA or MoE.
 - WSGI removed: `src/web/app.py` and `tests/test_app.py` deleted. Its form HTML
   and `/api/report` behaviors are covered by `tests/test_server.py`. FastAPI is
   the only server path. README updated to match.
@@ -44,20 +47,8 @@
 
 ## Checks From This Pass
 
-- `cd frontend && npm run build` - green.
-- `cd frontend && npm ci` - green.
-- `cd frontend && npm run test:coverage` - green, 20 passed, 100% coverage.
-- `cd frontend && npm run test:e2e` - green, 22 passed.
-- `cd frontend && npm run test:e2e:real` - green, 1 passed against uvicorn.
-- `cd frontend && npm run gate` - green.
-- `uv run pytest tests/test_frontend.py` - green, 8 passed.
-- `harness preflight` - green.
-- `uv run pytest tests/test_server.py tests/test_api.py tests/test_frontend.py`
-  - green, 22 passed.
-- `uv run pytest` - green, 272 passed, 1 warning.
-- `harness gate` - green.
-- `cd frontend && npm run test:coverage` - green, 20 passed, 100% coverage.
-- `uv run pytest tests/test_frontend.py tests/test_page.py` - green, 24 passed.
+- `uv run pytest tests/test_page.py tests/test_server.py` - green, 22 passed,
+  1 warning.
 - `harness preflight` - green.
 - `harness gate` - green.
 - `cd frontend && npm run gate` - green: build, 20 Vitest tests, 22 mocked

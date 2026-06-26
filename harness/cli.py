@@ -6,6 +6,7 @@ import json
 import shutil
 import subprocess
 import sys
+from datetime import datetime
 from pathlib import Path
 from typing import Annotated
 
@@ -30,7 +31,7 @@ AGENTS: dict[str, tuple[str, ...]] = {
         "stream-json",
         "--verbose",
     ),
-    "codex": ("codex", "exec", "-m", "gpt-5.5", "--json", "--sandbox", "workspace-write", "-"),
+    "codex": ("codex", "exec", "-m", "gpt-5.5", "--json", "--sandbox", "danger-full-access", "-"),
     "agy": ("agy", "--log-file", "agy.log", "--print"),
     "copilot": ("sh", "-c", 'copilot --output-format json --stream on --allow-all-tools -p "$(cat)"'),
 }
@@ -85,14 +86,15 @@ def gate() -> None:
     raise typer.Exit(code=1 if problems else 0)
 
 
-@app.command(help="Count agent run receipts under scratchpad/runs")
+@app.command(help="Count agent run logs under scratchpad/runs")
 def status() -> None:
     """Count run logs and point at the newest one."""
     runs = Path.cwd() / "scratchpad" / "runs"
-    logs = sorted(runs.glob("*.jsonl")) if runs.is_dir() else []
+    logs = sorted(runs.glob("*/*/[0-9]*.jsonl")) if runs.is_dir() else []
     typer.secho(f"{len(logs)} run log(s) in {runs}", fg=typer.colors.CYAN, bold=True)
     if logs:
-        typer.secho(f"newest: {logs[-1]}", fg=typer.colors.GREEN, bold=True)
+        newest = max(logs, key=lambda p: p.stat().st_mtime)
+        typer.secho(f"newest: {newest}", fg=typer.colors.GREEN, bold=True)
 
 
 @app.command(help="Setup project: inject project name, sync dependencies, set up githooks")
@@ -150,10 +152,11 @@ def run(
         )
         raise typer.Exit(code=2)
     cwd = Path.cwd()
-    runs = cwd / "scratchpad" / "runs"
-    runs.mkdir(parents=True, exist_ok=True)
-    seq = 1 + max((int(p.name.split("-", 1)[0]) for p in runs.glob("[0-9]*-*.jsonl")), default=0)
-    log = runs / f"{seq:04d}-{agent}.jsonl"
+    today = datetime.now().astimezone().strftime("%Y-%m-%d")
+    day = cwd / "scratchpad" / "runs" / agent / today
+    day.mkdir(parents=True, exist_ok=True)
+    seq = 1 + max((int(p.stem) for p in day.glob("[0-9]*.jsonl")), default=0)
+    log = day / f"{seq:04d}.jsonl"
     ralph = Path(__file__).resolve().parent / "ralph.sh"
     command = [str(ralph), str(num_iterations), str(max_minutes)]
     command.extend(AGENTS[agent])

@@ -8,8 +8,16 @@ Users open the Vite calculator first. FastAPI is the only backend/server path.
 
 ## Remaining Items
 
-1. Add or run one Playwright browser smoke that uses the real backend API, not a mocked
-   `/api/report`.
+1. Run the real-backend Playwright smoke (`cd frontend && npm run test:e2e:real`) in
+   an environment that allows TCP port binding and Chromium launch. In this macOS
+   sandbox both are blocked (see Blockers); the test, config, and script exist.
+
+Done: a no-mock browser smoke now exists. `frontend/tests/real-api.spec.ts` drives
+the built SPA against a live uvicorn process (built `dist` + real `/api/report` from
+`web.server:app`), wired by `frontend/playwright.real-api.config.ts` and run via the
+`test:e2e:real` script. It asserts the rendered total matches the backend's computed
+`48.4 GB` for the same query as `tests/test_server.py`. The default
+`playwright.config.ts` `testIgnore`s this spec so the mocked suite is unaffected.
 
 Done: WSGI is gone (`src/web/app.py` and `tests/test_app.py` deleted); its form
 HTML and `/api/report` behaviors are now covered by `tests/test_server.py`.

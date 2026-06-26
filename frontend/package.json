@@ -6,7 +6,8 @@
     "dev": "vite --host 127.0.0.1",
     "build": "vite build",
     "preview": "vite preview --host 127.0.0.1",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:e2e:real": "playwright test --config playwright.real-api.config.ts"
   },
   "devDependencies": {
     "@playwright/test": "^1.45.0",

@@ -57,6 +57,9 @@
 - `form_from_query` parses with `keep_blank_values=True`, matching JS `URLSearchParams.getAll`: a
   trailing blank repeat (`weight_bits=8&weight_bits=`) now resets the no-JS page like the JS form
   instead of dropping the blank and sizing the prior value.
+- The no-JS form renders parameter inputs via `form_number` (shortest round-tripping `repr`) instead
+  of `:g`, which truncated to six significant digits and went exponential (`1234567`->`1.23457e+06`),
+  diverging the displayed form from the full-precision report so a resubmit sized a different model.
 
 ## Checks
 

@@ -78,6 +78,27 @@ def test_page_accepts_tiny_parameter_models_supported_by_core() -> None:
     assert "<h2>Full training</h2>" in html
 
 
+def test_page_preserves_high_precision_parameter_values() -> None:
+    # `:g` truncated to six significant digits, so the no-JS form diverged from the full-precision
+    # report and resubmitting it sized a different deployment than the URL computed.
+    form = FormInputs(parameters_b=7.123456, context_tokens=8000, active_parameters_b=1.234567)
+    html = render_page(form)
+    assert 'name="parameters_b" type="number" min="0.000001" step="any"\n          value="7.123456"' in html
+    assert (
+        'name="active_parameters_b" type="number" min="0.000001" step="any"\n          value="1.234567"'
+        in html
+    )
+    assert "7.12346" not in html
+
+
+def test_page_preserves_large_parameter_values_without_exponent() -> None:
+    # `:g` rendered large totals in exponential form (`1234567` -> `1.23457e+06`), which the
+    # decimal-only query parser then reparsed to a different, rounded deployment.
+    html = render_page(FormInputs(parameters_b=1234567, context_tokens=8000))
+    assert 'value="1234567"' in html
+    assert "e+06" not in html
+
+
 def test_page_keeps_mobile_layout_to_one_viewport() -> None:
     html = render_page()
     assert "@media (max-width: 760px)" in html

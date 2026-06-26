@@ -86,6 +86,19 @@ def selected_option(active_value: object, option_value: object) -> str:
     return " selected" if active_value == option_value else ""
 
 
+def form_number(value: float) -> str:
+    """Render a numeric form value so resubmitting it sizes the same deployment.
+
+    The JS app keeps the raw submitted string in the input, so it always round-trips. The no-JS
+    page only has the parsed float, and the old `:g` format silently truncated to six significant
+    digits and switched to exponential (`7.123456` -> `7.12346`, `1234567` -> `1.23457e+06`), so the
+    rendered form diverged from the full-precision report and resubmitting changed the deployment.
+    `repr` is Python's shortest round-tripping float text; whole values drop the `.0` to match the JS
+    integer rendering and the existing default-form `8` display.
+    """
+    return str(int(value)) if float(value).is_integer() else repr(float(value))
+
+
 def render_page(form: FormInputs | None = None) -> str:
     """Render the single-screen calculator page for the given form state."""
     active_form = form or DEFAULT_FORM
@@ -112,7 +125,7 @@ def render_page(form: FormInputs | None = None) -> str:
       <h1>VRAM Deployment Calculator</h1>
       <label>Parameters (billions)
         <input name="parameters_b" type="number" min="0.000001" step="any"
-          value="{active_form.parameters_b:g}">
+          value="{form_number(active_form.parameters_b)}">
       </label>
       <label>Context window
         <input name="context_tokens" type="number" min="0" step="1000" value="{active_form.context_tokens}">
@@ -147,7 +160,7 @@ def render_page(form: FormInputs | None = None) -> str:
       </label>
       <label>Active parameters (billions)
         <input name="active_parameters_b" type="number" min="0.000001" step="any"
-          value="{active_parameters_value:g}"{active_parameters_disabled}>
+          value="{form_number(active_parameters_value)}"{active_parameters_disabled}>
       </label>
       <label class="check"><input name="trained" type="checkbox"{trained}> Model is trained</label>
       <label class="check">

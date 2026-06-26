@@ -70,6 +70,7 @@ decimal parser instead of sending a report request the backend will default.
 - [x] Unicode-whitespace-padded decimals (e.g. `U+00A0`) parse like the JS form's trimmed `Number()`; the backend trims the JS whitespace set so the no-JS page sizes the same deployment instead of resetting, while `float()`-only padding (`U+001C`) the JS form keeps is still rejected.
 - [x] A non-default-precision `/api/report` payload satisfies the frontend `hasSupportedComparisonRows`/`hasRequiredAssumptionRows` contracts (selected row matches submitted precision; the four precision and five assumption labels are present), guarding the live-app-breaking divergence class the sandbox-blocked Playwright suite cannot.
 - [x] Trailing blank repeated params (`weight_bits=8&weight_bits=`) reset the no-JS page like the JS form, which reads the last `URLSearchParams.getAll` value; the backend parses with `keep_blank_values=True` instead of dropping the blank and sizing the prior value.
+- [x] The no-JS form renders parameter values with full round-tripping precision; the old `:g` format truncated to six significant digits and switched to exponential (`7.123456`->`7.12346`, `1234567`->`1.23457e+06`), so the displayed form diverged from the full-precision report and resubmitting sized a different deployment than the URL computed.
 
 ## Acceptance Signals
 

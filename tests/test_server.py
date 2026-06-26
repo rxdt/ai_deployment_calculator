@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import pytest
 from fastapi.testclient import TestClient
 
+import web.server
 from web.server import app
 
 client = TestClient(app)
@@ -23,7 +25,32 @@ def test_report_endpoint_returns_payload() -> None:
     assert payload["comparison"][3]["selected"] is True
 
 
-def test_index_serves_fallback_page() -> None:
+def test_index_serves_built_vite_app() -> None:
+    assert web.server.DIST_INDEX.is_file(), "build frontend/dist before launch"
+
+    response = client.get(f"/?{QUERY}")
+
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("text/html")
+    assert 'id="app"' in response.text
+    assert "/assets/" in response.text
+
+
+def test_assets_served_from_dist() -> None:
+    index_html = web.server.DIST_INDEX.read_text(encoding="utf-8")
+    asset_path = index_html.split('src="', 1)[1].split('"', 1)[0]
+
+    response = client.get(asset_path)
+
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("text/javascript") or response.headers[
+        "content-type"
+    ].startswith("application/javascript")
+
+
+def test_index_falls_back_to_no_js_page_without_build(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(web.server, "DIST_INDEX", web.server.DIST_DIR / "missing.html")
+
     response = client.get(f"/?{QUERY}")
 
     assert response.status_code == 200

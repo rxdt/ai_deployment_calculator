@@ -1,48 +1,36 @@
-**GOAL: LAUNCH TODAY**
+# Ralph loop prompt
 
-You are a fresh session agent. Treasure and preserve that fresh context. The current repo is your memory.
-Specs say *what* work to do. You decide *how* and *what is most important next*.
+You are one fresh-context iteration of the loop. The repo is your memory.
+Specs say what to build. You decide what is the next most useful change.
 
-0. Finish as much as possible ASSAP. We launch NOW!
-1. Read `plan.md/`. Find a task in `specs/`. If there is work remaining in specs, you must work on it.
-2. Fix the gap you identified.
-3. Keep youf change small and TIGHTLY SCOPED! You have 20 minutes max.
-4. Run `uv run harness preflight` to see if your changes pass. Fix failures.
-5. NEVER create a branch or worktree. Keep a strictly linear history on the current branch.
-  - Do not run `git branch`, `git checkout -b`, `git switch -c`, or `git worktree`.
-  - Commit only on the current branch. No merges, no rebases that fork history.
-  - If git is dirty before your turn, commit it depending on whether the specs require that work.
-  - When a commit is rejected for a forbidden-path, run `git restore --staged <forbidden-path>` to clear the commit blocker.
-  - Leave the working-tree change in place for a human to review
-6. Add or update a test that proves your change works.
-  - Write tests which challenge the source code.
-7. Commit on the current branch only — never branch, fork, or merge.
-8.  If `uv run harness gate` fails for any reason, fix the issue.
-  - If you have tried to fix the issue multiple times and cannot:
-    - Commit the files that do pass.
-    - Mention the issue / filepath in `docs/PROJECT_STATUS.md` under "Blockers" and state your agent name and spec name.
-9.  Update `specs/`, `docs/`, and `docs/PROJECT_STATUS.md` to honestly reflect changes.
-  - Remove items you completed.
-  - Keep each `.md` < 100 lines.
-LET"S GET THIS LAUNCHED!!
-
-Commit Message Structure:
-```
-A one sentence summary
-- list items with details of work completed
-- ...
-- ...
-
-# End the commit message with your "name", spec keyword, and loop number iteration-count / RALPH_ITERATIONS_TOTAL, e.g.:
-Claude-backend-1/10
-```
+1. Read `specs/` and identify the single most important unfinished item.
+2. Inspect the relevant code and tests before editing.
+3. Implement one tightly scoped change that advances that item.
+4. Add or update tests that prove behavior and challenge the source; use durable, behavior-focused names and docstrings.
+5. Run `harness gate`. If `harness` is not on PATH, run `.venv/bin/harness gate`.
+6. Fix failures without weakening tests, coverage, typing, security checks, or the gate.
+7. Update the relevant spec and `docs/PROJECT_STATUS.md` to match what changed.
+8. Commit on the current branch through the normal git hooks.
+9. Push the current branch so the iteration is saved remotely.
 
 Rules:
-- One tightly set, meaningful change per turn.
+- Do not create a branch or worktree unless the human explicitly asked for one.
+- Keep the change small enough to finish in this iteration.
 - Do not batch unrelated work.
-- Do not skip working during your turn.
+- Keep history linear on the current branch: no branches, worktrees, merges, or rebases; commit only relevant current-branch work.
+- If forbidden paths block a commit, run `git restore --staged <path>` and leave those working-tree edits for human review.
 - If a spec is wrong or missing, update the spec instead of guessing.
-- Never weaken code to make a commit pass.
-- NO branches, NO worktrees, NO merges. Linear history only.
+- Never delete tests or assertions to make checks pass.
+- Do not edit forbidden paths: `AGENTS.md`, `harness/`, `tests/harness/`, `.githooks/`, `.github/`, `PROMPT.md`, or `pyproject.toml`.
+- Pass `harness gate` and `harness preflight`
+- Use tests for code behavior and API contracts. Do not test for `.md` contents.
 
-**Do NOT edit or commit forbidden paths:** AGENTS.md, harness/, tests/harness/, .githooks/, .github/, pyproject.toml. Your commits will be auto-rejected if you do.
+Commit message:
+```
+One sentence summary
+
+- concrete detail
+- concrete detail
+
+<agent-name>-<spec>-<RALPH_ITERATION_COUNT/TOTAL_ITERATIONS>
+```

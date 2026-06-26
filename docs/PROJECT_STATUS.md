@@ -62,6 +62,9 @@
   unsetting it lets harness integration tests simulate their non-loop commit.
 - `harness preflight` - green after staging; it removed `docs/plan.md` from the
   staged set as protected.
+- `git push` - rejected by the pre-push hook because it runs the harness
+  integration suite under `RALPH_LOOP=1`, causing the simulated non-loop commit
+  test to inherit loop containment and fail.
 - `npm --prefix frontend run test:coverage -- --runInBand` - failed because
   Vitest does not support the Jest `--runInBand` flag; reran without it.
 - `npm --prefix frontend run test:e2e -- --project=VRAM-Calculator` - failed
@@ -76,5 +79,7 @@
 - Existing unrelated dirty paths remain outside this iteration's commit scope.
 - `docs/plan.md` has an unstaged cleanup from this pass; preflight treats it as
   protected, so it is left for human review.
+- Current branch has local commits that are not pushed because plain `git push`
+  is rejected by the hook failure recorded above.
 - Leave `frontend/example_user_will_delete/` alone. The user will delete it once
   the frontend is done.

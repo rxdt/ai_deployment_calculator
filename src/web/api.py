@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import asdict
 
-from web.presenter import form_from_query
+from web.form_query import form_from_query
 from web.view import view_from_form
 
 

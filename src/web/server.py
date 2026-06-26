@@ -10,8 +10,8 @@ from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 
 from web.api import report_payload
+from web.form_query import form_from_query
 from web.page import render_page
-from web.presenter import form_from_query
 
 app = FastAPI(title="AI Deployment Calculator")
 

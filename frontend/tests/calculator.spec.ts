@@ -224,6 +224,26 @@ test("normalizes invalid query values before rendering and requesting a report",
   await expect(page.getByLabel("LoRA adapter")).not.toBeChecked();
 });
 
+test("drops stale active parameters from dense query state", async ({ page }) => {
+  const apiRequests: URL[] = [];
+
+  await page.route("**/api/report?**", async (route) => {
+    const url = new URL(route.request().url());
+    apiRequests.push(url);
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify(report),
+    });
+  });
+
+  await page.goto("/?parameters_b=8&context_tokens=8000&architecture=dense&active_parameters_b=999");
+
+  await expect.poll(() => apiRequests.at(0)?.searchParams.get("active_parameters_b")).toBe(null);
+  await expect(page.getByLabel("Architecture")).toHaveValue("dense");
+  await expect(page.getByLabel("Active parameters (billions)")).toBeDisabled();
+  await expect(page.getByLabel("Active parameters (billions)")).toHaveValue("1.3");
+});
+
 test("keeps the form visible when the report api fails", async ({ page }) => {
   await page.route("**/api/report?**", async (route) => {
     await route.fulfill({

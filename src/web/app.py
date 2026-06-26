@@ -11,8 +11,8 @@ from collections.abc import Iterable
 from wsgiref.types import StartResponse, WSGIEnvironment
 
 from web.api import report_payload
+from web.form_query import form_from_query
 from web.page import render_page
-from web.presenter import form_from_query
 
 
 def response(

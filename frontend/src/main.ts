@@ -231,7 +231,10 @@ function normalizedState(search: URLSearchParams): FormState {
   const kvCacheBits = selectedBits(search, "kv_cache_bits");
   const runtime = lastValue(search, "runtime") ?? DEFAULT_VALUES.runtime;
   const architecture = lastValue(search, "architecture") ?? DEFAULT_VALUES.architecture;
-  const activeParameters = lastValue(search, "active_parameters_b") ?? DEFAULT_VALUES.active_parameters_b;
+  const activeParameters =
+    architecture === "moe"
+      ? lastValue(search, "active_parameters_b") ?? DEFAULT_VALUES.active_parameters_b
+      : DEFAULT_VALUES.active_parameters_b;
   if (
     !isPositiveNumber(parameters) ||
     !isNonNegativeInteger(context) ||

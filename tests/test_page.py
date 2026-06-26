@@ -7,7 +7,7 @@ from web.fragments import (
     render_hardware_rows,
     selected_class,
 )
-from web.page import render_page, selected_architecture, selected_bits, selected_runtime, task_label
+from web.page import render_page, selected_option, task_label
 from web.presenter import FormInputs
 from web.view import (
     AssumptionRow,
@@ -201,13 +201,13 @@ def test_page_helpers_render_labels_bits_and_escaped_rows() -> None:
         calculation="(8.0 + 0.8 + 0.0 + 1.5) * 1.10 = 11.3 GB",
     )
     assert task_label(FormInputs(parameters_b=8, context_tokens=8000)) == "Inference"
-    assert selected_bits(form.weight_bits, 8) == " selected"
-    assert not selected_bits(form.weight_bits, 4)
-    assert selected_bits(FormInputs(parameters_b=8, context_tokens=8000, kv_cache_bits=4).kv_cache_bits, 4)
-    assert selected_architecture("moe", "moe") == " selected"
-    assert not selected_architecture("dense", "moe")
-    assert selected_runtime("llama_cpp_gguf", "llama_cpp_gguf") == " selected"
-    assert not selected_runtime("pytorch", "llama_cpp_gguf")
+    assert selected_option(form.weight_bits, 8) == " selected"
+    assert not selected_option(form.weight_bits, 4)
+    assert selected_option(FormInputs(parameters_b=8, context_tokens=8000, kv_cache_bits=4).kv_cache_bits, 4)
+    assert selected_option("moe", "moe") == " selected"
+    assert not selected_option("dense", "moe")
+    assert selected_option("llama_cpp_gguf", "llama_cpp_gguf") == " selected"
+    assert not selected_option("pytorch", "llama_cpp_gguf")
     assert selected_class(True) == ' class="selected"'
     assert not selected_class(False)
     assert render_breakdown(view) == '<p class="metric">KV &lt;cache&gt;<strong>0.8 GB</strong></p>'

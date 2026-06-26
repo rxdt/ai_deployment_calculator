@@ -204,6 +204,9 @@ def test_playwright_harness_exercises_rendered_form_and_report_api() -> None:
             'total: "", savings: " "',
             'searchParams.get("kv_cache_bits")).toBe("8")',
             'searchParams.get("runtime")).toBe("llama_cpp_gguf")',
+            "drops stale active parameters from dense query state",
+            "active_parameters_b=999",
+            'searchParams.get("active_parameters_b")).toBe(null)',
         )
     )
     assert "escapes reflected query and report values" in spec

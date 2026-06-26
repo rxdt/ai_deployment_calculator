@@ -8,13 +8,11 @@ import pytest
 
 from report import build_report
 from vram_calculator import DeploymentSpec
+from web.form_query import form_from_query
 from web.presenter import (
     DEFAULT_ACTIVE_PARAMETERS_B,
     DEFAULT_FORM,
-    FormInputError,
     FormInputs,
-    deployment_task,
-    form_from_query,
     spec_from_form,
 )
 
@@ -22,17 +20,17 @@ from web.presenter import (
 def test_untrained_is_inference_even_with_adapter() -> None:
     # An adapter without training holds no gradients/optimizer state, so it stays inference.
     form = FormInputs(parameters_b=8, context_tokens=8000, trained=False, use_adapter=True)
-    assert deployment_task(form) == "inference"
+    assert form.task == "inference"
 
 
 def test_trained_with_adapter_is_qlora() -> None:
     form = FormInputs(parameters_b=8, context_tokens=8000, trained=True, use_adapter=True)
-    assert deployment_task(form) == "qlora"
+    assert form.task == "qlora"
 
 
 def test_trained_without_adapter_is_full_training() -> None:
     form = FormInputs(parameters_b=8, context_tokens=8000, trained=True, use_adapter=False)
-    assert deployment_task(form) == "full_training"
+    assert form.task == "full_training"
 
 
 def test_spec_from_form_carries_controls_and_mapped_task() -> None:
@@ -71,23 +69,23 @@ def test_spec_from_form_preserves_gguf_runtime() -> None:
 
 def test_invalid_quantization_rejected() -> None:
     bad_bits: Any = 7
-    with pytest.raises(FormInputError):
+    with pytest.raises(ValueError, match="invalid form input"):
         FormInputs(parameters_b=8, context_tokens=8000, weight_bits=bad_bits)
 
 
 def test_invalid_kv_cache_precision_rejected() -> None:
     bad_bits: Any = 7
-    with pytest.raises(FormInputError):
+    with pytest.raises(ValueError, match="invalid form input"):
         FormInputs(parameters_b=8, context_tokens=8000, kv_cache_bits=bad_bits)
 
 
 def test_nonpositive_parameters_rejected() -> None:
-    with pytest.raises(FormInputError):
+    with pytest.raises(ValueError, match="invalid form input"):
         FormInputs(parameters_b=0, context_tokens=8000)
 
 
 def test_negative_context_rejected() -> None:
-    with pytest.raises(FormInputError):
+    with pytest.raises(ValueError, match="invalid form input"):
         FormInputs(parameters_b=8, context_tokens=-1)
 
 
@@ -97,7 +95,7 @@ def test_form_without_active_parameters_is_dense() -> None:
 
 
 def test_moe_form_rejects_active_parameters_above_total_parameters() -> None:
-    with pytest.raises(FormInputError):
+    with pytest.raises(ValueError, match="invalid form input"):
         FormInputs(parameters_b=47, context_tokens=8000, active_parameters_b=48)
 
 
@@ -217,4 +215,20 @@ def test_form_from_query_falls_back_to_default_on_non_finite_parameters(paramete
 
 def test_form_from_query_falls_back_to_default_on_non_finite_active_parameters() -> None:
     query = "parameters_b=47&context_tokens=8000&architecture=moe&active_parameters_b=inf"
+    assert form_from_query(query) == DEFAULT_FORM
+
+
+@pytest.mark.parametrize("field", ["parameters_b", "context_tokens", "active_parameters_b"])
+def test_form_from_query_rejects_underscore_grouped_numbers(field: str) -> None:
+    # Python float() reads "1_000" as 1000 but the Vite form's Number() returns NaN and rejects it.
+    # Without matching that, the no-JS server page would size a different deployment than the JS
+    # app for the same URL (e.g. "1_000" -> 1000B vs the default 8B).
+    base = {
+        "parameters_b": "8",
+        "context_tokens": "8000",
+        "architecture": "moe",
+        "active_parameters_b": "1.3",
+    }
+    base[field] = "1_000"
+    query = "&".join(f"{key}={value}" for key, value in base.items())
     assert form_from_query(query) == DEFAULT_FORM

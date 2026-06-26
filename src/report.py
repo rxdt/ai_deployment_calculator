@@ -36,17 +36,39 @@ class VramBreakdown:
 
 
 @dataclass(frozen=True)
+class ReportTables:
+    """Table-shaped report sections rendered by the web UI."""
+
+    hardware: tuple[HardwareOption, ...]
+    assumptions: AssumptionSummary
+    comparison: QuantizationComparison
+
+
+@dataclass(frozen=True)
 class DeploymentReport:
-    """Display-ready sizing result: per-component breakdown, final total, and hardware options."""
+    """Display-ready sizing result: per-component breakdown, totals, plan, and UI tables."""
 
     breakdown: VramBreakdown
     total_vram_gb: float
     host_ram_gb: int
-    hardware: tuple[HardwareOption, ...]
     plan: DeploymentPlan
-    assumptions: AssumptionSummary
-    comparison: QuantizationComparison
+    tables: ReportTables
     runtime_margin: float = SAFETY_MARGIN  # The actual (W+KV+T+C) multiplier this deployment used.
+
+    @property
+    def hardware(self) -> tuple[HardwareOption, ...]:
+        """Return catalog hardware rows for existing report callers."""
+        return self.tables.hardware
+
+    @property
+    def assumptions(self) -> AssumptionSummary:
+        """Return assumption rows for existing report callers."""
+        return self.tables.assumptions
+
+    @property
+    def comparison(self) -> QuantizationComparison:
+        """Return quantization comparison rows for existing report callers."""
+        return self.tables.comparison
 
 
 def build_report(spec: DeploymentSpec) -> DeploymentReport:
@@ -62,9 +84,11 @@ def build_report(spec: DeploymentSpec) -> DeploymentReport:
         breakdown=breakdown,
         total_vram_gb=total_vram_gb(spec),
         host_ram_gb=recommended_host_ram_gb(spec),
-        hardware=tuple(plan_option.option for plan_option in plan.options),
         plan=plan,
-        assumptions=build_assumption_summary(spec),
-        comparison=quantization_comparison(spec),
+        tables=ReportTables(
+            hardware=tuple(plan_option.option for plan_option in plan.options),
+            assumptions=build_assumption_summary(spec),
+            comparison=quantization_comparison(spec),
+        ),
         runtime_margin=RUNTIME_MARGINS[spec.runtime],
     )

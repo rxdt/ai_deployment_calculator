@@ -28,7 +28,8 @@ non-empty. Assumption summaries must contain the five required audit labels and
 non-empty values, so stale or blank audit payloads are rejected before rendering.
 Top-level report totals, plan text, and calculation strings must also be
 non-empty before the frontend renders success. Hardware recommendation rows must
-contain non-empty name, detail, and sharding text.
+contain non-empty name, detail, and sharding text. Dense query state drops stale
+MoE-only active parameter values before rendering the disabled input.
 
 ## Prioritize These Items
 
@@ -60,6 +61,8 @@ contain non-empty name, detail, and sharding text.
 - [x] The quantization comparison preserves the deployment's runtime, so GGUF rows keep the additive `1.0` margin instead of silently inflating by the `1.10` PyTorch multiplier.
 - [x] Integer-valued context tokens (`8000.0`, `8e3`) parse like the frontend's `Number.isInteger` guard, so the backend stops silently dropping every input back to the default deployment.
 - [x] A missing MoE `active_parameters_b` defaults to the frontend's `1.3`, so the no-JS server page renders the same MoE deployment as the JS app instead of resetting to the dense 8B default.
+- [x] Dense frontend query state drops stale `active_parameters_b`, so a MoE-only URL value is neither sent to `/api/report` nor displayed in the disabled dense-model control.
+- [x] Underscore-grouped numbers (`1_000`) are rejected like the frontend's `Number()`, so the no-JS server page stops sizing a different deployment than the JS app for the same URL.
 
 ## Acceptance Signals
 

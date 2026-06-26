@@ -6,7 +6,7 @@ from assumptions import Assumption, AssumptionSummary
 from deployment_plan import OPTIMIZE_NONE, DeploymentPlan, PlanOption
 from hardware import GPU_CATALOG, Gpu, HardwareOption
 from quantization_comparison import QuantizationComparison, QuantizationComparisonRow
-from report import DeploymentReport, VramBreakdown, build_report
+from report import DeploymentReport, ReportTables, VramBreakdown, build_report
 from vram_calculator import DeploymentSpec
 from web.presenter import FormInputs
 from web.view import (
@@ -32,20 +32,22 @@ def sample_report() -> DeploymentReport:
         breakdown=VramBreakdown(weights=16.0, kv_cache=0.8, task_overhead=0.0, cuda_tax=1.5),
         total_vram_gb=20.1,
         host_ram_gb=32,
-        hardware=(rtx, a100),
         plan=DeploymentPlan(options=(rtx_plan, a100_plan), primary=rtx_plan, optimization=OPTIMIZE_NONE),
-        assumptions=AssumptionSummary(
-            items=(
-                Assumption("Safety margin", "10%"),
-                Assumption("CUDA/system tax", "1.5 GB"),
-            )
-        ),
-        comparison=QuantizationComparison(
-            rows=(
-                QuantizationComparisonRow(weight_bits=16, total_gb=20.1, savings_gb=0.0, selected=True),
-                QuantizationComparisonRow(weight_bits=8, total_gb=11.3, savings_gb=8.8, selected=False),
-                QuantizationComparisonRow(weight_bits=4, total_gb=6.9, savings_gb=13.2, selected=False),
-            )
+        tables=ReportTables(
+            hardware=(rtx, a100),
+            assumptions=AssumptionSummary(
+                items=(
+                    Assumption("Safety margin", "10%"),
+                    Assumption("CUDA/system tax", "1.5 GB"),
+                )
+            ),
+            comparison=QuantizationComparison(
+                rows=(
+                    QuantizationComparisonRow(weight_bits=16, total_gb=20.1, savings_gb=0.0, selected=True),
+                    QuantizationComparisonRow(weight_bits=8, total_gb=11.3, savings_gb=8.8, selected=False),
+                    QuantizationComparisonRow(weight_bits=4, total_gb=6.9, savings_gb=13.2, selected=False),
+                )
+            ),
         ),
     )
 

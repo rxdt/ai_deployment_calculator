@@ -2,15 +2,14 @@
 
 The web form exposes the deployment fields users need to tune memory: parameters,
 context, weight precision, KV-cache precision, training mode, and adapter use. This
-module translates those controls into a validated `DeploymentSpec` and report, so the
-page renders one pure call instead of mapping inputs itself.
+module holds the validated `FormInputs` model and maps it onto a `DeploymentSpec`;
+parsing a raw query string into a `FormInputs` lives in `web.form_query`.
 """
 
 from __future__ import annotations
 
 import math
 from dataclasses import InitVar, dataclass, field
-from urllib.parse import parse_qs
 
 from vram_calculator import Architecture, Bits, DeploymentSpec, Runtime, Task
 
@@ -21,23 +20,11 @@ ARCHITECTURE_VALUES: dict[str, Architecture] = {"dense": "dense", "moe": "moe"}
 DEFAULT_ACTIVE_PARAMETERS_B = 1.3  # Frontend DEFAULT_VALUES.active_parameters_b for missing MoE input.
 VALID_RUNTIMES: set[Runtime] = {"pytorch", "llama_cpp_gguf"}
 RUNTIME_VALUES: dict[str, Runtime] = {"pytorch": "pytorch", "llama_cpp_gguf": "llama_cpp_gguf"}
+INVALID_FORM_MESSAGE = "invalid form input"
 
 
 class FormInputError(ValueError):
     """Raised when form inputs fail local validation."""
-
-
-def parse_context_tokens(raw: str) -> int:
-    """Parse context tokens like the frontend's `Number.isInteger` guard.
-
-    The Vite form accepts integer-valued floats such as "8000.0" or "8e3"; a bare
-    `int()` rejects those and would silently drop every input back to the default
-    deployment, so the rendered report would contradict the form the user sees.
-    """
-    value = float(raw)
-    if not value.is_integer():
-        raise FormInputError
-    return int(value)
 
 
 @dataclass(frozen=True)
@@ -69,7 +56,7 @@ class FormInputs:
         invalid_precision = self.weight_bits not in VALID_BITS or self.kv_cache_bits not in VALID_BITS
         invalid_runtime = self.runtime not in VALID_RUNTIMES
         if invalid_size or invalid_precision or invalid_runtime or not active_parameters_valid:
-            raise FormInputError
+            raise FormInputError(INVALID_FORM_MESSAGE)
 
     @property
     def architecture(self) -> Architecture:
@@ -80,53 +67,6 @@ class FormInputs:
 DEFAULT_FORM = FormInputs(parameters_b=8, context_tokens=8000)  # 8B / 8k first-load deployment.
 
 
-def form_from_query(query_string: str) -> FormInputs:
-    """Build form inputs from a GET query string, falling back to defaults on missing/invalid input.
-
-    Unchecked checkboxes are simply absent from the query, so they take their `False` default; a bad
-    or empty submission yields the default deployment rather than an error page.
-    """
-    raw_params = {key: values[-1] for key, values in parse_qs(query_string).items()}
-    if not raw_params:
-        return DEFAULT_FORM
-    architecture = ARCHITECTURE_VALUES.get(raw_params.get("architecture", DEFAULT_FORM.architecture))
-    runtime = RUNTIME_VALUES.get(raw_params.get("runtime", DEFAULT_FORM.runtime))
-    if architecture is None or runtime is None:
-        return DEFAULT_FORM
-    raw_weight_bits = raw_params.get("weight_bits", str(DEFAULT_FORM.weight_bits))
-    raw_kv_cache_bits = raw_params.get("kv_cache_bits", str(DEFAULT_FORM.kv_cache_bits))
-    if raw_weight_bits not in BIT_VALUES or raw_kv_cache_bits not in BIT_VALUES:
-        return DEFAULT_FORM
-    try:
-        trained = raw_params.get("trained", "").lower() in CHECKED_VALUES
-        active_parameters_b = (
-            float(raw_params.get("active_parameters_b", DEFAULT_ACTIVE_PARAMETERS_B))
-            if architecture == "moe"
-            else None
-        )
-        return FormInputs(
-            parameters_b=float(raw_params["parameters_b"]),
-            context_tokens=parse_context_tokens(raw_params["context_tokens"]),
-            weight_bits=BIT_VALUES[raw_weight_bits],
-            kv_cache_bits=BIT_VALUES[raw_kv_cache_bits],
-            trained=trained,
-            use_adapter=trained and raw_params.get("use_adapter", "").lower() in CHECKED_VALUES,
-            active_parameters_b=active_parameters_b,
-            runtime=runtime,
-        )
-    except (ValueError, KeyError, FormInputError):
-        return DEFAULT_FORM
-
-
-def deployment_task(form: FormInputs) -> Task:
-    """Map the trained checkbox and adapter toggle onto a core task.
-
-    Untrained is inference; a trained run with a LoRA adapter is QLoRA, otherwise full training.
-    An adapter without training stays inference, since no gradients or optimizer states are held.
-    """
-    return form.task
-
-
 def spec_from_form(form: FormInputs) -> DeploymentSpec:
     """Build a validated `DeploymentSpec` from the one-page form controls."""
     return DeploymentSpec(
@@ -134,7 +74,7 @@ def spec_from_form(form: FormInputs) -> DeploymentSpec:
         context_tokens=form.context_tokens,
         weight_bits=form.weight_bits,
         kv_cache_bits=form.kv_cache_bits,
-        task=deployment_task(form),
+        task=form.task,
         architecture=form.architecture,
         active_parameters_b=form.active_parameters_b,
         runtime=form.runtime,

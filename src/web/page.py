@@ -10,7 +10,7 @@ from web.fragments import (
     render_comparison_rows,
     render_hardware_rows,
 )
-from web.presenter import DEFAULT_FORM, FormInputs, deployment_task, spec_from_form
+from web.presenter import DEFAULT_FORM, FormInputs, spec_from_form
 from web.view import view_from_form
 
 STYLE = """
@@ -81,33 +81,23 @@ def task_label(form: FormInputs) -> str:
     return "Inference"
 
 
-def selected_bits(active_bits: int, bits: int) -> str:
-    """Return a select-option marker for an active precision value."""
-    return " selected" if active_bits == bits else ""
-
-
-def selected_architecture(active_architecture: str, architecture: str) -> str:
-    """Return a select-option marker for the active model architecture."""
-    return " selected" if active_architecture == architecture else ""
-
-
-def selected_runtime(active_runtime: str, runtime: str) -> str:
-    """Return a select-option marker for the active runtime value."""
-    return " selected" if active_runtime == runtime else ""
+def selected_option(active_value: object, option_value: object) -> str:
+    """Return a select-option marker when the option is active."""
+    return " selected" if active_value == option_value else ""
 
 
 def render_page(form: FormInputs | None = None) -> str:
     """Render the single-screen calculator page for the given form state."""
     active_form = form or DEFAULT_FORM
     view = view_from_form(active_form)
-    active_task = deployment_task(active_form)
+    active_task = active_form.task
     trained = " checked" if active_task != "inference" else ""
     adapter = " checked" if active_task == "qlora" else ""
     adapter_disabled = "" if active_task != "inference" else " disabled"
     active_parameters_disabled = "" if active_form.architecture == "moe" else " disabled"
     active_parameters_value = active_form.active_parameters_b or 1.3
-    pytorch_runtime = selected_runtime(active_form.runtime, "pytorch")
-    gguf_runtime = selected_runtime(active_form.runtime, "llama_cpp_gguf")
+    pytorch_runtime = selected_option(active_form.runtime, "pytorch")
+    gguf_runtime = selected_option(active_form.runtime, "llama_cpp_gguf")
     return f"""<!doctype html>
 <html lang="en">
 <head>
@@ -129,18 +119,18 @@ def render_page(form: FormInputs | None = None) -> str:
       </label>
       <label>Quantization
         <select name="weight_bits">
-          <option value="32"{selected_bits(active_form.weight_bits, 32)}>32-bit</option>
-          <option value="16"{selected_bits(active_form.weight_bits, 16)}>16-bit</option>
-          <option value="8"{selected_bits(active_form.weight_bits, 8)}>8-bit</option>
-          <option value="4"{selected_bits(active_form.weight_bits, 4)}>4-bit</option>
+          <option value="32"{selected_option(active_form.weight_bits, 32)}>32-bit</option>
+          <option value="16"{selected_option(active_form.weight_bits, 16)}>16-bit</option>
+          <option value="8"{selected_option(active_form.weight_bits, 8)}>8-bit</option>
+          <option value="4"{selected_option(active_form.weight_bits, 4)}>4-bit</option>
         </select>
       </label>
       <label>KV cache
         <select name="kv_cache_bits">
-          <option value="32"{selected_bits(active_form.kv_cache_bits, 32)}>32-bit</option>
-          <option value="16"{selected_bits(active_form.kv_cache_bits, 16)}>16-bit</option>
-          <option value="8"{selected_bits(active_form.kv_cache_bits, 8)}>8-bit</option>
-          <option value="4"{selected_bits(active_form.kv_cache_bits, 4)}>4-bit</option>
+          <option value="32"{selected_option(active_form.kv_cache_bits, 32)}>32-bit</option>
+          <option value="16"{selected_option(active_form.kv_cache_bits, 16)}>16-bit</option>
+          <option value="8"{selected_option(active_form.kv_cache_bits, 8)}>8-bit</option>
+          <option value="4"{selected_option(active_form.kv_cache_bits, 4)}>4-bit</option>
         </select>
       </label>
       <label>Runtime
@@ -151,8 +141,8 @@ def render_page(form: FormInputs | None = None) -> str:
       </label>
       <label>Architecture
         <select name="architecture">
-          <option value="dense"{selected_architecture(active_form.architecture, "dense")}>Dense</option>
-          <option value="moe"{selected_architecture(active_form.architecture, "moe")}>MoE</option>
+          <option value="dense"{selected_option(active_form.architecture, "dense")}>Dense</option>
+          <option value="moe"{selected_option(active_form.architecture, "moe")}>MoE</option>
         </select>
       </label>
       <label>Active parameters (billions)

@@ -39,6 +39,13 @@
 - `form_from_query` defaults a missing MoE `active_parameters_b` to `1.3` (the frontend
   `DEFAULT_VALUES`), so the no-JS server page renders the same MoE deployment the JS app would
   instead of a `KeyError` reset to the dense 8B default.
+- Dense Vite query state now drops stale `active_parameters_b` values, so a MoE-only URL value is
+  neither sent to `/api/report` nor displayed in the disabled dense-model control.
+- `DeploymentReport` groups table-shaped report payloads under `ReportTables` while preserving
+  `.hardware`, `.assumptions`, and `.comparison` access, keeping pylint verify green.
+- `form_from_query` parses numbers via `parse_decimal`, which rejects underscore-grouped values
+  (`1_000`) that Python `float()` accepts but the frontend's `Number()` rejects, so the no-JS page
+  and JS app size the same deployment for any URL.
 
 ## Checks
 
@@ -54,8 +61,19 @@
   comparison (mutation-checked: forcing `with_weight_bits` to `pytorch` fails the new test 150.4 vs 136.7).
 - `uv run ralph gate` - green after accepting integer-valued `context_tokens`
   (mutation-checked: reverting to `int()` fails `8000.0`/`8e3` acceptance with `ValueError`).
+- `uv run ralph gate` - green after rejecting underscore-grouped numbers in `parse_decimal`
+  (mutation-checked: reverting to bare `float()` parses `1_000` as 1000B and fails the new test).
 - `uv run ralph gate` - green after defaulting missing MoE active parameters
   (mutation-checked: reverting to `raw_params["active_parameters_b"]` fails the new MoE-default test).
+- `uv run pytest tests/test_frontend.py` - green after pinning stale dense `active_parameters_b`
+  normalization.
+- `npm run build` in `frontend/` - green after stale dense `active_parameters_b` normalization.
+- `uv run pytest tests/test_report.py tests/test_view.py tests/test_frontend.py` - green after
+  the report table grouping.
+- `uv run ralph gate` - green after stale dense `active_parameters_b` normalization and report
+  table grouping.
+- `uv run ralph verify` - green after stale dense `active_parameters_b` normalization and report
+  table grouping.
 
 ## Next
 

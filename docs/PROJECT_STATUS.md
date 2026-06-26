@@ -3,7 +3,7 @@
 ## Current State
 
 - The active implementation spec is `specs/frontend.md`.
-- Current branch is `main`, ahead 8 and behind 1 against `origin/main` after
+- Current branch is `main`, ahead 9 and behind 1 against `origin/main` after
   this commit.
 - Advice-removal implementation commit is `f6acfbf`.
 - Fallback no-JS control implementation is the latest commit on `main`.
@@ -21,6 +21,8 @@
   cover a configured build path and no-build fallback without monkeypatching
   module globals.
 - The no-build fallback now lets plain HTML submissions choose QLoRA or MoE.
+- The dense architecture option now renders as `Dense (Typical inference)` in
+  both the Vite UI and the no-build fallback.
 - WSGI removed: `src/web/app.py` and `tests/test_app.py` deleted. Its form HTML
   and `/api/report` behaviors are covered by `tests/test_server.py`. FastAPI is
   the only server path. README updated to match.
@@ -43,19 +45,20 @@
    including `harness/cli.py`, `uv.lock`, `docs/plan.md`, and
    `claude-output.jsonl`.
 3. Reconcile `main` with `origin/main` outside this no-merge/no-rebase loop,
-   then resolve the push hook rejection and push.
+   then push.
 
 ## Checks From This Pass
 
-- `uv run pytest tests/test_page.py tests/test_server.py` - green, 22 passed,
-  1 warning.
-- `harness preflight` - green.
-- `harness gate` - green.
+- `uv run pytest tests/test_frontend.py tests/test_page.py` - green, 24 passed.
+- `cd frontend && npm run test:coverage` - green, 20 passed, 100% coverage.
+- `uv run pytest tests/test_page.py` - green, 16 passed.
 - `cd frontend && npm run gate` - green: build, 20 Vitest tests, 22 mocked
   Playwright tests, and 1 real-backend Playwright test.
+- `harness preflight` - green.
+- `harness gate` - green.
 - `git commit` - green; pre-commit ran `harness gate`.
-- `git push origin main` - fails after gate with `Empty commit rejected.
-  Commit real work.`
+- `git push origin main` - fails after gate with non-fast-forward rejection
+  because `main` is behind `origin/main`.
 
 ## Working Tree Notes
 

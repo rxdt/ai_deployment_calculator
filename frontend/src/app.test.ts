@@ -312,6 +312,8 @@ describe("calculator app", () => {
     const architecture = root.querySelector<HTMLSelectElement>('select[name="architecture"]');
     const activeParameters = root.querySelector<HTMLInputElement>('input[name="active_parameters_b"]');
 
+    expect(architecture?.selectedOptions[0]?.textContent).toBe("Dense (Typical inference)");
+
     trained?.click();
     adapter?.click();
     trained?.click();

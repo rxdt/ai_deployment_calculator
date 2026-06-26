@@ -108,6 +108,8 @@ def render_page(form: FormInputs | None = None) -> str:
     active_parameters_value = active_form.active_parameters_b or 1.3
     pytorch_runtime = selected_option(active_form.runtime, "pytorch")
     gguf_runtime = selected_option(active_form.runtime, "llama_cpp_gguf")
+    dense_architecture = selected_option(active_form.architecture, "dense")
+    moe_architecture = selected_option(active_form.architecture, "moe")
     return f"""<!doctype html>
 <html lang="en">
 <head>
@@ -151,8 +153,8 @@ def render_page(form: FormInputs | None = None) -> str:
       </label>
       <label>Architecture
         <select name="architecture">
-          <option value="dense"{selected_option(active_form.architecture, "dense")}>Dense</option>
-          <option value="moe"{selected_option(active_form.architecture, "moe")}>MoE</option>
+          <option value="dense"{dense_architecture}>Dense (Typical inference)</option>
+          <option value="moe"{moe_architecture}>MoE</option>
         </select>
       </label>
       <label>Active parameters (billions)

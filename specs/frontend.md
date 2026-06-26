@@ -21,6 +21,8 @@ Users open the Vite calculator first. FastAPI is the only backend/server path.
   the controlling input is active.
 - The Vite UI and no-build fallback render calculations without memory-optimization
   advice copy; `/api/report` still carries the existing plan field for compatibility.
+- The dense architecture option is labeled `Dense (Typical inference)` in both
+  the Vite UI and no-build fallback.
 - WSGI is removed.
 - Mocked and real-backend Playwright suites pass in this environment.
 - Vitest unit coverage gates frontend `src/**/*.ts` at 100% statements,
@@ -47,6 +49,8 @@ Users open the Vite calculator first. FastAPI is the only backend/server path.
 - `/api/report` returns JSON from FastAPI.
 - The no-build fallback can submit QLoRA and MoE choices before JavaScript runs.
 - The calculator UI does not render the old weight/KV memory-optimization advice.
+- The calculator UI and no-build fallback label dense architecture as
+  `Dense (Typical inference)`.
 - No WSGI app remains.
 
 ## If Browser Tests Fail

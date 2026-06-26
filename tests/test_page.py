@@ -64,6 +64,7 @@ def test_default_page_keeps_dependent_controls_submittable_without_javascript() 
     )
 
     assert 'name="architecture"' in html
+    assert '<option value="dense" selected>Dense (Typical inference)</option>' in html
     assert '<option value="moe">MoE</option>' in html
     assert 'name="active_parameters_b" type="number" min="0.000001" step="any"' in html
     assert f"{active_parameters_input}>" in html

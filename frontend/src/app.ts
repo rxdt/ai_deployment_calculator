@@ -329,7 +329,7 @@ function renderForm(state: FormState): string {
       </label>
       <label>Architecture
         <select name="architecture">
-          <option value="dense"${state.architecture === "dense" ? " selected" : ""}>Dense</option>
+          <option value="dense"${state.architecture === "dense" ? " selected" : ""}>Dense (Typical inference)</option>
           <option value="moe"${state.architecture === "moe" ? " selected" : ""}>MoE</option>
         </select>
       </label>

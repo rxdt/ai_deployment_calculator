@@ -152,6 +152,7 @@ def test_vite_frontend_disables_active_parameters_until_moe_is_selected() -> Non
     script = frontend_text("src/app.ts")
 
     assert 'name="architecture"' in script
+    assert "Dense (Typical inference)" in script
     assert 'name="active_parameters_b"' in script
     assert (
         "function isValidActiveParameters(value: string | null, totalParameters: string): value is string"

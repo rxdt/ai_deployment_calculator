@@ -3,7 +3,7 @@
 # Bypassing this hook is forbidden by AGENTS.md.
 set -eu
 
-harness gate
+harness preflight
 
 if git diff --cached --quiet; then
   echo "Empty commit rejected. Commit real work." >&2

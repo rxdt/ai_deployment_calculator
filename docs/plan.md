@@ -7,6 +7,11 @@
 Launch the Vite AI deployment calculator with a Python API backend. The calculator is reliable enough to be a real calculator.
 
 ## User requested changes. Put these in more exact wording in specs:
+- Clean up this document of items already contained in specs
+- Clean up the README.md to only contain useful information to a human user
+
+UX/UI
+
 - The entire calculator should be visible on one screen, no scrolling. Right now everything below "Active parameters (billions)" is not visible without scrolling down.
 - "Parameters (billions)" in calculator portion was confusing. Asking a user to type 0.0003 for a 300k parameter model is terrible UX. The best practice here is a Compound Input: A standard number input field sitting right next to a
 "Unit" dropdown. The Input: [ 300 ]

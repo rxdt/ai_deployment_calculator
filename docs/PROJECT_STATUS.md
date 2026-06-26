@@ -3,8 +3,9 @@
 ## Current State
 
 - The active spec is `specs/orchestrate.md`.
-- Current branch is `main`; the launch commit is staged but blocked by the
-  protected pre-commit hook change.
+- Current branch is `main`, ahead 5 and behind 1 against `origin/main`.
+- This pass removes rendered memory-optimization advice from both calculator
+  UIs; the `/api/report` plan field remains unchanged.
 - Finished specs have been removed so agents do not select stale work.
 - Vite frontend builds and calls `/api/report`.
 - FastAPI backend serves `/api/report`.
@@ -35,8 +36,10 @@
 1. Copy `frontend/ci.yml` to `.github/workflows/frontend-ci.yml` when protected
    workflow edits are allowed.
 2. Human owner reviews remaining protected/unrelated working-tree edits,
-   especially `.githooks/pre-commit`.
-3. Commit and push the staged launch work after the hook is repaired.
+   including `harness/cli.py`, `uv.lock`, `docs/plan.md`, and
+   `claude-output.jsonl`.
+3. Reconcile `main` with `origin/main` outside this no-merge/no-rebase loop,
+   then push.
 
 ## Checks From This Pass
 
@@ -52,13 +55,15 @@
   - green, 22 passed.
 - `uv run pytest` - green, 272 passed, 1 warning.
 - `harness gate` - green.
-- `git commit` - blocked after preflight passed. Git trace shows
-  `.githooks/pre-commit` exits on `git diff --cached --quiet` while launch
-  files are staged.
+- `cd frontend && npm run test:coverage` - green, 20 passed, 100% coverage.
+- `uv run pytest tests/test_frontend.py tests/test_page.py` - green, 24 passed.
+- `harness preflight` - green.
+- `harness gate` - green.
+- `cd frontend && npm run gate` - green: build, 20 Vitest tests, 22 mocked
+  Playwright tests, and 1 real-backend Playwright test.
 
 ## Working Tree Notes
 
-- Protected/unrelated dirty paths remain outside this iteration's commit scope.
-  The staged set contains only allowed frontend/docs/test files.
+- Existing unrelated dirty paths remain outside this iteration's commit scope.
 - Leave `frontend/example_user_will_delete/` alone. The user will delete it once
   the frontend is done.

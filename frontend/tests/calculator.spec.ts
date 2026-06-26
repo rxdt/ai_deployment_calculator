@@ -95,7 +95,8 @@ test("renders the calculator and submits deployment inputs", async ({ page }) =>
   expect(apiRequests.at(-1)?.searchParams.get("use_adapter")).toBe("on");
   await expect(page.locator(".total")).toHaveText("52.3 GB");
   await expect(page.getByLabel("Hardware recommendations")).toContainText("A100 80GB");
-  await expect(page.locator(".optimization")).toContainText("Use FP8 KV cache");
+  await expect(page.locator(".optimization")).toHaveCount(0);
+  await expect(page.getByText("Use FP8 KV cache")).toHaveCount(0);
 });
 
 test("clears adapter use when training is turned off", async ({ page }) => {
@@ -531,7 +532,8 @@ test("escapes reflected query and report values", async ({ page }) => {
 
   await expect(page.locator("img")).toHaveCount(0);
   await expect(page.locator(".total")).toContainText("20.1 GB");
-  await expect(page.locator(".optimization")).toHaveText("<strong>Lower precision</strong>");
+  await expect(page.locator(".optimization")).toHaveCount(0);
+  await expect(page.getByText("<strong>Lower precision</strong>")).toHaveCount(0);
   await expect
     .poll(async () => page.evaluate(() => Boolean((window as Window & { injected?: boolean }).injected)))
     .toBe(false);

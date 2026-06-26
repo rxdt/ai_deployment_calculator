@@ -268,7 +268,8 @@ describe("rendering", () => {
     expect(qlora).toContain("<h2>QLoRA</h2>");
     expect(qlora).toContain("&lt;b&gt;20.1 GB&lt;/b&gt;");
     expect(qlora).toContain("&lt;script&gt;bad()&lt;/script&gt;");
-    expect(qlora).toContain("&lt;strong&gt;safe text&lt;/strong&gt;");
+    expect(qlora).not.toContain("&lt;strong&gt;safe text&lt;/strong&gt;");
+    expect(qlora).not.toContain('class="optimization"');
     expect(qlora).toContain('class="selected"');
   });
 });

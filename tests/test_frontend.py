@@ -97,7 +97,7 @@ def test_vite_frontend_renders_required_controls_and_fetches_report_api() -> Non
     assert '.replace(/</g, "&lt;")' in script
     assert '.replace(/"/g, "&quot;")' in script
     assert "${escapeHtml(report.total_vram)}" in script
-    assert "${escapeHtml(report.plan.optimization)}" in script
+    assert "${escapeHtml(report.plan.optimization)}" not in script
     assert "color-scheme: dark;" in styles
     assert "height: 100dvh;" in styles
 
@@ -190,7 +190,7 @@ def test_playwright_harness_exercises_rendered_form_and_report_api() -> None:
     assert "KV cache heuristic" in spec
     assert "Host RAM rule" in spec
     assert "Supported precisions" in spec
-    assert 'page.locator(".optimization")' in spec
+    assert 'page.locator(".optimization")).toHaveCount(0)' in spec
     assert "status: 503" in spec
     assert 'page.getByRole("alert")' in spec
     assert all(

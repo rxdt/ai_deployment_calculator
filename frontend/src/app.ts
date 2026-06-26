@@ -412,7 +412,6 @@ export function renderResults(report: ReportPayload, state: FormState): string {
             </table>
           </section>
         </div>
-        <p class="optimization">${escapeHtml(report.plan.optimization)}</p>
         <details class="calc">
           <summary>Calculation used</summary>
           <code>${escapeHtml(report.calculation)}</code>

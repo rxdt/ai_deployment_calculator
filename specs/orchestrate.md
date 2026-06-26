@@ -4,7 +4,8 @@ PRIORITY 2
 
 ## Vision
 
-User comments in plan.md are addressed in specs. We are ready to launch.
+Launch is close; current specs and status must stay truthful about shipped UI
+behavior, checks, and blockers.
 
 ## Current Truthful State
 
@@ -12,6 +13,8 @@ User comments in plan.md are addressed in specs. We are ready to launch.
 - Vite builds, calls `/api/report`, and is served by FastAPI from `frontend/dist`.
 - FastAPI keeps `/api/report` available before frontend assets exist and falls
   back to the no-JS page when the build is missing.
+- The calculator UI renders results without the old memory-optimization advice
+  paragraph.
 - Mocked Playwright, real-backend Playwright, Vitest coverage, frontend gate,
   harness preflight, and harness gate are green in this workspace.
 - `frontend/ci.yml` is ready to copy to `.github/workflows/frontend-ci.yml` when
@@ -37,8 +40,8 @@ User comments in plan.md are addressed in specs. We are ready to launch.
 
 ## Blockers
 
-- The current `.githooks/pre-commit` change is protected and fails normal
-  commits with `line 12: $1: unbound variable`.
+- Current `main` is ahead 5 and behind 1 against `origin/main`; the loop forbids
+  merge or rebase, so a normal push cannot be completed from this state.
 - `.github/workflows/frontend-ci.yml` cannot be installed by agents because
   `.github/` is protected.
 
@@ -46,3 +49,5 @@ User comments in plan.md are addressed in specs. We are ready to launch.
 
 - Codex-frontend-1/1: replaced placeholders with the real launch orchestration
   state after confirming `harness gate` and `harness preflight` are green.
+- Codex-orchestrate-1/1: stopped rendering optimization advice in calculator
+  UIs while leaving the API payload contract intact.

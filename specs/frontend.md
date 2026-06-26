@@ -16,6 +16,8 @@ Users open the Vite calculator first. FastAPI is the only backend/server path.
   no-build fallback coverage does not mutate module globals.
 - `/api/report` is served by the same FastAPI process.
 - `src/web/page.py` remains only as a no-build fallback when `frontend/dist` is absent.
+- The Vite UI and no-build fallback render calculations without memory-optimization
+  advice copy; `/api/report` still carries the existing plan field for compatibility.
 - WSGI is removed.
 - Mocked and real-backend Playwright suites pass in this environment.
 - Vitest unit coverage gates frontend `src/**/*.ts` at 100% statements,
@@ -40,6 +42,7 @@ Users open the Vite calculator first. FastAPI is the only backend/server path.
 - `harness gate` passes.
 - The launch URL serves the Vite UI after build.
 - `/api/report` returns JSON from FastAPI.
+- The calculator UI does not render the old weight/KV memory-optimization advice.
 - No WSGI app remains.
 
 ## If Browser Tests Fail

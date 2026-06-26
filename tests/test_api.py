@@ -81,6 +81,37 @@ def test_payload_breakdown_labels_match_the_frontend_contract() -> None:
     assert [row["label"] for row in data["breakdown"]] == ["Weights", "KV cache", "Task", "CUDA/system"]
 
 
+def test_payload_comparison_contract_matches_submitted_precision() -> None:
+    # frontend/src/main.ts hasSupportedComparisonRows rejects the whole report unless the
+    # comparison exposes exactly the four SUPPORTED_PRECISION_LABELS and the single selected
+    # row equals the submitted weight precision. A non-default precision is the case the
+    # default-only payload() never exercises; a divergence here silently shows
+    # "Report unavailable" in the live app while the mocked e2e suite stays green.
+    data = report_payload("parameters_b=8&context_tokens=8000&weight_bits=4")
+
+    assert {row["precision"] for row in data["comparison"]} == {"32-bit", "16-bit", "8-bit", "4-bit"}
+    selected = [row for row in data["comparison"] if row["selected"]]
+    assert len(selected) == 1
+    assert selected[0]["precision"] == "4-bit"
+    assert all(row["total"] and row["savings"] for row in data["comparison"])
+
+
+def test_payload_assumptions_contract_matches_frontend_labels() -> None:
+    # frontend/src/main.ts hasRequiredAssumptionRows rejects the report unless these five
+    # labels are present with non-empty values; pin them so a renamed/dropped assumption is
+    # caught here instead of as a blank live app.
+    data = payload()
+
+    assert {row["label"] for row in data["assumptions"]} == {
+        "Safety margin",
+        "CUDA/system tax",
+        "KV cache heuristic",
+        "Host RAM rule",
+        "Supported precisions",
+    }
+    assert all(row["value"] for row in data["assumptions"])
+
+
 def test_payload_is_json_serializable() -> None:
     # The endpoint returns this via JSONResponse; a leaked dataclass/float would break that.
     assert json.loads(json.dumps(payload())) == payload()

@@ -62,10 +62,14 @@
 
 ## Next
 
-- `specs/quantization_comparison.md` and `specs/deployment_plan.md` are marked COMPLETE: all
-  acceptance signals are pinned by tests. `vram_calculator` is also complete. Remaining open specs
-  are `frontend.md` (user-gated until they delete the example) and `code_review.md` (frontend
-  adversarial coverage; the TS validators have no unit-test runner, only the blocked Playwright e2e).
+- `specs/quantization_comparison.md`, `deployment_plan.md`, `vram_calculator.md`, and now
+  `assumption_transparency.md` are marked COMPLETE: all acceptance signals are pinned by tests.
+  Remaining open specs are `frontend.md` (user-gated until they delete the example) and
+  `code_review.md` (frontend adversarial coverage; the TS validators have no unit-test runner,
+  only the blocked Playwright e2e).
+- `tests/test_api.py` now mirrors the frontend `hasSupportedComparisonRows`/`hasRequiredAssumptionRows`
+  contracts against a real non-default-precision payload, guarding the live-app-breaking divergence
+  class (like the prior breakdown-label mismatch) that the blocked Playwright suite cannot.
 - Keep `frontend/example_user_will_delete/` untracked for now; it is only an example reference.
 - Hardware catalog complete through B200 (192 GB). No further catalog entries pending.
 - Open research questions remain for CPU selection and memory-bandwidth-aware recommendations.

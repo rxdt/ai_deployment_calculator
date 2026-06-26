@@ -44,5 +44,5 @@ The core constants are documented in README, encoded in `src/`, attached to
 
 ## COMPLETE ?
 
-- [ ] TRUE
+- [x] TRUE
 - [ ] FALSE

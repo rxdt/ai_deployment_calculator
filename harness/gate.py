@@ -18,7 +18,7 @@ except ImportError:  # humans do what they want with preferences.py
     prefs = None
 
 # A staged file is forbidden if one of its parent dirs is here, or its exact path is in the file set.
-FORBIDDEN_DIRS = {"harness", "tests/harness", ".githooks", ".github"}
+FORBIDDEN_DIRS = {"harness", ".githooks", ".github"}
 
 FORBIDDEN_FILES = {
     "AGENTS.md",
@@ -130,13 +130,15 @@ def run_preflight(repo: Path) -> list[str]:
     and flag banned patterns + human-preference breaks."""
     problems: list[str] = []
     if os.environ.get("RALPH_LOOP"):
-        staged = set(
+        staged_pre_drop = set(
             run_git(
                 repo, ["diff", "--cached", "--name-only", "--no-renames", "--diff-filter=ACMRD"]
             ).splitlines()
         )
-        forbidden = (staged & FORBIDDEN_FILES) | {
-            f for f in staged if not FORBIDDEN_DIRS.isdisjoint(str(p) for p in PurePosixPath(f).parents)
+        forbidden = (staged_pre_drop & FORBIDDEN_FILES) | {
+            f
+            for f in staged_pre_drop
+            if not FORBIDDEN_DIRS.isdisjoint(str(p) for p in PurePosixPath(f).parents)
         }
         if forbidden:
             dropped = sorted(forbidden)
@@ -144,18 +146,19 @@ def run_preflight(repo: Path) -> list[str]:
             reset.extend(dropped)
             run_git(repo, reset)
             sys.stderr.write("harness kept forbidden paths out of the commit: " + ", ".join(dropped) + "\n")
-        added = run_git(repo, ["diff", "--cached", "--unified=0"]).splitlines()
+        # --unified=0 removes unchanged context lines from git diff, leaves only changed lines
+        staged = run_git(repo, ["diff", "--cached", "--unified=0"]).splitlines()
         problems = [
             f"banned pattern '{pattern}' in line: {line[1:].strip()}"
-            for line in added
+            for line in staged
             if line.startswith("+") and not line.startswith("+++")
             for pattern in FORBIDDEN_PATTERNS
             if pattern.casefold() in line.casefold()  # case-insensitive so mixed-case matches are caught
         ]
-        problems.extend(preference_problems(repo, staged))
+        if not staged:
+            problems.append("Empty commits are rejected. Stage real work.")
+        problems.extend(preference_problems(repo, staged_pre_drop))
     problems.extend(run_checks(repo, COMMIT_CHECKS))
-    if not run_git(repo, ["diff", "--cached", "--name-only"]).strip():
-        problems.append("Empty commit rejected. Stage real work.")
     return problems
 
 

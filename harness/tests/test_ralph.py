@@ -13,14 +13,33 @@ import shutil
 import subprocess
 from pathlib import Path
 
+from conftest import write_executable
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
 RALPH = REPO_ROOT / "harness" / "ralph.sh"
 
-
-def write_executable(path: Path, text: str) -> None:
-    """Write an executable test helper script."""
-    path.write_text(text, encoding="utf-8")
-    path.chmod(0o755)
+# Unambiguous bashisms that cannot appear in valid POSIX sh. `sh -n` misses these when /bin/sh is bash
+# (e.g. on macOS), so we scan the source for them directly.
+BASHISMS = (
+    "[[",
+    "]]",
+    "function ",
+    "<<<",
+    "&>",
+    "$'",
+    "=~",
+    "${!",
+    "source ",
+    "declare ",
+    "typeset ",
+    "mapfile",
+    "readarray",
+    "pushd",
+    "popd",
+    "let ",
+    "echo -e",
+    "echo -n",
+)
 
 
 def fake_timeout(path: Path) -> None:
@@ -43,7 +62,9 @@ def run_ralph(
     fake_timeout(bin_dir / "gtimeout")
     env = os.environ.copy()
     env["PATH"] = f"{bin_dir}{os.pathsep}{env['PATH']}"
-    command = [str(RALPH), *(ralph_args or []), str(worker)]
+    command = [str(RALPH)]
+    command.extend(ralph_args or [])
+    command.append(str(worker))
     return subprocess.run(command, cwd=tmp_path, capture_output=True, text=True, check=False, env=env)
 
 
@@ -183,10 +204,13 @@ def test_worker_args_pass_through_verbatim_without_substitution(tmp_path: Path) 
 
 
 def test_script_has_no_bashisms() -> None:
-    """The shell script parses as POSIX sh."""
+    """ralph.sh parses as sh AND contains none of the common bashisms a bash-as-/bin/sh would let pass."""
     assert shutil.which("sh") is not None
     result = subprocess.run(["sh", "-n", str(RALPH)], capture_output=True, text=True, check=False)
-    assert result.returncode == 0
+    assert result.returncode == 0, result.stderr
+    text = RALPH.read_text(encoding="utf-8")
+    found = [token for token in BASHISMS if token in text]
+    assert found == [], f"ralph.sh uses non-POSIX bashisms: {found}"
 
 
 def test_missing_prompt_stops_the_loop(tmp_path: Path) -> None:

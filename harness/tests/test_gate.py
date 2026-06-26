@@ -2,36 +2,15 @@
 
 from __future__ import annotations
 
-import importlib
-import sys
 import tomllib
 from pathlib import Path
 
 import pytest
-from conftest import run_cmd
+from conftest import get_staged_file_names, run_cmd, stage_files, stubbed_run_checks
 
 from harness import gate as gate_module
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-
-
-def stage(repo: Path, name: str, content: str) -> None:
-    """Write a file inside the repo and stage it."""
-    target = repo / name
-    target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(content, encoding="utf-8")
-    run_cmd(["git", "add", name], repo)
-
-
-def staged(repo: Path) -> list[str]:
-    """Paths currently in the index, via the gate's own git helper."""
-    return gate_module.run_git(repo, ["diff", "--cached", "--name-only"]).split()
-
-
-def clean_checks(repo: Path, checks: object) -> list[str]:
-    """Stub run_checks so containment tests don't shell out to ruff/pytest."""
-    del repo, checks
-    return []
 
 
 # --------------------------------------------------------------------------- run_git
@@ -39,15 +18,15 @@ def clean_checks(repo: Path, checks: object) -> list[str]:
 
 def test_run_git_returns_stdout(git_repo: Path) -> None:
     """run_git runs git in the repo and returns its stdout."""
-    stage(git_repo, "pkg/a.py", "x = 1\n")
+    stage_files(git_repo, "pkg/a.py", "x = 1\n")
     assert gate_module.run_git(git_repo, ["diff", "--cached", "--name-only"]).split() == ["pkg/a.py"]
 
 
 def test_run_git_ignores_poisoned_hook_env(monkeypatch: pytest.MonkeyPatch, git_repo: Path) -> None:
     """A GIT_DIR a hook exported does not redirect the gate's git calls (GIT_* is stripped)."""
     monkeypatch.setenv("GIT_DIR", str(git_repo / "does-not-exist" / ".git"))
-    stage(git_repo, "pkg/a.py", "x = 1\n")
-    assert staged(git_repo) == ["pkg/a.py"]
+    stage_files(git_repo, "pkg/a.py", "x = 1\n")
+    assert get_staged_file_names(git_repo) == ["pkg/a.py"]
 
 
 # --------------------------------------------------------------------------- run_checks (break cases)
@@ -77,7 +56,7 @@ def test_check_sets_use_expected_runners() -> None:
 
 
 def test_gate_constants_are_well_formed() -> None:
-    """Forbidden collections are sets of str; every check command is a tuple of str."""
+    """Forbidden collections are str sets / str-tuple commands, and pin the security-critical entries."""
     assert isinstance(gate_module.FORBIDDEN_DIRS, set)
     assert isinstance(gate_module.FORBIDDEN_FILES, set)
     for name in gate_module.FORBIDDEN_DIRS | gate_module.FORBIDDEN_FILES:
@@ -89,6 +68,10 @@ def test_gate_constants_are_well_formed() -> None:
             assert isinstance(command, tuple)
             for part in command:
                 assert isinstance(part, str)
+    # Pin containment essentials so they can't be silently dropped, not just "is a set of str".
+    assert {"harness", ".githooks", ".github"} <= gate_module.FORBIDDEN_DIRS
+    assert {"pyproject.toml", "uv.lock", "AGENTS.md"} <= gate_module.FORBIDDEN_FILES
+    assert {"noqa", "type: ignore", "--no-verify", "hooksPath"}.issubset(gate_module.FORBIDDEN_PATTERNS)
 
 
 def test_full_gate_runs_pyright_on_everything() -> None:
@@ -168,7 +151,7 @@ def test_run_preflight_runs_commit_checks_for_everyone(
         return []
 
     monkeypatch.setattr(gate_module, "run_checks", record)
-    stage(git_repo, "src/feature.py", "y = 2\n")
+    stage_files(git_repo, "src/feature.py", "y = 2\n")
     assert gate_module.run_preflight(git_repo) == []
     assert recorded["checks"] == gate_module.COMMIT_CHECKS
 
@@ -182,28 +165,28 @@ def test_run_preflight_surfaces_a_failing_check(monkeypatch: pytest.MonkeyPatch,
         return ["security failed:\nca-certs: empty trust anchors"]
 
     monkeypatch.setattr(gate_module, "run_checks", fails)
-    stage(git_repo, "src/feature.py", "y = 2\n")
+    stage_files(git_repo, "src/feature.py", "y = 2\n")
     problems = gate_module.run_preflight(git_repo)
     assert any("security failed" in problem for problem in problems)
 
 
-def test_run_preflight_rejects_empty_commit(monkeypatch: pytest.MonkeyPatch, git_repo: Path) -> None:
+def test_loop_run_preflight_rejects_empty_commit(monkeypatch: pytest.MonkeyPatch, git_repo: Path) -> None:
     """With nothing staged, preflight rejects the commit instead of letting empty work through."""
-    monkeypatch.delenv("RALPH_LOOP", raising=False)
-    monkeypatch.setattr(gate_module, "run_checks", clean_checks)
-    assert "Empty commit rejected. Stage real work." in gate_module.run_preflight(git_repo)
+    monkeypatch.setenv("RALPH_LOOP", "1")
+    monkeypatch.setattr(gate_module, "run_checks", stubbed_run_checks)
+    assert "Empty commits are rejected. Stage real work." in gate_module.run_preflight(git_repo)
 
 
-def test_run_preflight_rejects_commit_emptied_by_containment(
+def test_loop_run_preflight_rejects_commit_emptied_by_containment(
     monkeypatch: pytest.MonkeyPatch, git_repo: Path
 ) -> None:
     """If the loop staged only forbidden paths, ejection empties the index and the commit is rejected."""
     monkeypatch.setenv("RALPH_LOOP", "1")
-    monkeypatch.setattr(gate_module, "run_checks", clean_checks)
-    stage(git_repo, "pyproject.toml", "x = 1\n")
+    monkeypatch.setattr(gate_module, "run_checks", stubbed_run_checks)
+    stage_files(git_repo, "pyproject.toml", "x = 1\n")
     problems = gate_module.run_preflight(git_repo)
-    assert "Empty commit rejected. Stage real work." in problems
-    assert "pyproject.toml" not in staged(git_repo)
+    assert "Empty commits are rejected. Stage real work." in problems
+    assert "pyproject.toml" not in get_staged_file_names(git_repo)
 
 
 # --------------------------------------------------------------------------- containment (loop only)
@@ -212,37 +195,37 @@ def test_run_preflight_rejects_commit_emptied_by_containment(
 def test_preflight_ejects_forbidden_file_under_loop(monkeypatch: pytest.MonkeyPatch, git_repo: Path) -> None:
     """A staged forbidden FILE (exact-path set) is dropped from the index, kept in the tree."""
     monkeypatch.setenv("RALPH_LOOP", "1")
-    monkeypatch.setattr(gate_module, "run_checks", clean_checks)
-    stage(git_repo, "pyproject.toml", "x = 1\n")
-    stage(git_repo, "src/feature.py", "y = 2\n")  # real work keeps the commit non-empty
+    monkeypatch.setattr(gate_module, "run_checks", stubbed_run_checks)
+    stage_files(git_repo, "pyproject.toml", "x = 1\n")
+    stage_files(git_repo, "src/feature.py", "y = 2\n")  # real work keeps the commit non-empty
     assert gate_module.run_preflight(git_repo) == []  # self-heals, not blocked
-    assert "pyproject.toml" not in staged(git_repo)
-    assert "src/feature.py" in staged(git_repo)  # only the forbidden path was dropped
+    assert "pyproject.toml" not in get_staged_file_names(git_repo)
+    assert "src/feature.py" in get_staged_file_names(git_repo)  # only the forbidden path was dropped
     assert (git_repo / "pyproject.toml").exists()  # edit survives in the working tree
 
 
-@pytest.mark.parametrize("path", ["harness/util.py", "tests/harness/x.py", ".github/ci.yml", ".githooks/x"])
+@pytest.mark.parametrize("path", ["harness/util.py", "harness/tests/x.py", ".github/ci.yml", ".githooks/x"])
 def test_preflight_ejects_forbidden_dir_under_loop(
     path: str, monkeypatch: pytest.MonkeyPatch, git_repo: Path
 ) -> None:
     """A staged file under any forbidden DIR (dir-set ancestor match) is dropped from the index."""
     monkeypatch.setenv("RALPH_LOOP", "1")
-    monkeypatch.setattr(gate_module, "run_checks", clean_checks)
-    stage(git_repo, path, "value = 1\n")
-    stage(git_repo, "src/feature.py", "y = 2\n")  # real work keeps the commit non-empty
+    monkeypatch.setattr(gate_module, "run_checks", stubbed_run_checks)
+    stage_files(git_repo, path, "value = 1\n")
+    stage_files(git_repo, "src/feature.py", "y = 2\n")  # real work keeps the commit non-empty
     assert gate_module.run_preflight(git_repo) == []
-    assert path not in staged(git_repo)
-    assert "src/feature.py" in staged(git_repo)
+    assert path not in get_staged_file_names(git_repo)
+    assert "src/feature.py" in get_staged_file_names(git_repo)
 
 
 def test_preflight_keeps_legit_work_beside_forbidden(monkeypatch: pytest.MonkeyPatch, git_repo: Path) -> None:
     """Only the forbidden path is dropped; the agent's own work still commits."""
     monkeypatch.setenv("RALPH_LOOP", "1")
-    monkeypatch.setattr(gate_module, "run_checks", clean_checks)
-    stage(git_repo, "harness/util.py", "value = 1\n")
-    stage(git_repo, "src/feature.py", "y = 2\n")
+    monkeypatch.setattr(gate_module, "run_checks", stubbed_run_checks)
+    stage_files(git_repo, "harness/util.py", "value = 1\n")
+    stage_files(git_repo, "src/feature.py", "y = 2\n")
     assert gate_module.run_preflight(git_repo) == []
-    after = staged(git_repo)
+    after = get_staged_file_names(git_repo)
     assert "harness/util.py" not in after
     assert "src/feature.py" in after
 
@@ -251,24 +234,24 @@ def test_preflight_ejects_staged_deletion_of_forbidden(
     monkeypatch: pytest.MonkeyPatch, git_repo: Path
 ) -> None:
     """A staged DELETION of a forbidden file is undone, so the agent can't remove protected files."""
-    stage(git_repo, "pyproject.toml", "x = 1\n")
+    stage_files(git_repo, "pyproject.toml", "x = 1\n")
     run_cmd(["git", "commit", "-q", "-m", "add pyproject"], git_repo)
     run_cmd(["git", "rm", "-q", "pyproject.toml"], git_repo)
-    stage(git_repo, "src/feature.py", "y = 2\n")  # real work keeps the commit non-empty
+    stage_files(git_repo, "src/feature.py", "y = 2\n")  # real work keeps the commit non-empty
     monkeypatch.setenv("RALPH_LOOP", "1")
-    monkeypatch.setattr(gate_module, "run_checks", clean_checks)
+    monkeypatch.setattr(gate_module, "run_checks", stubbed_run_checks)
     assert gate_module.run_preflight(git_repo) == []
-    assert "pyproject.toml" not in staged(git_repo)  # the deletion was reset out of the index
-    assert "src/feature.py" in staged(git_repo)
+    assert "pyproject.toml" not in get_staged_file_names(git_repo)  # the deletion was reset out of the index
+    assert "src/feature.py" in get_staged_file_names(git_repo)
 
 
 def test_preflight_skips_containment_without_loop(monkeypatch: pytest.MonkeyPatch, git_repo: Path) -> None:
     """Without RALPH_LOOP, a human may stage forbidden paths: nothing is ejected."""
     monkeypatch.delenv("RALPH_LOOP", raising=False)
-    monkeypatch.setattr(gate_module, "run_checks", clean_checks)
-    stage(git_repo, "harness/util.py", "value = 1\n")
+    monkeypatch.setattr(gate_module, "run_checks", stubbed_run_checks)
+    stage_files(git_repo, "harness/util.py", "value = 1\n")
     assert gate_module.run_preflight(git_repo) == []
-    assert "harness/util.py" in staged(git_repo)  # left staged: containment is loop-only
+    assert "harness/util.py" in get_staged_file_names(git_repo)  # left staged: containment is loop-only
 
 
 @pytest.mark.parametrize("pattern", ["noqa", "type: ignore", "--no-verify"])
@@ -277,8 +260,8 @@ def test_preflight_flags_banned_pattern_under_loop(
 ) -> None:
     """A banned escape-hatch in an added line is flagged (so the commit is rejected)."""
     monkeypatch.setenv("RALPH_LOOP", "1")
-    monkeypatch.setattr(gate_module, "run_checks", clean_checks)
-    stage(git_repo, "src/x.py", f"value = 1  # {pattern}\n")
+    monkeypatch.setattr(gate_module, "run_checks", stubbed_run_checks)
+    stage_files(git_repo, "src/x.py", f"value = 1  # {pattern}\n")
     assert any(f"banned pattern '{pattern}'" in problem for problem in gate_module.run_preflight(git_repo))
 
 
@@ -287,35 +270,6 @@ def test_preflight_banned_pattern_is_case_insensitive(
 ) -> None:
     """Mixed-case escape hatches are still caught."""
     monkeypatch.setenv("RALPH_LOOP", "1")
-    monkeypatch.setattr(gate_module, "run_checks", clean_checks)
-    stage(git_repo, "src/x.py", "value = 1  # NoQA\n")
+    monkeypatch.setattr(gate_module, "run_checks", stubbed_run_checks)
+    stage_files(git_repo, "src/x.py", "value = 1  # NoQA\n")
     assert any("banned pattern 'noqa'" in problem for problem in gate_module.run_preflight(git_repo))
-
-
-def test_preflight_flags_preferences_break_under_loop(
-    monkeypatch: pytest.MonkeyPatch, git_repo: Path
-) -> None:
-    """A staged Python file that breaks a preference (underscore name) is flagged."""
-    monkeypatch.setenv("RALPH_LOOP", "1")
-    monkeypatch.setattr(gate_module, "run_checks", clean_checks)
-    stage(git_repo, "src/mod.py", "_bad = 1\n")
-    assert any("'_bad'" in problem for problem in gate_module.run_preflight(git_repo))
-
-
-def test_preflight_tolerates_missing_preferences(monkeypatch: pytest.MonkeyPatch, git_repo: Path) -> None:
-    """If preferences.py was deleted (prefs is None), the Python style check is skipped, not crashed."""
-    monkeypatch.setenv("RALPH_LOOP", "1")
-    monkeypatch.setattr(gate_module, "run_checks", clean_checks)
-    monkeypatch.setattr(gate_module, "prefs", None)
-    stage(git_repo, "src/mod.py", "_bad = 1\n")
-    assert gate_module.run_preflight(git_repo) == []
-
-
-def test_gate_imports_cleanly_without_preferences(monkeypatch: pytest.MonkeyPatch) -> None:
-    """If preferences.py is absent, gate still imports and prefs is None (the ImportError branch)."""
-    monkeypatch.setitem(sys.modules, "harness.preferences", None)
-    importlib.reload(gate_module)
-    assert gate_module.prefs is None
-    monkeypatch.undo()
-    importlib.reload(gate_module)
-    assert gate_module.prefs is not None

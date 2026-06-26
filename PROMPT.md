@@ -3,21 +3,20 @@
 You are one fresh-context iteration of the loop. The repo is your memory.
 Specs say what to build. You decide what is the next most useful change.
 
-1. Read `specs/` and identify the single most important unfinished item.
-2. Inspect the relevant code and tests before editing.
-3. `git fetch origin` before work.
-4. Implement one tightly scoped change from your spec.
+1. Read `specs/frontend.md` and `docs/plan.md`.
+2. Inspect the relevant code and tests related to the spec you chose before before any edits.
+3. You will implement tightly scoped changes according to the spec.
+4. `git fetch origin` before work to inspect git state.
 5. Add or update tests that prove behavior and challenge the source; use durable, behavior-focused names and docstrings.
 6. Run `harness gate`. If `harness` is not on PATH, run `.venv/bin/harness gate`.
 7. Fix failures without weakening tests, coverage, typing, security checks, or the gate.
-9. Commit on the current branch through the normal git hooks.
-10. Push with plain `git push`. Never pull, merge, rebase, force-push, or reset history. If push is rejected document it.
-11. Update the relevant spec and `docs/PROJECT_STATUS.md` to match changes.
-
+8. Commit on the current branch through the normal git hooks.
+9. Push with plain `git push`. Never pull, merge, rebase, force-push, or reset history. If push is rejected document it.
+10. Update the relevant spec and `docs/PROJECT_STATUS.md` to match changes.
 
 Rules:
-- Do not create a branch or worktree unless the human explicitly asked for one.
-- Keep the change small enough to finish in this iteration.
+- Do not create a branch or worktree
+- Scope the change small enough to finish in 20 human minutes.
 - Do not batch unrelated work.
 - Keep history linear on the current branch: no branches, worktrees, merges, or rebases; commit only relevant current-branch work.
 - If forbidden paths block a commit, run `git restore --staged <path>` and leave those working-tree edits for human review.

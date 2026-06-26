@@ -3,6 +3,7 @@ toolchain (gate checks, uv sync, the worker subprocess) is stubbed at the bounda
 
 from __future__ import annotations
 
+import functools
 import io
 import os
 import subprocess
@@ -13,7 +14,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 import typer
-from conftest import run_cmd
+from conftest import run_cmd, write_executable
 from packaging.utils import InvalidName
 from typer.testing import CliRunner
 
@@ -42,16 +43,28 @@ def no_jq(name: str) -> None:
     del name
 
 
+def stubbed_toolchain_run(
+    real: Callable[..., object],
+    calls: list[tuple[str, ...]],
+    args: tuple[str, ...] | list[str],
+    **kwargs: object,
+) -> object:
+    """Record the call, run git for real, and stub everything else (uv sync) with a clean exit."""
+    calls.append(tuple(args))
+    if tuple(args)[:1] == ("git",):
+        return real(
+            args,
+            cwd=kwargs.get("cwd"),
+            check=kwargs.get("check", False),
+            capture_output=kwargs.get("capture_output", False),
+            text=kwargs.get("text", False),
+        )
+    return subprocess.CompletedProcess(list(args), 0)
+
+
 def stub_toolchain(real: Callable[..., object], calls: list[tuple[str, ...]]) -> Callable[..., object]:
-    """Run git for real, stub everything else (uv sync) with a clean exit."""
-
-    def fake(args: tuple[str, ...] | list[str], **kwargs: object) -> object:
-        calls.append(tuple(args))
-        if tuple(args)[:1] == ("git",):
-            return real(args, **kwargs)
-        return subprocess.CompletedProcess(list(args), 0)
-
-    return fake
+    """Bind a subprocess.run stub (git runs for real, the rest is stubbed) for one install run."""
+    return functools.partial(stubbed_toolchain_run, real, calls)
 
 
 def fake_agent(captured: dict[str, list[list[str]]], code: int = 0) -> Callable[..., object]:
@@ -72,12 +85,6 @@ def write_log(repo: Path, name: str) -> None:
     log = repo / "scratchpad" / "runs" / name
     log.parent.mkdir(parents=True, exist_ok=True)
     log.write_text("{}\n", encoding="utf-8")
-
-
-def write_executable(path: Path, text: str) -> None:
-    """Write an executable script for CLI integration tests."""
-    path.write_text(text, encoding="utf-8")
-    path.chmod(0o755)
 
 
 # --------------------------------------------------------------------------- entry point
@@ -401,7 +408,9 @@ def test_run_rejects_nonpositive_limits_before_creating_log(
     """Nonpositive loop limits fail in the CLI before any run receipt is opened."""
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(subprocess, "run", pytest.fail)
-    result = runner.invoke(cli.app, ["run", *args])
+    argv = ["run"]
+    argv.extend(args)
+    result = runner.invoke(cli.app, argv)
     assert result.exit_code == 2
     assert "num_iterations and max_minutes must be >= 1" in result.stderr
     assert not (tmp_path / "scratchpad").exists()

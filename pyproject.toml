@@ -24,6 +24,9 @@ build-backend = "hatchling.build"
 packages = [
     "harness",
 ]
+exclude = [
+    "harness/tests",  # the harness's own tests travel with it in-tree but are not shipped in the wheel
+]
 
 [dependency-groups]
 dev = [
@@ -53,13 +56,14 @@ minversion = "9.0"
 addopts = [
     "-ra"
 ]
-testpaths = ["tests"]
+testpaths = ["tests", "harness/tests"]
 pythonpath = ["src"]
 
 [tool.coverage.run]
 # Add every directory that ships runnable code here (e.g. "src") as the
 # project grows; the gate enforces 100% coverage on all of it.
 source = ["harness", "src"]
+omit = ["harness/tests/*"]  # harness/tests holds tests, not measured product code
 
 [tool.coverage.report]
 show_missing = true
@@ -178,4 +182,11 @@ ban-relative-imports = "all"  # Enforce absolute imports
     "S404", # Triggers when code imports subprocess or os related to process spawn
     "S603"  # Flags execution without a shell
 ]
-"tests/harness/{conftest,test_ralph,test_cli,test_integration}.py" = ["S404", "S603"]  # allow shell execution
+"harness/tests/**/*.py" = [
+    "D100",  # Test modules do not need noisy docstrings
+    "D101",  # Test classes do not need noisy docstrings
+    "D102",  # Test helper methods do not need noisy docstrings
+    "D103",  # Test functions describe behavior through test names
+    "D104",  # Test package boundaries do not need package docstrings
+    "S101",  # Allow 'assert' statements (needed for pytest)
+]

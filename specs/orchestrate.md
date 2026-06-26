@@ -17,8 +17,8 @@ behavior, checks, and blockers.
   `GPUs are for model training`.
 - Frontend source is split into focused modules so the launch lint gate can
   enforce file size and complexity limits.
-- Current `main` had one existing local commit ahead of `origin/main` after
-  fetch at the start of this pass.
+- Current `main` has local commits ahead of `origin/main`; the last plain push
+  was rejected by the protected pre-push hook's loop-containment failure.
 - Mocked Playwright, real-backend Playwright, Vitest coverage, and frontend gate
   were green in the prior launch pass.
 - `env -u RALPH_LOOP harness gate` is green in this workspace.
@@ -47,9 +47,8 @@ behavior, checks, and blockers.
 
 - `.github/workflows/frontend-ci.yml` cannot be installed by agents because
   `.github/` is protected.
-- Existing protected/user-owned working-tree edits remain outside this iteration:
-  `.githooks/pre-push`, `PROMPT.md`, generated report HTML, and
-  `frontend/example_user_will_delete/`.
+- Existing user-owned working-tree edits remain outside this iteration:
+  `docs/plan.md` and the generated report HTML.
 
 ## Changelog
 
@@ -65,3 +64,6 @@ behavior, checks, and blockers.
   mental model while leaving the `trained` query field compatible.
 - Codex-frontend-1/1: split frontend source and payload Playwright tests so the
   frontend lint gate passes without relaxing size or complexity rules.
+- Codex-orchestrate-1/1: refreshed launch orchestration status after fetch
+  showed local commits still ahead of `origin/main` and only docs/report
+  working-tree noise.

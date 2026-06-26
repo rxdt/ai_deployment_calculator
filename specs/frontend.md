@@ -41,8 +41,10 @@ Users open the Vite calculator first. FastAPI is the only backend/server path.
 - `uv run harness preflight` passes.
 - `pytest` passes.
 - `pytest tests/test_server.py -q` passes.
-- `env -u RALPH_LOOP harness gate` passes; unsetting `RALPH_LOOP` lets harness
-  integration tests exercise their simulated non-loop commit path.
+- `env -u RALPH_LOOP harness gate` passes in this workspace; plain
+  `harness gate` fails while this loop shell exports `RALPH_LOOP=1`.
+- Plain `git push` is currently blocked by the protected pre-push hook because
+  the hook runs harness integration tests under loop containment.
 
 ## Acceptance Signals
 

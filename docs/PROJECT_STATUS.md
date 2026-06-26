@@ -4,7 +4,7 @@
 
 - The active implementation spec is `specs/frontend.md`.
 - Current branch is `main`; `git fetch origin` completed before this pass and
-  found one existing local commit ahead of `origin/main`.
+  local commits remain ahead of `origin/main`.
 - Advice-removal implementation is in current history.
 - Fallback QLoRA and MoE dependent controls are submittable before JavaScript
   runs; the enhancement script still disables them when appropriate.
@@ -43,14 +43,19 @@
 
 1. Copy `frontend/ci.yml` to `.github/workflows/frontend-ci.yml` when protected
    workflow edits are allowed.
-2. Human owner reviews remaining protected/unrelated working-tree edits,
-   including `.githooks/pre-push`, `PROMPT.md`, generated report HTML, and
-   `frontend/example_user_will_delete/`.
+2. Human owner reviews remaining unrelated working-tree edits: `docs/plan.md`
+   and the generated report HTML.
+3. Human owner fixes or approves the protected pre-push hook loop-containment
+   failure that blocks plain `git push`.
 
 ## Checks From This Pass
 
-- `git fetch origin` - green; `main` was ahead of `origin/main` by one existing
-  commit before this pass.
+- `git fetch origin` - green; `main` had local commits ahead of `origin/main`
+  before this pass.
+- `harness gate` - failed in
+  `tests/harness/test_integration.py::test_hook_allows_forbidden_path_without_loop`
+  because this shell exports `RALPH_LOOP=1`.
+- `env -u RALPH_LOOP harness gate` - green.
 - `pytest tests/test_page.py tests/test_frontend.py tests/test_presenter.py -q`
   - green.
 - `npm --prefix frontend run test:coverage` - green at 100%.
@@ -76,9 +81,8 @@
 
 ## Working Tree Notes
 
-- Existing unrelated dirty paths remain outside this iteration's commit scope.
-- `docs/plan.md` has an unstaged cleanup from this pass; preflight treats it as
-  protected, so it is left for human review.
+- Existing unrelated dirty paths remain outside this iteration's commit scope:
+  `docs/plan.md` and the generated report HTML.
 - Current branch has local commits that are not pushed because plain `git push`
   is rejected by the hook failure recorded above.
 - Leave `frontend/example_user_will_delete/` alone. The user will delete it once

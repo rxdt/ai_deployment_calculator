@@ -21,18 +21,59 @@ from web.presenter import (
     FormInputs,
 )
 
+# Code points JS `String.prototype.trim()` strips (WhiteSpace + LineTerminator); the JS form trims
+# before validating, so the backend must strip the same set rather than Python's wider `float()`
+# whitespace (e.g. U+001C-U+001F), which JS keeps and rejects.
+JS_WHITESPACE = "".join(
+    chr(code)
+    for code in (
+        0x09,
+        0x0A,
+        0x0B,
+        0x0C,
+        0x0D,
+        0x20,
+        0xA0,
+        0x1680,
+        0x2000,
+        0x2001,
+        0x2002,
+        0x2003,
+        0x2004,
+        0x2005,
+        0x2006,
+        0x2007,
+        0x2008,
+        0x2009,
+        0x200A,
+        0x2028,
+        0x2029,
+        0x202F,
+        0x205F,
+        0x3000,
+        0xFEFF,
+    )
+)
+# The only characters the Vite form's `isDecimalNumber` regex permits; anything else (underscores,
+# non-ASCII digits, `inf`/`nan` letters, `float()`-only whitespace) makes `Number()` return `NaN`.
+DECIMAL_CHARS = frozenset("0123456789.eE+-")
+
 
 def parse_decimal(raw: str) -> float:
-    """Parse a decimal like the frontend's `Number()` so the no-JS page agrees with the JS app.
+    """Parse a decimal like the frontend's trimmed `Number()` so the no-JS page agrees with the JS app.
 
-    Python's `float()` accepts inputs the Vite form's `Number()` rejects as `NaN`, which would let
-    the static server page silently size a different deployment than the JS app for the same URL:
-    digit-group underscores ("1_000" -> 1000.0) and non-ASCII numerals such as full-width Unicode
-    digits (U+FF11.. -> 123.0), which `float()` normalizes but `Number()` rejects as `NaN`.
+    Python's `float()` accepts inputs the Vite form rejects as `NaN`, which would let the static
+    server page silently size a different deployment than the JS app for the same URL: digit-group
+    underscores ("1_000"), non-ASCII numerals (full-width digits), and `float()`-only whitespace.
+    Conversely the JS form trims Unicode whitespace (e.g. U+00A0) before validating, so a padded
+    decimal it accepts as 1.5 must parse here too instead of resetting to the default deployment.
+    Restricting to the decimal alphabet before `float()` rejects everything `Number()` rejects while
+    `float()` still rejects malformed orderings like "1.2.3".
     """
-    if "_" in raw or not raw.isascii():
+    trimmed = raw.strip(JS_WHITESPACE)
+    if not trimmed or any(char not in DECIMAL_CHARS for char in trimmed):
         raise FormInputError(INVALID_FORM_MESSAGE)
-    return float(raw)
+    return float(trimmed)
 
 
 def parse_context_tokens(raw: str) -> int:

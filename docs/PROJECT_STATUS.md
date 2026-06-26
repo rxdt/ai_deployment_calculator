@@ -51,13 +51,16 @@
 - `parse_decimal` also rejects non-ASCII numerals; Python `float()` normalizes full-width Unicode
   digits to a value, so a crafted URL had sized a deployment on the no-JS page that the decimal-only
   JS parser reset to the default.
+- `parse_decimal` trims the JS `trim()` whitespace set (e.g. `U+00A0`) and then accepts only the
+  decimal alphabet, so a Unicode-whitespace-padded number sizes the same deployment the JS app does,
+  while `float()`-only padding the JS form keeps (`U+001C`) is still rejected.
 
 ## Checks
 
 - `npm run build` in `frontend/` - green after decimal-only Vite query parsing.
 - `uv run pytest tests/test_frontend.py` - green, 8 passed after decimal-only Vite query parsing.
 - `TMPDIR=/Users/rxdt/ai_deployment_calculator/scratchpad/playwright-tmp npm run test:e2e -- --grep "non-decimal numeric"` - blocked before test execution by macOS Chromium Mach port permission denial.
-- `uv run ralph gate` - green after rejecting non-ASCII numerals in `parse_decimal`.
+- `uv run ralph gate` - green after `parse_decimal` trims the JS whitespace set and validates the decimal alphabet.
 - `uv run ralph verify` - green after decimal-only Vite query parsing.
 
 ## Next

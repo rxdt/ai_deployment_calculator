@@ -248,3 +248,18 @@ def test_form_from_query_rejects_non_ascii_numerals(field: str) -> None:
     base[field] = "\uff11\uff12\uff13"  # full-width digits for "123"
     query = "&".join(f"{key}={value}" for key, value in base.items())
     assert form_from_query(query) == DEFAULT_FORM
+
+
+def test_form_from_query_accepts_unicode_whitespace_padding() -> None:
+    # The Vite form trims Unicode whitespace (e.g. U+00A0) before validating, so it sizes a 47B
+    # deployment from a padded URL value. The backend must trim the same set instead of rejecting
+    # the non-ASCII padding and resetting to the default 8B, which would diverge from the JS app.
+    padded = form_from_query("parameters_b=\u00a047\u3000&context_tokens=8000")
+    assert padded == form_from_query("parameters_b=47&context_tokens=8000")
+    assert padded != DEFAULT_FORM
+
+
+def test_form_from_query_rejects_float_only_whitespace() -> None:
+    # Python float() strips ASCII control whitespace like U+001C that JS trim() keeps, so the JS
+    # form rejects "47\x1c" as NaN. The backend must reject it too instead of sizing 47B.
+    assert form_from_query("parameters_b=47\x1c&context_tokens=8000") == DEFAULT_FORM

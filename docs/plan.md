@@ -14,8 +14,8 @@ Launch the Vite AI deployment calculator with a Python API backend.
    have one backend launch path: FastAPI.
 4. Keep the static fallback page only if it is still needed as a no-build
    FastAPI fallback; do not keep a second WSGI server for it.
-5. Run one real browser smoke against the real API. If Chromium is blocked by
-   sandbox permissions, record the exact command and error.
+5. Run one real browser smoke against the real API. If the agent sandbox blocks
+   localhost or Chromium, rerun the same command unsandboxed.
 6. Update README and `docs/PROJECT_STATUS.md` with the truthful launch command,
    checks run, and blockers.
 
@@ -43,5 +43,5 @@ uv run harness preflight
 uv run harness gate
 ```
 
-If browser launch is blocked by local permissions, record the exact Playwright
-command and error in `docs/PROJECT_STATUS.md`.
+If Playwright still fails outside the sandbox, record the exact command and
+error in `docs/PROJECT_STATUS.md`.

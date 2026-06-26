@@ -12,22 +12,20 @@ Users open the Vite calculator first. FastAPI is the only backend/server path.
 - `/api/report` is served by the same FastAPI process.
 - `src/web/page.py` remains only as a no-build fallback when `frontend/dist` is absent.
 - WSGI is removed.
-- Mocked and real-backend Playwright suites are wired; this sandbox blocks
-  Chromium Mach-port registration, so rerun them outside the sandbox.
-- `uv run pytest` and `uv run harness preflight` pass.
-- `uv run harness gate` is blocked here by an external ca-certs security-step
-  environment error; see `docs/PROJECT_STATUS.md`.
+- Mocked and real-backend Playwright suites pass in this environment.
+- `cd frontend && npm run build` passes.
+- `uv run harness preflight` passes.
+- `uv run pytest` is currently blocked by a human-owned harness preset change in
+  forbidden paths; see `docs/PROJECT_STATUS.md`.
 
 ## Acceptance Signals
 
-- `uv run pytest` passes.
+- `uv run pytest` passes after the harness-owned dirty change is resolved.
 - `cd frontend && npm run build` passes.
-- `cd frontend && npm run test:e2e` passes for frontend changes, or the exact
-  browser launch blocker is documented.
-- `cd frontend && npm run test:e2e:real` passes for launch-path changes, or the
-  exact browser launch blocker is documented.
+- `cd frontend && npm run test:e2e` passes.
+- `cd frontend && npm run test:e2e:real` passes.
 - `uv run harness preflight` passes.
-- `uv run harness gate` passes or an external blocker is documented.
+- `uv run harness gate` passes after the harness-owned dirty change is resolved.
 - The launch URL serves the Vite UI after build.
 - `/api/report` returns JSON from FastAPI.
 - No WSGI app remains.

@@ -57,7 +57,7 @@ def test_spec_from_form_carries_controls_and_mapped_task() -> None:
 
 
 def test_spec_from_form_matches_core_report_pipeline() -> None:
-    # specs/vram_calculator.md: 8B / 16-bit / 8k / inference -> 20.1 GB total.
+    # Worked example: 8B / 16-bit / 8k / inference -> 20.1 GB total.
     form = FormInputs(parameters_b=8, context_tokens=8000)
     report = build_report(spec_from_form(form))
     assert report.total_vram_gb == pytest.approx(20.1)

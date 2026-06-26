@@ -16,11 +16,14 @@ classifiers = [
 ]
 dependencies = [
     "fastapi",
+    "packaging",
     "pydantic",
+    "tomlkit",
+    "typer",
 ]
 
 [project.scripts]
-ralph = "harness.cli:main"
+harness = "harness.cli:main"
 
 [build-system]
 requires = ["hatchling"]
@@ -184,4 +187,4 @@ ban-relative-imports = "all"  # Enforce absolute imports
     "S404", # Triggers when code imports subprocess or os related to process spawn
     "S603"  # Flags execution without a shell
 ]
-"tests/harness/{conftest,test_ralph,test_cli}.py" = ["S404", "S603"]  # allow shell execution
+"tests/harness/{conftest,test_ralph,test_cli,test_integration}.py" = ["S404", "S603"]  # allow shell execution

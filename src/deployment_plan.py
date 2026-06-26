@@ -1,9 +1,9 @@
 """Deployment-plan layer: turn VRAM/hardware sizing into one actionable plan.
 
-Implements PRIORITY 1 of specs/deployment_plan.md: label how each catalog GPU fits,
-choose a single primary recommendation, and surface the highest-impact memory
-optimization. Pure functions over `DeploymentSpec`; the output is typed dataclasses only,
-reusing the existing hardware layer instead of adding a second Pydantic model.
+Labels how each catalog GPU fits, chooses a single primary recommendation, and
+surfaces the highest-impact memory optimization. Pure functions over
+`DeploymentSpec`; the output is typed dataclasses only, reusing the existing
+hardware layer instead of adding a second Pydantic model.
 """
 
 from __future__ import annotations

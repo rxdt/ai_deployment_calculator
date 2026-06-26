@@ -1,9 +1,8 @@
 """Pure view-model turning a deployment report into one-page display strings.
 
-PRIORITY 3 of specs/vram_calculator.md wants a one-page (no-scroll) UI. The stdlib WSGI page
-should render plain text, not format numbers itself, so this module converts the raw floats
-and `HardwareOption` objects from `report.py` into display-ready rows. Keeping the formatting
-here makes it fully testable and leaves the page a thin shell over these strings.
+The UI should render plain text, not format numbers itself, so this module
+converts raw floats and `HardwareOption` objects from `report.py` into
+display-ready rows. Keeping the formatting here makes it fully testable.
 """
 
 from __future__ import annotations

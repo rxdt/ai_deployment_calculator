@@ -3,11 +3,11 @@
 You are a fresh session agent. Treasure and preserve that fresh context. The current repo is your memory.
 Specs say *what* work to do. You decide *how* and *what is most important next*.
 
-0. Finish as much as pposile ASSAP. We launch NOW.
+0. Finish as much as possible ASSAP. We launch NOW!
 1. Read `plan.md/`. Find a task in `specs/`. If there is work remaining in specs, you must work on it.
 2. Fix the gap you identified.
 3. Keep youf change small and TIGHTLY SCOPED! You have 20 minutes max.
-4. Run `uv run ralph gate` to see if your changes pass. Fix failures.
+4. Run `uv run harness preflight` to see if your changes pass. Fix failures.
 5. NEVER create a branch or worktree. Keep a strictly linear history on the current branch.
   - Do not run `git branch`, `git checkout -b`, `git switch -c`, or `git worktree`.
   - Commit only on the current branch. No merges, no rebases that fork history.
@@ -17,13 +17,14 @@ Specs say *what* work to do. You decide *how* and *what is most important next*.
 6. Add or update a test that proves your change works.
   - Write tests which challenge the source code.
 7. Commit on the current branch only — never branch, fork, or merge.
-8.  If `uv run ralph verify` fails for any reason, fix the issue.
+8.  If `uv run harness gate` fails for any reason, fix the issue.
   - If you have tried to fix the issue multiple times and cannot:
     - Commit the files that do pass.
     - Mention the issue / filepath in `docs/PROJECT_STATUS.md` under "Blockers" and state your agent name and spec name.
 9.  Update `specs/`, `docs/`, and `docs/PROJECT_STATUS.md` to honestly reflect changes.
   - Remove items you completed.
   - Keep each `.md` < 100 lines.
+LET"S GET THIS LAUNCHED!!
 
 Commit Message Structure:
 ```

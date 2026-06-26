@@ -1,33 +1,18 @@
-"""Tests for the pre-commit gate checks."""
+"""Tests for the preflight/gate checks and loop containment (harness.gate)."""
 
 from __future__ import annotations
 
 import importlib
-import os
 import sys
-from typing import TYPE_CHECKING
+import tomllib
+from pathlib import Path
 
+import pytest
 from conftest import run_cmd
 
-import harness
-from harness import gate, gitio
+from harness import gate
 
-if TYPE_CHECKING:
-    from pathlib import Path
-
-    import pytest
-
-
-def fake_checks_clean(repo: Path, checks: object) -> list[str]:
-    """Skip running real checks."""
-    del repo, checks
-    return []
-
-
-def fake_checks_failing(repo: Path, checks: object) -> list[str]:
-    """Report a failing check without running anything."""
-    del repo, checks
-    return ["tests failed"]
+REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 def stage(repo: Path, name: str, content: str) -> None:
@@ -38,135 +23,264 @@ def stage(repo: Path, name: str, content: str) -> None:
     run_cmd(["git", "add", name], repo)
 
 
-def test_staged_files_and_added_lines(git_repo: Path) -> None:
-    """Staged paths and added diff lines are reported."""
+def staged(repo: Path) -> list[str]:
+    """Paths currently in the index, via the gate's own git helper."""
+    return gate.run_git(repo, ["diff", "--cached", "--name-only"]).split()
+
+
+def clean_checks(repo: Path, checks: object) -> list[str]:
+    """Stub run_checks so containment tests don't shell out to ruff/pytest."""
+    del repo, checks
+    return []
+
+
+# --------------------------------------------------------------------------- run_git
+
+
+def test_run_git_returns_stdout(git_repo: Path) -> None:
+    """run_git runs git in the repo and returns its stdout."""
     stage(git_repo, "pkg/a.py", "x = 1\n")
-    assert gitio.staged_files(git_repo) == ["pkg/a.py"]
-    assert "x = 1" in gitio.staged_added_lines(git_repo)
-
-
-def test_clean_git_env_drops_hook_variables(monkeypatch: pytest.MonkeyPatch) -> None:
-    """GIT_* variables exported to hooks are stripped; everything else survives."""
-    monkeypatch.setenv("GIT_DIR", "/somewhere/.git")
-    monkeypatch.setenv("GIT_INDEX_FILE", "/somewhere/index")
-    env = gitio.clean_git_env()
-    assert "GIT_DIR" not in env
-    assert "GIT_INDEX_FILE" not in env
-    assert env["PATH"] == os.environ["PATH"]
+    assert gate.run_git(git_repo, ["diff", "--cached", "--name-only"]).split() == ["pkg/a.py"]
 
 
 def test_run_git_ignores_poisoned_hook_env(monkeypatch: pytest.MonkeyPatch, git_repo: Path) -> None:
-    """Gate git calls target the given repo even when hook env points elsewhere."""
+    """A GIT_DIR a hook exported does not redirect the gate's git calls (GIT_* is stripped)."""
     monkeypatch.setenv("GIT_DIR", str(git_repo / "does-not-exist" / ".git"))
     stage(git_repo, "pkg/a.py", "x = 1\n")
-    assert gitio.staged_files(git_repo) == ["pkg/a.py"]
+    assert staged(git_repo) == ["pkg/a.py"]
+
+
+# --------------------------------------------------------------------------- run_checks (break cases)
 
 
 def test_run_checks_reports_only_failures(tmp_path: Path) -> None:
-    """Failing check commands are reported; passing ones are not."""
-    failures = gate.run_checks(tmp_path, (("sanity", ("false",)), ("noop", ("true",))))
+    """A failing check command is reported (with its name); a passing one is not."""
+    failures = gate.run_checks(tmp_path, {"boom": ("false",), "fine": ("true",)})
     assert len(failures) == 1
-    assert failures[0].startswith("sanity failed:")
+    assert failures[0].startswith("boom failed:")
 
 
-def test_run_verify_runs_the_full_check_set(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
-    """run_verify surfaces failures from the full check set."""
-    monkeypatch.setattr(gate, "run_checks", fake_checks_failing)
-    assert "tests failed" in gate.run_verify(tmp_path)
+def test_run_checks_empty_when_all_pass(tmp_path: Path) -> None:
+    """No failures means an empty list (and thus a clean gate)."""
+    assert gate.run_checks(tmp_path, {"ok": ("true",)}) == []
 
 
-def test_staged_preferences_checks_python_files(git_repo: Path) -> None:
-    """Staged Python files are preferences-checked; test files skip the count limit."""
-    stage(git_repo, "pkg/mod.py", "secret = 1\nhidden_thing = 2\n_bad = 3\n")
-    stage(git_repo, "pkg/test_mod.py", "def a():\n    return 1\n\n\ndef b():\n    return 2\n")
-    stage(git_repo, "pkg/notes.md", "not python\n")
-    problems = gate.staged_preferences_violations(git_repo)
-    assert len(problems) == 1
-    assert "'_bad'" in problems[0]
+def test_check_sets_invoke_tools_via_uv_run() -> None:
+    """Every check command runs its tool through `uv run --no-sync`; FULL extends COMMIT."""
+    for command in gate.FULL_CHECKS.values():
+        assert command[:3] == ("uv", "run", "--no-sync")
+    assert gate.COMMIT_CHECKS.items() <= gate.FULL_CHECKS.items()
 
 
-def test_staged_preferences_enforces_function_limit(monkeypatch: pytest.MonkeyPatch, git_repo: Path) -> None:
-    """Non-test Python files respect the function count limit."""
-    monkeypatch.setattr(gate.preferences, "MAX_FUNCTIONS_PER_FILE", 1)
-    stage(git_repo, "pkg/big.py", "def a():\n    return 1\n\n\ndef b():\n    return 2\n")
-    problems = gate.staged_preferences_violations(git_repo)
-    assert problems == ["pkg/big.py: 2 top-level functions exceeds limit 1; split the module"]
+def test_gate_constants_are_well_formed() -> None:
+    """Forbidden collections are sets of str; every check command is a tuple of str."""
+    assert isinstance(gate.FORBIDDEN_DIRS, set)
+    assert isinstance(gate.FORBIDDEN_FILES, set)
+    for name in gate.FORBIDDEN_DIRS | gate.FORBIDDEN_FILES:
+        assert isinstance(name, str)
+    for pattern in gate.FORBIDDEN_PATTERNS:
+        assert isinstance(pattern, str)
+    for checks in (gate.COMMIT_CHECKS, gate.FULL_CHECKS):
+        for command in checks.values():
+            assert isinstance(command, tuple)
+            for part in command:
+                assert isinstance(part, str)
 
 
-def test_staged_preferences_skipped_without_preferences(
+def test_full_gate_runs_pyright_on_everything() -> None:
+    """The full gate runs bare pyright; do not narrow it to selected paths."""
+    assert gate.FULL_CHECKS["types"] == ("uv", "run", "--no-sync", "pyright")
+
+
+def test_full_gate_keeps_the_semgrep_security_check() -> None:
+    """The pre-push gate must still run semgrep and fail hard on a finding."""
+    security = gate.FULL_CHECKS["security"]
+    assert "semgrep" in security
+    assert "p/secrets" in security
+    assert "--error" in security
+
+
+def test_full_coverage_requirement_is_enforced() -> None:
+    """100% coverage is both required and actually measured by the gate."""
+    config = tomllib.loads((REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    assert config["tool"]["coverage"]["report"]["fail_under"] == 100
+    assert gate.FULL_CHECKS["tests"] == (
+        "uv",
+        "run",
+        "--no-sync",
+        "pytest",
+        "--cov",
+        "--cov-report=term-missing",
+        "--cov-fail-under=100",
+    )
+
+
+def test_ci_workflow_runs_the_same_full_gate_commands() -> None:
+    """GitHub CI keeps the same full-check command shape as the local gate."""
+    workflow = (REPO_ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    run_lines = [line.strip().removeprefix("run: ") for line in workflow.splitlines() if "run: " in line]
+
+    for command in gate.FULL_CHECKS.values():
+        if command[3] == "pylint":
+            assert any(
+                line.split()[:4] == list(command[:4]) and set(line.split()[4:]) == set(command[4:])
+                for line in run_lines
+            )
+            continue
+        assert f"run: {' '.join(command)}" in workflow
+
+
+# --------------------------------------------------------------------------- run_gate / run_preflight wiring
+
+
+def test_run_gate_runs_the_full_check_set(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    """run_gate forwards FULL_CHECKS to run_checks and surfaces failures."""
+    recorded: dict[str, object] = {}
+
+    def record(repo: Path, checks: object) -> list[str]:
+        del repo
+        recorded["checks"] = checks
+        return ["tests failed"]
+
+    monkeypatch.setattr(gate, "run_checks", record)
+    assert "tests failed" in gate.run_gate(tmp_path)
+    assert recorded["checks"] == gate.FULL_CHECKS
+
+
+def test_run_preflight_runs_commit_checks_for_everyone(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """With no RALPH_LOOP, preflight just runs COMMIT_CHECKS (no containment)."""
+    monkeypatch.delenv("RALPH_LOOP", raising=False)
+    recorded: dict[str, object] = {}
+
+    def record(repo: Path, checks: object) -> list[str]:
+        del repo
+        recorded["checks"] = checks
+        return []
+
+    monkeypatch.setattr(gate, "run_checks", record)
+    assert gate.run_preflight(tmp_path) == []
+    assert recorded["checks"] == gate.COMMIT_CHECKS
+
+
+def test_run_preflight_surfaces_a_failing_check(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    """A failing quality check (e.g. semgrep) is surfaced so the commit is rejected."""
+    monkeypatch.delenv("RALPH_LOOP", raising=False)
+
+    def fails(repo: Path, checks: object) -> list[str]:
+        del repo, checks
+        return ["security failed:\nca-certs: empty trust anchors"]
+
+    monkeypatch.setattr(gate, "run_checks", fails)
+    problems = gate.run_preflight(tmp_path)
+    assert any("security failed" in problem for problem in problems)
+
+
+# --------------------------------------------------------------------------- containment (loop only)
+
+
+def test_preflight_ejects_forbidden_file_under_loop(monkeypatch: pytest.MonkeyPatch, git_repo: Path) -> None:
+    """A staged forbidden FILE (exact-path set) is dropped from the index, kept in the tree."""
+    monkeypatch.setenv("RALPH_LOOP", "1")
+    monkeypatch.setattr(gate, "run_checks", clean_checks)
+    stage(git_repo, "pyproject.toml", "x = 1\n")
+    assert gate.run_preflight(git_repo) == []  # self-heals, not blocked
+    assert "pyproject.toml" not in staged(git_repo)
+    assert (git_repo / "pyproject.toml").exists()  # edit survives in the working tree
+
+
+@pytest.mark.parametrize("path", ["harness/util.py", "tests/harness/x.py", ".github/ci.yml", ".githooks/x"])
+def test_preflight_ejects_forbidden_dir_under_loop(
+    path: str, monkeypatch: pytest.MonkeyPatch, git_repo: Path
+) -> None:
+    """A staged file under any forbidden DIR (dir-set ancestor match) is dropped from the index."""
+    monkeypatch.setenv("RALPH_LOOP", "1")
+    monkeypatch.setattr(gate, "run_checks", clean_checks)
+    stage(git_repo, path, "value = 1\n")
+    assert gate.run_preflight(git_repo) == []
+    assert path not in staged(git_repo)
+
+
+def test_preflight_keeps_legit_work_beside_forbidden(monkeypatch: pytest.MonkeyPatch, git_repo: Path) -> None:
+    """Only the forbidden path is dropped; the agent's own work still commits."""
+    monkeypatch.setenv("RALPH_LOOP", "1")
+    monkeypatch.setattr(gate, "run_checks", clean_checks)
+    stage(git_repo, "harness/util.py", "value = 1\n")
+    stage(git_repo, "src/feature.py", "y = 2\n")
+    assert gate.run_preflight(git_repo) == []
+    after = staged(git_repo)
+    assert "harness/util.py" not in after
+    assert "src/feature.py" in after
+
+
+def test_preflight_ejects_staged_deletion_of_forbidden(
     monkeypatch: pytest.MonkeyPatch, git_repo: Path
 ) -> None:
-    """When preferences.py has been deleted, structural checks are skipped, not crashed."""
-    monkeypatch.setattr(gate, "preferences", None)
-    stage(git_repo, "pkg/mod.py", "_bad = 1\n")
-    assert gate.staged_preferences_violations(git_repo) == []
+    """A staged DELETION of a forbidden file is undone, so the agent can't remove protected files."""
+    stage(git_repo, "pyproject.toml", "x = 1\n")
+    run_cmd(["git", "commit", "-q", "-m", "add pyproject"], git_repo)
+    run_cmd(["git", "rm", "-q", "pyproject.toml"], git_repo)
+    monkeypatch.setenv("RALPH_LOOP", "1")
+    monkeypatch.setattr(gate, "run_checks", clean_checks)
+    assert gate.run_preflight(git_repo) == []
+    assert "pyproject.toml" not in staged(git_repo)  # the deletion was reset out of the index
+
+
+def test_preflight_skips_containment_without_loop(monkeypatch: pytest.MonkeyPatch, git_repo: Path) -> None:
+    """Without RALPH_LOOP, a human may stage forbidden paths: nothing is ejected."""
+    monkeypatch.delenv("RALPH_LOOP", raising=False)
+    monkeypatch.setattr(gate, "run_checks", clean_checks)
+    stage(git_repo, "harness/util.py", "value = 1\n")
+    assert gate.run_preflight(git_repo) == []
+    assert "harness/util.py" in staged(git_repo)  # left staged: containment is loop-only
+
+
+@pytest.mark.parametrize("pattern", ["noqa", "type: ignore", "--no-verify"])
+def test_preflight_flags_banned_pattern_under_loop(
+    pattern: str, monkeypatch: pytest.MonkeyPatch, git_repo: Path
+) -> None:
+    """A banned escape-hatch in an added line is flagged (so the commit is rejected)."""
+    monkeypatch.setenv("RALPH_LOOP", "1")
+    monkeypatch.setattr(gate, "run_checks", clean_checks)
+    stage(git_repo, "src/x.py", f"value = 1  # {pattern}\n")
+    assert any(f"banned pattern '{pattern}'" in problem for problem in gate.run_preflight(git_repo))
+
+
+def test_preflight_banned_pattern_is_case_insensitive(
+    monkeypatch: pytest.MonkeyPatch, git_repo: Path
+) -> None:
+    """Mixed-case escape hatches are still caught."""
+    monkeypatch.setenv("RALPH_LOOP", "1")
+    monkeypatch.setattr(gate, "run_checks", clean_checks)
+    stage(git_repo, "src/x.py", "value = 1  # NoQA\n")
+    assert any("banned pattern 'noqa'" in problem for problem in gate.run_preflight(git_repo))
+
+
+def test_preflight_flags_preferences_break_under_loop(
+    monkeypatch: pytest.MonkeyPatch, git_repo: Path
+) -> None:
+    """A staged Python file that breaks a preference (underscore name) is flagged."""
+    monkeypatch.setenv("RALPH_LOOP", "1")
+    monkeypatch.setattr(gate, "run_checks", clean_checks)
+    stage(git_repo, "src/mod.py", "_bad = 1\n")
+    assert any("'_bad'" in problem for problem in gate.run_preflight(git_repo))
+
+
+def test_preflight_tolerates_missing_preferences(monkeypatch: pytest.MonkeyPatch, git_repo: Path) -> None:
+    """If preferences.py was deleted (prefs is None), the Python style check is skipped, not crashed."""
+    monkeypatch.setenv("RALPH_LOOP", "1")
+    monkeypatch.setattr(gate, "run_checks", clean_checks)
+    monkeypatch.setattr(gate, "prefs", None)
+    stage(git_repo, "src/mod.py", "_bad = 1\n")
+    assert gate.run_preflight(git_repo) == []
 
 
 def test_gate_imports_cleanly_without_preferences(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Deleting preferences.py does not break importing the gate; preferences becomes None."""
-    monkeypatch.delattr(harness, "preferences", raising=False)
+    """If preferences.py is absent, gate still imports and prefs is None (the ImportError branch)."""
     monkeypatch.setitem(sys.modules, "harness.preferences", None)
     importlib.reload(gate)
-    assert gate.preferences is None
+    assert gate.prefs is None
     monkeypatch.undo()
     importlib.reload(gate)
-    assert gate.preferences is not None
-
-
-def test_staged_preferences_skips_deletions(git_repo: Path) -> None:
-    """Deleted Python files are not preferences-checked."""
-    stage(git_repo, "pkg/old.py", "value = 1\n")
-    run_cmd(["git", "commit", "-q", "-m", "add file"], git_repo)
-    run_cmd(["git", "rm", "-q", "pkg/old.py"], git_repo)
-    assert gate.staged_preferences_violations(git_repo) == []
-
-
-def test_run_gate_unstages_protected_paths_under_loop(
-    monkeypatch: pytest.MonkeyPatch, git_repo: Path
-) -> None:
-    """Under the loop, a protected path is dropped from the index (not blocked) and kept in the tree."""
-    monkeypatch.setenv("RALPH_LOOP", "1")
-    monkeypatch.setattr(gate, "run_checks", fake_checks_clean)
-    stage(git_repo, "harness/util.py", "value = 1\n")
-    assert gate.run_gate(git_repo) == []  # self-heals instead of rejecting
-    assert "harness/util.py" not in gate.staged_files(git_repo)  # excluded from the commit
-    assert (git_repo / "harness" / "util.py").exists()  # but the edit survives in the working tree
-
-
-def test_run_gate_lets_agent_work_commit_beside_protected_path(
-    monkeypatch: pytest.MonkeyPatch, git_repo: Path
-) -> None:
-    """A protected path staged alongside legit work no longer traps the commit: only it is dropped."""
-    monkeypatch.setenv("RALPH_LOOP", "1")
-    monkeypatch.setattr(gate, "run_checks", fake_checks_clean)
-    stage(git_repo, "harness/util.py", "value = 1\n")  # protected, pre-staged
-    stage(git_repo, "src/feature.py", "y = 2\n")  # the agent's own work
-    assert gate.run_gate(git_repo) == []
-    staged = gate.staged_files(git_repo)
-    assert "harness/util.py" not in staged
-    assert "src/feature.py" in staged  # legit work still commits
-
-
-def test_run_gate_skips_containment_for_humans(monkeypatch: pytest.MonkeyPatch, git_repo: Path) -> None:
-    """Without RALPH_LOOP, a human may touch protected paths; quality checks still run."""
-    monkeypatch.delenv("RALPH_LOOP", raising=False)
-    monkeypatch.setattr(gate, "run_checks", fake_checks_clean)
-    stage(git_repo, "harness/util.py", "value = 1\n")
-    assert gate.run_gate(git_repo) == []
-
-
-def test_run_gate_flags_banned_patterns_under_loop(monkeypatch: pytest.MonkeyPatch, git_repo: Path) -> None:
-    """Under the loop, banned escape-hatch patterns are flagged in added lines."""
-    monkeypatch.setenv("RALPH_LOOP", "1")
-    monkeypatch.setattr(gate, "run_checks", fake_checks_clean)
-    stage(git_repo, "pkg/ok.py", "marker = 'eslint-disable'\n")
-    problems = gate.run_gate(git_repo)
-    assert any("banned pattern 'eslint-disable'" in problem for problem in problems)
-
-
-def test_run_gate_always_runs_checks(monkeypatch: pytest.MonkeyPatch, git_repo: Path) -> None:
-    """Lint and test checks run on every commit regardless of paths."""
-    monkeypatch.setattr(gate, "run_checks", fake_checks_failing)
-    stage(git_repo, "anywhere/file.py", "z = 3\n")
-    problems = gate.run_gate(git_repo)
-    assert "tests failed" in problems
+    assert gate.prefs is not None

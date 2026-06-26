@@ -23,7 +23,7 @@ from web.view import (
 
 
 def sample_report() -> DeploymentReport:
-    # 8B / 16-bit / 8k / inference worked example from specs/vram_calculator.md.
+    # 8B / 16-bit / 8k / inference worked example.
     rtx = HardwareOption(gpu=Gpu("RTX 4090", 24.0), gpu_count=1, tensor_parallel=False)
     a100 = HardwareOption(gpu=Gpu("A100 80GB", 80.0), gpu_count=2, tensor_parallel=True)
     rtx_plan = PlanOption(option=rtx, fit="single_gpu")

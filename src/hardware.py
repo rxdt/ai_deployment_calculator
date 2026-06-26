@@ -1,7 +1,7 @@
 """Hardware recommendation: map a deployment's VRAM need onto real GPUs.
 
-Implements PRIORITY 2 of specs/vram_calculator.md by turning `total_vram_gb`
-into per-GPU card counts and a tensor-parallel flag. Reuses the pure core.
+Turns `total_vram_gb` into per-GPU card counts and a tensor-parallel flag.
+Reuses the pure calculator core.
 """
 
 from __future__ import annotations

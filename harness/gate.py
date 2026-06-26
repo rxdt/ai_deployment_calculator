@@ -1,53 +1,50 @@
-"""Gate and verify: staged quality checks plus loop containment.
+"""
+1) Preflight pre-commit checks basic quality plus agent containment. `def run_preflight`
 
-`uv run ralph gate` is the fast pre-commit gate. `uv run ralph gate` runs everything. PR / CI pass: types,
-security, tests, and 100% coverage.
+2) Full gate on staged files.
+`def run_gate` mirrors what will run on Github.
 """
 
 from __future__ import annotations
 
-import fnmatch
 import os
 import subprocess
 import sys
-from pathlib import PurePosixPath
-from typing import TYPE_CHECKING
-
-from harness.gitio import clean_git_env, run_git, staged_added_lines, staged_files
+from pathlib import Path, PurePosixPath
 
 try:
-    from harness import preferences
-except ImportError:  # preferences.py is optional. Humans can deletet without breaking the gate.
-    preferences = None
+    from harness.preferences import preferences_violations as prefs
+except ImportError:  # humans do what they want with preferences.py
+    prefs = None
 
-if TYPE_CHECKING:
-    from pathlib import Path
+# A staged file is forbidden if one of its parent dirs is here, or its exact path is in the file set.
+FORBIDDEN_DIRS = {"harness", "tests/harness", ".githooks", ".github"}
 
-type Checks = tuple[tuple[str, tuple[str, ...]], ...]
-
-COMMIT_CHECKS: Checks = (
-    ("lint", ("uv", "run", "ruff", "check", ".")),
-    ("format", ("uv", "run", "ruff", "format", "--check", ".")),
-)
-
-FULL_CHECKS: Checks = (
-    ("lint", ("uv", "run", "ruff", "check", ".")),
-    ("format", ("uv", "run", "ruff", "format", "--check", ".")),
-    ("types", ("uv", "run", "pyright")),
-    ("pylint", ("uv", "run", "pylint", "harness", "src")),
-    (
-        "security",
-        ("uv", "run", "semgrep", "scan", "--config", "auto", "--config", "p/secrets", "--error", "--quiet"),
-    ),
-    ("tests", ("uv", "run", "pytest")),
-)
-
-PROTECTED_PATHS = ("AGENTS.md", "harness/*", "tests/harness/*", ".githooks/*", ".github/*", "pyproject.toml")
+FORBIDDEN_FILES = {
+    "AGENTS.md",
+    "pyproject.toml",
+    "PROMPT.md",
+    "docs/plan.md",
+    "uv.lock",
+    # tooling/config files that would weaken checks in pyproject.toml
+    "pytest.ini",
+    "tox.ini",
+    "setup.cfg",
+    ".coveragerc",
+    "ruff.toml",
+    ".ruff.toml",
+    ".semgrepignore",
+    "pyrightconfig.json",
+    ".pylintrc",
+    ".gitmodules",
+}
 
 FORBIDDEN_PATTERNS = (
     "noqa",
     "type: ignore",
     "type:ignore",
+    "pyright: ignore",
+    "mypy: ignore",
     "pragma: no cover",
     "eslint-disable",
     "ts-ignore",
@@ -62,72 +59,103 @@ FORBIDDEN_PATTERNS = (
     "pytest.mark.xfail",
 )
 
+# Tools run the way CI runs them: `uv run --no-sync <tool>` (synced venv, no per-commit resolution).
+COMMIT_CHECKS = {
+    "lint": ("uv", "run", "--no-sync", "ruff", "check", "."),
+    "format": ("uv", "run", "--no-sync", "ruff", "format", "--check", "."),
+}
 
-def staged_preferences_violations(repo: Path) -> list[str]:
-    """Run structural style checks on staged Python files; skipped if preferences.py is absent."""
-    if preferences is None:
-        return []
-    out = run_git(repo, ["diff", "--cached", "--name-only", "--diff-filter=ACMR"])
-    problems: list[str] = []
-    for path in out.splitlines():
-        if not path.endswith(".py"):
-            continue
-        name = PurePosixPath(path).name
-        is_test_file = name.startswith("test_") or name == "conftest.py"
-        limit = 0 if is_test_file else preferences.MAX_FUNCTIONS_PER_FILE
-        problems.extend(preferences.preferences_violations(path, run_git(repo, ["show", f":{path}"]), limit))
-    return problems
-
-
-def unstage_protected(repo: Path, files: list[str]) -> list[str]:
-    """Drop protected paths from the index so a loop commit can't include them; the edit is left in
-    the working tree, not reverted. Returns the paths removed from staging, for the caller to report.
-
-    This is containment that self-heals instead of trapping: a tree that arrives with protected
-    files already staged (e.g. a prior iteration the agent can't clean) no longer blocks the agent's
-    own legitimate work -- only the protected paths are kept out of the commit.
-    """
-    protected = [path for path in files if any(fnmatch.fnmatch(path, pattern) for pattern in PROTECTED_PATHS)]
-    for path in protected:
-        run_git(repo, ["reset", "-q", "HEAD", "--", path])
-        sys.stderr.write(f"ralph: kept protected path out of the commit (left in working tree): {path}\n")
-    return protected
-
-
-def agent_violations(repo: Path, files: list[str]) -> list[str]:
-    """Contain a loop commit: unstage protected paths, then flag banned patterns and preferences
-    breaks in whatever legitimately remains staged. Protected paths are excluded, not blocked."""
-    unstage_protected(repo, files)
-    problems = [
-        f"banned pattern '{pattern}' in added line: {line.strip()}"
-        for line in staged_added_lines(repo)
-        for pattern in FORBIDDEN_PATTERNS
-        if pattern in line
-    ]
-    problems.extend(staged_preferences_violations(repo))
-    return problems
+FULL_CHECKS = COMMIT_CHECKS | {
+    "types": ("uv", "run", "--no-sync", "pyright"),
+    "pylint": ("uv", "run", "--no-sync", "pylint", "harness", "src"),
+    "security": (
+        "uv",
+        "run",
+        "--no-sync",
+        "semgrep",
+        "scan",
+        "--config",
+        "auto",
+        "--config",
+        "p/secrets",
+        "--error",
+        "--quiet",
+    ),
+    "tests": (
+        "uv",
+        "run",
+        "--no-sync",
+        "pytest",
+        "--cov",
+        "--cov-report=term-missing",
+        "--cov-fail-under=100",
+    ),
+}
 
 
-def run_checks(repo: Path, checks: Checks) -> list[str]:
+def run_git(repo: Path, args: list[str]) -> str:
+    """Run a git command in the repo and return its stdout."""
+    command = ["git", "-C", str(repo)]
+    command.extend(args)
+    git_env = {key: value for key, value in os.environ.items() if not key.startswith("GIT_")}
+    result = subprocess.run(command, capture_output=True, text=True, check=True, env=git_env)
+    return result.stdout
+
+
+def run_checks(repo: Path, checks: dict[str, tuple[str, ...]]) -> list[str]:
     """Run each named check command; return one failure entry per command that fails."""
+    git_env = {key: value for key, value in os.environ.items() if not key.startswith("GIT_")}
     failures: list[str] = []
-    env = clean_git_env()
-    for name, command in checks:
-        result = subprocess.run(command, cwd=repo, capture_output=True, text=True, check=False, env=env)
+    for name, command in checks.items():
+        result = subprocess.run(command, cwd=repo, capture_output=True, text=True, check=False, env=git_env)
         if result.returncode != 0:
             failures.append(f"{name} failed:\n{result.stdout}{result.stderr}")
     return failures
 
 
-def run_gate(repo: Path) -> list[str]:
-    """Pre-commit gate: fast lint/format for everyone, plus containment for the loop."""
+def preference_problems(repo: Path, staged: set[str]) -> list[str]:
+    """Run human-preference checks on each staged Python file that still exists; skipped if prefs absent."""
+    if prefs is None:
+        return []
+    problems: list[str] = []
+    for path in sorted(staged):
+        if path.endswith(".py") and (repo / path).is_file():  # is_file skips staged deletions
+            problems.extend(prefs(path, (repo / path).read_text(encoding="utf-8")))
+    return problems
+
+
+def run_preflight(repo: Path) -> list[str]:
+    """Pre-commit: fast lint/format for everyone. For agents in the loop also drop forbidden staged filepaths
+    and flag banned patterns + human-preference breaks."""
     problems: list[str] = []
     if os.environ.get("RALPH_LOOP"):
-        problems.extend(agent_violations(repo, staged_files(repo)))
+        staged = set(
+            run_git(
+                repo, ["diff", "--cached", "--name-only", "--no-renames", "--diff-filter=ACMRD"]
+            ).splitlines()
+        )
+        forbidden = (staged & FORBIDDEN_FILES) | {
+            f for f in staged if not FORBIDDEN_DIRS.isdisjoint(str(p) for p in PurePosixPath(f).parents)
+        }
+        if forbidden:
+            dropped = sorted(forbidden)
+            reset = ["reset", "-q", "HEAD", "--"]
+            reset.extend(dropped)
+            run_git(repo, reset)
+            sys.stderr.write("harness kept forbidden paths out of the commit: " + ", ".join(dropped) + "\n")
+        added = run_git(repo, ["diff", "--cached", "--unified=0"]).splitlines()
+        problems = [
+            f"banned pattern '{pattern}' in line: {line[1:].strip()}"
+            for line in added
+            if line.startswith("+") and not line.startswith("+++")
+            for pattern in FORBIDDEN_PATTERNS
+            if pattern.casefold() in line.casefold()  # case-insensitive so mixed-case matches are caught
+        ]
+        problems.extend(preference_problems(repo, staged))
     problems.extend(run_checks(repo, COMMIT_CHECKS))
     return problems
 
 
-def run_verify(repo: Path) -> list[str]:
-    """Pre-push / CI verification: lint, format, types, security, tests, and coverage."""
+def run_gate(repo: Path) -> list[str]:
+    """Pre-push / CI: lint, format, types, pylint, security, tests."""
     return run_checks(repo, FULL_CHECKS)

@@ -1,8 +1,8 @@
 """Deployment report assembly: the display-ready contract the one-page web UI renders.
 
-Bundles the VRAM component breakdown (W, KV, T, C from specs/vram_calculator.md) with the
-final margin-applied total and the hardware options, so the PRIORITY 3 one-page UI can render
-a whole deployment from one pure call instead of stitching the core modules together itself.
+Bundles the VRAM component breakdown (W, KV, T, C) with the final margin-applied
+total and hardware options, so the UI can render a whole deployment from one
+pure call instead of stitching the core modules together itself.
 """
 
 from __future__ import annotations

@@ -1,4 +1,4 @@
-"""Tests for the pure deployment-plan layer (specs/deployment_plan.md PRIORITY 1)."""
+"""Tests for the pure deployment-plan layer."""
 
 from __future__ import annotations
 

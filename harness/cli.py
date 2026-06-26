@@ -1,75 +1,167 @@
-"""Command-line interface for the ralph harness."""
+"""Command-line interface for the ralph harness. Plain pass-through commands, no objects."""
 
 from __future__ import annotations
 
+import json
+import shutil
 import subprocess
 import sys
 from pathlib import Path
+from typing import Annotated
 
-from harness.gate import run_gate, run_verify
+import tomlkit
+import typer
+from packaging.utils import canonicalize_name
+from rich import print as rprint
 
-GATES = {"gate": run_gate, "verify": run_verify}
+from harness import gate as gate_module
+
+app = typer.Typer(
+    name="ralph-harness", help="Commands to harness the loops", no_args_is_help=True, add_completion=False
+)
+
+AGENTS: dict[str, tuple[str, ...]] = {
+    "claude": (
+        "claude",
+        "-p",
+        "--permission-mode",
+        "acceptEdits",
+        "--output-format",
+        "stream-json",
+        "--verbose",
+    ),
+    "codex": ("codex", "exec", "-m", "gpt-5.5", "--json", "--sandbox", "workspace-write", "-"),
+    "agy": ("agy", "--log-file", "agy.log", "--print"),
+    "copilot": ("sh", "-c", 'copilot --output-format json --stream on --allow-all-tools -p "$(cat)"'),
+}
 
 
-def report(problems: list[str]) -> int:
-    """Print any violations and return the matching process exit code."""
+def run_worker(command: list[str], cwd: Path, log: Path, verbose: bool) -> int:
+    """Run the worker command, always saving stdout and optionally streaming it live."""
+    with log.open("w", encoding="utf-8") as handle:
+        if not verbose:
+            return subprocess.run(command, cwd=str(cwd), stdout=handle, check=False).returncode
+        jq = shutil.which("jq")
+        with subprocess.Popen(command, cwd=str(cwd), stdout=subprocess.PIPE, text=True) as process:
+            for line in process.stdout or ():
+                handle.write(line)
+                handle.flush()
+                sys.stdout.write(format_live_line(line, jq))
+                sys.stdout.flush()
+            return process.wait()
+
+
+def format_live_line(line: str, jq: str | None) -> str:
+    """Compact valid JSONL for terminal output; preserve invalid lines exactly."""
+    if jq:
+        rendered = subprocess.run(
+            (jq, "-C", "-c", "."), input=line, text=True, capture_output=True, check=False
+        )
+        if rendered.returncode == 0 and rendered.stdout:
+            return rendered.stdout
+    try:
+        return f"{json.dumps(json.loads(line), separators=(',', ':'))}\n"
+    except json.JSONDecodeError:
+        return line
+
+
+@app.command(help="Fast pre-commit checks (lint/format) plus agent containment")
+def preflight() -> None:
+    """Dumb pass-through to the fast pre-commit gate; exit nonzero if rejected."""
+    problems = gate_module.run_preflight(Path.cwd())
     for problem in problems:
-        sys.stderr.write(f"gate: {problem}\n")
-    if problems:
-        sys.stderr.write("rejected by ralph\n")
-        return 1
-    sys.stderr.write("ok: passed\n")
-    return 0
+        typer.echo(f"gate: {problem}", err=True)
+    typer.echo("rejected by harness" if problems else "ok: preflight passed", err=True)
+    raise typer.Exit(code=1 if problems else 0)
 
 
-def reset_project(pyproject: Path, name: str) -> None:
-    """Replace the scaffold's [project] table with a minimal one for the new project."""
-    lines = pyproject.read_text(encoding="utf-8").splitlines(keepends=True)
-    start = next(index for index, line in enumerate(lines) if line.startswith("[project]"))
-    after = enumerate(lines[start + 1 :], start + 1)
-    end = next((index for index, line in after if line.startswith("[")), len(lines))
-    block = (
-        f'[project]\nname = "{name}"\nversion = "0.0.0"\nrequires-python = ">=3.13"\ndependencies = []\n\n'
+@app.command(help="Full pre-push gate: lint, format, pyright, pylint, semgrep, pytest + coverage")
+def gate() -> None:
+    """Dumb pass-through to the full pre-push gate; exit nonzero if anything fails."""
+    problems = gate_module.run_gate(Path.cwd())
+    for problem in problems:
+        typer.echo(f"gate: {problem}", err=True)
+    typer.echo("rejected by harness" if problems else "ok: gate passed", err=True)
+    raise typer.Exit(code=1 if problems else 0)
+
+
+@app.command(help="Count agent run receipts under scratchpad/runs")
+def status() -> None:
+    """Count run logs and point at the newest one."""
+    runs = Path.cwd() / "scratchpad" / "runs"
+    logs = sorted(runs.glob("*.jsonl")) if runs.is_dir() else []
+    typer.secho(f"{len(logs)} run log(s) in {runs}", fg=typer.colors.CYAN, bold=True)
+    if logs:
+        typer.secho(f"newest: {logs[-1]}", fg=typer.colors.GREEN, bold=True)
+
+
+@app.command(help="Setup project: inject project name, sync dependencies, set up githooks")
+def install(name: str) -> None:
+    """Inject NAME (PEP 503) into pyproject, sync deps, and activate the git hooks."""
+    cwd = Path.cwd()
+
+    pyproject = cwd / "pyproject.toml"
+    document = tomlkit.parse(pyproject.read_text(encoding="utf-8"))
+    document.setdefault("project", tomlkit.table())["name"] = canonicalize_name(name, validate=True)
+    pyproject.write_text(tomlkit.dumps(document), encoding="utf-8")
+    new_name = tomlkit.parse(pyproject.read_text(encoding="utf-8"))["project"]["name"]
+    rprint(f"\n[cyan2]project name[/cyan2] '{new_name}' set in `pyproject.toml`")
+
+    rprint("\n[cyan2]installing dependencies[/cyan2] with `uv sync`")
+    subprocess.run(("uv", "sync"), cwd=str(cwd), check=True)
+
+    rprint("\n[cyan2]setting git hooks[/cyan2] with `git config core.hooksPath .githooks`:")
+    subprocess.run(("git", "config", "core.hooksPath", ".githooks"), cwd=str(cwd), check=True)
+    typer.echo(
+        subprocess.run(
+            ("git", "config", "core.hooksPath"), cwd=str(cwd), capture_output=True, text=True, check=True
+        ).stdout.strip()
     )
-    lines[start:end] = [block]
-    pyproject.write_text("".join(lines), encoding="utf-8")
+    subprocess.run(("ls", "-l", ".githooks"), cwd=str(cwd), check=True)
+
+    rprint(
+        "\n[turquoise2]You must ACTIVATE env[/turquoise2] `source .venv/bin/activate`"
+        " to use the [green]`harness`[/green] command.\n"
+        "\n[turquoise2]python:[/turquoise2] project supports >=3.11"
+        "\n[turquoise2]PIN NEWER[/turquoise2] local Python e.g. `uv python pin 3.13 && uv sync`"
+    )
 
 
-def run_install(repo: Path, name: str | None = None) -> int:
-    """Install dependencies and set the git hooks path; with a name, also reset and detach."""
-    subprocess.run(("uv", "sync"), cwd=str(repo), check=True)
-    if name is not None:
-        reset_project(repo / "pyproject.toml", name)
-        detach = ("git", "-C", str(repo), "remote", "remove", "origin")
-        subprocess.run(detach, check=False, capture_output=True)
-        sys.stderr.write(f"renamed to '{name}'; folder rename: cd .. && mv {repo.name} {name}\n")
-    command = ("git", "-C", str(repo), "config", "core.hooksPath", ".githooks")
-    subprocess.run(command, check=True)
-    sys.stderr.write("ok: dependencies synced and git hooks path set to .githooks\n")
-    return 0
+@app.command(help="Run one harnessed ralph loop with <agent>, e.g. harness run claude 3 20")
+def run(
+    agent: str,
+    num_iterations: Annotated[int, typer.Argument()] = 2,
+    max_minutes: Annotated[int, typer.Argument()] = 20,
+    verbose: Annotated[bool, typer.Argument()] = True,
+) -> None:
+    """ralph.sh runs once for one agent."""
+    agent = agent.lower()
+    if agent not in AGENTS:
+        typer.secho(
+            f"unknown agent '{agent}'; choose from {', '.join(AGENTS)}",
+            err=True,
+            fg=typer.colors.MAGENTA,
+            bold=True,
+        )
+        raise typer.Exit(code=2)
+    if num_iterations < 1 or max_minutes < 1:
+        typer.secho(
+            "num_iterations and max_minutes must be >= 1", err=True, fg=typer.colors.MAGENTA, bold=True
+        )
+        raise typer.Exit(code=2)
+    cwd = Path.cwd()
+    runs = cwd / "scratchpad" / "runs"
+    runs.mkdir(parents=True, exist_ok=True)
+    seq = 1 + max((int(p.name.split("-", 1)[0]) for p in runs.glob("[0-9]*-*.jsonl")), default=0)
+    log = runs / f"{seq:04d}-{agent}.jsonl"
+    ralph = Path(__file__).resolve().parent / "ralph.sh"
+    command = [str(ralph), str(num_iterations), str(max_minutes)]
+    command.extend(AGENTS[agent])
+    typer.echo(f"harness: {' '.join(command)} -> {log}", err=True)
+    returncode = run_worker(command, cwd, log, verbose)
+    raise typer.Exit(code=returncode)
 
 
-def run_status(repo: Path) -> int:
-    """Print the loop run registry as an aligned table."""
-    registry = repo / "scratchpad" / "ralph_runs.tsv"
-    if not registry.exists():
-        sys.stdout.write("no runs recorded\n")
-        return 0
-    rows = [line.split("\t") for line in registry.read_text(encoding="utf-8").splitlines()]
-    widths = [max(len(row[index]) for row in rows) for index in range(len(rows[0]))]
-    for row in rows:
-        sys.stdout.write("  ".join(cell.ljust(widths[index]) for index, cell in enumerate(row)) + "\n")
-    return 0
-
-
-def main(argv: list[str] | None = None) -> int:
-    """Dispatch a ralph command."""
-    args = sys.argv[1:] if argv is None else argv
-    if len(args) == 1 and args[0] in GATES:
-        return report(GATES[args[0]](Path.cwd()))
-    if args and args[0] == "install" and len(args) <= 2:
-        return run_install(Path.cwd(), args[1] if len(args) == 2 else None)
-    if args == ["status"]:
-        return run_status(Path.cwd())
-    sys.stderr.write("usage: ralph [gate|verify|install|status]\n")
-    return 2
+def main(argv: list[str] | None = None) -> None:
+    """Console-script entry point: run the app so typer.Exit sets the process exit code."""
+    app(args=argv)

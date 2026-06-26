@@ -22,9 +22,9 @@
 
 ## Commit and verify
 
-- `ralph gate` runs on commit — fast lint + format, plus loop containment.
-- Run `uv run ralph verify` often, especially before pushing: lint, format, types, security, tests, 100% coverage.
-- Done means: no protected path touched; `ralph verify` is green; the spec and `docs/PROJECT_STATUS.md` reflect what was built; tests pass, cover the change, and honestly challenge the source code.
+- `harness preflight` runs on commit — fast lint + format, plus loop containment.
+- Run `uv run harness gate` often, especially before pushing: lint, format, types, security, tests, 100% coverage.
+- Done means: no protected path touched; `harness gate` is green; the spec and `docs/PROJECT_STATUS.md` reflect what was built; tests pass, cover the change, and honestly challenge the source code.
 
 ## Documentation
 

@@ -1,7 +1,7 @@
 """Pure, deterministic GPU VRAM deployment calculator core.
 
-Implements `VRAM_GB = (W + KV + T + C) * RUNTIME_MARGINS[runtime]` from specs/vram_calculator.md.
-Every constant traces back to docs/plan.md; no silent assumptions.
+Implements `VRAM_GB = (W + KV + T + C) * RUNTIME_MARGINS[runtime]`.
+Constants are surfaced through the report assumptions; no silent assumptions.
 """
 
 from __future__ import annotations

@@ -30,7 +30,7 @@ jobs:
         run: uv run --no-sync pylint src harness
 
       - name: Ruff Format Check
-        run: uv run --no-sync ruff format .
+        run: uv run --no-sync ruff format --check .
 
       - name: Pyright Type Check
         run: uv run --no-sync pyright
@@ -39,4 +39,4 @@ jobs:
         run: uv run --no-sync semgrep scan --config auto --config p/secrets --error --quiet .
 
       - name: Tests with Coverage Gate
-        run: uv run --no-sync pytest  --cov=src  --cov-report=term-missing --cov-fail-under=100
+        run: uv run --no-sync pytest --cov --cov-report=term-missing --cov-fail-under=100

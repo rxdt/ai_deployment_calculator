@@ -13,7 +13,7 @@ from vram_calculator import DeploymentSpec, total_vram_gb
 
 
 def test_breakdown_matches_spec_worked_check() -> None:
-    # specs/vram_calculator.md: 8B / 16-bit / 8k / inference -> W=16, KV=0.8, T=0, C=1.5, total 20.1.
+    # Worked example: 8B / 16-bit / 8k / inference -> W=16, KV=0.8, T=0, C=1.5, total 20.1.
     spec = DeploymentSpec(parameters_b=8, context_tokens=8000)
     report = build_report(spec)
     assert report.breakdown.weights == pytest.approx(16.0)

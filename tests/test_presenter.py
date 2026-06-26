@@ -8,10 +8,11 @@ import pytest
 
 from report import build_report
 from vram_calculator import DeploymentSpec
-from web.form_query import form_from_query
+from web.form_query import form_from_query, parse_decimal
 from web.presenter import (
     DEFAULT_ACTIVE_PARAMETERS_B,
     DEFAULT_FORM,
+    FormInputError,
     FormInputs,
     spec_from_form,
 )
@@ -271,3 +272,39 @@ def test_form_from_query_rejects_float_only_whitespace() -> None:
     # Python float() strips ASCII control whitespace like U+001C that JS trim() keeps, so the JS
     # form rejects "47\x1c" as NaN. The backend must reject it too instead of sizing 47B.
     assert form_from_query("parameters_b=47\x1c&context_tokens=8000") == DEFAULT_FORM
+
+
+# The grammar parse_decimal accepts must equal the frontend isDecimalNumber regex, and the value
+# must equal what Number() yields, or the no-JS page and JS app size different deployments for the
+# same URL. These pairs were cross-checked by running the live regex + Number() in Node against the
+# same corpus; they pin grammar edges (leading/trailing dot, sign, uppercase exponent, leading
+# zeros) the per-field tests above never exercise.
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        ("8", 8.0),
+        ("1.3", 1.3),
+        ("007", 7.0),  # leading zeros
+        ("1.", 1.0),  # trailing dot, no fractional digits
+        (".5", 0.5),  # leading dot, no integer digits
+        ("+8", 8.0),  # explicit plus sign
+        ("+.5", 0.5),
+        ("1E3", 1000.0),  # uppercase exponent
+        ("1e+5", 100000.0),
+        ("0.0", 0.0),  # grammar accepts zero; positivity is enforced by FormInputs, not here
+    ],
+)
+def test_parse_decimal_matches_frontend_number_grammar(raw: str, expected: float) -> None:
+    assert parse_decimal(raw) == expected
+
+
+# Strings the frontend regex rejects (Number() -> NaN): malformed orderings float() also rejects
+# (".", "1e", "1.2.3"), non-decimal radixes ("0x10"), and separators ("12 34", "1,000"). The
+# backend must reject every one so a crafted URL cannot size a deployment the JS app reset away.
+@pytest.mark.parametrize(
+    "raw",
+    [".", "1e", "e5", ".e5", "1.5e", "1.2.3", "0x10", "0b1", "0o7", "12 34", "1,000", "Infinity"],
+)
+def test_parse_decimal_rejects_frontend_nan_strings(raw: str) -> None:
+    with pytest.raises((ValueError, FormInputError)):
+        parse_decimal(raw)

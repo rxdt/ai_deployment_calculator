@@ -142,6 +142,14 @@ def test_form_from_query_uses_last_repeated_value() -> None:
     assert form.parameters_b == 13
 
 
+def test_form_from_query_resets_on_trailing_blank_repeated_value() -> None:
+    # JS `URLSearchParams.getAll` keeps blank values and the form reads the last one, so a trailing
+    # "weight_bits=" makes the JS app reset to the default deployment. Python `parse_qs` would drop
+    # the blank and keep sizing the prior "8"; the no-JS page must match the JS reset.
+    form = form_from_query("parameters_b=8&context_tokens=8000&weight_bits=8&weight_bits=")
+    assert form == DEFAULT_FORM
+
+
 def test_form_from_query_falls_back_to_default_on_empty_query() -> None:
     # First load has no query string; the page must still render the default deployment.
     assert form_from_query("") == DEFAULT_FORM

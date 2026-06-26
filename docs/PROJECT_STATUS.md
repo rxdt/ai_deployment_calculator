@@ -54,6 +54,9 @@
 - `parse_decimal` trims the JS `trim()` whitespace set (e.g. `U+00A0`) and then accepts only the
   decimal alphabet, so a Unicode-whitespace-padded number sizes the same deployment the JS app does,
   while `float()`-only padding the JS form keeps (`U+001C`) is still rejected.
+- `form_from_query` parses with `keep_blank_values=True`, matching JS `URLSearchParams.getAll`: a
+  trailing blank repeat (`weight_bits=8&weight_bits=`) now resets the no-JS page like the JS form
+  instead of dropping the blank and sizing the prior value.
 
 ## Checks
 

@@ -69,6 +69,7 @@ decimal parser instead of sending a report request the backend will default.
 - [x] Hex-like Vite query numbers (`0x10`) are rejected before `/api/report`, so the JS app matches the backend decimal parser.
 - [x] Unicode-whitespace-padded decimals (e.g. `U+00A0`) parse like the JS form's trimmed `Number()`; the backend trims the JS whitespace set so the no-JS page sizes the same deployment instead of resetting, while `float()`-only padding (`U+001C`) the JS form keeps is still rejected.
 - [x] A non-default-precision `/api/report` payload satisfies the frontend `hasSupportedComparisonRows`/`hasRequiredAssumptionRows` contracts (selected row matches submitted precision; the four precision and five assumption labels are present), guarding the live-app-breaking divergence class the sandbox-blocked Playwright suite cannot.
+- [x] Trailing blank repeated params (`weight_bits=8&weight_bits=`) reset the no-JS page like the JS form, which reads the last `URLSearchParams.getAll` value; the backend parses with `keep_blank_values=True` instead of dropping the blank and sizing the prior value.
 
 ## Acceptance Signals
 

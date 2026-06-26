@@ -95,7 +95,10 @@ def form_from_query(query_string: str) -> FormInputs:
     Unchecked checkboxes are simply absent from the query, so they take their `False` default;
     invalid precisions, architectures, runtimes, or numbers raise into the single fallback below.
     """
-    raw_params = {key: values[-1] for key, values in parse_qs(query_string).items()}
+    # keep_blank_values mirrors JS `URLSearchParams.getAll`, which keeps blank values; the JS form
+    # reads the last value, so a trailing blank (e.g. "weight_bits=8&weight_bits=") must reset here
+    # too instead of falling back to the prior value Python would otherwise drop and keep sizing.
+    raw_params = {key: values[-1] for key, values in parse_qs(query_string, keep_blank_values=True).items()}
     if not raw_params:
         return DEFAULT_FORM
     try:

@@ -87,7 +87,7 @@ def test_payload_comparison_contract_matches_submitted_precision() -> None:
     # row equals the submitted weight precision. A non-default precision is the case the
     # default-only payload() never exercises; a divergence here silently shows
     # "Report unavailable" in the live app while the mocked e2e suite stays green.
-    data = report_payload("parameters_b=8&context_tokens=8000&weight_bits=4")
+    data: dict[str, Any] = report_payload("parameters_b=8&context_tokens=8000&weight_bits=4")
 
     assert {row["precision"] for row in data["comparison"]} == {"32-bit", "16-bit", "8-bit", "4-bit"}
     selected = [row for row in data["comparison"] if row["selected"]]

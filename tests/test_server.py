@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
 from fastapi.testclient import TestClient
 
 import web.server
@@ -38,6 +37,21 @@ def test_index_serves_built_vite_app() -> None:
     assert "/assets/" in response.text
 
 
+def test_index_serves_configured_frontend_build(tmp_path: Path) -> None:
+    """The app factory serves the index path it was configured with."""
+    dist = tmp_path / "dist"
+    dist.mkdir()
+    index_path = dist / "index.html"
+    index_path.write_text('<div id="app"></div><script src="/assets/app.js"></script>', encoding="utf-8")
+    built_app_client = TestClient(web.server.create_app(index_path=index_path, asset_dir=dist / "assets"))
+
+    response = built_app_client.get("/")
+
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("text/html")
+    assert '<div id="app"></div>' in response.text
+
+
 def test_assets_served_from_dist() -> None:
     index_html = web.server.DIST_INDEX.read_text(encoding="utf-8")
     asset_path = index_html.split('src="', 1)[1].split('"', 1)[0]
@@ -61,10 +75,11 @@ def test_app_can_start_before_frontend_assets_are_built(tmp_path: Path) -> None:
     assert asset_response.status_code == 404
 
 
-def test_index_falls_back_to_no_js_page_without_build(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(web.server, "DIST_INDEX", web.server.DIST_DIR / "missing.html")
+def test_index_falls_back_to_no_js_page_without_build(tmp_path: Path) -> None:
+    """A missing configured index keeps the no-JS fallback available."""
+    fallback_client = TestClient(web.server.create_app(index_path=tmp_path / "missing.html"))
 
-    response = client.get(f"/?{QUERY}")
+    response = fallback_client.get(f"/?{QUERY}")
 
     assert response.status_code == 200
     assert response.headers["content-type"].startswith("text/html")

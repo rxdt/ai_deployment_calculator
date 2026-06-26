@@ -12,6 +12,8 @@ Users open the Vite calculator first. FastAPI is the only backend/server path.
 - FastAPI app creation no longer depends on built assets being present; `/api/report`
   remains available before a frontend build, and `/assets` is mounted only when
   `frontend/dist/assets` exists.
+- FastAPI app creation now accepts explicit frontend index and asset paths, so
+  no-build fallback coverage does not mutate module globals.
 - `/api/report` is served by the same FastAPI process.
 - `src/web/page.py` remains only as a no-build fallback when `frontend/dist` is absent.
 - WSGI is removed.

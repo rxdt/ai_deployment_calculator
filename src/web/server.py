@@ -29,14 +29,19 @@ def report(request: Request) -> JSONResponse:
 
 def index(request: Request) -> HTMLResponse | FileResponse:
     """Serve the built Vite app, or the no-JS fallback page when there is no build."""
-    if DIST_INDEX.is_file():
-        return FileResponse(DIST_INDEX)
+    index_path: Path = request.app.state.index_path
+    if index_path.is_file():
+        return FileResponse(index_path)
     return HTMLResponse(render_page(form_from_query(request.url.query)))
 
 
-def create_app(asset_dir: Path = DIST_DIR / "assets") -> FastAPI:
+def create_app(
+    asset_dir: Path = DIST_DIR / "assets",
+    index_path: Path = DIST_INDEX,
+) -> FastAPI:
     """Build the FastAPI app without requiring frontend assets at import time."""
     application = FastAPI(title="AI Deployment Calculator")
+    application.state.index_path = index_path
     application.add_api_route("/api/report", report, methods=["GET"])
     application.add_api_route(
         "/",

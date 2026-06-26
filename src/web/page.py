@@ -161,7 +161,7 @@ def render_page(form: FormInputs | None = None) -> str:
         <input name="active_parameters_b" type="number" min="0.000001" step="any"
           value="{form_number(active_parameters_value)}">
       </label>
-      <label class="check"><input name="trained" type="checkbox"{trained}> Model is trained</label>
+      <label class="check"><input name="trained" type="checkbox"{trained}> GPUs are for model training</label>
       <label class="check">
         <input name="use_adapter" type="checkbox"{adapter}> LoRA adapter
       </label>

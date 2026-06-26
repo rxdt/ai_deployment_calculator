@@ -40,28 +40,31 @@ def test_vite_frontend_declares_dev_entry_and_backend_proxy() -> None:
 
 
 def test_vite_frontend_renders_required_controls_and_fetches_report_api() -> None:
-    script = frontend_text("src/app.ts")
+    script = "\n".join(
+        frontend_text(path) for path in ("src/app.ts", "src/render.ts", "src/state.ts", "src/validation.ts")
+    )
     styles = frontend_text("src/styles.css")
 
-    assert "fetch(`/api/report?${search.toString()}`)" in script
-    assert 'name="parameters_b"' in script
-    assert 'min="0.000001" step="any"' in script
-    assert 'name="context_tokens"' in script
-    assert 'name="weight_bits"' in script
-    assert 'name="kv_cache_bits"' in script
-    assert 'name="trained" type="checkbox"' in script
-    assert 'name="use_adapter" type="checkbox"' in script
-    assert "function normalizedState(search: URLSearchParams): FormState" in script
-    assert "function searchFromState(state: FormState): URLSearchParams" in script
-    assert 'aria-label="Hardware recommendations"' in script
-    assert 'aria-label="Quantization comparison"' in script
-    assert "if (!response.ok)" in script
-    assert 'role="alert"' in script
-    assert "Unable to load report" in script
-    assert "function escapeHtml(value: string): string" in script
     assert all(
         fragment in script
         for fragment in (
+            "fetch(`/api/report?${search.toString()}`)",
+            'name="parameters_b"',
+            'min="0.000001" step="any"',
+            'name="context_tokens"',
+            'name="weight_bits"',
+            'name="kv_cache_bits"',
+            'name="trained" type="checkbox"',
+            "GPUs are for model training",
+            'name="use_adapter" type="checkbox"',
+            "function normalizedState(search: URLSearchParams): FormState",
+            "function searchFromState(state: FormState): URLSearchParams",
+            'aria-label="Hardware recommendations"',
+            'aria-label="Quantization comparison"',
+            "if (!response.ok)",
+            'role="alert"',
+            "Unable to load report",
+            "function escapeHtml(value: string): string",
             "function isReportPayload(value: unknown, selectedWeightBits: string): value is ReportPayload",
             "function hasText(value: string): boolean",
             "hasText(value.name)",
@@ -99,11 +102,11 @@ def test_vite_frontend_renders_required_controls_and_fetches_report_api() -> Non
     assert "${escapeHtml(report.total_vram)}" in script
     assert "${escapeHtml(report.plan.optimization)}" not in script
     assert "color-scheme: dark;" in styles
-    assert "height: 100dvh;" in styles
+    assert "height: 100%;" in styles
 
 
 def test_vite_frontend_constrains_dense_report_panel() -> None:
-    script = frontend_text("src/app.ts")
+    script = frontend_text("src/render.ts")
     styles = frontend_text("src/styles.css")
 
     assert 'class="panel report-panel" aria-label="Hardware recommendations"' in script
@@ -132,13 +135,13 @@ def test_vite_frontend_uses_reference_terminal_theme() -> None:
     # Reference-style terminal shell: status strip, grid background, results left/control panel right.
     assert ".terminal-bar" in styles
     assert "background-size: 40px 40px;" in styles
-    assert 'grid-template-areas:\n    "status status"\n    "results controls";' in styles
+    assert 'grid-template:\n    "status status" auto\n    "results controls"' in styles
     assert "grid-area: results;" in styles
     assert "grid-area: controls;" in styles
 
 
 def test_vite_frontend_disables_adapter_until_training_is_enabled() -> None:
-    script = frontend_text("src/app.ts")
+    script = "\n".join(frontend_text(path) for path in ("src/app.ts", "src/render.ts", "src/controls.ts"))
 
     assert 'const adapterState = state.trained ? checked(state.use_adapter) : "";' in script
     assert 'const adapterDisabled = state.trained ? "" : " disabled";' in script
@@ -149,7 +152,9 @@ def test_vite_frontend_disables_adapter_until_training_is_enabled() -> None:
 
 
 def test_vite_frontend_disables_active_parameters_until_moe_is_selected() -> None:
-    script = frontend_text("src/app.ts")
+    script = "\n".join(
+        frontend_text(path) for path in ("src/app.ts", "src/render.ts", "src/state.ts", "src/controls.ts")
+    )
 
     assert 'name="architecture"' in script
     assert "Dense (Typical inference)" in script
@@ -175,7 +180,9 @@ def test_playwright_harness_declares_vite_server() -> None:
 
 
 def test_playwright_harness_exercises_rendered_form_and_report_api() -> None:
-    spec = frontend_text("tests/calculator.spec.ts")
+    spec = "\n".join(
+        frontend_text(path) for path in ("tests/calculator.spec.ts", "tests/payload-contract.spec.ts")
+    )
 
     assert 'page.route("**/api/report?**"' in spec
     assert 'page.locator(".total")' in spec

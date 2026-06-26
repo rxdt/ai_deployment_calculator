@@ -18,18 +18,18 @@ from web.presenter import (
 )
 
 
-def test_untrained_is_inference_even_with_adapter() -> None:
+def test_training_disabled_is_inference_even_with_adapter() -> None:
     # An adapter without training holds no gradients/optimizer state, so it stays inference.
     form = FormInputs(parameters_b=8, context_tokens=8000, trained=False, use_adapter=True)
     assert form.task == "inference"
 
 
-def test_trained_with_adapter_is_qlora() -> None:
+def test_training_with_adapter_is_qlora() -> None:
     form = FormInputs(parameters_b=8, context_tokens=8000, trained=True, use_adapter=True)
     assert form.task == "qlora"
 
 
-def test_trained_without_adapter_is_full_training() -> None:
+def test_training_without_adapter_is_full_training() -> None:
     form = FormInputs(parameters_b=8, context_tokens=8000, trained=True, use_adapter=False)
     assert form.task == "full_training"
 

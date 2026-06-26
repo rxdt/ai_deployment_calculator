@@ -281,7 +281,9 @@ describe("calculator app", () => {
     const browser = runtime(fetchMock, "?parameters_b=70&context_tokens=16000&weight_bits=4&kv_cache_bits=8&runtime=llama_cpp_gguf&architecture=moe&active_parameters_b=8&trained=on&use_adapter=on");
     const calculator = mountCalculator(root, browser);
 
-    await vi.waitFor(() => expect(root.querySelector(".total")?.textContent).toBe("20.1 GB"));
+    await vi.waitFor(() => {
+      expect(root.querySelector(".total")?.textContent).toBe("20.1 GB");
+    });
     expect(root.querySelector<HTMLInputElement>('input[name="use_adapter"]')?.disabled).toBe(false);
     expect(root.querySelector<HTMLInputElement>('input[name="active_parameters_b"]')?.disabled).toBe(false);
 
@@ -292,7 +294,9 @@ describe("calculator app", () => {
     root.querySelector<HTMLInputElement>('input[name="trained"]')?.click();
     root.querySelector<HTMLFormElement>("form")?.requestSubmit();
 
-    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    await vi.waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+    });
     expect(browser.history.replaceState).toHaveBeenCalledWith(
       null,
       "",
@@ -306,7 +310,9 @@ describe("calculator app", () => {
     const fetchMock = vi.fn<BrowserRuntime["fetch"]>().mockResolvedValue(response(report));
     mountCalculator(root, runtime(fetchMock));
 
-    await vi.waitFor(() => expect(root.querySelector("form")).not.toBeNull());
+    await vi.waitFor(() => {
+      expect(root.querySelector("form")).not.toBeNull();
+    });
     const trained = root.querySelector<HTMLInputElement>('input[name="trained"]');
     const adapter = root.querySelector<HTMLInputElement>('input[name="use_adapter"]');
     const architecture = root.querySelector<HTMLSelectElement>('select[name="architecture"]');
@@ -399,7 +405,9 @@ describe("calculator app", () => {
     root.addEventListener("submit", calculator);
     root.querySelector<HTMLFormElement>("form")?.requestSubmit();
 
-    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    await vi.waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
     expect(browser.history.replaceState).toHaveBeenCalledWith(
       null,
       "",
@@ -421,6 +429,8 @@ describe("main bootstrap", () => {
 
     await import("./main");
 
-    await vi.waitFor(() => expect(document.querySelector(".total")?.textContent).toBe("20.1 GB"));
+    await vi.waitFor(() => {
+      expect(document.querySelector(".total")?.textContent).toBe("20.1 GB");
+    });
   });
 });

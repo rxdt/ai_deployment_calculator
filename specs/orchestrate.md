@@ -13,10 +13,15 @@ behavior, checks, and blockers.
   back to the no-JS page when the build is missing.
 - The calculator UI renders results without the old memory-optimization advice
   paragraph.
-- Current `main` is aligned with `origin/main` after fetch.
+- The calculator UI and no-build fallback label the training checkbox as
+  `GPUs are for model training`.
+- Frontend source is split into focused modules so the launch lint gate can
+  enforce file size and complexity limits.
+- Current `main` had one existing local commit ahead of `origin/main` after
+  fetch at the start of this pass.
 - Mocked Playwright, real-backend Playwright, Vitest coverage, and frontend gate
   were green in the prior launch pass.
-- `harness gate` and `harness preflight` are green in this workspace.
+- `env -u RALPH_LOOP harness gate` is green in this workspace.
 - `frontend/ci.yml` is ready to copy to `.github/workflows/frontend-ci.yml` when
   protected workflow edits are allowed.
 
@@ -56,3 +61,7 @@ behavior, checks, and blockers.
   commit is blocked by protected hook edits outside this iteration's scope.
 - Codex-orchestrate-1/1: refreshed launch blocker/status text after fetch showed
   `main` aligned with `origin/main`.
+- Codex-frontend-1/1: relabeled the training checkbox to match the GPU-training
+  mental model while leaving the `trained` query field compatible.
+- Codex-frontend-1/1: split frontend source and payload Playwright tests so the
+  frontend lint gate passes without relaxing size or complexity rules.

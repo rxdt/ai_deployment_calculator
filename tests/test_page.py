@@ -28,7 +28,6 @@ def test_default_page_renders_required_controls_and_worked_total() -> None:
     assert 'name="context_tokens"' in html
     assert 'name="weight_bits"' in html
     assert 'name="kv_cache_bits"' in html
-    assert 'name="trained" type="checkbox"' in html
     assert 'name="use_adapter" type="checkbox"' in html
     assert "20.1 GB" in html
     assert "32 GB host RAM" in html
@@ -49,6 +48,8 @@ def test_default_page_renders_required_controls_and_worked_total() -> None:
         fragment in html
         for fragment in (
             '<option value="32">32-bit</option>',
+            'name="trained" type="checkbox"',
+            "GPUs are for model training",
             'name="runtime"',
             '<option value="pytorch" selected>PyTorch</option>',
             '<option value="llama_cpp_gguf">llama.cpp GGUF</option>',

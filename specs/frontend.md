@@ -24,10 +24,15 @@ Users open the Vite calculator first. FastAPI is the only backend/server path.
   advice copy; `/api/report` still carries the existing plan field for compatibility.
 - The dense architecture option is labeled `Dense (Typical inference)` in both
   the Vite UI and no-build fallback.
+- The training checkbox is labeled `GPUs are for model training` in both the
+  Vite UI and no-build fallback; the existing `trained` query field remains for
+  compatibility.
 - WSGI is removed.
 - Mocked and real-backend Playwright suites pass in this environment.
 - Vitest unit coverage gates frontend `src/**/*.ts` at 100% statements,
   branches, functions, and lines.
+- Vite code is split into focused app, render, state, validation, control, and
+  type modules so frontend lint can enforce size and complexity limits.
 - `frontend/ci.yml` mirrors the backend CI shape as a drop-in workflow; copy it
   to `.github/workflows/frontend-ci.yml` when protected workflow edits are
   allowed.
@@ -36,7 +41,8 @@ Users open the Vite calculator first. FastAPI is the only backend/server path.
 - `uv run harness preflight` passes.
 - `pytest` passes.
 - `pytest tests/test_server.py -q` passes.
-- `harness gate` passes.
+- `env -u RALPH_LOOP harness gate` passes; unsetting `RALPH_LOOP` lets harness
+  integration tests exercise their simulated non-loop commit path.
 
 ## Acceptance Signals
 
@@ -54,6 +60,8 @@ Users open the Vite calculator first. FastAPI is the only backend/server path.
 - The calculator UI does not render the old weight/KV memory-optimization advice.
 - The calculator UI and no-build fallback label dense architecture as
   `Dense (Typical inference)`.
+- The calculator UI and no-build fallback label the training checkbox as
+  `GPUs are for model training`.
 - No WSGI app remains.
 
 ## If Browser Tests Fail

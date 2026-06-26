@@ -1,6 +1,10 @@
 :root {
   color-scheme: dark;
-  font-family: ui-monospace, "JetBrains Mono", "SFMono-Regular", Menlo, monospace;
+  font-family: ui-monospace, "JetBrains Mono", SFMono-Regular, Menlo, monospace;
+}
+
+html {
+  height: 100%;
 }
 
 * {
@@ -9,11 +13,11 @@
 
 body {
   margin: 0;
-  min-height: 100vh;
+  min-height: 100%;
   overflow: hidden;
   background:
-    linear-gradient(rgba(34, 197, 94, 0.06) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(34, 197, 94, 0.06) 1px, transparent 1px),
+    linear-gradient(rgb(34 197 94 / 6%) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(34 197 94 / 6%) 1px, transparent 1px),
     #070b0a;
   background-size: 40px 40px;
   color: #d6e2da;
@@ -26,13 +30,11 @@ select {
 }
 
 main {
-  height: 100vh;
+  height: 100%;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 420px;
-  grid-template-rows: auto minmax(0, 1fr);
-  grid-template-areas:
-    "status status"
-    "results controls";
+  grid-template:
+    "status status" auto
+    "results controls" minmax(0, 100%) / minmax(0, calc(100% - 448px)) 420px;
   gap: 18px 28px;
   padding: 18px 28px 28px;
 }
@@ -130,7 +132,7 @@ button {
 }
 
 .check {
-  grid-template-columns: 20px 1fr;
+  grid-template-columns: 20px calc(100% - 30px);
   align-items: center;
   gap: 10px;
 }
@@ -143,7 +145,7 @@ button {
 .results {
   grid-area: results;
   display: grid;
-  grid-template-rows: auto auto 1fr;
+  grid-template-rows: auto auto minmax(0, 100%);
   gap: 18px;
   min-height: 0;
 }
@@ -155,7 +157,7 @@ button {
 
 .hero {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: minmax(0, 100%) auto;
   gap: 16px;
   align-items: end;
 }
@@ -174,7 +176,7 @@ button {
 
 .breakdown {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 25%));
   gap: 10px;
 }
 
@@ -191,14 +193,9 @@ button {
 
 .tables {
   display: grid;
-  grid-template-columns: 1.15fr .85fr;
+  grid-template-columns: 57.5% 42.5%;
   gap: 18px;
   align-items: start;
-}
-
-.selected td {
-  background: #14532d;
-  font-weight: 700;
 }
 
 .calc {
@@ -243,6 +240,11 @@ td {
   text-align: left;
 }
 
+.selected td {
+  background: #14532d;
+  font-weight: 700;
+}
+
 th {
   color: #4ade80;
   font-size: 12px;
@@ -250,15 +252,13 @@ th {
   letter-spacing: 0.08em;
 }
 
-@media (max-width: 760px) {
+@media (width <= 760px) {
   main {
-    height: 100dvh;
-    grid-template-columns: 1fr;
-    grid-template-rows: auto auto 1fr;
-    grid-template-areas:
-      "status"
-      "controls"
-      "results";
+    height: 100%;
+    grid-template:
+      "status" auto
+      "controls" auto
+      "results" minmax(0, 100%) / 100%;
     gap: 10px;
     padding: 10px;
   }
@@ -283,7 +283,7 @@ th {
   }
 
   .controls {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 50%));
     gap: 10px;
   }
 
@@ -293,21 +293,21 @@ th {
   }
 
   .check {
-    grid-template-columns: 18px 1fr;
+    grid-template-columns: 18px calc(100% - 28px);
   }
 
   .results {
     gap: 10px;
-    grid-template-rows: auto auto 1fr;
+    grid-template-rows: auto auto minmax(0, 100%);
   }
 
   .hero {
-    grid-template-columns: 1fr auto;
+    grid-template-columns: minmax(0, 100%) auto;
     align-items: center;
   }
 
   .breakdown {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 50%));
     gap: 8px;
   }
 
@@ -320,7 +320,7 @@ th {
   }
 
   .tables {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 50% 50%;
     gap: 8px;
   }
 

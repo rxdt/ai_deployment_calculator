@@ -38,7 +38,7 @@ class FormInputs:
     active_parameters_b: float | None = None
     runtime: Runtime = "pytorch"  # Execution runtime: PyTorch carries the safety margin, GGUF drops it.
     task: Task = field(default="inference", init=False)
-    trained: InitVar[bool] = False  # "Model is trained" checkbox: unchecked means pure inference.
+    trained: InitVar[bool] = False  # Training checkbox: unchecked means pure inference.
     use_adapter: InitVar[bool] = False  # Secondary LoRA adapter: distinguishes QLoRA from full training.
 
     def __post_init__(self, trained: bool, use_adapter: bool) -> None:

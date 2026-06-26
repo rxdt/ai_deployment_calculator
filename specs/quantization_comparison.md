@@ -71,5 +71,5 @@ Worked check (8B / 8k / inference, KV 16-bit):
 
 ## COMPLETE ?
 
-- [ ] TRUE
+- [x] TRUE
 - [ ] FALSE

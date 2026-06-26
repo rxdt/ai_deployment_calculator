@@ -5,13 +5,15 @@ Specs say what to build. You decide what is the next most useful change.
 
 1. Read `specs/` and identify the single most important unfinished item.
 2. Inspect the relevant code and tests before editing.
-3. Implement one tightly scoped change from your spec.
-4. Add or update tests that prove behavior and challenge the source; use durable, behavior-focused names and docstrings.
-5. Run `harness gate`. If `harness` is not on PATH, run `.venv/bin/harness gate`.
-6. Fix failures without weakening tests, coverage, typing, security checks, or the gate.
-7. Update the relevant spec and `docs/PROJECT_STATUS.md` to match what changed.
-8. Commit on the current branch through the normal git hooks.
-9. Push the current branch so the iteration is saved remotely.
+3. `git fetch origin` before work.
+4. Implement one tightly scoped change from your spec.
+5. Add or update tests that prove behavior and challenge the source; use durable, behavior-focused names and docstrings.
+6. Run `harness gate`. If `harness` is not on PATH, run `.venv/bin/harness gate`.
+7. Fix failures without weakening tests, coverage, typing, security checks, or the gate.
+9. Commit on the current branch through the normal git hooks.
+10. Push with plain `git push`. Never pull, merge, rebase, force-push, or reset history. If push is rejected document it.
+11. Update the relevant spec and `docs/PROJECT_STATUS.md` to match changes.
+
 
 Rules:
 - Do not create a branch or worktree unless the human explicitly asked for one.

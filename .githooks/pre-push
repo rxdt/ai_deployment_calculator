@@ -5,4 +5,4 @@
 # Bypassing this hook is forbidden by AGENTS.md.
 set -eu
 
-harness gate
+.venv/bin/harness gate

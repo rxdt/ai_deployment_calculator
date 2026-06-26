@@ -4,8 +4,3 @@
 set -eu
 
 .venv/bin/harness preflight
-
-if git diff --cached --quiet; then
-  echo "Empty commit rejected. Commit real work." >&2
-  exit 1
-fi

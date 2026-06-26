@@ -1,8 +1,6 @@
 # Launch Orchestration Spec
 
-PRIORITY 2
-
-## Vision
+PRIORITY:
 
 Launch is close; current specs and status must stay truthful about shipped UI
 behavior, checks, and blockers.

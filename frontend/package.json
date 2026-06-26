@@ -3,6 +3,9 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "lint:js": "eslint .",
+    "lint:css": "stylelint \"src/**/*.css\"",
+    "lint": "npm run lint:js && npm run lint:css",
     "dev": "vite --host 127.0.0.1",
     "build": "vite build",
     "preview": "vite preview --host 127.0.0.1",
@@ -13,11 +16,23 @@
     "gate": "npm run build && npm run test:coverage && npm run test:e2e && npm run test:e2e:real"
   },
   "devDependencies": {
-    "@playwright/test": "^1.45.0",
-    "@vitest/coverage-v8": "^4.1.9",
-    "jsdom": "^29.1.1",
-    "typescript": "^5.5.0",
-    "vite": "^8.1.0",
-    "vitest": "^4.1.9"
+    "@eslint/js": "latest",
+    "@playwright/test": "latest",
+    "@vitest/coverage-v8": "latest",
+    "eslint": "latest",
+    "eslint-plugin-jsx-a11y": "latest",
+    "eslint-plugin-react": "latest",
+    "eslint-plugin-react-hooks": "latest",
+    "eslint-plugin-react-refresh": "latest",
+    "eslint-plugin-security": "latest",
+    "eslint-plugin-tailwindcss": "latest",
+    "globals": "latest",
+    "jsdom": "latest",
+    "stylelint": "latest",
+    "stylelint-config-standard": "latest",
+    "typescript": "latest",
+    "typescript-eslint": "latest",
+    "vite": "latest",
+    "vitest": "latest"
   }
 }

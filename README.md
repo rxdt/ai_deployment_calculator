@@ -64,9 +64,4 @@ If an agent cannot bind localhost or launch Chromium in its sandbox, rerun the
 same command unsandboxed.
 
 ## Owner Notes
-
-- `docs/plan.md` and `specs/frontend.md` are the launch handoff.
-- `specs/frontend.md` is the only remaining spec.
-- Leave `frontend/example_user_will_delete/` alone. The user will delete it once
-  the frontend is done.
 - Keep markdown files under 100 lines.

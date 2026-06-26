@@ -46,6 +46,7 @@ Users open the Vite calculator first. FastAPI is the only backend/server path.
 - `cd frontend && npm run test:e2e:real` passes.
 - `cd frontend && npm run gate` passes.
 - `harness preflight` passes.
+- `npm --prefix frontend run lint`
 - `harness gate` passes.
 - The launch URL serves the Vite UI after build.
 - `/api/report` returns JSON from FastAPI.

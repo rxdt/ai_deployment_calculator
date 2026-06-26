@@ -68,6 +68,7 @@ COMMIT_CHECKS = {
 FULL_CHECKS = COMMIT_CHECKS | {
     "types": ("uv", "run", "--no-sync", "pyright"),
     "pylint": ("uv", "run", "--no-sync", "pylint", "harness", "src"),
+    "frontend-lint": ("npm", "--prefix", "frontend", "run", "lint"),
     "security": (
         "uv",
         "run",
@@ -139,7 +140,7 @@ def run_preflight(repo: Path) -> list[str]:
         }
         if forbidden:
             dropped = sorted(forbidden)
-            reset = ["reset", "-q", "HEAD", "--"]
+            reset = ["reset", "-q", "HEAD", "--"]  # remove staged forbidden files
             reset.extend(dropped)
             run_git(repo, reset)
             sys.stderr.write("harness kept forbidden paths out of the commit: " + ", ".join(dropped) + "\n")
@@ -153,6 +154,8 @@ def run_preflight(repo: Path) -> list[str]:
         ]
         problems.extend(preference_problems(repo, staged))
     problems.extend(run_checks(repo, COMMIT_CHECKS))
+    if not run_git(repo, ["diff", "--cached", "--name-only"]).strip():
+        problems.append("Empty commit rejected. Stage real work.")
     return problems
 
 

@@ -17,7 +17,8 @@ from conftest import run_cmd
 from packaging.utils import InvalidName
 from typer.testing import CliRunner
 
-from harness import cli, gate
+from harness import cli
+from harness import gate as gate_module
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -132,7 +133,7 @@ def test_run_exposes_verbose_as_positional_without_disable_flag() -> None:
 
 def test_preflight_passes_when_gate_clean(monkeypatch: pytest.MonkeyPatch) -> None:
     """preflight is a dumb pass-through: no problems → exit 0, says ok."""
-    monkeypatch.setattr(gate, "run_preflight", returns([]))
+    monkeypatch.setattr(gate_module, "run_preflight", returns([]))
     result = runner.invoke(cli.app, ["preflight"])
     assert result.exit_code == 0
     assert "ok: preflight passed" in result.stderr
@@ -140,16 +141,31 @@ def test_preflight_passes_when_gate_clean(monkeypatch: pytest.MonkeyPatch) -> No
 
 def test_preflight_rejects_and_prints_each_problem(monkeypatch: pytest.MonkeyPatch) -> None:
     """A problem from run_preflight is surfaced and exits 1."""
-    monkeypatch.setattr(gate, "run_preflight", returns(["banned pattern 'noqa' in line: x"]))
+    monkeypatch.setattr(gate_module, "run_preflight", returns(["banned pattern 'noqa' in line: x"]))
     result = runner.invoke(cli.app, ["preflight"])
     assert result.exit_code == 1
     assert "gate: banned pattern 'noqa'" in result.stderr
     assert "rejected by harness" in result.stderr
 
 
+def test_preflight_passes_cwd_to_gate(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    """preflight checks the repository the command is run from."""
+    recorded: dict[str, Path] = {}
+
+    def record(repo: Path) -> list[str]:
+        recorded["repo"] = repo
+        return []
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(gate_module, "run_preflight", record)
+    result = runner.invoke(cli.app, ["preflight"])
+    assert result.exit_code == 0
+    assert recorded["repo"] == tmp_path
+
+
 def test_gate_passes_when_checks_clean(monkeypatch: pytest.MonkeyPatch) -> None:
     """gate pass-through to run_gate: clean → exit 0."""
-    monkeypatch.setattr(gate, "run_gate", returns([]))
+    monkeypatch.setattr(gate_module, "run_gate", returns([]))
     result = runner.invoke(cli.app, ["gate"])
     assert result.exit_code == 0
     assert "ok: gate passed" in result.stderr
@@ -157,16 +173,31 @@ def test_gate_passes_when_checks_clean(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def test_gate_rejects_on_failure(monkeypatch: pytest.MonkeyPatch) -> None:
     """A failing full gate check surfaces and exits 1."""
-    monkeypatch.setattr(gate, "run_gate", returns(["types failed:\npyright"]))
+    monkeypatch.setattr(gate_module, "run_gate", returns(["types failed:\npyright"]))
     result = runner.invoke(cli.app, ["gate"])
     assert result.exit_code == 1
     assert "gate: types failed" in result.stderr
     assert "rejected by harness" in result.stderr
 
 
+def test_gate_passes_cwd_to_full_gate(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    """gate checks the repository the command is run from."""
+    recorded: dict[str, Path] = {}
+
+    def record(repo: Path) -> list[str]:
+        recorded["repo"] = repo
+        return []
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(gate_module, "run_gate", record)
+    result = runner.invoke(cli.app, ["gate"])
+    assert result.exit_code == 0
+    assert recorded["repo"] == tmp_path
+
+
 def test_verify_passes_when_gate_clean(monkeypatch: pytest.MonkeyPatch) -> None:
     """verify is gone, so it cannot pass through to run_gate."""
-    monkeypatch.setattr(gate, "run_gate", pytest.fail)
+    monkeypatch.setattr(gate_module, "run_gate", pytest.fail)
     result = runner.invoke(cli.app, ["verify"])
     assert result.exit_code == 2
     assert "No such command 'verify'" in result.output
@@ -175,7 +206,7 @@ def test_verify_passes_when_gate_clean(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def test_verify_rejects_on_failure(monkeypatch: pytest.MonkeyPatch) -> None:
     """verify is gone, so even a failing gate stub is never called."""
-    monkeypatch.setattr(gate, "run_gate", pytest.fail)
+    monkeypatch.setattr(gate_module, "run_gate", pytest.fail)
     result = runner.invoke(cli.app, ["verify"])
     assert result.exit_code == 2
     assert "No such command 'verify'" in result.output

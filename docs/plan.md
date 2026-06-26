@@ -32,10 +32,19 @@ Ensure the app is following these 4 rules:
 - Keep components modular and optimized for Vite's bundling.
 - Avoid heavy layout shifts. Images must have explicit `width` and `height` properties or aspect-ratio boxes to prevent Cumulative Layout Shift (CLS).
 
+- Implement visual regression and mobile responsiveness checks for our Vite calculator app using Playwright:
+1. Update the Playwright test file to include a visual layout snapshot assertion at the end of the test workflow:
+   await expect(page).toHaveScreenshot('calculator-layout.png');
+2. Run the following command in the terminal to generate the initial, pixel-perfect baseline images across all configured browsers and viewports:
+   npx playwright test --update-snapshots
+3. Run the mobile-specific test suite to ensure the layout, button sizes, and grid alignment adapt correctly to smaller screens without clipping:
+   npx playwright test --project="VRAM-Calculator" --project="Mobile Safari"
+4. Finally, run the production compiler to verify there are no hidden asset bundling issues, TypeScript errors, or build warnings:
+   npm run build
 
 UX/UI
 
-- The entire calculator should be visible on one screen, no scrolling. Right now everything below "Active parameters (billions)" is not visible without scrolling down.
+- The entire calculator should be visible on one screen, no scrolling. Right now everything below "Active parameters (billions)" is not visible without scrolling down. It should also not be shrunken. Right now it has been reduced some amount so there is a large gap below any text or outputs.
 - "Parameters (billions)" in calculator portion was confusing. Asking a user to type 0.0003 for a 300k parameter model is terrible UX. The best practice here is a Compound Input: A standard number input field sitting right next to a
 "Unit" dropdown. The Input: [ 300 ]
 The Dropdown: [ Billions | Millions | Thousands ]
@@ -157,11 +166,8 @@ The Core FormulaTotal_Memory = (W + KV_Scaled + T + C) * Buffer2. The Inputs (Us
 
 ## Do Not Do
 
-- Do not add more calculator math, hardware catalog, parser edge cases, or
-  mocked Playwright tests.
-- Leave `frontend/example_user_will_delete/` alone. The user will delete it once
-  the frontend is done.
-- Do not preserve WSGI for compatibility; remove it once FastAPI covers launch.
+- Use `frontend/example_user_will_delete/` as a styling and javascript example to borrow from.
+- Do not preserve WSGI for compatibility; remove it ASAP and get things working with FastAPI.
 
 ## Required Checks
 

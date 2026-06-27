@@ -68,3 +68,5 @@ self-tests, and then the repo Python harness gate. The git pre-commit hook runs
 - `codex exec --json "Spawn explorer and worker subagents..."`, Codex spawns flat, parallel worker threads (explorer, reviewer, worker) in a managed cloud environment or local worktree to split up tasks simultaneously. Sub-types: default, worker, explorer (read-heavy). ORCHESTRATE: Spawn two Codex subagents:
   - explorer: read-only, map the relevant files and risks.
   - worker: implement the smallest fix after explorer reports. Wait for both, reconcile conflicts, then run verification.
+- Additional Codex hack:
+you can cleanly clear `CODEX_THREAD_ID` variables before launching subsequent child processes, which is what prevents nested headless agents.

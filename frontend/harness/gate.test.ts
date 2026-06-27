@@ -470,6 +470,8 @@ describe("frontend gate shape", () => {
       "security",
       "setup:e2e",
       "test",
+      "test:coverage",
+      "test:e2e",
       "typecheck",
     ]);
     for (const hidden of [

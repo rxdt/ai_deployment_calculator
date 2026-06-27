@@ -53,6 +53,7 @@ interface NumberField {
   name: keyof FormState;
   label: string;
   value: string;
+  fieldClass?: string;
   min?: string;
   step?: string;
 }
@@ -61,10 +62,12 @@ function field({
   name,
   label,
   value,
+  fieldClass = "",
   min = "0",
   step = "any",
 }: NumberField): string {
-  return `<div class="field"><label>${label}<input name="${name}" type="number" min="${min}" step="${step}" value="${escapeHtml(value)}"></label></div>`;
+  const fieldClasses = fieldClass === "" ? "field" : `field ${fieldClass}`;
+  return `<div class="${fieldClasses}"><label>${label}<input name="${name}" type="number" min="${min}" step="${step}" value="${escapeHtml(value)}"></label></div>`;
 }
 
 function integerField(
@@ -139,6 +142,17 @@ function adaptiveInputFields(state: FormState): string {
   );
 }
 
+function shortHardwareTier(tier: string): string {
+  return tier.split(", e.g.", 1)[0] ?? tier;
+}
+
+function transparentCalculation(report: ReportPayload): string {
+  const components = report.breakdown.map(
+    (row) => `${row.label}: ${row.value}`,
+  );
+  return `${components.join(" + ")} = ${report.totalRequiredMemory}`;
+}
+
 export function renderForm(state: FormState): string {
   const isSupportsMoe = isFamilySupportsMoe(state.workload_family);
   const isShowActive = isSupportsMoe && state.moe_enabled;
@@ -148,7 +162,7 @@ export function renderForm(state: FormState): string {
   return `
     <form class="panel controls" aria-label="Deployment inputs">
       <h1>VRAM Deployment Calculator</h1>
-      <div class="field">
+      <div class="field field-wide">
         <label>Workload Family
           <select name="workload_family">${familyOptions(state.workload_family)}</select>
         </label>
@@ -181,22 +195,24 @@ export function renderForm(state: FormState): string {
         </label>
       </div>
       <label class="check moe-control"${isSupportsMoe ? "" : " hidden"}><input name="moe_enabled" type="checkbox"${checked(state.moe_enabled)}> MoE Model</label>
-      <div class="field active-params"${isShowActive ? "" : " hidden"}>
+      <div class="field field-sub active-params"${isShowActive ? "" : " hidden"}>
         <label>Active Parameters
           <input name="active_params" type="number" min="0.000001" step="any" value="${escapeHtml(state.active_params)}">
         </label>
       </div>
       <details class="advanced">
         <summary>Advanced assumptions</summary>
-        ${field({ name: "known_model_file_size_gb", label: "Known Model File Size", value: state.known_model_file_size_gb })}
-        ${field({ name: "gpu_resident_fraction", label: "GPU Resident Fraction", value: state.gpu_resident_fraction, min: "0.01", step: "0.01" })}
-        <div class="field"><label>KV Cache Precision<select name="kv_cache_precision">${options(["16-bit", "8-bit / FP8", "32-bit"], state.kv_cache_precision)}</select></label></div>
-        <label class="check"><input name="exact_transformer_architecture" type="checkbox"${checked(state.exact_transformer_architecture)}> Exact Transformer Architecture</label>
-        ${field({ name: "lora_trainable_percent", label: "LoRA Trainable Percent", value: state.lora_trainable_percent, min: "0.1", step: "0.1" })}
-        <div class="field"><label>Training Settings<select name="optimizer">${options(["AdamW", "8-bit Adam", "SGD-like"], state.optimizer)}</select></label></div>
-        <label class="check"><input name="gradient_checkpointing" type="checkbox"${checked(state.gradient_checkpointing)}> Gradient checkpointing</label>
-        ${field({ name: "my_gpu_vram_gb", label: "Compare with my GPU", value: state.my_gpu_vram_gb })}
-        ${field({ name: "cloud_cost_override", label: "Cloud Cost Override", value: state.cloud_cost_override })}
+        <div class="advanced-grid">
+          ${field({ name: "known_model_file_size_gb", label: "Known Model File Size", value: state.known_model_file_size_gb })}
+          ${field({ name: "gpu_resident_fraction", label: "GPU Resident Fraction", value: state.gpu_resident_fraction, min: "0.01", step: "0.01" })}
+          <div class="field"><label>KV Cache Precision<select name="kv_cache_precision">${options(["16-bit", "8-bit / FP8", "32-bit"], state.kv_cache_precision)}</select></label></div>
+          ${field({ name: "lora_trainable_percent", label: "LoRA Trainable Percent", value: state.lora_trainable_percent, min: "0.1", step: "0.1" })}
+          <div class="field"><label>Training Settings<select name="optimizer">${options(["AdamW", "8-bit Adam", "SGD-like"], state.optimizer)}</select></label></div>
+          ${field({ name: "my_gpu_vram_gb", label: "Compare with my GPU", value: state.my_gpu_vram_gb })}
+          ${field({ name: "cloud_cost_override", label: "Cloud Cost Override", value: state.cloud_cost_override, fieldClass: "field-wide" })}
+          <label class="check"><input name="exact_transformer_architecture" type="checkbox"${checked(state.exact_transformer_architecture)}> Exact Transformer Architecture</label>
+          <label class="check"><input name="gradient_checkpointing" type="checkbox"${checked(state.gradient_checkpointing)}> Gradient checkpointing</label>
+        </div>
       </details>
       <button type="submit">Calculate</button>
     </form>
@@ -217,19 +233,22 @@ function rowsMarkup(rows: DisplayRow[]): string {
   return rows
     .map(
       (row) =>
-        `<p class="metric">${escapeHtml(row.label)}<strong>${escapeHtml(row.value)}</strong></p>`,
+        `<p class="metric"><span>${escapeHtml(row.label)}</span><strong>${escapeHtml(row.value)}</strong></p>`,
     )
     .join("");
 }
 
 function warningMarkup(warnings: string[]): string {
-  return warnings.map((warning) => `<p>${escapeHtml(warning)}</p>`).join("");
+  return warnings
+    .slice(0, 2)
+    .map((warning) => `<p>${escapeHtml(warning)}</p>`)
+    .join("");
 }
 
 function cloudMarkup(report: ReportPayload): string {
   return report.cloudCost === null
     ? ""
-    : `<p class="metric">Cloud cost<strong>${escapeHtml(report.cloudCost)}</strong></p>`;
+    : `<p class="metric metric-note"><span>Cloud cost</span><strong>${escapeHtml(report.cloudCost)}</strong></p>`;
 }
 
 export function renderResults(report: ReportPayload): string {
@@ -239,31 +258,31 @@ export function renderResults(report: ReportPayload): string {
         <div>
           <h2>Total Required Memory</h2>
           <p class="primary">Accuracy: ${escapeHtml(report.accuracy)}</p>
-          <p class="primary">Recommended Hardware: ${escapeHtml(report.recommendedHardware.recommendedTier)}</p>
+          <p class="primary">Recommended Hardware: ${escapeHtml(shortHardwareTier(report.recommendedHardware.recommendedTier))}</p>
         </div>
         <output class="total">${escapeHtml(report.totalRequiredMemory)}</output>
       </section>
       <section class="breakdown" aria-label="Required outputs">
         ${rowsMarkup(report.breakdown)}
-        <p class="metric">Minimum Raw VRAM Needed<strong>${escapeHtml(report.minimumRawVramNeeded)}</strong></p>
-        <p class="metric">Speed<strong>${escapeHtml(report.speed)}</strong></p>
+        <p class="metric"><span>Minimum Raw VRAM Needed</span><strong>${escapeHtml(report.minimumRawVramNeeded)}</strong></p>
+        <p class="metric"><span>Speed</span><strong>${escapeHtml(report.speed)}</strong></p>
         ${cloudMarkup(report)}
       </section>
       <section class="panel report-panel" aria-label="Recommended Hardware">
         <h2>Recommended Hardware</h2>
         <p>${escapeHtml(report.recommendedHardware.math)}</p>
         <p>Usable VRAM target: <strong>${escapeHtml(report.recommendedHardware.usableVramTarget)}</strong></p>
-        <details class="calc"><summary>Calculation used</summary><code>${escapeHtml(report.calculation)}</code></details>
+        <details class="calc" open><summary>Calculation used</summary><code>${escapeHtml(transparentCalculation(report))}</code></details>
         <section class="assumptions" aria-label="Accuracy">
           <h2>Accuracy</h2>
           <p>${escapeHtml(report.accuracy)}</p>
         </section>
-        <section class="assumptions" aria-label="Assumptions">
-          <h2>Assumptions</h2>
+        <details class="assumptions assumptions-details" aria-label="Assumptions">
+          <summary>Assumptions</summary>
           ${report.assumptions.map((assumption) => `<p>${escapeHtml(assumption.label)}: <strong>${escapeHtml(assumption.value)}</strong></p>`).join("")}
-        </section>
+        </details>
         <section class="assumptions warnings" aria-label="Warnings">
-          <h2>Warnings</h2>
+          <h2>Disclaimers</h2>
           ${warningMarkup(report.warnings)}
         </section>
       </section>

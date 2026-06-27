@@ -12,6 +12,10 @@ PRIORITY 1 - implemented; keep green.
 - Static hosting is enough to run the built app.
 - Backend-only Python calculator, presenter, page, API, and server tests have
   been removed or replaced by Vitest and Playwright coverage.
+- Rewrite the stale `README.md` feature list and reproduction steps
+  (host-RAM, quantization-comparison output, "llama.cpp GGUF / A100 80GB"
+  recipe) to match the shipped Vite-only UI/outputs. The Vite-only framing is
+  already correct; the feature list and steps are not.
 
 ## Ownership
 

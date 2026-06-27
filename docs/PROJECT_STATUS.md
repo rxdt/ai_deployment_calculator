@@ -41,7 +41,7 @@
 - `npm --prefix frontend run gate` - green.
 - `.venv/bin/harness gate` - green.
 - `harness preflight` - green.
-- `git push` - green (`1ef1a3c` to `origin/main`).
+- `git push` - green through `d8f2503` to `origin/main`.
 
 ## Working Tree Notes
 

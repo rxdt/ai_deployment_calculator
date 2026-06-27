@@ -30,11 +30,13 @@
 
 ## Next
 
-1. Next orchestrator should launch only from outside an active harness worker;
-   `PROMPT.md` now tells implementation workers not to launch nested agents.
-2. Human owner reviews remaining unrelated working-tree edits: `docs/plan.md`
+1. Launch the next frontend worker only from a normal shell, not from this
+   active `harness run codex 1 40` worker.
+2. `PROMPT.md` is set for `specs/frontend.md`: verify local TypeScript report
+   parity, no `/api/report`, corrected values, UI/output coverage, and gate.
+3. Human owner reviews remaining unrelated working-tree edits: `docs/plan.md`
    and the generated report HTML.
-3. Human owner fixes or approves the protected pre-push hook loop-containment
+4. Human owner fixes or approves the protected pre-push hook loop-containment
    failure that blocks plain `git push`.
 
 ## Checks From This Pass
@@ -66,6 +68,9 @@
 - Orchestration attempt from inside this active harness session was stopped
   after the child worker launched a nested `harness run codex`; orphaned child
   Codex processes from that attempt were terminated.
+- Current orchestration attempt repeated that nested-launch failure; the child
+  `harness run codex 1 20` process tree was terminated and no implementation
+  worker completed.
 - Selected the frontend spec because the training checkbox wording was an open
   launch UX item with direct Vite and no-build fallback coverage; the frontend
   lint gate then required splitting oversized existing files without relaxing
@@ -73,8 +78,10 @@
 
 ## Working Tree Notes
 
-- Existing unrelated dirty paths remain outside this iteration's commit scope:
-  `docs/plan.md` and the generated report HTML.
+- Current dirty markdown from this orchestration pass: `PROMPT.md`,
+  `docs/PROJECT_STATUS.md`, and `specs/orchestrate.md`.
+- Existing unrelated dirty paths may remain outside this iteration's commit
+  scope: `docs/plan.md` and the generated report HTML.
 - Current branch has local commits that are not pushed because plain `git push`
   is rejected by the hook failure recorded above.
 - Leave `frontend/example_user_will_delete/` alone. The user will delete it once

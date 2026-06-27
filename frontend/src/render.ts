@@ -1,4 +1,4 @@
-import { familySupportsMoe, isTrainingMode } from "./controls";
+import { isFamilySupportsMoe, isTrainingMode } from "./controls";
 import type {
   DisplayRow,
   FormState,
@@ -49,74 +49,99 @@ function familyOptions(current: WorkloadFamily): string {
   ).join("");
 }
 
-function field(
-  name: keyof FormState,
-  label: string,
-  value: string,
+interface NumberField {
+  name: keyof FormState;
+  label: string;
+  value: string;
+  min?: string;
+  step?: string;
+}
+
+function field({
+  name,
+  label,
+  value,
   min = "0",
   step = "any",
-): string {
+}: NumberField): string {
   return `<div class="field"><label>${label}<input name="${name}" type="number" min="${min}" step="${step}" value="${escapeHtml(value)}"></label></div>`;
 }
 
+function integerField(
+  name: keyof FormState,
+  label: string,
+  value: string,
+): string {
+  return field({ name, label, value, min: "1", step: "1" });
+}
+
+function imageFields(
+  state: FormState,
+  widthLabel: string,
+  heightLabel: string,
+): string {
+  return `${integerField("image_width", widthLabel, state.image_width)}${integerField("image_height", heightLabel, state.image_height)}`;
+}
+
+const ADAPTIVE_FIELDS = new Map<WorkloadFamily, (state: FormState) => string>([
+  [
+    "text_encoder",
+    (state) =>
+      integerField("sequence_tokens", "Sequence Length", state.sequence_tokens),
+  ],
+  [
+    "encoder_decoder",
+    (state) =>
+      `${integerField("input_tokens", "Input Tokens", state.input_tokens)}${integerField("output_tokens", "Output Tokens", state.output_tokens)}`,
+  ],
+  ["vision", (state) => imageFields(state, "Image Width", "Image Height")],
+  [
+    "vision_language",
+    (state) =>
+      `${integerField("text_context_tokens", "Text Context Tokens", state.text_context_tokens)}${imageFields(state, "Image Width", "Image Height")}`,
+  ],
+  [
+    "image_diffusion",
+    (state) => imageFields(state, "Output Image Width", "Output Image Height"),
+  ],
+  [
+    "video_generation",
+    (state) =>
+      `<div class="field"><label>Output Resolution<select name="video_resolution">${options(["720p", "1080p"], state.video_resolution)}</select></label></div>${integerField("video_frames", "Frames", state.video_frames)}`,
+  ],
+  [
+    "audio",
+    (state) =>
+      integerField("audio_seconds", "Audio Length", state.audio_seconds),
+  ],
+  [
+    "tabular",
+    (state) =>
+      `${integerField("rows_per_batch", "Rows per Batch", state.rows_per_batch)}${integerField("features", "Features", state.features)}`,
+  ],
+  [
+    "custom",
+    (state) =>
+      field({
+        name: "input_size_multiplier",
+        label: "Input Size Preset",
+        value: state.input_size_multiplier,
+        min: "0.1",
+        step: "0.1",
+      }),
+  ],
+]);
+
 function adaptiveInputFields(state: FormState): string {
-  if (state.workload_family === "text_encoder") {
-    return field(
-      "sequence_tokens",
-      "Sequence Length",
-      state.sequence_tokens,
-      "1",
-      "1",
-    );
-  }
-  if (state.workload_family === "encoder_decoder") {
-    return `${field("input_tokens", "Input Tokens", state.input_tokens, "1", "1")}${field("output_tokens", "Output Tokens", state.output_tokens, "1", "1")}`;
-  }
-  if (
-    state.workload_family === "vision" ||
-    state.workload_family === "image_diffusion"
-  ) {
-    return `${field("image_width", state.workload_family === "vision" ? "Image Width" : "Output Image Width", state.image_width, "1", "1")}${field("image_height", state.workload_family === "vision" ? "Image Height" : "Output Image Height", state.image_height, "1", "1")}`;
-  }
-  if (state.workload_family === "vision_language") {
-    return `${field("text_context_tokens", "Text Context Tokens", state.text_context_tokens, "1", "1")}${field("image_width", "Image Width", state.image_width, "1", "1")}${field("image_height", "Image Height", state.image_height, "1", "1")}`;
-  }
-  if (state.workload_family === "video_generation") {
-    return `<div class="field"><label>Output Resolution<select name="video_resolution">${options(["720p", "1080p"], state.video_resolution)}</select></label></div>${field("video_frames", "Frames", state.video_frames, "1", "1")}`;
-  }
-  if (state.workload_family === "audio") {
-    return field(
-      "audio_seconds",
-      "Audio Length",
-      state.audio_seconds,
-      "1",
-      "1",
-    );
-  }
-  if (state.workload_family === "tabular") {
-    return `${field("rows_per_batch", "Rows per Batch", state.rows_per_batch, "1", "1")}${field("features", "Features", state.features, "1", "1")}`;
-  }
-  if (state.workload_family === "custom") {
-    return field(
-      "input_size_multiplier",
-      "Input Size Preset",
-      state.input_size_multiplier,
-      "0.1",
-      "0.1",
-    );
-  }
-  return field(
-    "context_tokens",
-    "Context Window",
-    state.context_tokens,
-    "1",
-    "1",
+  return (
+    ADAPTIVE_FIELDS.get(state.workload_family)?.(state) ??
+    integerField("context_tokens", "Context Window", state.context_tokens)
   );
 }
 
 export function renderForm(state: FormState): string {
-  const supportsMoe = familySupportsMoe(state.workload_family);
-  const showActive = supportsMoe && state.moe_enabled;
+  const isSupportsMoe = isFamilySupportsMoe(state.workload_family);
+  const isShowActive = isSupportsMoe && state.moe_enabled;
   const workloadLabel = isTrainingMode(state.execution_mode)
     ? "Micro Batch Size"
     : "Concurrent Requests";
@@ -128,7 +153,7 @@ export function renderForm(state: FormState): string {
           <select name="workload_family">${familyOptions(state.workload_family)}</select>
         </label>
       </div>
-      ${field("total_params", "Total Resident Parameters", state.total_params, "1", "1")}
+      ${field({ name: "total_params", label: "Total Resident Parameters", value: state.total_params, min: "1", step: "1" })}
       <div class="field">
         <label>Parameter Unit
           <select name="parameter_unit">${options(["B", "M", "K"], state.parameter_unit)}</select>
@@ -155,23 +180,23 @@ export function renderForm(state: FormState): string {
           <input name="workload_size" type="number" min="1" step="1" value="${escapeHtml(state.workload_size)}">
         </label>
       </div>
-      <label class="check moe-control"${supportsMoe ? "" : " hidden"}><input name="moe_enabled" type="checkbox"${checked(state.moe_enabled)}> MoE Model</label>
-      <div class="field active-params"${showActive ? "" : " hidden"}>
+      <label class="check moe-control"${isSupportsMoe ? "" : " hidden"}><input name="moe_enabled" type="checkbox"${checked(state.moe_enabled)}> MoE Model</label>
+      <div class="field active-params"${isShowActive ? "" : " hidden"}>
         <label>Active Parameters
           <input name="active_params" type="number" min="0.000001" step="any" value="${escapeHtml(state.active_params)}">
         </label>
       </div>
       <details class="advanced">
         <summary>Advanced assumptions</summary>
-        ${field("known_model_file_size_gb", "Known Model File Size", state.known_model_file_size_gb)}
-        ${field("gpu_resident_fraction", "GPU Resident Fraction", state.gpu_resident_fraction, "0.01", "0.01")}
+        ${field({ name: "known_model_file_size_gb", label: "Known Model File Size", value: state.known_model_file_size_gb })}
+        ${field({ name: "gpu_resident_fraction", label: "GPU Resident Fraction", value: state.gpu_resident_fraction, min: "0.01", step: "0.01" })}
         <div class="field"><label>KV Cache Precision<select name="kv_cache_precision">${options(["16-bit", "8-bit / FP8", "32-bit"], state.kv_cache_precision)}</select></label></div>
         <label class="check"><input name="exact_transformer_architecture" type="checkbox"${checked(state.exact_transformer_architecture)}> Exact Transformer Architecture</label>
-        ${field("lora_trainable_percent", "LoRA Trainable Percent", state.lora_trainable_percent, "0.1", "0.1")}
+        ${field({ name: "lora_trainable_percent", label: "LoRA Trainable Percent", value: state.lora_trainable_percent, min: "0.1", step: "0.1" })}
         <div class="field"><label>Training Settings<select name="optimizer">${options(["AdamW", "8-bit Adam", "SGD-like"], state.optimizer)}</select></label></div>
         <label class="check"><input name="gradient_checkpointing" type="checkbox"${checked(state.gradient_checkpointing)}> Gradient checkpointing</label>
-        ${field("my_gpu_vram_gb", "Compare with my GPU", state.my_gpu_vram_gb)}
-        ${field("cloud_cost_override", "Cloud Cost Override", state.cloud_cost_override)}
+        ${field({ name: "my_gpu_vram_gb", label: "Compare with my GPU", value: state.my_gpu_vram_gb })}
+        ${field({ name: "cloud_cost_override", label: "Cloud Cost Override", value: state.cloud_cost_override })}
       </details>
       <button type="submit">Calculate</button>
     </form>
@@ -183,7 +208,7 @@ export function renderStatusBar(): string {
     <header class="terminal-bar" aria-label="Deployment status">
       <strong>VRAM calculator</strong>
       <span>source: local TypeScript</span>
-      <span>no /api/report</span>
+      <span>static Vite app</span>
     </header>
   `;
 }

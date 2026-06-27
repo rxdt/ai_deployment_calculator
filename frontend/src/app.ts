@@ -8,7 +8,19 @@ export { renderResults } from "./render";
 export { buildReport } from "./report";
 export { defaultState, normalizedState, searchFromState } from "./state";
 export { isReportPayload } from "./validation";
-export type { BrowserRuntime, FormState, ReportPayload } from "./types";
+export type { BrowserRuntime, FormState } from "./types";
+
+function searchFromForm(form: HTMLFormElement): URLSearchParams {
+  const search = new URLSearchParams();
+  const formData = new FormData(form);
+  const entries = formData.entries();
+  for (const [name, value] of entries) {
+    if (typeof value === "string") {
+      search.set(name, value);
+    }
+  }
+  return search;
+}
 
 function browserRuntime(): BrowserRuntime {
   return {
@@ -58,8 +70,24 @@ export class CalculatorApp implements EventListenerObject {
       target instanceof HTMLInputElement ||
       target instanceof HTMLSelectElement
     ) {
+      if (
+        (target.name === "workload_family" ||
+          target.name === "execution_mode") &&
+        target.form instanceof HTMLFormElement
+      ) {
+        this.renderFromForm(target.form);
+        return;
+      }
       syncConditionalControls(this.app);
     }
+  }
+
+  private renderFromForm(form: HTMLFormElement): void {
+    const search = searchFromForm(form);
+    const state = normalizedState(search);
+    const report = buildReport(state);
+    this.app.innerHTML = `${renderStatusBar()}${renderForm(state)}${renderResults(report)}`;
+    syncConditionalControls(this.app);
   }
 
   private handleSubmit(event: Event): void {
@@ -67,11 +95,7 @@ export class CalculatorApp implements EventListenerObject {
     if (!(event.target instanceof HTMLFormElement)) {
       return;
     }
-    const search = new URLSearchParams();
-    const formData = new FormData(event.target);
-    for (const [name, value] of formData) {
-      search.set(name, String(value));
-    }
+    const search = searchFromForm(event.target);
     const normalizedSearch = searchFromState(normalizedState(search));
     this.runtime.history.replaceState(
       null,

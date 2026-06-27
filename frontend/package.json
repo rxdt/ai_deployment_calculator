@@ -31,7 +31,7 @@
     "ajv-formats": "latest",
     "ajv-keywords": "latest",
     "secure-json-parse": "latest",
-    "zod": "^4.4.3"
+    "zod": "latest"
   },
   "devDependencies": {
     "@axe-core/playwright": "latest",

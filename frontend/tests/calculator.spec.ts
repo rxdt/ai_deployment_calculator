@@ -18,7 +18,7 @@ test("renders the default deployment computed locally", async ({ page }) => {
     "source: local TypeScript",
   );
   await expect(page.getByLabel("Deployment status")).toContainText(
-    "no /api/report",
+    "static Vite app",
   );
   await expect(page.getByLabel("Workload Family")).toHaveValue(
     "text_generation",
@@ -40,10 +40,10 @@ test("recomputes a local GGUF-style exact file deployment", async ({
   await page.goto("/");
 
   await page.getByLabel("Total Resident Parameters").fill("104");
-  await page.getByLabel("Precision").selectOption("4-bit");
+  await page.locator('select[name="precision"]').selectOption("4-bit");
   await page.getByLabel("Runtime Profile").selectOption("Local / Edge");
   await page.getByLabel("Context Window").fill("32000");
-  await page.getByRole("group", { name: /Advanced assumptions/u }).click();
+  await page.getByText("Advanced assumptions").click();
   await page.getByLabel("Known Model File Size").fill("52");
   await page.getByLabel("KV Cache Precision").selectOption("32-bit");
   await page.getByRole("button", { name: "Calculate" }).click();
@@ -65,9 +65,7 @@ test("switches adaptive inputs and training workload label", async ({
 }) => {
   await page.goto("/");
 
-  await page
-    .getByLabel("Workload Family")
-    .selectOption("Text embeddings / reranking / classification");
+  await page.getByLabel("Workload Family").selectOption("text_encoder");
   await expect(page.getByLabel("Sequence Length")).toBeVisible();
   await expect(page.getByLabel("Context Window")).toHaveCount(0);
   await expect(page.getByLabel("MoE Model")).toBeVisible();
@@ -83,8 +81,8 @@ test("hides MoE for vision and ignores legacy query flags", async ({
   await page.goto("/?trained=on&use_adapter=on");
 
   await expect(page.getByLabel("Execution Mode")).toHaveValue("Inference");
-  await page.getByLabel("Workload Family").selectOption("Vision understanding");
-  await expect(page.getByLabel("MoE Model")).toHaveCount(0);
+  await page.getByLabel("Workload Family").selectOption("vision");
+  await expect(page.getByLabel("MoE Model")).toBeHidden();
   await expect(page.getByLabel("Image Width")).toBeVisible();
 });
 

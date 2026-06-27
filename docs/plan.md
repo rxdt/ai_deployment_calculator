@@ -76,7 +76,7 @@ Use the focused specs for implementation work:
 
 ```txt
 specs/frontend.md = frontend UI, TypeScript report building, output rendering, frontend tests.
-specs/backend.md = Python/FastAPI/API/WSGI removal, backend-only test cleanup, backend docs cleanup.
+specs/backend.md = Python report-service removal, backend-only test cleanup, backend docs cleanup.
 ```
 
 The architectural target is Vite + frontend TypeScript calculations. No backend owns calculator formulas.

@@ -82,3 +82,4 @@ Goal: Maintain global state. Coordinate short headless agents until `docs/plan.m
   - using the old harness Python ralph.sh NOT the new (supposted to be identical Js ralph.sh)
   - Claude flags --bare --no-session-persistence --fork-session
   - npm exec --package . -- harness run codex 1 20
+  - `codex exec --json "Review this branch with explorer and reviewer"`, Codex spawns flat, parallel worker threads (explorer, reviewer, worker) in a managed cloud environment or local worktree to split up tasks simultaneously

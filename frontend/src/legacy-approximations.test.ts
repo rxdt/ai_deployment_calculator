@@ -3,7 +3,7 @@ import { buildReport } from "./report";
 import { defaultState, normalizedState } from "./state";
 
 describe("legacy backend approximations are not used", () => {
-  test("local buildReport replaces the removed /api/report endpoint", () => {
+  test("local buildReport replaces the removed report service", () => {
     const report = buildReport({ ...defaultState(), total_params: "8" });
 
     expect(report.totalRequiredMemory).toBe("20.4 GB");

@@ -74,13 +74,15 @@ function last(search: URLSearchParams, name: keyof FormState): string | null {
   return search.getAll(name).at(-1) ?? null;
 }
 
-function checked(
+function isChecked(
   search: URLSearchParams,
   name: keyof FormState,
-  fallback: boolean,
+  isFallbackChecked: boolean,
 ): boolean {
   const value = last(search, name);
-  return value === null ? fallback : CHECKED_VALUES.has(value.toLowerCase());
+  return value === null
+    ? isFallbackChecked
+    : CHECKED_VALUES.has(value.toLowerCase());
 }
 
 function decimal(value: string | null, fallback: string): string {
@@ -185,7 +187,7 @@ export function normalizedState(search: URLSearchParams): FormState {
       last(search, "input_size_multiplier"),
       defaults.input_size_multiplier,
     ),
-    moe_enabled: checked(search, "moe_enabled", defaults.moe_enabled),
+    moe_enabled: isChecked(search, "moe_enabled", defaults.moe_enabled),
     active_params: positive(
       last(search, "active_params"),
       defaults.active_params,
@@ -203,7 +205,7 @@ export function normalizedState(search: URLSearchParams): FormState {
       last(search, "kv_cache_precision"),
       defaults.kv_cache_precision,
     ),
-    exact_transformer_architecture: checked(
+    exact_transformer_architecture: isChecked(
       search,
       "exact_transformer_architecture",
       defaults.exact_transformer_architecture,
@@ -217,7 +219,7 @@ export function normalizedState(search: URLSearchParams): FormState {
       last(search, "optimizer"),
       defaults.optimizer,
     ),
-    gradient_checkpointing: checked(
+    gradient_checkpointing: isChecked(
       search,
       "gradient_checkpointing",
       defaults.gradient_checkpointing,
@@ -240,7 +242,7 @@ export function searchFromState(state: FormState): URLSearchParams {
       if (value) {
         search.set(name, "on");
       }
-    } else if (value !== "") {
+    } else if (typeof value === "string" && value !== "") {
       search.set(name, value);
     }
   }

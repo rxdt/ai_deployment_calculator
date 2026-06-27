@@ -8,7 +8,7 @@ function state(overrides: Partial<FormState> = {}): FormState {
 }
 
 describe("buildReport", () => {
-  test("builds the default report locally without /api/report", () => {
+  test("builds the default report locally without network access", () => {
     const report = buildReport(state({ total_params: "8" }));
 
     expect(report.totalRequiredMemory).toBe("20.4 GB");

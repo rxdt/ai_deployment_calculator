@@ -2,15 +2,15 @@
 
 ## Current State
 
-- The active implementation spec is `specs/frontend.md`.
+- The active implementation spec for this pass is `specs/backend.md`.
 - Current branch is `main`; `git fetch origin` completed before this pass and
   local commits remain ahead of `origin/main`.
 - Advice-removal implementation is in current history.
 - Fallback QLoRA and MoE dependent controls are submittable before JavaScript
   runs; the enhancement script still disables them when appropriate.
 - Finished specs have been removed so agents do not select stale work.
-- The app is a static, single-page Vite app. There is no Python/FastAPI backend
-  and no `/api/report`; the report is computed locally in TypeScript.
+- The app is a static, single-page Vite app. There is no backend report service;
+  the report is computed locally in TypeScript.
 - The Python `src/` package and its `tests/` were removed; sizing logic was
   ported to `frontend/src/calculator.ts`, `hardware.ts`, and `report.ts`.
 - `CalculatorApp.loadReport` normalizes form state and renders
@@ -32,8 +32,8 @@
 
 1. P0: launch the next frontend worker only from a normal shell. This Codex
    worker must not treat its own `RALPH_LOOP=1` as a blocker.
-2. `PROMPT.md` is set for `specs/frontend.md`: verify local TypeScript report
-   parity, no `/api/report`, corrected values, UI/output coverage, and gate.
+2. `specs/backend.md` is current-state cleanup: keep Vite-only docs, no server
+   report route, corrected frontend values, UI/output coverage, and gate.
 3. Human owner reviews remaining unrelated working-tree edits: `docs/plan.md`
    and the generated report HTML.
 4. Human owner fixes or approves the protected pre-push hook loop-containment
@@ -81,10 +81,8 @@
 -p` (PID parent of the shell) descends from `harness run claude 1 50` ->
   `harness/ralph.sh 1 50 claude` -> `gtimeout claude -p`. Definitive that any
   `harness run codex`/`harness run claude` here is a nested launch.
-- Selected the frontend spec because the training checkbox wording was an open
-  launch UX item with direct Vite and no-build fallback coverage; the frontend
-  lint gate then required splitting oversized existing files without relaxing
-  rules.
+- Selected the backend spec for this pass to remove stale backend endpoint and
+  server-stack wording after the frontend TypeScript calculator became local.
 
 ## Working Tree Notes
 

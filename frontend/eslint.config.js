@@ -293,7 +293,7 @@ export default defineConfig([
   // complexity caps, no-floating-promises, …) remain the real gate. These are off, each justified:
   {
     rules: {
-      // The UI models snake_case query-string / backend field names (parameters_b, weight_bits,
+      // The UI models snake_case query-string / legacy field names (parameters_b, weight_bits,
       // active_parameters_b). Enforcing camelCase everywhere fights the domain (293 hits).
       "@typescript-eslint/naming-convention": "off",
       // Deep-readonly every parameter is impractical here (115 hits) and not a correctness rule.

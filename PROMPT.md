@@ -1,15 +1,15 @@
 # Assigned Spec
 
-`specs/frontend.md`
+`specs/backend.md`
 
-Objective: Verify frontend parity against `docs/plan.md` and `specs/frontend.md`: local TypeScript `buildReport(state)`, no `/api/report`, corrected expected values, required UI/output coverage, and green frontend gate. Only change code/tests if verification exposes a real frontend gap; otherwise update `specs/frontend.md` and `docs/PROJECT_STATUS.md` truthfully. Do not edit protected paths.
+Objective: Complete backend removal so the app is Vite/TypeScript-only. Remove any remaining `/api/report`, FastAPI/uvicorn/WSGI, and no-build fallback references from docs (e.g. `README.md` still documents an `/api/report` endpoint) and any non-frontend backend code/tests. Verify acceptance criteria in `specs/backend.md`: no frontend source calls `/api/report`, no production Python/FastAPI calculator path, README/specs describe Vite-only operation, and the frontend gate passes. Update `specs/backend.md` and `docs/PROJECT_STATUS.md` truthfully. Do not edit protected paths.
 
 You are an implementation worker, not the orchestrator. Do not run `harness run
 codex`, `harness run claude`, or launch any nested agents.
 `RALPH_LOOP=1` is expected inside this worker. It is not a blocker unless you
 are about to launch another `harness run ...` process.
 Do not read or act on `specs/orchestrate.md`. Your assigned spec is
-`specs/frontend.md`; complete that frontend objective directly.
+`specs/backend.md`; complete that backend objective directly.
 
 # Ralph loop prompt
 

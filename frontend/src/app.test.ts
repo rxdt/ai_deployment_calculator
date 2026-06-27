@@ -158,9 +158,9 @@ describe("rendering and validation", () => {
     expect(renderForm(state({ workload_family: "custom" }))).toContain(
       "Input Size Preset",
     );
-    expect(
-      renderForm(state({ execution_mode: "Full training" })),
-    ).toContain("Micro Batch Size");
+    expect(renderForm(state({ execution_mode: "Full training" }))).toContain(
+      "Micro Batch Size",
+    );
     expect(
       renderForm(state({ workload_family: "custom", moe_enabled: true })),
     ).toContain("Active Parameters");
@@ -248,28 +248,38 @@ describe("calculator app", () => {
     const rt = runtime();
     mountCalculator(root, rt);
 
-    const totalParams = root.querySelector<HTMLInputElement>(
+    const totalParameters = root.querySelector<HTMLInputElement>(
       'input[name="total_params"]',
     );
     const knownFile = root.querySelector<HTMLInputElement>(
       'input[name="known_model_file_size_gb"]',
     );
-    if (totalParams !== null) {
-      totalParams.value = "8";
+    if (totalParameters !== null) {
+      totalParameters.value = "8";
     }
-    root.querySelector<HTMLSelectElement>('select[name="precision"]')!.value =
-      "4-bit";
-    root.querySelector<HTMLSelectElement>(
+    const precision = root.querySelector<HTMLSelectElement>(
+      'select[name="precision"]',
+    );
+    const runtimeProfile = root.querySelector<HTMLSelectElement>(
       'select[name="runtime_profile"]',
-    )!.value = "Local / Edge";
+    );
+    if (precision !== null && runtimeProfile !== null) {
+      precision.value = "4-bit";
+      runtimeProfile.value = "Local / Edge";
+    }
     if (knownFile !== null) {
       knownFile.value = "4.6";
     }
-    root
-      .querySelector("form")
-      ?.dispatchEvent(
+    const form = root.querySelector("form");
+    if (form !== null) {
+      const upload = document.createElement("input");
+      upload.type = "file";
+      upload.name = "ignored_upload";
+      form.append(upload);
+      form.dispatchEvent(
         new SubmitEvent("submit", { bubbles: true, cancelable: true }),
       );
+    }
 
     expect(rt.history.replaceState).toHaveBeenCalled();
     expect(root.querySelector(".total")?.textContent).toBe("6.1 GB");
@@ -287,17 +297,44 @@ describe("calculator app", () => {
     expect(root.querySelector("form")).not.toBeNull();
   });
 
+  test("rerenders adaptive fields on family and execution-mode changes", () => {
+    const root = appRoot();
+    mountCalculator(root, runtime());
+    const family = root.querySelector<HTMLSelectElement>(
+      'select[name="workload_family"]',
+    );
+
+    if (family !== null) {
+      family.value = "vision";
+      family.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+    expect(root.textContent).toContain("Image Width");
+    const moe = root.querySelector<HTMLInputElement>(
+      'input[name="moe_enabled"]',
+    );
+    expect(moe?.closest<HTMLElement>(".moe-control")?.hidden).toBe(true);
+
+    const mode = root.querySelector<HTMLSelectElement>(
+      'select[name="execution_mode"]',
+    );
+    if (mode !== null) {
+      mode.value = "Full training";
+      mode.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+    expect(root.textContent).toContain("Micro Batch Size");
+  });
+
   test("main module mounts when an app root exists and throws without one", async () => {
     const root = document.createElement("main");
     root.id = "app";
     document.body.append(root);
 
-    await import("./main.ts?mounted");
+    vi.resetModules();
+    await import("./main");
     expect(root.querySelector("form")).not.toBeNull();
     document.body.replaceChildren();
 
-    await expect(import("./main.ts?missing")).rejects.toThrow(
-      "Missing app root",
-    );
+    vi.resetModules();
+    await expect(import("./main")).rejects.toThrow("Missing app root");
   });
 });

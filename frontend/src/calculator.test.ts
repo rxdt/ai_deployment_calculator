@@ -16,6 +16,12 @@ import {
 import { defaultState } from "./state";
 import type { FormState, WorkloadFamily } from "./types";
 
+const NO_KV_FAMILIES = new Set<WorkloadFamily>([
+  "text_encoder",
+  "vision",
+  "image_diffusion",
+]);
+
 function state(overrides: Partial<FormState> = {}): FormState {
   return { ...defaultState(), ...overrides };
 }
@@ -255,6 +261,11 @@ describe("training estimates", () => {
     expect(spec.activeParamsB).toBe(7);
     expect(spec.gpuResidentFraction).toBe(1);
     expect(spec.loraTrainablePercent).toBe(0.5);
+
+    expect(
+      specFromState(state({ total_params: "-1", workload_size: "-2" }))
+        .totalParamsB,
+    ).toBe(7);
   });
 
   test("checkpointing changes activation scale and SGD-like state is valid", () => {
@@ -291,11 +302,7 @@ describe("workload-family working memory", () => {
     const weights = weightsGb(spec);
     const working = inferenceWorkingMemoryGb(spec, weights);
     expect(working.inputActivationGb + working.kvCacheGb).toBeGreaterThan(0);
-    if (
-      family === "text_encoder" ||
-      family === "vision" ||
-      family === "image_diffusion"
-    ) {
+    if (NO_KV_FAMILIES.has(family)) {
       expect(working.kvCacheGb).toBe(0);
     }
   });
@@ -317,6 +324,32 @@ describe("workload-family working memory", () => {
     expect(
       inferenceWorkingMemoryGb(vision, weightsGb(vision)).inputActivationGb,
     ).toBeGreaterThan(0);
+  });
+
+  test("working-memory helpers fall back for invalid raw workload fields", () => {
+    const text = specFromState(state({ context_tokens: "bad" }));
+    const custom = specFromState(
+      state({
+        workload_family: "custom",
+        input_size_multiplier: "-1",
+      }),
+    );
+    const malformed = specFromState(state({ workload_family: "text_encoder" }));
+    Object.defineProperty(malformed, "family", { value: "unknown" });
+
+    expect(inferenceWorkingMemoryGb(text, weightsGb(text)).kvCacheGb).toBe(
+      inferenceWorkingMemoryGb(
+        specFromState(state({ context_tokens: "8000" })),
+        weightsGb(text),
+      ).kvCacheGb,
+    );
+    expect(
+      inferenceWorkingMemoryGb(custom, weightsGb(custom)).inputActivationGb,
+    ).toBeCloseTo(weightsGb(custom) * 0.25);
+    expect(
+      inferenceWorkingMemoryGb(malformed, weightsGb(malformed))
+        .inputActivationGb,
+    ).toBeCloseTo(weightsGb(malformed) * 0.25);
   });
 });
 

@@ -43,7 +43,7 @@
 - `npm --prefix frontend run gate` - first run hit the same axe navigation race;
   rerun green.
 - `.venv/bin/harness gate` - green.
-- `git push` - pending.
+- `git push` - green to `origin/main`.
 
 ## Working Tree Notes
 

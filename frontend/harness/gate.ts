@@ -32,8 +32,10 @@ export const FORBIDDEN_FILES = new Set<string>([
   "frontend/biome.json",
   "frontend/knip.json",
   "frontend/cspell.json",
+  "frontend/.markuplintrc.json",
   "frontend/.prettierrc.json",
   "frontend/.secretlintrc.json",
+  "frontend/.spectral.yml",
   "frontend/.dependency-cruiser.cjs",
   "frontend/playwright.config.js",
   "frontend/scripts/validate-json.mjs",
@@ -76,10 +78,9 @@ function npmCheck(script: string): string[] {
   return ["npm", "--prefix", "frontend", "run", script];
 }
 
-// Fast checks every committer pays: the linter and the formatter.
+// Fast checks every committer pays: the public frontend preflight composite.
 export const COMMIT_CHECKS: Record<string, string[]> = {
-  format: npmCheck("format:check"),
-  lint: npmCheck("lint:js:preflight"),
+  preflight: npmCheck("preflight"),
 };
 
 // The full bar: a single `npm run gate` already supersets format/lint and adds types,

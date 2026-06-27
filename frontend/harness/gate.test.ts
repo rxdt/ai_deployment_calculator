@@ -101,6 +101,8 @@ describe("gate constants", () => {
       "pyproject.toml",
       "AGENTS.md",
       "frontend/package.json",
+      "frontend/.markuplintrc.json",
+      "frontend/.spectral.yml",
     ]) {
       expect(FORBIDDEN_FILES.has(file)).toBe(true);
     }
@@ -116,20 +118,13 @@ describe("gate constants", () => {
     }
   });
 
-  test("checks run through `npm --prefix frontend run <script>`", () => {
-    expect(COMMIT_CHECKS.format).toEqual([
+  test("checks use the public preflight and gate scripts", () => {
+    expect(COMMIT_CHECKS.preflight).toEqual([
       "npm",
       "--prefix",
       "frontend",
       "run",
-      "format:check",
-    ]);
-    expect(COMMIT_CHECKS.lint).toEqual([
-      "npm",
-      "--prefix",
-      "frontend",
-      "run",
-      "lint:js:preflight",
+      "preflight",
     ]);
     expect(FULL_CHECKS.gate).toEqual([
       "npm",
@@ -141,7 +136,7 @@ describe("gate constants", () => {
   });
 
   test("pre-commit stays fast and pre-push uses the full gate", () => {
-    expect(Object.keys(COMMIT_CHECKS).toSorted()).toEqual(["format", "lint"]);
+    expect(Object.keys(COMMIT_CHECKS).toSorted()).toEqual(["preflight"]);
     expect(Object.keys(FULL_CHECKS)).toEqual(["gate"]);
     expect(Object.values(COMMIT_CHECKS).flat()).not.toContain("gate");
     expect(JSON.stringify(COMMIT_CHECKS)).not.toContain("semgrep");
@@ -378,39 +373,116 @@ describe("banned patterns and preferences under loop", () => {
 });
 
 describe("frontend gate shape", () => {
-  test("package.json gate runs every stage and each script exists", () => {
+  test("package.json gate runs every public stage in order", () => {
     const scripts = readScripts();
     const { gate } = scripts;
     expect(gate).toContain("cd .. && .venv/bin/harness gate");
     for (const stage of [
+      "preflight",
       "typecheck",
       "lint",
-      "format:check",
-      "json:check",
       "security",
       "build",
-      "test",
+      "TEST",
     ]) {
       expect(gate).toContain(stage);
       expect(Object.hasOwn(scripts, stage)).toBe(true);
     }
-    expect(scripts.typecheck).toContain("tsc");
-    expect(scripts.typecheck).toContain("--noEmit");
-    expect(scripts["security:sast"]).toContain("semgrep scan");
-    expect(scripts["security:sast"]).toContain("--error");
+    expect(gate.indexOf("preflight")).toBeLessThan(gate.indexOf("lint"));
     expect(gate.indexOf("typecheck")).toBeLessThan(gate.indexOf("security"));
-    expect(gate.indexOf("security")).toBeLessThan(gate.indexOf("test"));
-    expect(scripts["format:check"]).toContain("prettier");
-    expect(scripts["format:check"]).toContain("--check");
+    expect(gate.indexOf("security")).toBeLessThan(gate.indexOf("TEST"));
   });
 
-  test("fast developer aliases do not weaken the gate", () => {
+  test("public check groups cover the installed tools", () => {
     const scripts = readScripts();
-    expect(scripts["lint:fix"]).toBe("npx eslint . --fix");
-    expect(scripts["test:related"]).toBe("vitest --run --related");
-    expect(scripts["test:r"]).toBe("npm run test:related --");
-    expect(scripts.gate).not.toContain("lint:fix");
-    expect(scripts.gate).not.toContain("test:related");
+    expect(scripts.typecheck).toContain("tsc");
+    expect(scripts.typecheck).toContain("--noEmit");
+    expect(scripts.preflight).toContain("npm run format");
+    expect(scripts.preflight).toContain("eslint src harness");
+    expect(scripts.security).toContain("semgrep scan");
+    expect(scripts.security).toContain("--error");
+    expect(scripts.security).toContain("secretlint");
+    expect(scripts.security).toContain("npm audit");
+    expect(scripts.security).toContain("lockfile-lint");
+    expect(scripts.security).toContain("syncpack");
+    expect(scripts.lint).toContain("eslint .");
+    expect(scripts.lint).toContain("stylelint");
+    expect(scripts.lint).toContain("markuplint");
+    expect(scripts.lint).toContain("biome lint");
+    expect(scripts.lint).toContain("ajv compile");
+    expect(scripts.lint).toContain("node scripts/validate-json.mjs");
+    expect(scripts.lint).toContain("npmPkgJsonLint");
+    expect(scripts.lint).toContain("depcruise");
+    expect(scripts.lint).toContain("knip");
+    expect(scripts.lint).toContain("cspell");
+    expect(scripts.lint).toContain("spectral lint");
+    expect(scripts.format).toContain("prettier");
+    expect(scripts.format).toContain("--check");
+  });
+
+  test("historical check helpers are folded into public groups", () => {
+    const scripts = readScripts();
+    const foldedChecks = [
+      ["api:lint", scripts.lint, "spectral lint"],
+      ["deps:audit", scripts.security, "npm audit --audit-level=high"],
+      ["deps:lockfile", scripts.security, "lockfile-lint"],
+      ["deps:signatures", scripts.security, "npm audit signatures"],
+      ["deps:versions", scripts.security, "syncpack lint"],
+      ["format:check", scripts.format, "prettier . --check"],
+      ["json:biome", scripts.lint, "biome lint ."],
+      ["json:lint", scripts.lint, "eslint . --max-warnings=0"],
+      ["json:package", scripts.lint, "npmPkgJsonLint ."],
+      ["json:schema", scripts.lint, "node scripts/validate-json.mjs"],
+      ["json:schema:compile", scripts.lint, "ajv compile"],
+      ["lint:arch", scripts.lint, "depcruise src"],
+      ["lint:css", scripts.lint, "stylelint"],
+      ["lint:dead", scripts.lint, "knip"],
+      ["lint:html", scripts.lint, 'markuplint "**/*.html"'],
+      ["lint:js", scripts.lint, "eslint . --max-warnings=0"],
+      ["lint:js:preflight", scripts.preflight, "eslint src harness"],
+      ["lint:spell", scripts.lint, "cspell ."],
+      ["security:sast", scripts.security, "semgrep scan"],
+      ["security:secrets", scripts.security, "secretlint"],
+      ["test:coverage", scripts.TEST, "vitest run --coverage"],
+      ["test:e2e", scripts.TEST, "playwright test"],
+      ["test:harness", scripts.TEST, "harness/vitest.config.ts"],
+      ["test:unit", scripts.test, "vitest run"],
+    ] as const;
+
+    for (const [oldScript, publicGroup, expectedCommand] of foldedChecks) {
+      expect(publicGroup, `${oldScript} was dropped`).toContain(
+        expectedCommand,
+      );
+    }
+  });
+
+  test("npm script menu stays small and professional", () => {
+    const scripts = readScripts();
+    expect(Object.keys(scripts).toSorted()).toEqual([
+      "TEST",
+      "build",
+      "dev",
+      "format",
+      "gate",
+      "lint",
+      "preflight",
+      "preview",
+      "security",
+      "setup:e2e",
+      "test",
+      "typecheck",
+    ]);
+    for (const hidden of [
+      "gate:checks",
+      "gate:python-harness",
+      "harness:gate",
+      "harness:preflight",
+      "test:harness",
+      "test:related",
+    ]) {
+      expect(Object.hasOwn(scripts, hidden)).toBe(false);
+    }
+    expect(scripts.gate).not.toContain("harness/cli.ts");
   });
 
   test("vitest coverage thresholds are all 100", () => {
@@ -438,7 +510,8 @@ describe("frontend gate shape", () => {
     const ci = readFrontend("ci.yml");
     expect(ci).toContain("Reference copy only");
     expect(ci).toContain("npm run gate");
-    expect(ci).toContain("npm run test:harness");
+    expect(ci).not.toContain("npm run TEST");
+    expect(ci).not.toContain("npm run test:harness");
   });
 
   test("git hooks are two simple entrypoints", () => {
@@ -457,6 +530,7 @@ describe("frontend gate shape", () => {
     expect(prePush).toContain(".venv/bin/harness gate");
     expect(githubCi).toContain("npm --prefix frontend run gate");
     expect(packageGate).toContain("cd .. && .venv/bin/harness gate");
+    expect(packageGate).not.toContain("harness/cli.ts gate");
   });
 
   test("local gates and CI both load preference checks", () => {

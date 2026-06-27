@@ -1,0 +1,6 @@
+{
+  "excludeFiles": ["dist/**", "coverage/**", "node_modules/**"],
+  "rules": {
+    "required-h1": false
+  }
+}

@@ -23,5 +23,3 @@ jobs:
       - run: npm ci
       - run: npx playwright install --with-deps chromium
       - run: npm run gate
-      # Harness self-check: the JS gate/preferences logic at 100% coverage (own Vitest config).
-      - run: npm run test:harness

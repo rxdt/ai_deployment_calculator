@@ -1,6 +1,9 @@
 {
   "name": "ai-deployment-calculator",
   "private": true,
+  "bin": {
+    "harness": "./frontend/harness/harness.mjs"
+  },
   "scripts": {
     "gate": "npm --prefix frontend run gate"
   }

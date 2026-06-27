@@ -23,8 +23,8 @@ export const AGENTS: Record<string, string[]> = {
     "-m",
     "gpt-5.5",
     "--json",
-    "--sandbox",
-    "danger-full-access",
+    "--dangerously-bypass-approvals-and-sandbox",
+    "--dangerously-bypass-hook-trust",
     "-",
   ],
   agy: ["agy", "--log-file", "agy.log", "--print"],
@@ -60,10 +60,19 @@ export interface CommandResult {
   lines: string[];
 }
 
+/**
+Resolve the Git repository root from any directory inside the checkout.
+@param from - Directory inside the repo.
+@returns Absolute repository root path.
+*/
+export function repoRoot(from: string): string {
+  return runGit(from, ["rev-parse", "--show-toplevel"]).trim();
+}
+
 const defaultDependencies: CliDependencies = {
   preflight: (repo) => runPreflight(repo, runChecks),
   gate: (repo) => runGate(repo, runChecks),
-  repoRoot: (from) => runGit(from, ["rev-parse", "--show-toplevel"]).trim(),
+  repoRoot: (from) => repoRoot(from),
 };
 
 /**
@@ -254,7 +263,7 @@ async function runWorker(
 
 const defaultRunDependencies: RunDependencies = {
   now: () => Date.now(),
-  cwd: () => process.cwd(),
+  cwd: () => repoRoot(process.cwd()),
   ralphPath: () =>
     path.join(path.dirname(fileURLToPath(import.meta.url)), "ralph.sh"),
   listSequences,

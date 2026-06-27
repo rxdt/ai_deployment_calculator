@@ -1,3 +1,12 @@
+# Assigned Spec
+
+`specs/frontend.md`
+
+Objective: Reconcile the current frontend implementation with the spec and git state. Verify the Vite-only TypeScript calculator path, update `specs/frontend.md` and `docs/PROJECT_STATUS.md` truthfully, and only change code/tests if required to make the frontend gate pass. Do not edit protected paths.
+
+You are an implementation worker, not the orchestrator. Do not run `harness run
+codex`, `harness run claude`, or launch any nested agents.
+
 # Ralph loop prompt
 
 You are one fresh-context iteration of the loop. The repo is your memory.

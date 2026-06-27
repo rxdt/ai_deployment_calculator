@@ -52,7 +52,7 @@ fi
 i=1
 while [ "$i" -le "$MAX_ITERATIONS" ]; do
     echo "ralph: iteration $i/$MAX_ITERATIONS" >&2
-    PROMPT=$(cat PROMPT.md)   # read up front so a missing/unreadable prompt fails the loop (set -e)
+    PROMPT=$(cat "specs/orchestrate.md")   # read up front so a missing/unreadable prompt fails the loop (set -e)
     printf '%s\n\nRALPH_ITERATION=%s/%s\n' "$PROMPT" "$i" "$MAX_ITERATIONS" \
         | "$TIMEOUT" "$((MAX_MINUTES * 60))" "$@"
     i=$((i + 1))

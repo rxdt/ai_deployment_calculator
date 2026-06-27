@@ -1,0 +1,7 @@
+rules:
+  non-empty-document:
+    description: JSON and YAML documents must not be empty.
+    given: "$"
+    severity: error
+    then:
+      function: truthy

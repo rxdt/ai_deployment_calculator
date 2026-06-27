@@ -4,7 +4,7 @@ Goal: Maintain global state. Coordinate short headless agents until `docs/plan.m
 
 ## Current Truth
 
-- `docs/plan.md` owns product goals, naming, and calculation formulas.
+- `docs/plan.md` owns product goals, naming, and calculation formulas and is human maintaind aas the MASTER DOCUMENT to derive from.
 - `specs/frontend.md` owns frontend UI, TypeScript report generation, outputs, warnings, checks, and corrected expected values.
 - `specs/backend.md` owns removal of Python/FastAPI, `/api/report`, WSGI, backend-only tests, and stale backend docs.
 - Remaining work order is frontend parity first, backend removal second, docs/status cleanup last.
@@ -65,4 +65,5 @@ Goal: Maintain global state. Coordinate short headless agents until `docs/plan.m
 
 ## Changelog
 
-- <add documentation for changed items>
+- 2026-06-27: `PROMPT.md` now marks spawned workers as implementation workers
+  and forbids nested `harness run codex` / `harness run claude` launches.

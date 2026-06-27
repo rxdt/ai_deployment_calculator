@@ -24,6 +24,7 @@
     "gtimeout",
     "knip",
     "markuplint",
+    "markuplintrc",
     "mkdtemp",
     "noqa",
     "preflight",

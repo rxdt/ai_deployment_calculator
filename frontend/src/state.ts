@@ -1,3 +1,4 @@
+import * as z from "zod";
 import type { FormState } from "./types";
 
 const DEFAULT_VALUES = {
@@ -11,9 +12,10 @@ const DEFAULT_VALUES = {
 };
 
 const CHECKED_VALUES = new Set(["1", "true", "on", "yes"]);
-const VALID_BITS = new Set(["32", "16", "8", "4"]);
-const VALID_RUNTIMES = new Set(["pytorch", "llama_cpp_gguf"]);
-const VALID_ARCHITECTURES = new Set(["dense", "moe"]);
+// Zod enums validate the untrusted query-string fields against their allowed domain.
+const bitsSchema = z.enum(["32", "16", "8", "4"]);
+const runtimeSchema = z.enum(["pytorch", "llama_cpp_gguf"]);
+const architectureSchema = z.enum(["dense", "moe"]);
 
 function defaultState(): FormState {
   return {
@@ -72,13 +74,13 @@ function isValidActiveParameters(
 
 function selectedWeightBits(search: URLSearchParams): string | null {
   const value = lastValue(search, "weight_bits") ?? DEFAULT_VALUES.weight_bits;
-  return VALID_BITS.has(value) ? value : null;
+  return bitsSchema.safeParse(value).success ? value : null;
 }
 
 function selectedKvCacheBits(search: URLSearchParams): string | null {
   const value =
     lastValue(search, "kv_cache_bits") ?? DEFAULT_VALUES.kv_cache_bits;
-  return VALID_BITS.has(value) ? value : null;
+  return bitsSchema.safeParse(value).success ? value : null;
 }
 
 function isChecked(value: string | null): boolean {
@@ -123,8 +125,8 @@ function isValidState(
     isNonNegativeInteger(candidates.context) &&
     candidates.weightBits !== null &&
     candidates.kvCacheBits !== null &&
-    VALID_RUNTIMES.has(candidates.runtime) &&
-    VALID_ARCHITECTURES.has(candidates.architecture) &&
+    runtimeSchema.safeParse(candidates.runtime).success &&
+    architectureSchema.safeParse(candidates.architecture).success &&
     (candidates.architecture !== "moe" ||
       isValidActiveParameters(
         candidates.activeParameters,

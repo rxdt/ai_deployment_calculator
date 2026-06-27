@@ -1,6 +1,14 @@
 :root {
   color-scheme: dark;
   font-family: ui-monospace, "JetBrains Mono", SFMono-Regular, Menlo, monospace;
+
+  /* 8px-based spacing scale */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
 }
 
 html {
@@ -34,8 +42,8 @@ main {
   grid-template:
     "status status" auto
     "results controls" minmax(0, 100%) / minmax(0, calc(100% - 448px)) 420px;
-  gap: 18px 28px;
-  padding: 18px 28px 28px;
+  gap: var(--space-4) var(--space-5);
+  padding: var(--space-4) var(--space-5) var(--space-5);
 }
 
 section,
@@ -55,15 +63,15 @@ h1 {
 }
 
 h2 {
-  font-size: 14px;
+  font-size: 13px;
   text-transform: uppercase;
   color: #4ade80;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.12em;
 }
 
 label {
   display: grid;
-  gap: 6px;
+  gap: var(--space-2);
   font-size: 13px;
   color: #a7b6ad;
 }
@@ -74,7 +82,7 @@ select {
   min-height: 40px;
   border: 1px solid #1f352a;
   border-radius: 6px;
-  padding: 8px 10px;
+  padding: var(--space-2) var(--space-3);
   background: #050807;
   color: #ecfdf3;
 }
@@ -94,10 +102,10 @@ button {
   grid-area: status;
   display: flex;
   align-items: center;
-  gap: 18px;
+  gap: var(--space-4);
   min-width: 0;
   border-bottom: 1px solid #14301f;
-  padding-bottom: 12px;
+  padding-bottom: var(--space-3);
   color: #6b756e;
   font-size: 11px;
   letter-spacing: 0.08em;
@@ -119,21 +127,56 @@ button {
 .panel {
   border: 1px solid #14301f;
   border-radius: 8px;
-  background: #0a100d;
-  padding: 18px;
+  background:
+    linear-gradient(180deg, rgb(255 255 255 / 3.5%), transparent 38%), #0a100d;
+  padding: var(--space-5);
 }
 
 .controls {
   grid-area: controls;
   display: grid;
-  gap: 14px;
+  gap: var(--space-5);
   align-content: start;
+}
+
+.field {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.field-group {
+  display: grid;
+  gap: var(--space-3);
+}
+
+/* Conditional sub-field (e.g. MoE active params) reads as nested under its
+   parent control rather than a peer of the primary inputs. */
+.field-sub {
+  padding-left: var(--space-3);
+  border-left: 2px solid #14301f;
+}
+
+input:disabled,
+select:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.field-sub:has(input:disabled) {
+  opacity: 0.55;
+}
+
+.field-hint {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #6b756e;
 }
 
 .check {
   grid-template-columns: 20px calc(100% - 30px);
   align-items: center;
-  gap: 10px;
+  gap: var(--space-3);
 }
 
 .check input {
@@ -145,7 +188,7 @@ button {
   grid-area: results;
   display: grid;
   grid-template-rows: auto auto minmax(0, 100%);
-  gap: 18px;
+  gap: var(--space-4);
   min-height: 0;
 }
 
@@ -157,7 +200,7 @@ button {
 .hero {
   display: grid;
   grid-template-columns: minmax(0, 100%) auto;
-  gap: 16px;
+  gap: var(--space-4);
   align-items: end;
 }
 
@@ -169,36 +212,38 @@ button {
 }
 
 .primary {
-  margin-top: 6px;
+  margin-top: var(--space-2);
   font-weight: 700;
 }
 
 .breakdown {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 25%));
-  gap: 10px;
+  gap: var(--space-3);
 }
 
 .metric {
   border-left: 4px solid #22c55e;
-  padding: 8px 10px;
+  border-radius: 0 6px 6px 0;
+  padding: var(--space-4);
   background: #050807;
 }
 
 .metric strong {
   display: block;
+  margin-top: var(--space-1);
   font-size: 20px;
 }
 
 .tables {
   display: grid;
   grid-template-columns: 57.5% 42.5%;
-  gap: 18px;
+  gap: var(--space-4);
   align-items: start;
 }
 
 .calc {
-  margin-top: 12px;
+  margin-top: var(--space-3);
   font-size: 12px;
   color: #cbd5e1;
 }
@@ -210,14 +255,14 @@ button {
 
 .calc code {
   display: block;
-  margin-top: 4px;
+  margin-top: var(--space-1);
   color: #e5edf7;
 }
 
 .assumptions {
-  margin-top: 12px;
+  margin-top: var(--space-3);
   display: grid;
-  gap: 4px;
+  gap: var(--space-1);
   font-size: 12px;
   color: #cbd5e1;
 }
@@ -234,7 +279,7 @@ table {
 
 th,
 td {
-  padding: 10px 8px;
+  padding: var(--space-3) var(--space-2);
   border-bottom: 1px solid #14301f;
   text-align: left;
 }
@@ -248,7 +293,7 @@ th {
   color: #4ade80;
   font-size: 12px;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.12em;
 }
 
 @media (width <= 760px) {
@@ -258,14 +303,14 @@ th {
       "status" auto
       "controls" auto
       "results" minmax(0, 100%) / 100%;
-    gap: 10px;
-    padding: 10px;
+    gap: var(--space-3);
+    padding: var(--space-3);
   }
 
   .terminal-bar {
-    gap: 10px;
+    gap: var(--space-3);
     overflow: hidden;
-    padding-bottom: 6px;
+    padding-bottom: var(--space-2);
     white-space: nowrap;
   }
 
@@ -278,12 +323,12 @@ th {
   }
 
   .panel {
-    padding: 12px;
+    padding: var(--space-3);
   }
 
   .controls {
     grid-template-columns: repeat(2, minmax(0, 50%));
-    gap: 10px;
+    gap: var(--space-3);
   }
 
   .controls h1 {
@@ -291,12 +336,22 @@ th {
     font-size: 22px;
   }
 
+  .field-group {
+    grid-column: 1 / -1;
+    grid-template-columns: repeat(2, minmax(0, 50%));
+  }
+
   .check {
+    grid-column: 1 / -1;
     grid-template-columns: 18px calc(100% - 28px);
   }
 
+  .controls button {
+    grid-column: 1 / -1;
+  }
+
   .results {
-    gap: 10px;
+    gap: var(--space-3);
     grid-template-rows: auto auto minmax(0, 100%);
   }
 
@@ -307,11 +362,11 @@ th {
 
   .breakdown {
     grid-template-columns: repeat(2, minmax(0, 50%));
-    gap: 8px;
+    gap: var(--space-2);
   }
 
   .metric {
-    padding: 6px 8px;
+    padding: var(--space-2);
   }
 
   .metric strong {
@@ -319,8 +374,8 @@ th {
   }
 
   .tables {
-    grid-template-columns: 50% 50%;
-    gap: 8px;
+    grid-template-columns: 100%;
+    gap: var(--space-4);
   }
 
   .total {
@@ -329,7 +384,7 @@ th {
 
   th,
   td {
-    padding: 7px 6px;
+    padding: var(--space-2);
     font-size: 12px;
   }
 }

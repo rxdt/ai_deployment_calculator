@@ -36,33 +36,56 @@ export function renderForm(state: FormState): string {
   return `
     <form class="panel controls" aria-label="Deployment inputs">
       <h1>VRAM Deployment Calculator</h1>
-      <label>Parameters (billions)
-        <input name="parameters_b" type="number" min="0.000001" step="any" value="${escapeHtml(state.parameters_b)}">
-      </label>
-      <label>Context window
-        <input name="context_tokens" type="number" min="0" step="1000" value="${escapeHtml(state.context_tokens)}">
-      </label>
-      <label>Quantization
-        <select name="weight_bits">${["32", "16", "8", "4"].map((bits) => option(bits, state.weight_bits)).join("")}</select>
-      </label>
-      <label>KV cache
-        <select name="kv_cache_bits">${["32", "16", "8", "4"].map((bits) => option(bits, state.kv_cache_bits)).join("")}</select>
-      </label>
-      <label>Runtime
-        <select name="runtime">
-          <option value="pytorch"${state.runtime === "pytorch" ? " selected" : ""}>PyTorch</option>
-          <option value="llama_cpp_gguf"${state.runtime === "llama_cpp_gguf" ? " selected" : ""}>llama.cpp GGUF</option>
-        </select>
-      </label>
-      <label>Architecture
-        <select name="architecture">
-          <option value="dense"${state.architecture === "dense" ? " selected" : ""}>Dense (Typical inference)</option>
-          <option value="moe"${state.architecture === "moe" ? " selected" : ""}>MoE</option>
-        </select>
-      </label>
-      <label>Active parameters (billions)
-        <input name="active_parameters_b" type="number" min="0.000001" step="any" value="${escapeHtml(state.active_parameters_b)}"${activeParametersDisabled}>
-      </label>
+      <div class="field">
+        <label>Parameters (billions)
+          <input name="parameters_b" type="number" min="0.000001" step="any" value="${escapeHtml(state.parameters_b)}">
+        </label>
+        <p class="field-hint">Model weight footprint</p>
+      </div>
+      <div class="field">
+        <label>Context window
+          <input name="context_tokens" type="number" min="0" step="1000" value="${escapeHtml(state.context_tokens)}">
+        </label>
+        <p class="field-hint">Tokens held in KV cache</p>
+      </div>
+      <div class="field">
+        <label>Quantization
+          <select name="weight_bits">${["32", "16", "8", "4"].map((bits) => option(bits, state.weight_bits)).join("")}</select>
+        </label>
+        <p class="field-hint">Precision of stored weights</p>
+      </div>
+      <div class="field">
+        <label>KV cache
+          <select name="kv_cache_bits">${["32", "16", "8", "4"].map((bits) => option(bits, state.kv_cache_bits)).join("")}</select>
+        </label>
+        <p class="field-hint">Precision of cached attention</p>
+      </div>
+      <div class="field">
+        <label>Runtime
+          <select name="runtime">
+            <option value="pytorch"${state.runtime === "pytorch" ? " selected" : ""}>PyTorch</option>
+            <option value="llama_cpp_gguf"${state.runtime === "llama_cpp_gguf" ? " selected" : ""}>llama.cpp GGUF</option>
+          </select>
+        </label>
+        <p class="field-hint">Serving framework overhead</p>
+      </div>
+      <div class="field-group">
+        <div class="field">
+          <label>Architecture
+            <select name="architecture">
+              <option value="dense"${state.architecture === "dense" ? " selected" : ""}>Dense (Typical inference)</option>
+              <option value="moe"${state.architecture === "moe" ? " selected" : ""}>MoE</option>
+            </select>
+          </label>
+          <p class="field-hint">Dense or mixture-of-experts</p>
+        </div>
+        <div class="field field-sub">
+          <label>Active parameters (billions)
+            <input name="active_parameters_b" type="number" min="0.000001" step="any" value="${escapeHtml(state.active_parameters_b)}"${activeParametersDisabled}>
+          </label>
+          <p class="field-hint">Params active per token (MoE)</p>
+        </div>
+      </div>
       <label class="check"><input name="trained" type="checkbox"${checked(state.trained)}> GPUs are for model training</label>
       <label class="check"><input name="use_adapter" type="checkbox"${adapterState}${adapterDisabled}> LoRA adapter</label>
       <button type="submit">Calculate</button>

@@ -30,9 +30,11 @@
 
 ## Next
 
-1. Human owner reviews remaining unrelated working-tree edits: `docs/plan.md`
+1. Next orchestrator should launch only from outside an active harness worker;
+   `PROMPT.md` now tells implementation workers not to launch nested agents.
+2. Human owner reviews remaining unrelated working-tree edits: `docs/plan.md`
    and the generated report HTML.
-2. Human owner fixes or approves the protected pre-push hook loop-containment
+3. Human owner fixes or approves the protected pre-push hook loop-containment
    failure that blocks plain `git push`.
 
 ## Checks From This Pass
@@ -61,6 +63,9 @@
   Vitest does not support the Jest `--runInBand` flag; reran without it.
 - `npm --prefix frontend run test:e2e -- --project=VRAM-Calculator` - failed
   because this repo currently defines only the `chromium` Playwright project.
+- Orchestration attempt from inside this active harness session was stopped
+  after the child worker launched a nested `harness run codex`; orphaned child
+  Codex processes from that attempt were terminated.
 - Selected the frontend spec because the training checkbox wording was an open
   launch UX item with direct Vite and no-build fallback coverage; the frontend
   lint gate then required splitting oversized existing files without relaxing

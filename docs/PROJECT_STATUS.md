@@ -30,8 +30,8 @@
 
 ## Next
 
-1. P0: launch the next frontend worker only from a normal shell. This shell has
-   `RALPH_LOOP=1`, so the orchestrator must not spawn nested workers here.
+1. P0: launch the next frontend worker only from a normal shell. This Codex
+   session has `RALPH_LOOP=1`, so the orchestrator must not spawn workers here.
 2. `PROMPT.md` is set for `specs/frontend.md`: verify local TypeScript report
    parity, no `/api/report`, corrected values, UI/output coverage, and gate.
 3. Human owner reviews remaining unrelated working-tree edits: `docs/plan.md`
@@ -71,8 +71,12 @@
 - Current orchestration attempt repeated that nested-launch failure; the child
   `harness run codex 1 20` process tree was terminated and no implementation
   worker completed.
-- This orchestration pass detected `RALPH_LOOP=1` before launching workers and
-  stopped at handoff updates, per `specs/orchestrate.md`.
+- Current Codex orchestration pass detected `RALPH_LOOP=1` before launching
+  workers and stopped at handoff updates, per `specs/orchestrate.md`.
+- Confirmed nesting by process tree, not just env: this orchestrator's `claude
+  -p` (PID parent of the shell) descends from `harness run claude 1 50` ->
+  `harness/ralph.sh 1 50 claude` -> `gtimeout claude -p`. Definitive that any
+  `harness run codex`/`harness run claude` here is a nested launch.
 - Selected the frontend spec because the training checkbox wording was an open
   launch UX item with direct Vite and no-build fallback coverage; the frontend
   lint gate then required splitting oversized existing files without relaxing
@@ -80,10 +84,9 @@
 
 ## Working Tree Notes
 
-- Current dirty markdown from this orchestration pass: `PROMPT.md`,
-  `docs/PROJECT_STATUS.md`, and `specs/orchestrate.md`.
-- Existing unrelated dirty paths may remain outside this iteration's commit
-  scope: `docs/plan.md` and the generated report HTML.
+- Working tree was clean before this handoff update.
+- Existing unrelated dirty paths may reappear outside this iteration's commit
+  scope; do not revert user-owned files.
 - Current branch has local commits that are not pushed because plain `git push`
   is rejected by the hook failure recorded above.
 - Leave `frontend/example_user_will_delete/` alone. The user will delete it once

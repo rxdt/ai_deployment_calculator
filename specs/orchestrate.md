@@ -4,10 +4,11 @@ Goal: Maintain global state. Coordinate short headless agents until `docs/plan.m
 
 ## Current Truth
 
+- PRIORITIZE: Remaining work order is frontend first, backend hardening second, end to end testing and hardening last.
 - `docs/plan.md` owns product goals, naming, and calculation formulas. It is the MASTER DOCUMENT to derive from. Humans add to it. Agentc can edi and pull from this document to organize `.md`.
-- `specs/frontend.md` owns frontend UI, TypeScript report generation, outputs, warnings, checks, and corrected expected values.
+- `specs/frontend.md` owns frontend UI, TypeScript report generation, outputs, warnings, checks, and corrected expected values. Frontend is HIGHLY incomplete. Frontend does not look like it should and is missing the implementation of requisite inputs/ouputs.
+- frontend is the least complete item. Frontend items in spec need to be completed. Then, frontend requirements from `plan.md` must be put into frontend spec.
 - `specs/backend.md` owns removal of Python/FastAPI, `/api/report`, WSGI, backend-only tests, and stale backend docs.
-- Remaining work order is frontend parity first, backend removal second, docs/status cleanup last.
 - Do not preserve legacy heuristic results as correctness tests. If needed, isolate them as legacy compatibility tests.
 
 ## Orchestrator Role
@@ -21,23 +22,22 @@ Goal: Maintain global state. Coordinate short headless agents until `docs/plan.m
 
 > one loop orchestrator process begins
 **LOOP**
-- Launch `specs/frontend.md` with `harness run claude 1 20`.
-- Launch `specs/backend.md` with `harness run claude 1 20`.
+- Launch [`specs/frontend.md`](frontend.md) with `harness run codex 1 230`.
+- Launch [`specs/backend.md`](backend.md) with `harness run codex 1 30`.
 - Each agent has orders to update their spec after task completion.
 - After each agent updates their spec do this:
   - Review the just-updated spec and update it **MINIMALLY** to a state for the next agent using that spec to succeed.
-  - Keep specs truthful, concise, and specific for the next 20-minute agent.
+  - Update `plan.md` and `docs/PROJECT_STATUS.md`.
+  - Keep specs truthful, concise, and specific for the next agent.
   - Inspect git status and perform necessary git actions or report issues to the human
-  - Launch a new Codex agent to code review the frontend work in the files the Claude agent just edited `harness run codex 1 20`.
-  - Launch a new Codex agent to code review the backend work in the files the Claude agent just edited `harness run codex 1 20`.
+  - Launch a new Claude agent to code review the frontend and backend work in the files the Codex agents just edited: `harness run claude 1 30` with new `specs/code_review.md` that includes "Review this branch with explorer and reviewer"
   - Integrate the code review findings into the relevant spec.
   - Choose the next highest-priority unfinished task.
   - Before launching an agent, put the assigned spec name and objective at the top of `PROMPT.md`.
 **RE-ENTER LOOP** line 23
 > one loop orchestrator process ends (and begins again above)
 
-- If an agent has run longer than `0.5 * max_minutes` you launched it with, you commit it's work, get it code-reviewed, and kill that agent process.
-- Compact your contaxt during lulls in activity, before ~40% of auto0compaction trigger.
+- Compact your contaxt during lulls in activity, before ~60% of auto-compaction trigger.
 
 ## Agent Queue
 

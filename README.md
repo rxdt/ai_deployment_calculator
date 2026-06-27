@@ -1,27 +1,17 @@
 # AI Deployment Calculator
 
-A small web app for estimating AI model deployment memory. It reports GPU VRAM,
-host RAM, a hardware fit table, a primary deployment plan, quantization
+A small static web app for estimating AI model deployment memory. It reports GPU
+VRAM, host RAM, a hardware fit table, a primary deployment plan, quantization
 comparison, and the assumptions behind the estimate.
 
 ## Current Launch State
 
-- The Vite frontend lives in `frontend/`.
-- The FastAPI backend lives in `src/web/server.py`.
+- The entire app is a static, single-page Vite app in `frontend/`.
+- All sizing logic runs in TypeScript in the browser; there is no backend and no
+  `/api/report` endpoint.
 - The active finish spec is `specs/frontend.md`.
-- FastAPI serves the built Vite app at `/`, mounts `/assets`, and falls back to
-  the no-JS page only when no `frontend/dist` build exists. There is no WSGI
-  server.
 
 ## Start Manually
-
-FastAPI backend:
-
-```sh
-uv run uvicorn --app-dir src web.server:app --host 127.0.0.1 --port 8000
-```
-
-Frontend dev server:
 
 ```sh
 cd frontend
@@ -29,39 +19,43 @@ npm ci
 npm run dev -- --port 5173
 ```
 
-Open the Vite dev app at `http://127.0.0.1:5173`. It proxies `/api/report` to
-the FastAPI backend on port 8000.
+Open the Vite dev app at `http://127.0.0.1:5173`. The report is computed locally
+from the form state on each submit — no network request is made.
 
-After `cd frontend && npm run build`, FastAPI serves the built Vite app directly
-at `http://127.0.0.1:8000`. Without a build it renders the no-JS fallback page.
+`cd frontend && npm run build` produces a static bundle in `frontend/dist/` that
+can be served by any static file host (`npm run preview` serves it locally).
 
 ## Test Manually
 
 1. Open the Vite app.
-2. Set parameters to `70`, context to `8000`, quantization to `4-bit`, KV cache
-   to `8-bit`, and enable model training plus LoRA adapter.
+2. Set parameters to `70`, context to `16000`, quantization to `4-bit`, KV cache
+   to `8-bit`, runtime to `llama.cpp GGUF`, architecture to `MoE`, active
+   parameters to `8`, and enable model training plus LoRA adapter.
 3. Calculate.
-4. Confirm the result shows `48.4 GB`, `64 GB host RAM`, and primary hardware
+4. Confirm the result shows `48.5 GB`, `64 GB host RAM`, and primary hardware
    `A100 80GB`.
-5. Change runtime to `llama.cpp GGUF` and confirm the calculation text uses
-   `* 1.00`.
-6. Open the browser network panel and confirm `/api/report` returns JSON.
+5. Confirm the calculation text uses `* 1.00` for the GGUF runtime.
 
-## App Checks
-
+## Run With
+DEV
 ```sh
-uv run pytest tests/test_api.py tests/test_server.py tests/test_frontend.py
-cd frontend && npm run build
+cd frontend && npm ci && npm run dev -- --port 5173      # open http://127.0.0.1:5173
 ```
-
-Browser e2e:
-
+or PROD-like
 ```sh
-cd frontend && npm run test:e2e
+cd frontend && npm run build && npm run preview
 ```
+Build and coverage
+```sh
+cd frontend && npm run gate
+```
+Manual check:
+70B / 16000 ctx / 4-bit / 8-bit KV / GGUF / MoE active=8 / training+LoRA → 48.5 GB, 64 GB host RAM, A100 80GB
 
-If an agent cannot bind localhost or launch Chromium in its sandbox, rerun the
-same command unsandboxed.
+`gate` runs the frontend lint/type/security/build/test suite, frontend harness
+self-tests, and then the repo Python harness gate. The git pre-commit hook runs
+`.venv/bin/harness preflight`; the pre-push hook runs `.venv/bin/harness gate`.
 
-## Owner Notes
-- Keep markdown files under 100 lines.
+## Owner notes
+- Semgrep CA trust-store issue triggered from sandbox.
+- Except for `plan.md`, all `.md` documents should stay < 100 lines.

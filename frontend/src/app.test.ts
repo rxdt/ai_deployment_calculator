@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
 import {
+  buildReport,
   CalculatorApp,
   isReportPayload,
   mountCalculator,
@@ -10,6 +11,7 @@ import {
   type FormState,
   type ReportPayload,
 } from "./app";
+import { roundTo } from "./calculator";
 
 const report: ReportPayload = {
   total_vram: "20.1 GB",
@@ -27,17 +29,46 @@ const report: ReportPayload = {
   ],
   hardware: [{ name: "RTX 4090", detail: "1 x 24 GB", sharding: "single GPU" }],
   comparison: [
-    { precision: "32-bit", total: "37.7 GB", savings: "-17.6 GB", selected: false },
-    { precision: "16-bit", total: "20.1 GB", savings: "0.0 GB", selected: true },
-    { precision: "8-bit", total: "11.3 GB", savings: "8.8 GB", selected: false },
-    { precision: "4-bit", total: "6.9 GB", savings: "13.2 GB", selected: false },
+    {
+      precision: "32-bit",
+      total: "37.7 GB",
+      savings: "-17.6 GB",
+      selected: false,
+    },
+    {
+      precision: "16-bit",
+      total: "20.1 GB",
+      savings: "0.0 GB",
+      selected: true,
+    },
+    {
+      precision: "8-bit",
+      total: "11.3 GB",
+      savings: "8.8 GB",
+      selected: false,
+    },
+    {
+      precision: "4-bit",
+      total: "6.9 GB",
+      savings: "13.2 GB",
+      selected: false,
+    },
   ],
   assumptions: [
     { label: "Safety margin", value: "10%" },
     { label: "CUDA/system tax", value: "1.5 GB" },
-    { label: "KV cache heuristic", value: "(parameters / 10) * (context / 8k)" },
-    { label: "Host RAM rule", value: "At least 32 GB, rounded up in 16 GB increments" },
-    { label: "Supported precisions", value: "32-bit, 16-bit, 8-bit, and 4-bit weights and KV cache" },
+    {
+      label: "KV cache heuristic",
+      value: "(parameters / 10) * (context / 8k)",
+    },
+    {
+      label: "Host RAM rule",
+      value: "At least 32 GB, rounded up in 16 GB increments",
+    },
+    {
+      label: "Supported precisions",
+      value: "32-bit, 16-bit, 8-bit, and 4-bit weights and KV cache",
+    },
   ],
   calculation: "(16.0 + 0.8 + 0.0 + 1.5) * 1.10",
 };
@@ -67,27 +98,14 @@ const moeTrainingState: FormState = {
   use_adapter: true,
 };
 
-const fourBitReport: ReportPayload = {
-  ...report,
-  comparison: report.comparison.map((row) => ({ ...row, selected: row.precision === "4-bit" })),
-};
-
-function response(body: unknown, status = 200): Response {
-  return new Response(JSON.stringify(body), {
-    headers: { "content-type": "application/json" },
-    status,
-  });
-}
-
 function appRoot(): HTMLDivElement {
   const root = document.createElement("div");
   document.body.append(root);
   return root;
 }
 
-function runtime(fetchMock: BrowserRuntime["fetch"], search = ""): BrowserRuntime {
+function runtime(search = ""): BrowserRuntime {
   return {
-    fetch: fetchMock,
     history: { replaceState: vi.fn() },
     location: { search },
   };
@@ -98,9 +116,8 @@ function expectDefaultState(state: FormState): void {
 }
 
 afterEach(() => {
-  document.body.innerHTML = "";
+  document.body.replaceChildren();
   vi.restoreAllMocks();
-  vi.unstubAllGlobals();
 });
 
 describe("state normalization", () => {
@@ -121,7 +138,14 @@ describe("state normalization", () => {
         }),
       ),
     );
-    expectDefaultState(normalizedState(new URLSearchParams("parameters_b=0x10&context_tokens=8000")));
+    expectDefaultState(
+      normalizedState(
+        new URLSearchParams("parameters_b=0x10&context_tokens=8000"),
+      ),
+    );
+    expectDefaultState(
+      normalizedState(new URLSearchParams("context_tokens=8000")),
+    );
   });
 
   test("accepts the last repeated values when they are valid", () => {
@@ -196,7 +220,124 @@ describe("state normalization", () => {
     expect(searchFromState(moeTrainingState).toString()).toBe(
       "parameters_b=70&context_tokens=16000&weight_bits=4&kv_cache_bits=8&runtime=llama_cpp_gguf&architecture=moe&active_parameters_b=8&trained=on&use_adapter=on",
     );
-    expect(searchFromState({ ...moeTrainingState, use_adapter: false }).get("use_adapter")).toBeNull();
+    expect(
+      searchFromState({ ...moeTrainingState, use_adapter: false }).get(
+        "use_adapter",
+      ),
+    ).toBeNull();
+  });
+});
+
+describe("local report calculation", () => {
+  test("builds the default 8B inference deployment", () => {
+    const built = buildReport(denseState);
+
+    expect(isReportPayload(built, "16")).toBe(true);
+    expect(built.total_vram).toBe("20.1 GB");
+    expect(built.host_ram).toBe("32 GB host RAM");
+    expect(built.plan).toEqual({
+      primary: "RTX 4090",
+      primary_fit: "single GPU",
+      optimization:
+        "Lower weight precision (8-bit or 4-bit) to shrink the model weights first.",
+    });
+    expect(built.breakdown).toEqual([
+      { label: "Weights", value: "16.0 GB" },
+      { label: "KV cache", value: "0.8 GB" },
+      { label: "Task", value: "0.0 GB" },
+      { label: "CUDA/system", value: "1.5 GB" },
+    ]);
+    expect(built.comparison).toEqual([
+      {
+        precision: "32-bit",
+        total: "37.7 GB",
+        savings: "-17.6 GB",
+        selected: false,
+      },
+      {
+        precision: "16-bit",
+        total: "20.1 GB",
+        savings: "0.0 GB",
+        selected: true,
+      },
+      {
+        precision: "8-bit",
+        total: "11.3 GB",
+        savings: "8.8 GB",
+        selected: false,
+      },
+      {
+        precision: "4-bit",
+        total: "6.9 GB",
+        savings: "13.2 GB",
+        selected: false,
+      },
+    ]);
+    expect(built.hardware[0]).toEqual({
+      name: "T4 16GB",
+      detail: "2x 16 GB",
+      sharding: "tensor parallel",
+    });
+    expect(built.calculation).toBe("(16.0 + 0.8 + 0.0 + 1.5) * 1.10 = 20.1 GB");
+  });
+
+  test("builds the MoE training deployment with the GGUF margin and active-parameter KV", () => {
+    const built = buildReport(moeTrainingState);
+
+    expect(isReportPayload(built, "4")).toBe(true);
+    expect(built.total_vram).toBe("48.5 GB");
+    expect(built.host_ram).toBe("64 GB host RAM");
+    expect(built.plan.primary).toBe("A100 80GB");
+    expect(built.breakdown[1].value).toBe("8.0 GB");
+    expect(built.breakdown[2].value).toBe("4.0 GB");
+    expect(built.assumptions[0].value).toBe("0%");
+    expect(built.assumptions[2].value).toBe(
+      "active_parameters * (context_k / 8)",
+    );
+    expect(built.calculation).toBe("(35.0 + 8.0 + 4.0 + 1.5) * 1.00 = 48.5 GB");
+  });
+
+  test("recommends FP8 KV cache when weights are already minimal", () => {
+    const built = buildReport({ ...denseState, weight_bits: "4" });
+
+    expect(built.plan.optimization).toBe(
+      "Use an FP8 KV cache to shrink long-context memory that weight quantization can't.",
+    );
+  });
+
+  test("recommends no optimization once everything fits a single small card", () => {
+    const built = buildReport({
+      ...denseState,
+      parameters_b: "4",
+      weight_bits: "4",
+      kv_cache_bits: "8",
+    });
+
+    expect(built.plan.optimization).toBe(
+      "No memory optimization needed; the deployment already fits a single card.",
+    );
+    expect(built.plan.primary_fit).toBe("single GPU");
+  });
+
+  test("flags large shards and tensor-parallel sharding for full training", () => {
+    const built = buildReport({
+      ...denseState,
+      parameters_b: "70",
+      weight_bits: "4",
+      kv_cache_bits: "8",
+      trained: true,
+    });
+
+    expect(built.plan.optimization).toBe(
+      "Reduce the context window or move to larger-memory GPUs to avoid tensor parallelism.",
+    );
+    expect(built.hardware[0].sharding).toBe("large shard");
+  });
+
+  test("rounds half values to even like the historical backend", () => {
+    expect(roundTo(2.5, 0)).toBe(2);
+    expect(roundTo(3.5, 0)).toBe(4);
+    expect(roundTo(1.24, 1)).toBe(1.2);
   });
 });
 
@@ -210,47 +351,227 @@ describe("report contract", () => {
     expect(isReportPayload({ ...report, total_vram: " " }, "16")).toBe(false);
     expect(isReportPayload({ ...report, host_ram: "" }, "16")).toBe(false);
     expect(isReportPayload({ ...report, plan: null }, "16")).toBe(false);
-    expect(isReportPayload({ ...report, plan: { ...report.plan, primary: "" } }, "16")).toBe(false);
-    expect(isReportPayload({ ...report, plan: { ...report.plan, primary_fit: "" } }, "16")).toBe(false);
-    expect(isReportPayload({ ...report, plan: { ...report.plan, optimization: "" } }, "16")).toBe(false);
+    expect(
+      isReportPayload(
+        { ...report, plan: { ...report.plan, primary: "" } },
+        "16",
+      ),
+    ).toBe(false);
+    expect(
+      isReportPayload(
+        { ...report, plan: { ...report.plan, primary_fit: "" } },
+        "16",
+      ),
+    ).toBe(false);
+    expect(
+      isReportPayload(
+        { ...report, plan: { ...report.plan, optimization: "" } },
+        "16",
+      ),
+    ).toBe(false);
     expect(isReportPayload({ ...report, calculation: "" }, "16")).toBe(false);
   });
 
   test("rejects malformed breakdown rows", () => {
     expect(isReportPayload({ ...report, breakdown: null }, "16")).toBe(false);
-    expect(isReportPayload({ ...report, breakdown: report.breakdown.slice(0, 2) }, "16")).toBe(false);
-    expect(isReportPayload({ ...report, breakdown: [{ label: "Weights", value: 1 }] }, "16")).toBe(false);
-    expect(isReportPayload({ ...report, breakdown: report.breakdown.map((row) => ({ ...row, label: "Other" })) }, "16")).toBe(false);
-    expect(isReportPayload({ ...report, breakdown: report.breakdown.map((row) => ({ ...row, value: "" })) }, "16")).toBe(false);
+    expect(
+      isReportPayload(
+        { ...report, breakdown: report.breakdown.slice(0, 2) },
+        "16",
+      ),
+    ).toBe(false);
+    expect(
+      isReportPayload(
+        { ...report, breakdown: [{ label: "Weights", value: 1 }] },
+        "16",
+      ),
+    ).toBe(false);
+    expect(
+      isReportPayload(
+        {
+          ...report,
+          breakdown: report.breakdown.map((row) => ({
+            ...row,
+            label: "Other",
+          })),
+        },
+        "16",
+      ),
+    ).toBe(false);
+    expect(
+      isReportPayload(
+        {
+          ...report,
+          breakdown: report.breakdown.map((row) => ({ ...row, value: "" })),
+        },
+        "16",
+      ),
+    ).toBe(false);
   });
 
   test("rejects malformed hardware rows", () => {
     expect(isReportPayload({ ...report, hardware: null }, "16")).toBe(false);
     expect(isReportPayload({ ...report, hardware: [] }, "16")).toBe(false);
-    expect(isReportPayload({ ...report, hardware: [{ name: 1, detail: "1 x 24 GB", sharding: "single GPU" }] }, "16")).toBe(false);
-    expect(isReportPayload({ ...report, hardware: [{ name: "", detail: "1 x 24 GB", sharding: "single GPU" }] }, "16")).toBe(false);
-    expect(isReportPayload({ ...report, hardware: [{ name: "RTX 4090", detail: "", sharding: "single GPU" }] }, "16")).toBe(false);
-    expect(isReportPayload({ ...report, hardware: [{ name: "RTX 4090", detail: "1 x 24 GB", sharding: "" }] }, "16")).toBe(false);
+    expect(
+      isReportPayload(
+        {
+          ...report,
+          hardware: [{ name: 1, detail: "1 x 24 GB", sharding: "single GPU" }],
+        },
+        "16",
+      ),
+    ).toBe(false);
+    expect(
+      isReportPayload(
+        {
+          ...report,
+          hardware: [{ name: "", detail: "1 x 24 GB", sharding: "single GPU" }],
+        },
+        "16",
+      ),
+    ).toBe(false);
+    expect(
+      isReportPayload(
+        {
+          ...report,
+          hardware: [{ name: "RTX 4090", detail: "", sharding: "single GPU" }],
+        },
+        "16",
+      ),
+    ).toBe(false);
+    expect(
+      isReportPayload(
+        {
+          ...report,
+          hardware: [{ name: "RTX 4090", detail: "1 x 24 GB", sharding: "" }],
+        },
+        "16",
+      ),
+    ).toBe(false);
   });
 
   test("rejects malformed comparison rows", () => {
     expect(isReportPayload({ ...report, comparison: null }, "16")).toBe(false);
-    expect(isReportPayload({ ...report, comparison: report.comparison.slice(0, 2) }, "16")).toBe(false);
-    expect(isReportPayload({ ...report, comparison: [{ precision: 16, total: "20.1 GB", savings: "0.0 GB", selected: true }] }, "16")).toBe(false);
-    expect(isReportPayload({ ...report, comparison: report.comparison.map((row) => ({ ...row, total: "" })) }, "16")).toBe(false);
-    expect(isReportPayload({ ...report, comparison: report.comparison.map((row) => ({ ...row, savings: "" })) }, "16")).toBe(false);
-    expect(isReportPayload({ ...report, comparison: report.comparison.map((row) => ({ ...row, selected: "yes" })) }, "16")).toBe(false);
-    expect(isReportPayload({ ...report, comparison: report.comparison.map((row) => ({ ...row, selected: true })) }, "16")).toBe(false);
-    expect(isReportPayload({ ...report, comparison: report.comparison.map((row) => ({ ...row, selected: row.precision === "8-bit" })) }, "16")).toBe(false);
-    expect(isReportPayload({ ...report, comparison: report.comparison.map((row) => ({ ...row, precision: "16-bit" })) }, "16")).toBe(false);
+    expect(
+      isReportPayload(
+        { ...report, comparison: report.comparison.slice(0, 2) },
+        "16",
+      ),
+    ).toBe(false);
+    expect(
+      isReportPayload(
+        {
+          ...report,
+          comparison: [
+            {
+              precision: 16,
+              total: "20.1 GB",
+              savings: "0.0 GB",
+              selected: true,
+            },
+          ],
+        },
+        "16",
+      ),
+    ).toBe(false);
+    expect(
+      isReportPayload(
+        {
+          ...report,
+          comparison: report.comparison.map((row) => ({ ...row, total: "" })),
+        },
+        "16",
+      ),
+    ).toBe(false);
+    expect(
+      isReportPayload(
+        {
+          ...report,
+          comparison: report.comparison.map((row) => ({ ...row, savings: "" })),
+        },
+        "16",
+      ),
+    ).toBe(false);
+    expect(
+      isReportPayload(
+        {
+          ...report,
+          comparison: report.comparison.map((row) => ({
+            ...row,
+            selected: "yes",
+          })),
+        },
+        "16",
+      ),
+    ).toBe(false);
+    expect(
+      isReportPayload(
+        {
+          ...report,
+          comparison: report.comparison.map((row) => ({
+            ...row,
+            selected: true,
+          })),
+        },
+        "16",
+      ),
+    ).toBe(false);
+    expect(
+      isReportPayload(
+        {
+          ...report,
+          comparison: report.comparison.map((row) => ({
+            ...row,
+            selected: row.precision === "8-bit",
+          })),
+        },
+        "16",
+      ),
+    ).toBe(false);
+    expect(
+      isReportPayload(
+        {
+          ...report,
+          comparison: report.comparison.map((row) => ({
+            ...row,
+            precision: "16-bit",
+          })),
+        },
+        "16",
+      ),
+    ).toBe(false);
   });
 
   test("rejects malformed assumption rows", () => {
     expect(isReportPayload({ ...report, assumptions: null }, "16")).toBe(false);
     expect(isReportPayload({ ...report, assumptions: [] }, "16")).toBe(false);
-    expect(isReportPayload({ ...report, assumptions: [{ label: "Safety margin", value: 10 }] }, "16")).toBe(false);
-    expect(isReportPayload({ ...report, assumptions: report.assumptions.map((row) => ({ ...row, label: "Other" })) }, "16")).toBe(false);
-    expect(isReportPayload({ ...report, assumptions: report.assumptions.map((row) => ({ ...row, value: "" })) }, "16")).toBe(false);
+    expect(
+      isReportPayload(
+        { ...report, assumptions: [{ label: "Safety margin", value: 10 }] },
+        "16",
+      ),
+    ).toBe(false);
+    expect(
+      isReportPayload(
+        {
+          ...report,
+          assumptions: report.assumptions.map((row) => ({
+            ...row,
+            label: "Other",
+          })),
+        },
+        "16",
+      ),
+    ).toBe(false);
+    expect(
+      isReportPayload(
+        {
+          ...report,
+          assumptions: report.assumptions.map((row) => ({ ...row, value: "" })),
+        },
+        "16",
+      ),
+    ).toBe(false);
   });
 });
 
@@ -259,12 +580,24 @@ describe("rendering", () => {
     const hostileReport = {
       ...report,
       total_vram: "<b>20.1 GB</b>",
-      plan: { ...report.plan, primary: "<script>bad()</script>", optimization: "<strong>safe text</strong>" },
+      plan: {
+        ...report.plan,
+        primary: "<script>bad()</script>",
+        optimization: "<strong>safe text</strong>",
+      },
     };
 
-    expect(renderResults(hostileReport, denseState)).toContain("<h2>Inference</h2>");
-    expect(renderResults(report, { ...denseState, trained: true })).toContain("<h2>Full training</h2>");
-    const qlora = renderResults(hostileReport, { ...denseState, trained: true, use_adapter: true });
+    expect(renderResults(hostileReport, denseState)).toContain(
+      "<h2>Inference</h2>",
+    );
+    expect(renderResults(report, { ...denseState, trained: true })).toContain(
+      "<h2>Full training</h2>",
+    );
+    const qlora = renderResults(hostileReport, {
+      ...denseState,
+      trained: true,
+      use_adapter: true,
+    });
     expect(qlora).toContain("<h2>QLoRA</h2>");
     expect(qlora).toContain("&lt;b&gt;20.1 GB&lt;/b&gt;");
     expect(qlora).toContain("&lt;script&gt;bad()&lt;/script&gt;");
@@ -275,50 +608,70 @@ describe("rendering", () => {
 });
 
 describe("calculator app", () => {
-  test("loads a report, syncs controls, and submits normalized form state", async () => {
+  test("renders the default report locally and syncs controls", () => {
     const root = appRoot();
-    const fetchMock = vi.fn<BrowserRuntime["fetch"]>().mockResolvedValue(response(fourBitReport));
-    const browser = runtime(fetchMock, "?parameters_b=70&context_tokens=16000&weight_bits=4&kv_cache_bits=8&runtime=llama_cpp_gguf&architecture=moe&active_parameters_b=8&trained=on&use_adapter=on");
-    const calculator = mountCalculator(root, browser);
+    mountCalculator(root, runtime());
 
-    await vi.waitFor(() => {
-      expect(root.querySelector(".total")?.textContent).toBe("20.1 GB");
-    });
-    expect(root.querySelector<HTMLInputElement>('input[name="use_adapter"]')?.disabled).toBe(false);
-    expect(root.querySelector<HTMLInputElement>('input[name="active_parameters_b"]')?.disabled).toBe(false);
+    expect(root.querySelector(".total")?.textContent).toBe("20.1 GB");
+    expect(
+      root.querySelector<HTMLInputElement>('input[name="use_adapter"]')
+        ?.disabled,
+    ).toBe(true);
+    expect(
+      root.querySelector<HTMLInputElement>('input[name="active_parameters_b"]')
+        ?.disabled,
+    ).toBe(true);
+  });
 
-    const parameters = root.querySelector<HTMLInputElement>('input[name="parameters_b"]');
+  test("recomputes and normalizes form state on submit", () => {
+    const root = appRoot();
+    const browser = runtime(
+      "?parameters_b=70&context_tokens=16000&weight_bits=4&kv_cache_bits=8&runtime=llama_cpp_gguf&architecture=moe&active_parameters_b=8&trained=on&use_adapter=on",
+    );
+    mountCalculator(root, browser);
+
+    expect(root.querySelector(".total")?.textContent).toBe("48.5 GB");
+    expect(
+      root.querySelector<HTMLInputElement>('input[name="active_parameters_b"]')
+        ?.disabled,
+    ).toBe(false);
+
+    const parameters = root.querySelector<HTMLInputElement>(
+      'input[name="parameters_b"]',
+    );
     if (parameters) {
       parameters.value = "13";
     }
-    root.querySelector<HTMLInputElement>('input[name="trained"]')?.click();
     root.querySelector<HTMLFormElement>("form")?.requestSubmit();
 
-    await vi.waitFor(() => {
-      expect(fetchMock).toHaveBeenCalledTimes(2);
-    });
     expect(browser.history.replaceState).toHaveBeenCalledWith(
       null,
       "",
-      "?parameters_b=13&context_tokens=16000&weight_bits=4&kv_cache_bits=8&runtime=llama_cpp_gguf&architecture=moe&active_parameters_b=8",
+      "?parameters_b=13&context_tokens=16000&weight_bits=4&kv_cache_bits=8&runtime=llama_cpp_gguf&architecture=moe&active_parameters_b=8&trained=on&use_adapter=on",
     );
-    calculator.handleEvent(new Event("noop"));
+    expect(root.querySelector(".total")?.textContent).toBe("20.0 GB");
   });
 
-  test("disables adapter and active-parameter controls from change events", async () => {
+  test("disables adapter and active-parameter controls from change events", () => {
     const root = appRoot();
-    const fetchMock = vi.fn<BrowserRuntime["fetch"]>().mockResolvedValue(response(report));
-    mountCalculator(root, runtime(fetchMock));
+    mountCalculator(root, runtime());
 
-    await vi.waitFor(() => {
-      expect(root.querySelector("form")).not.toBeNull();
-    });
-    const trained = root.querySelector<HTMLInputElement>('input[name="trained"]');
-    const adapter = root.querySelector<HTMLInputElement>('input[name="use_adapter"]');
-    const architecture = root.querySelector<HTMLSelectElement>('select[name="architecture"]');
-    const activeParameters = root.querySelector<HTMLInputElement>('input[name="active_parameters_b"]');
+    const trained = root.querySelector<HTMLInputElement>(
+      'input[name="trained"]',
+    );
+    const adapter = root.querySelector<HTMLInputElement>(
+      'input[name="use_adapter"]',
+    );
+    const architecture = root.querySelector<HTMLSelectElement>(
+      'select[name="architecture"]',
+    );
+    const activeParameters = root.querySelector<HTMLInputElement>(
+      'input[name="active_parameters_b"]',
+    );
 
-    expect(architecture?.selectedOptions[0]?.textContent).toBe("Dense (Typical inference)");
+    expect(architecture?.selectedOptions[0]?.textContent).toBe(
+      "Dense (Typical inference)",
+    );
 
     trained?.click();
     adapter?.click();
@@ -333,86 +686,34 @@ describe("calculator app", () => {
     expect(activeParameters?.disabled).toBe(false);
   });
 
-  test("keeps the form visible for failed and malformed report responses", async () => {
-    const failedRoot = appRoot();
-    const failedApp = new CalculatorApp(
-      failedRoot,
-      runtime(vi.fn<BrowserRuntime["fetch"]>().mockResolvedValue(response({ error: "unavailable" }, 503))),
-    );
-    await failedApp.loadReport(new URLSearchParams());
-
-    expect(failedRoot.querySelector('[role="alert"]')?.textContent).toContain("Report unavailable");
-    expect(failedRoot.querySelector("form")).not.toBeNull();
-
-    const malformedRoot = appRoot();
-    const malformedApp = new CalculatorApp(
-      malformedRoot,
-      runtime(vi.fn<BrowserRuntime["fetch"]>().mockResolvedValue(response({ ...report, total_vram: "" }))),
-    );
-    await malformedApp.loadReport(new URLSearchParams());
-
-    expect(malformedRoot.querySelector('[role="alert"]')?.textContent).toContain("Report unavailable");
-    expect(malformedRoot.querySelector(".total")).toBeNull();
-  });
-
-  test("ignores stale successful and failed report responses", async () => {
-    let releaseStaleSuccess: ((value: Response) => void) | undefined;
-    let rejectStaleFailure: ((reason?: unknown) => void) | undefined;
-    const successRoot = appRoot();
-    const successFetch = vi
-      .fn<BrowserRuntime["fetch"]>()
-      .mockReturnValueOnce(new Promise<Response>((resolve) => {
-        releaseStaleSuccess = resolve;
-      }))
-      .mockResolvedValue(response({ ...report, total_vram: "13.0 GB" }));
-    const successApp = new CalculatorApp(successRoot, runtime(successFetch));
-    const staleSuccess = successApp.loadReport(new URLSearchParams("parameters_b=70&context_tokens=8000"));
-    await successApp.loadReport(new URLSearchParams("parameters_b=13&context_tokens=8000"));
-    releaseStaleSuccess?.(response({ ...report, total_vram: "70.0 GB" }));
-    await staleSuccess;
-
-    expect(successRoot.querySelector(".total")?.textContent).toBe("13.0 GB");
-
-    const failureRoot = appRoot();
-    const failureFetch = vi
-      .fn<BrowserRuntime["fetch"]>()
-      .mockReturnValueOnce(new Promise<Response>((_resolve, reject) => {
-        rejectStaleFailure = reject;
-      }))
-      .mockResolvedValue(response(report));
-    const failureApp = new CalculatorApp(failureRoot, runtime(failureFetch));
-    const staleFailure = failureApp.loadReport(new URLSearchParams("parameters_b=70&context_tokens=8000"));
-    await failureApp.loadReport(new URLSearchParams("parameters_b=8&context_tokens=8000"));
-    rejectStaleFailure?.(new Error("late failure"));
-    await staleFailure;
-
-    expect(failureRoot.querySelector('[role="alert"]')).toBeNull();
-    expect(failureRoot.querySelector(".total")?.textContent).toBe("20.1 GB");
-  });
-
-  test("handles missing dynamic controls and non-string submitted form values", async () => {
+  test("handles missing dynamic controls and non-string submitted form values", () => {
     const root = appRoot();
-    const fetchMock = vi.fn<BrowserRuntime["fetch"]>().mockResolvedValue(response(report));
-    const browser = runtime(fetchMock);
+    const browser = runtime();
     const calculator = new CalculatorApp(root, browser);
-    root.innerHTML = '<input name="trained" type="checkbox"><select name="architecture"><option value="dense">Dense</option></select>';
+    root.innerHTML =
+      '<input name="trained" type="checkbox"><select name="architecture"><option value="dense">Dense</option></select>';
     root.addEventListener("change", calculator);
 
-    root.querySelector<HTMLInputElement>('input[name="trained"]')?.dispatchEvent(new Event("change", { bubbles: true }));
-    root.querySelector<HTMLSelectElement>('select[name="architecture"]')?.dispatchEvent(new Event("change", { bubbles: true }));
+    root
+      .querySelector<HTMLInputElement>('input[name="trained"]')
+      ?.dispatchEvent(new Event("change", { bubbles: true }));
+    root
+      .querySelector<HTMLSelectElement>('select[name="architecture"]')
+      ?.dispatchEvent(new Event("change", { bubbles: true }));
 
-    root.innerHTML = '<form><input name="parameters_b" value="8"><input name="context_tokens" value="8000"><input name="attachment" type="file"></form>';
+    root.innerHTML =
+      '<form><input name="parameters_b" value="8"><input name="context_tokens" value="8000"><input name="attachment" type="file"></form>';
     root.addEventListener("submit", calculator);
     root.querySelector<HTMLFormElement>("form")?.requestSubmit();
 
-    await vi.waitFor(() => {
-      expect(fetchMock).toHaveBeenCalledTimes(1);
-    });
     expect(browser.history.replaceState).toHaveBeenCalledWith(
       null,
       "",
       "?parameters_b=8&context_tokens=8000&weight_bits=16&kv_cache_bits=16&runtime=pytorch&architecture=dense",
     );
+    calculator.handleEvent(new Event("noop"));
+    root.dispatchEvent(new Event("change", { bubbles: true })); // change on a non-control target is ignored
+    calculator.handleEvent(new Event("submit")); // submit without a form target is ignored
   });
 });
 
@@ -425,12 +726,9 @@ describe("main bootstrap", () => {
   test("mounts the calculator when the app root exists", async () => {
     vi.resetModules();
     document.body.innerHTML = '<div id="app"></div>';
-    vi.stubGlobal("fetch", vi.fn<BrowserRuntime["fetch"]>().mockResolvedValue(response(report)));
 
     await import("./main");
 
-    await vi.waitFor(() => {
-      expect(document.querySelector(".total")?.textContent).toBe("20.1 GB");
-    });
+    expect(document.querySelector(".total")?.textContent).toBe("20.1 GB");
   });
 });

@@ -1,5 +1,5 @@
 {
-  "include": ["harness", "src", "tests"],
+  "include": ["harness"],
   "exclude": ["frontend", "scratchpad", ".venv"],
   "typeCheckingMode": "strict",
   "reportUnknownVariableType": "none",

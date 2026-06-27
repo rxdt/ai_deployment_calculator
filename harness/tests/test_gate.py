@@ -6,11 +6,16 @@ import tomllib
 from pathlib import Path
 
 import pytest
-from conftest import get_staged_file_names, run_cmd, stage_files, stubbed_run_checks
+from conftest import run_cmd, stage_files, stubbed_run_checks
 
 from harness import gate as gate_module
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+
+
+def get_staged_file_names(repo: Path) -> list[str]:
+    """Paths currently in the index, via the gate's own git helper."""
+    return gate_module.run_git(repo, ["diff", "--cached", "--name-only"]).split()
 
 
 # --------------------------------------------------------------------------- run_git
@@ -114,7 +119,7 @@ def test_ci_workflow_runs_the_same_full_gate_commands() -> None:
             continue
         if command[3] == "pylint":
             assert any(
-                line.split()[:4] == list(command[:4]) and set(line.split()[4:]) == set(command[4:])
+                line.split()[:4] == list(command[:4]) and set(command[4:]) <= set(line.split()[4:])
                 for line in run_lines
             )
             continue

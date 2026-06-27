@@ -1,4 +1,10 @@
-import type { ComparisonRow, DisplayRow, FormState, HardwareRow, ReportPayload } from "./types";
+import type {
+  ComparisonRow,
+  DisplayRow,
+  FormState,
+  HardwareRow,
+  ReportPayload,
+} from "./types";
 
 function option(value: string, selected: string): string {
   const marker = value === selected ? " selected" : "";
@@ -6,16 +12,13 @@ function option(value: string, selected: string): string {
 }
 
 function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
+  const node = document.createElement("span");
+  node.textContent = value;
+  return node.innerHTML;
 }
 
-function checked(value: boolean): string {
-  return value ? " checked" : "";
+function checked(isChecked: boolean): string {
+  return isChecked ? " checked" : "";
 }
 
 function taskLabel(state: FormState): string {
@@ -28,7 +31,8 @@ function taskLabel(state: FormState): string {
 export function renderForm(state: FormState): string {
   const adapterState = state.trained ? checked(state.use_adapter) : "";
   const adapterDisabled = state.trained ? "" : " disabled";
-  const activeParametersDisabled = state.architecture === "moe" ? "" : " disabled";
+  const activeParametersDisabled =
+    state.architecture === "moe" ? "" : " disabled";
   return `
     <form class="panel controls" aria-label="Deployment inputs">
       <h1>VRAM Deployment Calculator</h1>
@@ -79,7 +83,10 @@ export function renderStatusBar(): string {
 
 function renderBreakdown(rows: DisplayRow[]): string {
   return rows
-    .map((row) => `<p class="metric">${escapeHtml(row.label)}<strong>${escapeHtml(row.value)}</strong></p>`)
+    .map(
+      (row) =>
+        `<p class="metric">${escapeHtml(row.label)}<strong>${escapeHtml(row.value)}</strong></p>`,
+    )
     .join("");
 }
 
@@ -102,7 +109,12 @@ function renderComparison(rows: ComparisonRow[]): string {
 }
 
 function renderAssumptions(rows: DisplayRow[]): string {
-  return rows.map((row) => `<p>${escapeHtml(row.label)}: <strong>${escapeHtml(row.value)}</strong></p>`).join("");
+  return rows
+    .map(
+      (row) =>
+        `<p>${escapeHtml(row.label)}: <strong>${escapeHtml(row.value)}</strong></p>`,
+    )
+    .join("");
 }
 
 export function renderResults(report: ReportPayload, state: FormState): string {
@@ -134,17 +146,6 @@ export function renderResults(report: ReportPayload, state: FormState): string {
           ${renderAssumptions(report.assumptions)}
         </section>
       </section>
-    </section>
-  `;
-}
-
-export function renderError(): string {
-  return `
-    <section class="results">
-      <div class="panel error" role="alert">
-        <h2>Report unavailable</h2>
-        <p>Unable to load report. Check the backend and retry.</p>
-      </div>
     </section>
   `;
 }

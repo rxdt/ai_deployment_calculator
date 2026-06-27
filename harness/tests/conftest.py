@@ -9,19 +9,19 @@ from pathlib import Path
 
 import pytest
 
-from harness import gate
+from harness import gate as gate_module
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 def get_staged_file_names(repo: Path) -> list[str]:
     """Paths currently in the index, via the gate's own git helper."""
-    return gate.run_git(repo, ["diff", "--cached", "--name-only"]).split()
+    return gate_module.run_git(repo, ["diff", "--cached", "--name-only"]).split()
 
 
 def committed_file_names(repo: Path) -> list[str]:
     """Paths in the tip commit's tree."""
-    return gate.run_git(repo, ["show", "--name-only", "--format=", "HEAD"]).split()
+    return gate_module.run_git(repo, ["show", "--name-only", "--format=", "HEAD"]).split()
 
 
 def stage_files(repo: Path, relpath: str, content: str) -> None:

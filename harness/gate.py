@@ -67,7 +67,7 @@ COMMIT_CHECKS = {
 
 FULL_CHECKS = COMMIT_CHECKS | {
     "types": ("uv", "run", "--no-sync", "pyright"),
-    "pylint": ("uv", "run", "--no-sync", "pylint", "harness", "src"),
+    "pylint": ("uv", "run", "--no-sync", "pylint", "harness"),
     "frontend-lint": ("npm", "--prefix", "frontend", "run", "lint"),
     "security": (
         "uv",

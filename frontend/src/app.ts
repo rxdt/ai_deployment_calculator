@@ -1,97 +1,97 @@
 import { syncAdapterControl, syncArchitectureControl } from "./controls";
-import { renderError, renderForm, renderResults, renderStatusBar } from "./render";
+import { renderForm, renderResults, renderStatusBar } from "./render";
+import { buildReport } from "./report";
 import { normalizedState, searchFromState } from "./state";
-import { isReportPayload } from "./validation";
 import type { BrowserRuntime } from "./types";
 
 export { renderResults } from "./render";
+export { buildReport } from "./report";
 export { normalizedState, searchFromState } from "./state";
 export { isReportPayload } from "./validation";
 export type { BrowserRuntime, FormState, ReportPayload } from "./types";
 
-export function browserRuntime(): BrowserRuntime {
+function browserRuntime(): BrowserRuntime {
   return {
-    fetch: window.fetch.bind(window),
-    history: window.history,
-    location: window.location,
+    history: history,
+    location: location,
   };
 }
 
 export class CalculatorApp implements EventListenerObject {
-  private activeReportRequest = 0;
+  private readonly app: HTMLDivElement;
+  private readonly runtime: BrowserRuntime;
 
-  constructor(
-    private readonly app: HTMLDivElement,
-    private readonly runtime: BrowserRuntime = browserRuntime(),
-  ) {}
-
-  mount(): void {
-    this.app.addEventListener("change", this);
-    this.app.addEventListener("submit", this);
-    void this.loadReport(new URLSearchParams(this.runtime.location.search));
+  public constructor(
+    app: HTMLDivElement,
+    runtime: BrowserRuntime = browserRuntime(),
+  ) {
+    this.app = app;
+    this.runtime = runtime;
   }
 
-  handleEvent(event: Event): void {
+  public mount(): void {
+    this.app.addEventListener("change", this);
+    this.app.addEventListener("submit", this);
+    this.loadReport(new URLSearchParams(this.runtime.location.search));
+  }
+
+  public handleEvent(event: Event): void {
     if (event.type === "change") {
       this.handleChange(event);
-    }
-    if (event.type === "submit") {
+    } else if (event.type === "submit") {
       this.handleSubmit(event);
     }
   }
 
-  async loadReport(rawSearch: URLSearchParams): Promise<void> {
-    const requestId = (this.activeReportRequest += 1);
+  public loadReport(rawSearch: URLSearchParams): void {
     const state = normalizedState(rawSearch);
-    const search = searchFromState(state);
-    try {
-      const response = await this.runtime.fetch(`/api/report?${search.toString()}`);
-      if (!response.ok) {
-        throw new Error(`Report request failed: ${String(response.status)}`);
-      }
-      const report: unknown = await response.json();
-      if (!isReportPayload(report, state.weight_bits)) {
-        throw new Error("Report payload does not match the frontend contract");
-      }
-      if (requestId !== this.activeReportRequest) {
-        return;
-      }
-      this.app.innerHTML = `${renderStatusBar()}${renderForm(state)}${renderResults(report, state)}`;
-    } catch {
-      if (requestId !== this.activeReportRequest) {
-        return;
-      }
-      this.app.innerHTML = `${renderStatusBar()}${renderForm(state)}${renderError()}`;
-    }
+    const report = buildReport(state);
+    this.app.innerHTML = `${renderStatusBar()}${renderForm(state)}${renderResults(report, state)}`;
     syncAdapterControl(this.app);
     syncArchitectureControl(this.app);
   }
 
   private handleChange(event: Event): void {
-    const target = event.target as HTMLInputElement;
+    const { target } = event;
+    if (
+      !(target instanceof HTMLInputElement) &&
+      !(target instanceof HTMLSelectElement)
+    ) {
+      return;
+    }
     if (target.name === "trained") {
       syncAdapterControl(this.app);
-    }
-    if (target.name === "architecture") {
+    } else if (target.name === "architecture") {
       syncArchitectureControl(this.app);
     }
   }
 
   private handleSubmit(event: Event): void {
     event.preventDefault();
+    if (!(event.target instanceof HTMLFormElement)) {
+      return;
+    }
     const search = new URLSearchParams();
-    for (const [name, value] of new FormData(event.target as HTMLFormElement)) {
+    const formData = new FormData(event.target);
+    for (const [name, value] of formData) {
       if (typeof value === "string") {
         search.set(name, value);
       }
     }
     const normalizedSearch = searchFromState(normalizedState(search));
-    this.runtime.history.replaceState(null, "", `?${normalizedSearch.toString()}`);
-    void this.loadReport(normalizedSearch);
+    this.runtime.history.replaceState(
+      null,
+      "",
+      `?${normalizedSearch.toString()}`,
+    );
+    this.loadReport(normalizedSearch);
   }
 }
 
-export function mountCalculator(app: HTMLDivElement, runtime: BrowserRuntime = browserRuntime()): CalculatorApp {
+export function mountCalculator(
+  app: HTMLDivElement,
+  runtime: BrowserRuntime = browserRuntime(),
+): CalculatorApp {
   const calculator = new CalculatorApp(app, runtime);
   calculator.mount();
   return calculator;

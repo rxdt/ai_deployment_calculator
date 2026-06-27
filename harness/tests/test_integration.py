@@ -20,8 +20,6 @@ import pytest
 from conftest import (
     REPO_ROOT,
     commit,
-    committed_file_names,
-    get_staged_file_names,
     run_cmd,
     stage_files,
     stubbed_run_checks,
@@ -33,6 +31,16 @@ from harness import gate
 # A module that passes the repo's *real* strict ruff config (docstring, clean format), so a commit's only
 # variable is containment — not a weakened gate. ``x=1\n`` below is the deliberate counter-example.
 CLEAN = '"""ok."""\n'
+
+
+def get_staged_file_names(repo: Path) -> list[str]:
+    """Paths currently in the index, via the gate's own git helper."""
+    return gate.run_git(repo, ["diff", "--cached", "--name-only"]).split()
+
+
+def committed_file_names(repo: Path) -> list[str]:
+    """Paths in the tip commit's tree."""
+    return gate.run_git(repo, ["show", "--name-only", "--format=", "HEAD"]).split()
 
 
 # --- Layer 1: behavioral containment, run_preflight called directly ------------------------------

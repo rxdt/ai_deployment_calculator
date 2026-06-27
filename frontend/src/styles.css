@@ -17,8 +17,7 @@ body {
   overflow: hidden;
   background:
     linear-gradient(rgb(34 197 94 / 6%) 1px, transparent 1px),
-    linear-gradient(90deg, rgb(34 197 94 / 6%) 1px, transparent 1px),
-    #070b0a;
+    linear-gradient(90deg, rgb(34 197 94 / 6%) 1px, transparent 1px), #070b0a;
   background-size: 40px 40px;
   color: #d6e2da;
 }
@@ -164,7 +163,7 @@ button {
 
 .total {
   font-size: 56px;
-  line-height: .9;
+  line-height: 0.9;
   font-weight: 800;
   color: #4ade80;
 }

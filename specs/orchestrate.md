@@ -1,69 +1,68 @@
-# Launch Orchestration Spec
+# Orchestration Spec
 
-PRIORITY:
+Goal: Maintain global state. Coordinate short headless agents until `docs/plan.md`, `specs/frontend.md`, and `specs/backend.md` are implemented and the repo is launchable as a Vite-only calculator.
 
-Launch is close; current specs and status must stay truthful about shipped UI
-behavior, checks, and blockers.
+## Current Truth
 
-## Current Truthful State
+- `docs/plan.md` owns product goals, naming, and calculation formulas.
+- `specs/frontend.md` owns frontend UI, TypeScript report generation, outputs, warnings, checks, and corrected expected values.
+- `specs/backend.md` owns removal of Python/FastAPI, `/api/report`, WSGI, backend-only tests, and stale backend docs.
+- Remaining work order is frontend parity first, backend removal second, docs/status cleanup last.
+- Do not preserve legacy heuristic results as correctness tests. If needed, isolate them as legacy compatibility tests.
 
-- `specs/frontend.md` remains the implementation spec for the app launch.
-- Vite builds, calls `/api/report`, and is served by FastAPI from `frontend/dist`.
-- FastAPI keeps `/api/report` available before frontend assets exist and falls
-  back to the no-JS page when the build is missing.
-- The calculator UI renders results without the old memory-optimization advice
-  paragraph.
-- The calculator UI and no-build fallback label the training checkbox as
-  `GPUs are for model training`.
-- Frontend source is split into focused modules so the launch lint gate can
-  enforce file size and complexity limits.
-- Current `main` has local commits ahead of `origin/main`; the last plain push
-  was rejected by the protected pre-push hook's loop-containment failure.
-- Mocked Playwright, real-backend Playwright, Vitest coverage, and frontend gate
-  were green in the prior launch pass.
-- `env -u RALPH_LOOP harness gate` is green in this workspace.
-- `frontend/ci.yml` is ready to copy to `.github/workflows/frontend-ci.yml` when
-  protected workflow edits are allowed.
+## Orchestrator Role
 
-## Scope
+- You are the overseer of the project, holding high-level context while headless agents are laser-focused on task commpletion.
+- You only edit `.md` files.
+- You only let one agent run at a time.
 
-- Keep docs truthful about launch readiness, checks, and blockers.
-- Do not add calculator features, parser edge cases, or visual redesign work.
-- Do not edit protected paths; workflow and hook changes require the human owner.
+> one loop orchestrator process begins
+**LOOP**
+- Launch with `harness run codex 1 20`.
+- Each agent has orders to update their spec after task completion.
+- After each agent updates their spec do this:
+  - Review the just-updated spec and update it **MINIMALLY** to a state for the next agent using that spec to succeed.
+  - Keep specs truthful, concise, and specific for the next 20-minute agent.
+  - Inspect git status and perform necessary git actions or report issues to the human
+  - Launch a new Claude agent to code review the work in the files the Codex agent just edited `harness run claude 1 20`.
+  - Integrate the code review findings into the relevant spec.
+  - Choose the next highest-priority unfinished task.
+  - Before launching an agent, put the assigned spec name and objective at the top of `PROMPT.md`.
+**RE-ENTER LOOP** line 18
+> one loop orchestrator process ends (and begins again above)
+
+- If an agent has run longer than `0.5 * max_minutes` you launched it with, you commit it's work, get it code-reviewed, and kill that agent process.
+- Compact your contaxt during lulls in activity, before ~40% of auto0compaction trigger.
+
+## Agent Queue
+
+1. Frontend agent: implement `specs/frontend.md` until local TypeScript report generation and corrected frontend tests pass + human has no more frontend feedback to add to `plan.md`.
+2. Backend agent: implement `specs/backend.md` only after frontend parity exists.
+3. Docs/status agent: update README, docs, and specs to match the final Vite-only state.
+
+## Guardrails
+
+- Do not edit protected paths: `AGENTS.md`, `harness/`, `tests/harness/`, `.githooks/`, `.github/`, `pyproject.toml`.
+- Do not run multiple agents at once.
+- Do not let agents mix old `/api/report` examples with corrected calculator tests.
+- Do not leave completed checklist clutter unless it helps the next agent avoid repeating work.
+- Keep git state clean and call out user-owned changes instead of reverting them.
+- Do NOT write code, tests, or configs yourself.
 
 ## Acceptance Signals
 
-- `cd frontend && npm run build` passes.
-- `cd frontend && npm run test:coverage` passes with 100% coverage.
-- `cd frontend && npm run test:e2e` passes.
-- `cd frontend && npm run test:e2e:real` passes.
-- `cd frontend && npm run gate` passes.
-- `harness preflight` passes.
-- `harness gate` passes.
-- A normal `git commit` succeeds through the configured hooks.
-- The current branch is pushed.
+- `npm run gate` passes.
+- No frontend source calls `/api/report`.
+- Only javascript frontend calculator path + python harness relic remains.
+- README/specs describe Vite-only operation.
+- Branch is pushed when hooks allow it.
+- Human approves the frontend experience manually.
 
 ## Blockers
 
-- `.github/workflows/frontend-ci.yml` cannot be installed by agents because
-  `.github/` is protected.
-- Existing user-owned working-tree edits remain outside this iteration:
-  `docs/plan.md` and the generated report HTML.
+- `.github/` is protected; workflow edits require the human owner.
+- Harness-owned paths are protected; agents must not edit them.
 
 ## Changelog
 
-- Codex-frontend-1/1: replaced placeholders with the real launch orchestration
-  state after confirming `harness gate` and `harness preflight` are green.
-- Codex-orchestrate-1/1: stopped rendering optimization advice in calculator
-  UIs while leaving the API payload contract intact.
-- Codex-orchestrate-1/1: refreshed stale orchestration blockers/status, but the
-  commit is blocked by protected hook edits outside this iteration's scope.
-- Codex-orchestrate-1/1: refreshed launch blocker/status text after fetch showed
-  `main` aligned with `origin/main`.
-- Codex-frontend-1/1: relabeled the training checkbox to match the GPU-training
-  mental model while leaving the `trained` query field compatible.
-- Codex-frontend-1/1: split frontend source and payload Playwright tests so the
-  frontend lint gate passes without relaxing size or complexity rules.
-- Codex-orchestrate-1/1: refreshed launch orchestration status after fetch
-  showed local commits still ahead of `origin/main` and only docs/report
-  working-tree noise.
+- <add documentation for changed items>

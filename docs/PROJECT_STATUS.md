@@ -9,43 +9,30 @@
 - Fallback QLoRA and MoE dependent controls are submittable before JavaScript
   runs; the enhancement script still disables them when appropriate.
 - Finished specs have been removed so agents do not select stale work.
-- Vite frontend builds and calls `/api/report`.
-- FastAPI backend serves `/api/report`.
-- FastAPI `/` now serves the built `frontend/dist` SPA and mounts `/assets`; it
-  falls back to the server-rendered no-JS page only when no build exists.
-- FastAPI app creation is covered before frontend assets exist: `/api/report`
-  still works, and missing `/assets` requests return 404 instead of breaking
-  startup.
-- FastAPI app creation now accepts explicit frontend index and asset paths; tests
-  cover a configured build path, configured asset path, and no-build fallback
-  without monkeypatching module globals.
-- The no-build fallback now lets plain HTML submissions choose QLoRA or MoE.
-- The dense architecture option now renders as `Dense (Typical inference)` in
-  both the Vite UI and the no-build fallback.
-- The training checkbox now renders as `GPUs are for model training` in both the
-  Vite UI and the no-build fallback; the `trained` query field is unchanged.
-- WSGI removed: `src/web/app.py` and `tests/test_app.py` deleted. Its form HTML
-  and `/api/report` behaviors are covered by `tests/test_server.py`. FastAPI is
-  the only server path. README updated to match.
-- Real-backend browser smoke passes: `frontend/tests/real-api.spec.ts` +
-  `frontend/playwright.real-api.config.ts` + `npm run test:e2e:real`. No mocking;
-  drives the built SPA against live uvicorn and asserts the backend's `48.4 GB`.
-  Default `playwright.config.ts` `testIgnore`s it.
+- The app is a static, single-page Vite app. There is no Python/FastAPI backend
+  and no `/api/report`; the report is computed locally in TypeScript.
+- The Python `src/` package and its `tests/` were removed; sizing logic was
+  ported to `frontend/src/calculator.ts`, `hardware.ts`, and `report.ts`.
+- `CalculatorApp.loadReport` normalizes form state and renders
+  `buildReport(state)` synchronously — no fetch, stale-request, or error path.
+- The dense architecture option renders as `Dense (Typical inference)`; the
+  training checkbox renders as `GPUs are for model training`.
 - Frontend logic is split into focused `app`, `render`, `state`, `validation`,
-  `controls`, and `types` modules, with `frontend/src/main.ts` as the mount-only
-  bootstrap.
+  `controls`, `types`, `calculator`, `hardware`, and `report` modules, with
+  `frontend/src/main.ts` as the mount-only bootstrap.
 - Vitest coverage is enforced at 100% statements, branches, functions, and lines
   for `frontend/src/**/*.ts`.
-- `frontend/ci.yml` mirrors `.github/workflows/ci.yml` for the frontend gate.
-  It is not installed under `.github/` because workflow paths are protected.
+- Real CI lives under `.github/workflows/`; `frontend/ci.yml` is an
+  inactive reference copy because workflow paths are protected.
+- Manual `npm --prefix frontend run gate` runs frontend checks, JS harness
+  self-tests, and then `.venv/bin/harness gate` so Python issues appear before
+  `git push`.
 
 ## Next
 
-1. Copy `frontend/ci.yml` to `.github/workflows/frontend-ci.yml` when protected
-   workflow edits are allowed.
-2. Human owner reviews remaining unrelated working-tree edits: `docs/plan.md`
+1. Human owner reviews remaining unrelated working-tree edits: `docs/plan.md`
    and the generated report HTML.
-3. Human owner fixes or approves the protected pre-push hook loop-containment
+2. Human owner fixes or approves the protected pre-push hook loop-containment
    failure that blocks plain `git push`.
 
 ## Checks From This Pass

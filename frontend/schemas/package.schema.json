@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-deployment-calculator/schemas/package.schema.json",
+  "title": "Frontend package manifest invariants",
+  "description": "Project-specific guarantees the frontend package.json must always satisfy.",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "private": {
+      "const": true
+    },
+    "type": {
+      "const": "module"
+    },
+    "engines": {
+      "type": "object",
+      "properties": {
+        "node": { "type": "string", "minLength": 1 },
+        "npm": { "type": "string", "minLength": 1 }
+      },
+      "required": ["node"]
+    }
+  },
+  "required": ["name", "private", "type", "engines"]
+}

@@ -44,7 +44,6 @@ export interface FormState {
 }
 
 export interface BrowserRuntime {
-  fetch: typeof fetch;
   history: Pick<History, "replaceState">;
   location: Pick<Location, "search">;
 }

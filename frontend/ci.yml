@@ -1,4 +1,6 @@
-name: frontend-gate
+# Reference copy only. GitHub does not run this file from frontend/.
+# Active workflows live in .github/workflows/, which is protected from agent edits.
+name: frontend-gate-reference
 
 on:
   pull_request:
@@ -21,3 +23,5 @@ jobs:
       - run: npm ci
       - run: npx playwright install --with-deps chromium
       - run: npm run gate
+      # Harness self-check: the JS gate/preferences logic at 100% coverage (own Vitest config).
+      - run: npm run test:harness

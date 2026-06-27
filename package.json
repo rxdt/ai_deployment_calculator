@@ -1,0 +1,7 @@
+{
+  "name": "ai-deployment-calculator",
+  "private": true,
+  "scripts": {
+    "gate": "npm --prefix frontend run gate"
+  }
+}

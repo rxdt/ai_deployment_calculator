@@ -56,13 +56,13 @@ minversion = "9.0"
 addopts = [
     "-ra"
 ]
-testpaths = ["tests", "harness/tests"]
-pythonpath = ["src"]
+testpaths = ["harness/tests"]
+pythonpath = ["harness"]
 
 [tool.coverage.run]
-# Add every directory that ships runnable code here (e.g. "src") as the
+# Add every directory that ships runnable Python code here as the
 # project grows; the gate enforces 100% coverage on all of it.
-source = ["harness", "src"]
+source = ["harness"]
 omit = ["harness/tests/*"]  # harness/tests holds tests, not measured product code
 
 [tool.coverage.report]

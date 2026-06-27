@@ -1,104 +1,28 @@
-# AI Deployment VRAM Calculator
+# AI Deployment VRAM Calculator Plan
 
 ## Goal
 
-Refactor the existing AI deployment calculator into a simple, multi-family GPU VRAM calculator that runs, builds, and loads completely with Javascript, no Python.
+Build a GPU VRAM calculator that is easy enough for non-technical users and trustworthy enough for engineers.
 
-The calculator must support:
+The app must:
 
-1. Decoder / autoregressive text generation.
-2. Encoder models: embeddings, rerankers, classifiers.
-3. Encoder-decoder models: summarization, translation, T5-style generation.
-4. Vision models: classification, detection, segmentation.
-5. Vision-language / multimodal models.
-6. Image generation / diffusion.
-7. Video generation.
-8. Speech / audio models.
-9. Tabular / classical ML.
-10. Custom / unknown models.
+1. Support more than LLMs.
+2. Use frontend TypeScript as the calculation source of truth.
+3. Keep calculator formulas in one frontend TypeScript source of truth.
+4. Keep the main UI short.
+5. Put rare details in `Advanced assumptions`.
+6. Show enough math that engineers can trust the recommendation.
 
-The app must be simple for non-hardware users, but honest and trustworthy enough for engineers. Do not pretend one equation covers all AI workloads.
+Do not pretend one equation covers all AI workloads.
 
-## Architecture Decision
+## Naming Contract
 
-Use frontend TypeScript as the calculation source of truth.
+Keep the old public names. Do not rename them to the addendum names.
 
-The new path should port formulas into `frontend/src/`, build the report locally, and stop relying on `/api/report`.
-
-Target:
-
-```txt
-Vite frontend
-TypeScript calculation logic
-No required FastAPI API call
-No required /api/report
-No WSGI
-No duplicate Python formula logic
-```
-
-Move formulas into the frontend immediately. Minimize the number of new files you create.
-
-## Current UI Problems
-
-The current UI exposes:
-
-```txt
-Parameters
-Context window
-Quantization
-KV cache
-Runtime
-Architecture
-Active parameters
-Training checkbox
-LoRA checkbox
-```
-
-#### Current Problems:
-
-```txt
-Architecture = Dense is LLM-specific.
-KV cache is not relevant to most AI workloads.
-Active parameters should only appear for MoE.
-Training + LoRA checkboxes create invalid combinations.
-Context window should be adaptive: tokens, image size, audio length, frames, rows/features.
-```
-
-Replace the LLM-only UI with a workload-family UI.
-
-## Minimal Visible Inputs
-
-Show only these by default:
-
-```txt
-1. Workload Family
-2. Total Resident Parameters
-3. Parameter Unit
-4. Precision / Format
-5. Execution Mode
-6. Runtime Profile
-7. Input Size
-8. Workload Size
-9. MoE Model checkbox, only when relevant
-```
-
-Hide everything else under:
-
-```txt
-Advanced assumptions
-```
-
-## Input 1 — Workload Family
-
-UI label:
+Use these names in the UI, docs, labels, and tests:
 
 ```txt
 Workload Family
-```
-
-Options:
-
-```txt
 Text generation / chat
 Text embeddings / reranking / classification
 Encoder-decoder generation
@@ -109,9 +33,26 @@ Video generation
 Speech / audio
 Tabular / classical ML
 Custom / unknown
+Known Model File Size
+Compare with my GPU
+Total Resident Parameters
+Precision
+Execution Mode
+Runtime Profile
+Advanced assumptions
 ```
 
-Internal enum:
+Mapping from addendum/internal terms:
+
+```txt
+Model Family -> Workload Family
+LLM / text generation -> Text generation / chat
+Text encoder / embeddings / reranking / classification -> Text embeddings / reranking / classification
+Known Resident Model Size -> Known Model File Size
+Compare With My GPU -> Compare with my GPU
+```
+
+Internal enum may stay concise:
 
 ```ts
 type WorkloadFamily =
@@ -127,1604 +68,331 @@ type WorkloadFamily =
   | "custom";
 ```
 
-Default:
+## Implementation Specs
+
+Use the focused specs for implementation work:
 
 ```txt
-Text generation / chat
+specs/frontend.md = frontend UI, TypeScript report building, output rendering, frontend tests.
+specs/backend.md = Python/FastAPI/API/WSGI removal, backend-only test cleanup, backend docs cleanup.
 ```
 
-This field is mandatory. Without it, the app cannot know whether the important input is context length, image resolution, video frames, audio length, or tabular batch size.
+The architectural target is Vite + frontend TypeScript calculations. No backend owns calculator formulas.
 
-## Input 2 — Total Resident Parameters
+## Research Corrections
 
-UI label:
-
-```txt
-Total Parameters
-```
-
-Default:
+These are non-negotiable:
 
 ```txt
-8
+Required_GB = (Weights_GB + Working_Memory_GB + Training_State_GB + Runtime_Overhead_GB) * Buffer is the canonical equation.
+KV cache is only for autoregressive/generative transformer workloads.
+KV cache must use architecture, sequence length, concurrency, and KV precision.
+Never use KV = Active_P / 10.
+Training VRAM is not a single P * 16 result.
+LoRA trains adapters, not all base weights.
+QLoRA uses a frozen 4-bit base plus adapter state, not a flat 4 GB overhead.
+Diffusion/video memory is pipeline-specific and lower confidence by default.
+Known Model File Size should override parameter-based weight estimates for GGUF/exact files.
+MoE active parameters affect rough speed, not resident weight memory, unless expert offload/sharding is enabled.
+Cloud prices are static estimates unless live pricing is actually fetched.
 ```
 
-Meaning:
+## Frontend Scope
 
-```txt
-The number of parameters that must be resident in GPU memory.
-```
+Frontend-specific UI, output, warnings, TypeScript structure, and corrected frontend test expectations live in `specs/frontend.md`.
 
-For single-model workloads:
+Use `docs/plan.md` for the broader architecture and calculation contract. Use `specs/frontend.md` for headless frontend implementation work.
 
-```txt
-Use total model parameters.
-```
-
-For multimodal/diffusion pipelines:
-
-```txt
-Use total resident pipeline parameters:
-main model + encoders + decoder/VAE/projector/adapters that stay loaded.
-```
-
-For GGUF:
+Transformer architecture bucket defaults:
 
 ```txt
-If exact GGUF file size is known, prefer Advanced > Known Model File Size over parameter-based weight estimation.
+<= 1B:   layers 16, hidden 2048, heads 32, kv_heads 8, head_dim 64
+<= 4B:   layers 28, hidden 3072, heads 24, kv_heads 8, head_dim 128
+<= 10B:  layers 32, hidden 4096, heads 32, kv_heads 8, head_dim 128
+<= 20B:  layers 40, hidden 5120, heads 40, kv_heads 8, head_dim 128
+<= 40B:  layers 48, hidden 6144, heads 48, kv_heads 8, head_dim 128
+<= 80B:  layers 80, hidden 8192, heads 64, kv_heads 8, head_dim 128
+<= 160B: layers 96, hidden 10240, heads 80, kv_heads 8, head_dim 128
+> 160B:  layers 120, hidden 12288, heads 96, kv_heads 8, head_dim 128
 ```
 
-Why: GGUF quantization has mixed quantization types and metadata; file size is often a better practical proxy than “4-bit” alone. llama.cpp’s GGUF quantization flow converts HF models to GGUF and then quantizes the GGUF file; multimodal models may require separate multimodal encoder/projector GGUF components. ([GitHub][4])
+Also compute `conservative_kv_heads = attention_heads` and show it in advanced output.
 
-Validation:
+Training defaults:
 
 ```txt
-value > 0
+AdamW optimizer_bytes = 8
+8-bit Adam optimizer_bytes = 2
+SGD-like optimizer_bytes = 4
+gradient_bytes = 2
+activation_bytes = 2
+master_weight_bytes = 4
+adapter_weight_bytes = 2
+gradient_checkpointing checked -> activation_factor_training = 3
+gradient_checkpointing unchecked -> activation_factor_training = 8
+lora_trainable_percent options = 0.1%, 0.5%, 1%, 2%
 ```
 
-## Input 3 — Parameter Unit
+## Calculation Contract
 
-UI label:
+Keep internal values unrounded. Display GB values rounded to one decimal.
+
+The canonical base equation is:
 
 ```txt
-Unit
+Required_GB = (Weights_GB + Working_Memory_GB + Training_State_GB + Runtime_Overhead_GB) * Buffer
 ```
 
-Options:
+Everything else is a component plugged into that equation.
+
+The old display shorthand can still be used only if the pieces are renamed:
 
 ```txt
-B
-M
-K
+Total_Memory = (W + KV + T + C) * Buffer
+
+W = Weights_GB
+KV = decoder/generative KV cache only, otherwise 0
+T = Training_State_GB + Training_Activation_GB
+C = Runtime_Overhead_GB
 ```
 
-Default:
+### Universal
 
 ```txt
-B
+Total_Params_B = total_params_value * unit_multiplier
+Resident_Params_B = Total_Params_B unless expert_offload_enabled or component params override it
+Active_Params_B = active_params_input_b if moe_enabled else Total_Params_B
+Weights_GB = Known_Model_File_Size_GB * GPU_Resident_Fraction if Known_Model_File_Size_GB is provided else Resident_Params_B * Weight_Bytes * Weight_Overhead
+Subtotal_GB = Weights_GB + Working_Memory_GB + Training_State_GB + Runtime_Overhead_GB
+Safety_Buffer_GB = Subtotal_GB * (Buffer - 1)
+Required_GB = Subtotal_GB * Buffer
 ```
 
-Conversion:
+Code may use lower-case variable names, but reports and docs should use the component names above.
 
-```ts
-if (unit === "B") totalParamsB = value;
-if (unit === "M") totalParamsB = value / 1000;
-if (unit === "K") totalParamsB = value / 1_000_000;
-```
-
-Use decimal GB:
+### Text Generation / Chat
 
 ```txt
-1 GB = 1e9 bytes
-```
-
-Because parameters are stored in billions:
-
-```txt
-params_B * bytes_per_param = GB
-```
-
-## Input 4 — Precision / Format
-
-UI label:
-
-```txt
-Precision
-```
-
-Visible options:
-
-```txt
-4-bit
-5-bit GGUF
-6-bit GGUF
-8-bit
-16-bit
-32-bit
-```
-
-Default:
-
-```txt
-16-bit
-```
-
-Map:
-
-```ts
-4-bit:
-  weightBytes = 0.5
-  weightOverhead = 1.15
-
-5-bit GGUF:
-  weightBytes = 0.625
-  weightOverhead = 1.12
-
-6-bit GGUF:
-  weightBytes = 0.75
-  weightOverhead = 1.10
-
-8-bit:
-  weightBytes = 1
-  weightOverhead = 1.05
-
-16-bit:
-  weightBytes = 2
-  weightOverhead = 1.00
-
-32-bit:
-  weightBytes = 4
-  weightOverhead = 1.00
-```
-
-Advanced exact format options:
-
-```txt
-fp32
-fp16
-bf16
-int8
-fp8
-GGUF Q4
-GGUF Q5
-GGUF Q6
-GGUF Q8
-GPTQ
-AWQ
-NF4 / QLoRA
-bitsandbytes 8-bit
-```
-
-bitsandbytes supports quantized linear layers, 8-bit optimizers, and 4-bit/QLoRA-style loading; Hugging Face notes its quantization can work for any modality when the model uses supported linear layers. ([Hugging Face][5])
-
-## Input 5 — Execution Mode
-
-UI label:
-
-```txt
-Execution Mode
-```
-
-Options:
-
-```txt
-Inference
-LoRA fine-tuning
-QLoRA fine-tuning
-Full training
-```
-
-Default:
-
-```txt
-Inference
-```
-
-Rules:
-
-```txt
-LoRA and QLoRA are training modes.
-Do not represent training and LoRA as two independent checkboxes.
-Disable LoRA/QLoRA for tabular/classical ML unless Custom mode is selected.
-```
-
-LoRA freezes base weights and trains low-rank adapter matrices; QLoRA trains LoRA adapters through a frozen 4-bit quantized base model, not a flat 4 GB overhead. ([arXiv][6]) ([arXiv][7])
-
-## Input 6 — Runtime Profile
-
-UI label:
-
-```txt
-Runtime
-```
-
-Options:
-
-```txt
-Local / Edge
-Server / Cloud
-Training
-```
-
-Default:
-
-```txt
-Local / Edge
-```
-
-Map:
-
-```ts
-Local / Edge:
-  runtimeOverheadGB = 0.5
-  buffer = 1.05
-  gpuUtilizationTarget = 0.90
-
-Server / Cloud:
-  runtimeOverheadGB = 1.5
-  buffer = 1.10
-  gpuUtilizationTarget = 0.85
-
-Training:
-  runtimeOverheadGB = 4.0
-  buffer = 1.25
-  gpuUtilizationTarget = 0.80
-```
-
-If execution mode is LoRA, QLoRA, or Full training:
-
-```ts
-effectiveRuntimeProfile = "Training";
-```
-
-PyTorch uses a CUDA caching allocator, and recent PyTorch docs explain that allocation patterns can create fragmentation where enough total free memory exists but a request still cannot be served. Keep the buffer; do not claim PyTorch memory is exact. ([PyTorch Docs][8])
-
-## Input 7 — Input Size
-
-This field changes by workload family.
-
-### Text generation / chat
-
-```txt
-Label: Context Window
-Default: 8000 tokens
-Meaning: prompt tokens + generated tokens retained in KV cache
-```
-
-### Text embeddings / reranking / classification
-
-```txt
-Label: Sequence Length
-Default: 512 tokens
-```
-
-### Encoder-decoder generation
-
-```txt
-Labels:
-- Input Sequence Length
-- Output Tokens
-
-Defaults:
-- Input Sequence Length = 1024
-- Output Tokens = 256
-```
-
-### Vision understanding
-
-```txt
-Label: Image Size
-Default: 1024 x 1024
-Presets: 224, 512, 1024, 2048, Custom
-```
-
-### Vision-language / multimodal
-
-```txt
-Labels:
-- Text Context Tokens
-- Image Size
-
-Defaults:
-- Text Context Tokens = 8000
-- Image Size = 1024 x 1024
-```
-
-Advanced default:
-
-```txt
-Image Count = 1
-```
-
-### Image generation / diffusion
-
-```txt
-Label: Output Image Size
-Default: 1024 x 1024
-Presets: 512, 768, 1024, 1536, Custom
-```
-
-Diffusers warns that memory-reduction techniques need adjustment depending on the model, and transformer-based diffusion models may not benefit the same way as UNet-based models. Label diffusion results as estimated unless component sizes or measured peak memory are supplied. ([Hugging Face][3])
-
-### Video generation
-
-```txt
-Labels:
-- Output Resolution
-- Frames
-
-Defaults:
-- Output Resolution = 720p
-- Frames = 81
-```
-
-### Speech / audio
-
-```txt
-Label: Audio Length
-Default: 30 seconds
-```
-
-### Tabular / classical ML
-
-```txt
-Labels:
-- Rows per batch
-- Features
-
-Defaults:
-- Rows per batch = 10000
-- Features = 100
-```
-
-### Custom / unknown
-
-```txt
-Label: Input Size Multiplier
-Default: 1.0
-```
-
-## Input 8 — Workload Size
-
-This field adapts to execution mode.
-
-For inference:
-
-```txt
-Label: Concurrent Requests
-Default: 1
-Validation: value >= 1
-```
-
-For training/fine-tuning:
-
-```txt
-Label: Micro Batch Size
-Default: 1
-Validation: value >= 1
-```
-
-Do not label this just “Batch Size.” It is ambiguous. In generation, it scales KV cache. In training, micro batch size primarily scales activation memory.
-
-## Input 9 — MoE Model
-
-Show only for transformer-like or custom families:
-
-```txt
-Text generation / chat
-Text embeddings / reranking / classification
-Encoder-decoder generation
-Vision-language / multimodal
-Custom / unknown
-```
-
-UI:
-
-```txt
-[ ] MoE Model
-```
-
-If checked, reveal:
-
-```txt
-Active Parameters
-```
-
-Default:
-
-```txt
-Active Parameters = Total Resident Parameters
-```
-
-Validation:
-
-```txt
-0 < activeParamsB <= totalParamsB
-```
-
-Calculation rule:
-
-```ts
-residentParamsB = totalParamsB;
-computeParamsB = moeEnabled ? activeParamsB : totalParamsB;
-```
-
-Active parameters affect rough speed/compute estimates. They do not reduce resident weight memory unless expert offload or expert parallelism is explicitly enabled in advanced mode. Hugging Face’s MoE writeup distinguishes total parameters/model capacity from active parameters/inference speed and separately describes expert parallelism as the mechanism that distributes expert weights across devices. ([Hugging Face][9])
-
-## Advanced Assumptions
-
-Collapsed by default.
-
-Include:
-
-```txt
-Exact model config JSON
-Known model file size
-Pipeline component parameters
-KV cache precision
-Architecture fields
-Training settings
-Runtime overhead
-Safety buffer
-Compare with my GPU
-Cloud rate table
-Measured peak VRAM override
-```
-
-## Advanced Exact Config
-
-For transformer-like models, allow:
-
-```txt
-Paste model config JSON
-```
-
-Parse:
-
-```txt
-num_hidden_layers
-hidden_size
-num_attention_heads
-num_key_value_heads
-head_dim
-vocab_size
-is_encoder_decoder
-```
-
-Aliases:
-
-```txt
-n_layer -> num_hidden_layers
-n_embd -> hidden_size
-n_head -> num_attention_heads
-n_head_kv -> num_key_value_heads
-```
-
-Rules:
-
-```ts
-if (!head_dim) head_dim = hidden_size / num_attention_heads;
-if (!num_key_value_heads) num_key_value_heads = num_attention_heads;
-```
-
-Show:
-
-```txt
-Accuracy mode: Config-based
-```
-
-If absent:
-
-```txt
-Accuracy mode: Estimated
-```
-
-## Advanced Known Model File Size
-
-For GGUF and other quantized file formats:
-
-```txt
-Known Model File Size
-[number] GB
-```
-
-If supplied:
-
-```ts
-weightsGB = knownModelFileSizeGB * gpuResidentFraction;
-```
-
-Default:
-
-```ts
-gpuResidentFraction = 1.0;
-```
-
-This is the best practical path for GGUF because GGUF quantization can mix tensor types and include metadata.
-
-## Advanced Pipeline Component Parameters
-
-For multimodal, diffusion, and video:
-
-```txt
-Main model / denoiser parameters
-Text encoder parameters
-Vision encoder parameters
-Projector parameters
-VAE parameters
-ControlNet / adapter parameters
-Other resident module parameters
-```
-
-If supplied:
-
-```ts
-totalParamsB =
-  mainParamsB
-  + textEncoderParamsB
-  + visionEncoderParamsB
-  + projectorParamsB
-  + vaeParamsB
-  + adapterParamsB
-  + otherParamsB;
-```
-
-Show:
-
-```txt
-Accuracy mode: Component-based
-```
-
-## Advanced KV Cache Precision
-
-KV cache is only relevant to autoregressive generation and generative multimodal models.
-
-Do not show globally.
-
-Default:
-
-```ts
-kvBytes = 2;
-kvLabel = "16-bit KV cache";
-```
-
-Advanced options:
-
-```txt
-16-bit
-8-bit / FP8
-```
-
-Map:
-
-```ts
-16-bit:
-  kvBytes = 2
-
-8-bit / FP8:
-  kvBytes = 1
-```
-
-Do not show 4-bit KV cache in the main UI. vLLM documents FP8 KV cache as a way to reduce memory footprint and support longer context windows; Hugging Face documents KV cache quantization/offloading as memory-saving tradeoffs for generation.
-
-## Universal Weight Formula
-
-For all neural families:
-
-```ts
-weightsGB =
-  residentParamsB
-  * weightBytes
-  * weightOverhead;
-```
-
-If `knownModelFileSizeGB` is provided:
-
-```ts
-weightsGB = knownModelFileSizeGB * gpuResidentFraction;
-```
-
-## Universal Required Memory Formula
-
-```ts
-subtotalGB =
-  weightsGB
-  + workingMemoryGB
-  + trainingStateGB
-  + runtimeOverheadGB;
-
-safetyBufferGB =
-  subtotalGB * (buffer - 1);
-
-requiredGB =
-  subtotalGB * buffer;
-```
-
-Round displayed values to one decimal. Keep internal values unrounded.
-
-## Family Formula: Text Generation / Chat
-
-Use decoder transformer formula.
-
-KV cache:
-
-```ts
-kvGB =
-  concurrentRequests
-  * contextTokens
-  * 2
-  * numLayers
-  * numKVHeads
-  * headDim
-  * kvBytes
-  / 1e9;
+kv_gb = concurrent_requests * context_tokens * 2 * num_layers * kv_heads * head_dim * kv_bytes / 1e9
+decoder_scratch_gb = weights_gb * decoder_scratch_ratio
+decoder_scratch_ratio = 0.03 for Local / Edge, 0.05 for Server / Cloud
+working_memory_gb = kv_gb + decoder_scratch_gb
 ```
 
 The `2` is key + value.
 
-NVIDIA’s formula uses `2 * num_layers * (num_heads * dim_head) * precision_bytes` per token, then multiplies by batch size and sequence length. ([NVIDIA Developer][1])
+For deterministic tests, set `decoder_scratch_gb = 0`. If production keeps decoder scratch, compute expected values from the same configured scratch value and do not mix them with the table in `Expected Test Outputs`.
 
-Working memory:
-
-```ts
-workingMemoryGB = kvGB + decoderScratchGB;
-```
-
-Default decoder scratch:
-
-```ts
-decoderScratchGB = weightsGB * scratchRatio;
-scratchRatio:
-  Local / Edge = 0.03
-  Server / Cloud = 0.05
-```
-
-Label scratch as:
-
-```txt
-Runtime scratch estimate
-```
-
-Do not hide it inside “task overhead.”
-
-## Family Formula: Text Encoder
-
-Used for embeddings, rerankers, classifiers.
+### Text Embeddings / Reranking / Classification
 
 No persistent generation KV cache.
 
-Working memory:
-
-```ts
-encoderActivationGB =
-  activationFactor
-  * concurrentRequests
-  * sequenceTokens
-  * numLayers
-  * hiddenSize
-  * activationBytes
-  / 1e9;
+```txt
+encoder_activation_gb = 2 * concurrent_requests * sequence_tokens * num_layers * hidden_size * activation_bytes / 1e9
+working_memory_gb = encoder_activation_gb
 ```
 
-Defaults:
-
-```ts
-activationBytes = 2
-activationFactor = 2 for inference
-```
-
-If exact architecture missing, estimate architecture and show `Accuracy mode: Estimated`.
-
-## Family Formula: Encoder-Decoder
-
-Used for translation, summarization, T5-style generation.
-
-Components:
-
-```ts
-encoderActivationGB =
-  activationFactor
-  * concurrentRequests
-  * inputTokens
-  * encoderLayers
-  * hiddenSize
-  * activationBytes
-  / 1e9;
-
-decoderKVGB =
-  concurrentRequests
-  * outputTokens
-  * 2
-  * decoderLayers
-  * numKVHeads
-  * headDim
-  * kvBytes
-  / 1e9;
-```
-
-Working memory:
-
-```ts
-workingMemoryGB = encoderActivationGB + decoderKVGB + crossAttentionScratchGB;
-```
-
-Default:
-
-```ts
-crossAttentionScratchGB = 0.05 * weightsGB;
-```
-
-Show breakdown separately:
+### Encoder-Decoder Generation
 
 ```txt
-Encoder activations
-Decoder KV cache
-Cross-attention scratch
+encoder_activation_gb = 2 * concurrent_requests * input_tokens * num_layers * hidden_size * activation_bytes / 1e9
+decoder_kv_gb = concurrent_requests * output_tokens * 2 * num_layers * kv_heads * head_dim * kv_bytes / 1e9
+cross_attention_scratch_gb = weights_gb * 0.05
+working_memory_gb = encoder_activation_gb + decoder_kv_gb + cross_attention_scratch_gb
 ```
 
-## Family Formula: Vision Understanding
-
-Used for classification, detection, segmentation.
-
-If ViT-style:
-
-```ts
-imageTokens =
-  ceil(imageHeight / patchSize)
-  * ceil(imageWidth / patchSize)
-  + 1;
-
-visionWorkingGB =
-  activationFactor
-  * concurrentRequests
-  * imageTokens
-  * numLayers
-  * hiddenSize
-  * activationBytes
-  / 1e9;
-```
-
-Defaults:
-
-```ts
-patchSize = 16
-activationBytes = 2
-activationFactor = 2
-```
-
-For CNN/detector/segmenter fallback:
-
-```ts
-imagePixelProxyGB =
-  concurrentRequests
-  * imageHeight
-  * imageWidth
-  * channels
-  * activationBytes
-  * visionActivationMultiplier
-  / 1e9;
-```
-
-Defaults:
-
-```ts
-channels = 4
-visionActivationMultiplier = 8
-```
-
-Use:
-
-```ts
-workingMemoryGB = max(visionWorkingGB, imagePixelProxyGB);
-```
-
-Label:
+### Vision Understanding
 
 ```txt
-Vision memory is estimated. Exact memory depends on backbone, feature maps, detector/segmentation head, image size, and implementation.
+image_tokens = ceil(image_width / patch_size) * ceil(image_height / patch_size) + 1
+vision_transformer_working_gb = 2 * concurrent_requests * image_tokens * num_layers * hidden_size * activation_bytes / 1e9
+vision_pixel_proxy_gb = concurrent_requests * image_width * image_height * 4 * activation_bytes * 8 / 1e9
+working_memory_gb = max(vision_transformer_working_gb, vision_pixel_proxy_gb)
 ```
 
-## Family Formula: Vision-Language / Multimodal
-
-Used for image-to-text, image-text-to-text, document QA, multimodal chat.
-
-Image tokens:
-
-```ts
-imageTokens =
-  imageCount
-  * ceil(imageHeight / patchSize)
-  * ceil(imageWidth / patchSize);
-```
-
-Default:
-
-```ts
-imageCount = 1
-patchSize = 16
-```
-
-Effective text context:
-
-```ts
-effectiveContextTokens = textContextTokens + imageTokens;
-```
-
-If generative:
-
-```ts
-kvGB =
-  concurrentRequests
-  * effectiveContextTokens
-  * 2
-  * numLayers
-  * numKVHeads
-  * headDim
-  * kvBytes
-  / 1e9;
-```
-
-Vision working memory:
-
-```ts
-visionWorkingGB =
-  activationFactor
-  * concurrentRequests
-  * imageTokens
-  * visionLayers
-  * visionHidden
-  * activationBytes
-  / 1e9;
-```
-
-If vision architecture missing:
-
-```ts
-visionWorkingGB = imagePixelProxyGB;
-```
-
-Working memory:
-
-```ts
-workingMemoryGB = kvGB + visionWorkingGB + projectorScratchGB;
-```
-
-Default:
-
-```ts
-projectorScratchGB = 0.02 * weightsGB;
-```
-
-## Family Formula: Image Generation / Diffusion
-
-Do not use KV cache as the main concept.
-
-Inputs:
+### Vision-Language / Multimodal
 
 ```txt
-output image height
-output image width
-concurrent requests
+multimodal_image_tokens = image_count * ceil(image_width / patch_size) * ceil(image_height / patch_size)
+effective_context_tokens = text_tokens + multimodal_image_tokens
+multimodal_kv_gb = concurrent_requests * effective_context_tokens * 2 * num_layers * kv_heads * head_dim * kv_bytes / 1e9
+multimodal_vision_working_gb = 2 * concurrent_requests * multimodal_image_tokens * vision_layers * vision_hidden_size * activation_bytes / 1e9
+projector_scratch_gb = weights_gb * 0.02
+working_memory_gb = multimodal_kv_gb + multimodal_vision_working_gb + projector_scratch_gb
 ```
 
-Latents:
+If vision architecture is missing, use the vision pixel proxy for `multimodal_vision_working_gb`.
 
-```ts
-latentHeight = ceil(imageHeight / latentDownsample);
-latentWidth = ceil(imageWidth / latentDownsample);
-```
-
-Defaults:
-
-```ts
-latentDownsample = 8
-latentChannels = 4
-activationBytes = 2
-```
-
-Latent memory:
-
-```ts
-diffusionLatentGB =
-  concurrentRequests
-  * latentHeight
-  * latentWidth
-  * latentChannels
-  * activationBytes
-  / 1e9;
-```
-
-Working estimate:
-
-```ts
-diffusionWorkingGB =
-  max(
-    diffusionLatentGB * diffusionActivationMultiplier,
-    weightsGB * diffusionWeightPeakRatio
-  );
-```
-
-Defaults:
-
-```ts
-diffusionActivationMultiplier = 64
-diffusionWeightPeakRatio = 0.35
-```
-
-Label:
+### Image Generation / Diffusion
 
 ```txt
-Diffusion estimate is heuristic unless exact pipeline components or measured peak VRAM are provided.
+latent_height = ceil(output_image_height / latent_downsample)
+latent_width = ceil(output_image_width / latent_downsample)
+diffusion_latent_gb = concurrent_requests * latent_height * latent_width * latent_channels * activation_bytes / 1e9
+working_memory_gb = max(diffusion_latent_gb * 64, weights_gb * 0.35)
 ```
 
-## Family Formula: Video Generation
-
-Inputs:
+### Video Generation
 
 ```txt
-output height
-output width
-frames
-concurrent requests
+latent_height = ceil(video_height / latent_downsample)
+latent_width = ceil(video_width / latent_downsample)
+latent_frames = ceil(frames / temporal_downsample)
+video_latent_gb = concurrent_requests * latent_frames * latent_height * latent_width * latent_channels * activation_bytes / 1e9
+working_memory_gb = max(video_latent_gb * 96, weights_gb * 0.50)
 ```
 
-Latents:
-
-```ts
-latentHeight = ceil(videoHeight / latentDownsample);
-latentWidth = ceil(videoWidth / latentDownsample);
-latentFrames = ceil(frames / temporalDownsample);
-```
-
-Defaults:
-
-```ts
-latentDownsample = 8
-temporalDownsample = 4
-latentChannels = 4
-activationBytes = 2
-```
-
-Working estimate:
-
-```ts
-videoLatentGB =
-  concurrentRequests
-  * latentFrames
-  * latentHeight
-  * latentWidth
-  * latentChannels
-  * activationBytes
-  / 1e9;
-
-videoWorkingGB =
-  max(
-    videoLatentGB * videoActivationMultiplier,
-    weightsGB * videoWeightPeakRatio
-  );
-```
-
-Defaults:
-
-```ts
-videoActivationMultiplier = 96
-videoWeightPeakRatio = 0.50
-```
-
-Label:
+### Speech / Audio
 
 ```txt
-Video generation estimate is rough. Exact VRAM depends on architecture, frame count, attention implementation, resolution, offload, and pipeline components.
+audio_tokens = audio_seconds * audio_tokens_per_second
+working_memory_gb = 2 * concurrent_requests * audio_tokens * num_layers * hidden_size * activation_bytes / 1e9
 ```
 
-## Family Formula: Speech / Audio
-
-Inputs:
+### Tabular / Classical ML
 
 ```txt
-audio seconds
-concurrent requests
+tabular_batch_gb = rows_per_batch * features * feature_bytes / 1e9
+working_memory_gb = tabular_batch_gb * 4
 ```
 
-Convert to tokens/features:
-
-```ts
-audioTokens = audioSeconds * audioTokensPerSecond;
-```
-
-Default:
-
-```ts
-audioTokensPerSecond = 50
-```
-
-Working memory:
-
-```ts
-audioWorkingGB =
-  activationFactor
-  * concurrentRequests
-  * audioTokens
-  * numLayers
-  * hiddenSize
-  * activationBytes
-  / 1e9;
-```
-
-If architecture missing:
+### Custom / Unknown
 
 ```txt
-Use estimated transformer architecture and show Estimated confidence.
+working_memory_gb = weights_gb * 0.25 * input_size_multiplier
 ```
 
-Label:
+Confidence is `Rough`.
+
+### Training
+
+For neural workloads, replace inference working memory with family training working memory that includes training activations and family scratch/latent memory.
+
+Generic transformer training activation estimate:
 
 ```txt
-Audio estimate depends on feature extraction, sample rate, chunking, and architecture.
+training_activation_gb = activation_factor_training * micro_batch_size * sequence_or_token_count * num_layers * hidden_size * activation_bytes / 1e9
 ```
 
-## Family Formula: Tabular / Classical ML
-
-Inputs:
+LoRA:
 
 ```txt
-rows per batch
-features
+adapter_params_b = total_params_b * lora_trainable_percent / 100
+training_state_gb = adapter_params_b * (adapter_weight_bytes + gradient_bytes + optimizer_bytes)
 ```
 
-Dataset batch memory:
-
-```ts
-tabularBatchGB =
-  rowsPerBatch
-  * features
-  * featureBytes
-  / 1e9;
-```
-
-Default:
-
-```ts
-featureBytes = 4
-tabularWorkingMultiplier = 4
-```
-
-Working memory:
-
-```ts
-workingMemoryGB =
-  tabularBatchGB * tabularWorkingMultiplier;
-```
-
-Total:
-
-```ts
-requiredGB =
-  (weightsGB + workingMemoryGB + runtimeOverheadGB) * buffer;
-```
-
-Label:
+QLoRA:
 
 ```txt
-For tabular/classical ML, CPU RAM and dataset size often matter more than GPU VRAM.
+weights_gb = resident_params_b * 0.5 * 1.15
+training_state_gb = adapter_params_b * (adapter_weight_bytes + gradient_bytes + optimizer_bytes)
 ```
 
-## Custom / Unknown Formula
-
-Use:
-
-```ts
-workingMemoryGB =
-  weightsGB * customWorkingMultiplier * inputSizeMultiplier;
-```
-
-Defaults:
-
-```ts
-customWorkingMultiplier = 0.25
-inputSizeMultiplier = 1.0
-```
-
-Confidence:
+Full training:
 
 ```txt
-Rough
+weights_gb = total_params_b * weight_bytes
+training_state_gb = total_params_b * (master_weight_bytes + gradient_bytes + optimizer_bytes)
 ```
 
-## Training Formula
+Full training total must include weights, master weights, gradients, optimizer state, activations, runtime overhead, and buffer.
 
-For neural workloads, training adds parameter state and activation memory. Do not use `Total_P * 16` as the final formula.
+## Hardware, Speed, and Cost
 
-Hugging Face lists mixed-precision model weights, Adam optimizer states, gradients, forward activations, temporary tensors, and extra feature overhead as GPU memory consumers. ([Hugging Face][2])
+Hardware recommendation:
 
-Defaults:
-
-```ts
-activationBytes = 2
-gradientBytes = 2
-masterWeightBytes = 4
-optimizerBytes = 8 // AdamW
-gradientCheckpointing = true
-```
-
-Activation factor:
-
-```ts
-if (gradientCheckpointing) activationFactor = 3;
-else activationFactor = 8;
-```
-
-Optimizer map:
-
-```ts
-AdamW:
-  optimizerBytes = 8
-
-8-bit Adam:
-  optimizerBytes = 2
-
-SGD-like:
-  optimizerBytes = 4
-```
-
-### Full Training
-
-```ts
-baseWeightsGB =
-  totalParamsB * weightBytes;
-
-masterWeightsGB =
-  totalParamsB * masterWeightBytes;
-
-gradientsGB =
-  totalParamsB * gradientBytes;
-
-optimizerStateGB =
-  totalParamsB * optimizerBytes;
-
-trainingStateGB =
-  baseWeightsGB
-  + masterWeightsGB
-  + gradientsGB
-  + optimizerStateGB;
-```
-
-Add family-specific training activations:
-
-```ts
-workingMemoryGB =
-  familyWorkingMemoryWithTrainingActivationFactor;
-```
-
-### LoRA Fine-Tuning
-
-Default trainable adapter parameters:
-
-```ts
-adapterParamsB =
-  totalParamsB * loraTrainableRatio;
-```
-
-Default:
-
-```ts
-loraTrainableRatio = 0.005
-```
-
-Advanced exact LoRA formula:
-
-```ts
-adapterParams =
-  sum over adapted linear layers:
-    rank * (inputDim + outputDim);
-
-adapterParamsB = adapterParams / 1e9;
-```
-
-LoRA state:
-
-```ts
-adapterWeightsGB =
-  adapterParamsB * 2;
-
-adapterGradientsGB =
-  adapterParamsB * gradientBytes;
-
-adapterOptimizerStateGB =
-  adapterParamsB * optimizerBytes;
-
-trainingStateGB =
-  adapterWeightsGB
-  + adapterGradientsGB
-  + adapterOptimizerStateGB;
-```
-
-Total LoRA memory:
-
-```ts
-requiredGB =
-  (
-    baseWeightsGB
-    + familyTrainingWorkingMemoryGB
-    + trainingStateGB
-    + runtimeOverheadGB
-  )
-  * buffer;
-```
-
-### QLoRA Fine-Tuning
-
-Force base weight precision:
-
-```ts
-weightBytes = 0.5;
-weightOverhead = 1.15;
-```
-
-Base weights:
-
-```ts
-quantizedBaseWeightsGB =
-  residentParamsB * 0.5 * 1.15;
-```
-
-Adapter state is the same as LoRA.
-
-Total QLoRA memory:
-
-```ts
-requiredGB =
-  (
-    quantizedBaseWeightsGB
-    + familyTrainingWorkingMemoryGB
-    + adapterWeightsGB
-    + adapterGradientsGB
-    + adapterOptimizerStateGB
-    + runtimeOverheadGB
-  )
-  * buffer;
-```
-
-## Hardware Recommendation
-
-Do not ask for target GPU VRAM in the main form.
-
-Calculate:
-
-```ts
-minimumRawVRAMGB =
-  requiredGB / gpuUtilizationTarget;
+```txt
+minimum_raw_vram_gb = required_gb / gpu_utilization_target
+recommended_gpu_tier_gb = smallest tier where tier_gb >= minimum_raw_vram_gb
 ```
 
 GPU tiers:
 
-```ts
-[8, 12, 16, 24, 48, 80, 160, 320]
+```txt
+8 GB, 12 GB, 16 GB, 24 GB, 48 GB, 80 GB, 160 GB, 320 GB
 ```
 
-Recommend the smallest tier where:
-
-```ts
-tierGB >= minimumRawVRAMGB;
-```
-
-Output:
+Labels:
 
 ```txt
-Recommended Hardware
-24 GB GPU class
-
-Required memory: X GB
-Usable target: Y%
-Minimum raw VRAM needed: Z GB
+8 GB: Entry local GPU class
+12 GB: Mid-range consumer GPU class
+16 GB: Larger consumer / small workstation class
+24 GB: High-end consumer GPU class, e.g. RTX 3090 / RTX 4090
+48 GB: Workstation GPU class or sharded multi-GPU
+80 GB: Datacenter GPU class, e.g. A100/H100 80GB
+160 GB: 2x 80GB GPUs with memory sharding
+320 GB: 4x 80GB GPUs with memory sharding
+> 320 GB: Distributed multi-node or heavy offload
 ```
 
-Example:
+Do not imply multiple GPUs help unless memory sharding is enabled or explicitly required.
+
+Compare with my GPU:
 
 ```txt
-Required memory = 20.1 GB
-Local usable target = 90%
-Minimum raw VRAM = 20.1 / 0.90 = 22.3 GB
-Recommendation = 24 GB GPU class
+my_usable_vram_gb = my_gpu_raw_vram_gb * gpu_utilization_target
+fits_my_gpu = required_gb <= my_usable_vram_gb
 ```
 
-Do not just output:
+Show the offload warning only for Local / Edge when the user entered a GPU and it does not fit.
+
+Speed estimate:
 
 ```txt
-RTX 4090
+compute_weight_gb = weights_gb for dense models
+compute_weight_gb = active_params_b * weight_bytes * weight_overhead for MoE models
+speed_estimate = max(0.1, memory_bandwidth_gbps / compute_weight_gb)
 ```
 
-Output:
+Bandwidth presets:
 
 ```txt
-24 GB GPU class, e.g. RTX 3090 / RTX 4090
+8 GB: 272 GB/s
+12 GB: 504 GB/s
+16 GB: 448 GB/s
+24 GB: 936 GB/s
+48 GB: 768 GB/s
+80 GB: 2039 GB/s
+160 GB: 4078 GB/s
+320 GB: 8156 GB/s
 ```
 
-For multi-GPU tiers:
+Cloud cost:
 
 ```txt
-Requires memory sharding support.
+cloud_cost_per_hour = recommended_gpu_count * hourly_rate_for_recommended_tier
 ```
 
-Do not imply multiple GPUs automatically help.
+Show only for `Server / Cloud`.
 
-## Optional Compare With My GPU
-
-Hide under Advanced.
-
-UI:
+Static defaults:
 
 ```txt
-Compare with my GPU
-[number] GB VRAM
+8 GB: $0.25/hr
+12 GB: $0.40/hr
+16 GB: $0.60/hr
+24 GB: $1.00/hr
+48 GB: $1.50/hr
+80 GB: $2.50/hr
+160 GB: $5.00/hr
+320 GB: $10.00/hr
 ```
 
-Calculation:
-
-```ts
-myUsableVRAMGB =
-  myRawVRAMGB * gpuUtilizationTarget;
-
-fitsMyGPU =
-  requiredGB <= myUsableVRAMGB;
-```
-
-Slow mode warning only if runtime is Local / Edge and the user entered a GPU:
-
-```txt
-Memory exceeds GPU VRAM. Local runtimes may offload to system RAM, which can significantly reduce speed.
-```
-
-## Speed Estimate
-
-Output label adapts by workload:
-
-```txt
-Text generation: Estimated tokens/sec
-Text encoder / vision / tabular: Estimated samples/sec
-Image generation: Estimated images/min
-Video generation: Estimated videos/hour or seconds/frame
-Audio: Estimated audio seconds/sec
-```
-
-For text-generation-like workloads:
-
-```ts
-computeWeightGB =
-  moeEnabled
-    ? activeParamsB * weightBytes * weightOverhead
-    : weightsGB;
-
-speed =
-  memoryBandwidthGBps / computeWeightGB;
-```
-
-For non-text workloads, show lower confidence unless a benchmark profile exists.
-
-Hardware bandwidth table:
-
-```ts
-8 GB:   272
-12 GB:  504
-16 GB:  448
-24 GB:  936
-48 GB:  768
-80 GB:  2039
-160 GB: 4078
-320 GB: 8156
-```
-
-Clamp:
-
-```ts
-speed = Math.max(0.1, speed);
-```
-
-Label:
-
-```txt
-Rough estimate. Real speed depends on GPU model, runtime, kernels, batching, quantization, input size, and offload.
-```
-
-## Cloud Cost Estimate
-
-Do not claim current pricing unless live pricing is fetched.
-
-Use one of these:
-
-```txt
-A configured static cost catalog in frontend/src/hardware.ts
-Existing repo cost data ported from Python
-User-provided $/hour under Advanced assumptions
-```
-
-Formula:
-
-```ts
-cloudCostPerHour =
-  recommendedGpuCount * hourlyRateForRecommendedTier;
-```
-
-If no rate exists:
-
-```txt
-Estimated cloud cost: not configured
-```
-
-If static rate is used:
+Always label cloud cost:
 
 ```txt
 Static estimate. Actual pricing varies by provider, region, GPU model, commitment, and availability.
 ```
 
-## Output Layout
-
-Main result panel:
-
-```txt
-Total Required Memory
-X.X GB
-
-Recommended Hardware
-24 GB GPU class
-
-Minimum Raw VRAM Needed
-X.X GB
-
-Estimated Speed
-X tokens/sec or samples/sec
-
-Estimated Cloud Cost
-$X.XX/hr or Not configured
-
-Accuracy
-Config-based / Component-based / Estimated / Rough
-```
-
-Breakdown:
-
-```txt
-Model / pipeline weights: X.X GB
-KV cache: X.X GB
-Input / activation memory: X.X GB
-Training state: X.X GB
-Runtime overhead: X.X GB
-Safety buffer: X.X GB
-```
-
-Hide zero rows.
-
-Do not show generic `Task Overhead`. It hides too much.
-
-## Confidence Labels
-
-Use:
-
-```txt
-Config-based
-Component-based
-File-size-based
-Estimated
-Rough
-```
-
-Rules:
-
-```ts
-if exact model config provided:
-  confidence = "Config-based"
-
-else if pipeline component parameters provided:
-  confidence = "Component-based"
-
-else if known model file size provided:
-  confidence = "File-size-based"
-
-else if workload family has formula + hidden defaults:
-  confidence = "Estimated"
-
-else:
-  confidence = "Rough"
-```
-
-Always show:
-
-```txt
-Estimates use heuristics. Real usage varies with exact architecture, runtime, kernels, quantization, sharding, offload settings, and implementation.
-```
-
-## UI Changes From Screenshot
-
-Replace:
-
-```txt
-Parameters (billions)
-```
-
-with:
-
-```txt
-Total Resident Parameters
-```
-
-Add:
-
-```txt
-Workload Family
-```
-
-Replace:
-
-```txt
-Quantization
-```
-
-with:
-
-```txt
-Precision
-```
-
-Replace fixed:
-
-```txt
-Context window
-```
-
-with adaptive labels:
-
-```txt
-Context Window
-Sequence Length
-Input Tokens / Output Tokens
-Image Size
-Output Image Size
-Resolution + Frames
-Audio Length
-Rows + Features
-```
-
-Remove from main UI:
-
-```txt
-KV cache
-Architecture
-Dense
-Active parameters visible by default
-Training checkbox
-LoRA checkbox
-Target GPU
-Custom GPU
-```
-
-Add:
-
-```txt
-Execution Mode dropdown
-Runtime Profile dropdown
-Workload Size adaptive field
-MoE checkbox when relevant
-Advanced assumptions
-```
-
-## Formulas To Delete
-
-Delete these everywhere:
+Delete old formulas everywhere:
 
 ```txt
 KV = Active_P / 10
-
-Base KV Cache =
-(Active_P / 10)
-* (Context_Window / 8000)
-* (KV_Bits / 16)
-
+Base KV Cache = (Active_P / 10) * (Context_Window / 8000) * (KV_Bits / 16)
 QLoRA = 4 GB flat
-
 Full Training = Total_P * 16 as final result
-
 Task Type sets T to 16x multiplier
-
 Batch size only scales KV cache for all tasks
 ```
 
@@ -1734,230 +402,48 @@ Allowed note:
 Full training parameter state can be around 16 bytes per parameter under mixed-precision AdamW, but final training memory must also include activations, working memory, runtime overhead, and buffer.
 ```
 
-## TypeScript Structure
+Frontend TypeScript structure, unit tests, Playwright tests, commands, and corrected expected output table live in `specs/frontend.md`.
 
-Preferred files:
+## Documentation Scope
 
-```txt
-frontend/src/types.ts
-frontend/src/state.ts
-frontend/src/families.ts
-frontend/src/calculator.ts
-frontend/src/hardware.ts
-frontend/src/report.ts
-frontend/src/render.ts
-frontend/src/validation.ts
-frontend/src/app.ts
-```
+README should explain the product, supported workload families, estimate limitations, confidence modes, run/build/test commands, and known limitations.
 
-If adding files is not allowed, fold logic into existing files but keep functions small.
-
-Suggested functions:
-
-```ts
-normalizeFormState(raw): CalculatorInputs
-
-getFamilyPreset(family): FamilyPreset
-
-estimateArchitecture(inputs): ArchitectureEstimate
-
-calculateWeights(inputs): WeightBreakdown
-
-calculateWorkingMemory(inputs, family): WorkingMemoryBreakdown
-
-calculateTrainingState(inputs): TrainingBreakdown
-
-calculateRequiredMemory(inputs): CalculationResult
-
-recommendHardware(result): HardwareRecommendation
-
-buildReport(state): ReportPayload
-```
-
-## Backend Migration
-
-Old:
-
-```txt
-Frontend calls /api/report
-Python calculates report
-Frontend renders response
-```
-
-New:
-
-```txt
-Frontend normalizes state
-Frontend calls buildReport(state)
-Frontend renders local result
-```
-
-Remove:
-
-```txt
-/api/report dependency
-fetch mocks for /api/report
-real-backend Playwright tests
-Python formula duplication
-WSGI
-```
-
-If FastAPI remains temporarily:
-
-```txt
-FastAPI may serve frontend/dist only.
-FastAPI must not own calculator formulas.
-```
-
-## Accessibility
-
-Use semantic HTML:
-
-```txt
-main
-header
-section
-form
-label
-button
-output
-details
-summary
-```
-
-Every input must have a real label.
-
-No clickable divs.
-
-Warnings must include visible text, not color alone.
-
-Use Playwright-friendly labels:
-
-```txt
-getByLabel('Workload Family')
-getByLabel('Total Resident Parameters')
-getByLabel('Precision')
-getByLabel('Execution Mode')
-getByLabel('Runtime')
-getByLabel('Context Window')
-getByLabel('Image Size')
-getByLabel('Concurrent Requests')
-getByLabel('Micro Batch Size')
-getByRole('checkbox', { name: 'MoE Model' })
-getByText('Total Required Memory')
-```
-
-## Tests
-
-Unit tests:
-
-```txt
-B/M/K parameter conversion
-precision-to-byte mapping
-GGUF known file size overrides parameter estimate
-MoE active params do not reduce resident weight memory by default
-decoder KV scales with context and concurrency
-encoder formula has no persistent KV cache
-encoder-decoder formula includes encoder activations + decoder KV
-diffusion formula uses image size and does not show KV cache
-video formula scales with frames and resolution
-audio formula scales with seconds
-tabular formula scales with rows/features
-LoRA uses adapter state, not full training state
-QLoRA uses 4-bit base + adapter state, not flat 4 GB
-full training includes weights, master weights, gradients, optimizer, activations
-hardware recommendation uses requiredGB / utilization
-20.1 GB local recommends 24 GB class with math explanation
-```
-
-Playwright tests:
-
-```txt
-default page renders
-main form fits desktop viewport
-workload family changes input labels
-KV cache is hidden except in advanced for generative transformer families
-MoE checkbox reveals Active Parameters
-Advanced assumptions expands/collapses
-changing parameters updates Total Required Memory
-changing input size updates relevant working memory
-changing execution mode updates breakdown
-mobile layout does not clip controls
-visual snapshot passes
-```
-
-Commands:
-
-```sh
-npm --prefix frontend run build
-npm --prefix frontend run test:coverage
-npm --prefix frontend run test:e2e
-npm --prefix frontend run gate
-```
-
-If configured:
-
-```sh
-npx playwright test --update-snapshots
-npx playwright test --project="VRAM-Calculator" --project="Mobile Safari"
-```
-
-## README Requirements
-
-README should include:
-
-```txt
-What the app does
-Supported workload families
-What estimates mean
-Accuracy/confidence modes
-How to run frontend dev
-How to build
-How to test
-Known limitations
-```
-
-README should not include:
-
-```txt
-FastAPI /api/report instructions if removed
-WSGI instructions
-old LLM-only formula
-old KV = Active_P / 10 formula
-old QLoRA flat 4 GB claim
-internal agent notes
-```
+Backend runtime cleanup details live in `specs/backend.md`. Frontend run/build/test details live in `specs/frontend.md`.
 
 ## Acceptance Criteria
 
 Done means:
 
 ```txt
-1. App supports more than LLMs.
+1. The calculator supports non-LLM workload families.
 2. Workload Family is the first/main selector.
 3. Context Window is not shown for all workloads.
-4. KV cache is not shown globally.
-5. Architecture/Dense dropdown is removed from main UI.
-6. MoE is a checkbox only when relevant.
-7. Active Parameters appears only when MoE is checked.
-8. Active Parameters does not reduce resident weight memory by default.
-9. Decoder KV uses architecture-based formula.
-10. Encoder models do not use persistent generation KV.
-11. Diffusion/video models do not show KV as the main memory concept.
-12. GGUF supports known file size override.
-13. LoRA formula uses adapter states.
-14. QLoRA formula uses quantized base + adapter states.
-15. Full training includes weights, master weights, gradients, optimizer state, activations, overhead, and buffer.
-16. Hardware recommendation comes from requiredGB / utilization target.
-17. Optional Compare With My GPU is advanced-only.
-18. Speed estimate label adapts by workload.
-19. Cloud cost does not claim current pricing unless a source/catalog exists.
-20. Confidence label is always visible.
-21. No old wrong formulas remain.
-22. Frontend no longer requires /api/report for calculation.
-23. Python/FastAPI is not the formula source of truth.
-24. WSGI is gone.
-25. README is updated.
-26. Unit tests pass.
-27. Build passes.
-28. E2E tests pass or exact blocker is documented.
+4. KV cache is not visible globally.
+5. KV cache is used only for generative transformer-style families.
+6. Architecture/Dense dropdown is removed from main UI.
+7. Training and LoRA are not separate checkboxes.
+8. MoE is a checkbox only when relevant.
+9. Active Parameters appears only when MoE is checked.
+10. Active Parameters does not reduce resident weight memory by default.
+11. Decoder KV uses architecture-based formula.
+12. Encoder models do not use persistent generation KV.
+13. Diffusion/video models do not show KV as the main memory concept.
+14. Diffusion/video outputs show Rough or Estimated confidence.
+15. GGUF can use a Known Model File Size override.
+16. LoRA formula uses adapter states.
+17. QLoRA formula uses quantized base + adapter states, not flat 4 GB.
+18. Full training is not modeled as final Total_P * 16.
+19. Full training includes weights, master weights, gradients, optimizer state, activations, overhead, and buffer.
+20. Hardware recommendation comes from required_gb / utilization target.
+21. Outputs show enough math to explain recommendations without overwhelming the user.
+22. Optional Compare with my GPU is advanced-only and does not affect recommendation.
+23. Speed estimate label adapts by workload.
+24. Cloud cost does not claim current pricing unless a source/catalog exists.
+25. Confidence label is always visible.
+26. No old wrong formulas remain.
+27. All calculations run in frontend TypeScript.
+28. README is updated.
+29. Unit tests pass.
+30. Build passes.
+31. E2E tests pass or exact blocker is documented.
+```

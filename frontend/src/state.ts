@@ -24,23 +24,43 @@ function defaultState(): FormState {
 }
 
 function lastValue(search: URLSearchParams, name: string): string | null {
-  const values = search.getAll(name);
-  return values.length > 0 ? values[values.length - 1] : null;
+  return search.getAll(name).at(-1) ?? null;
 }
 
 function isDecimalNumber(value: string | null): value is string {
-  return value !== null && /^[-+]?(?:\d+\.?\d*|\.\d+)(?:e[-+]?\d+)?$/iu.test(value.trim());
+  if (value === null) {
+    return false;
+  }
+  const trimmed = value.trim();
+  // Number() accepts 0x/0o/0b prefixes and "Infinity"; restrict to plain decimal/scientific digits
+  // so only base-10 literals pass. The character class is fixed-width, so no catastrophic backtracking.
+  return (
+    trimmed !== "" &&
+    Number.isFinite(Number(trimmed)) &&
+    !/[^\d.e+-]/iu.test(trimmed)
+  );
 }
 
 function isPositiveNumber(value: string | null): value is string {
-  return isDecimalNumber(value) && Number.isFinite(Number(value)) && Number(value) > 0;
+  return (
+    isDecimalNumber(value) &&
+    Number.isFinite(Number(value)) &&
+    Number(value) > 0
+  );
 }
 
 function isNonNegativeInteger(value: string | null): value is string {
-  return isDecimalNumber(value) && Number.isInteger(Number(value)) && Number(value) >= 0;
+  return (
+    isDecimalNumber(value) &&
+    Number.isSafeInteger(Number(value)) &&
+    Number(value) >= 0
+  );
 }
 
-function isValidActiveParameters(value: string | null, totalParameters: string): value is string {
+function isValidActiveParameters(
+  value: string | null,
+  totalParameters: string,
+): value is string {
   const activeParameters = Number(value);
   return (
     isDecimalNumber(value) &&
@@ -56,7 +76,8 @@ function selectedWeightBits(search: URLSearchParams): string | null {
 }
 
 function selectedKvCacheBits(search: URLSearchParams): string | null {
-  const value = lastValue(search, "kv_cache_bits") ?? DEFAULT_VALUES.kv_cache_bits;
+  const value =
+    lastValue(search, "kv_cache_bits") ?? DEFAULT_VALUES.kv_cache_bits;
   return VALID_BITS.has(value) ? value : null;
 }
 
@@ -64,11 +85,17 @@ function isChecked(value: string | null): boolean {
   return value !== null && CHECKED_VALUES.has(value.toLowerCase());
 }
 
-function activeParametersFrom(search: URLSearchParams, architecture: string): string {
+function activeParametersFrom(
+  search: URLSearchParams,
+  architecture: string,
+): string {
   if (architecture !== "moe") {
     return DEFAULT_VALUES.active_parameters_b;
   }
-  return lastValue(search, "active_parameters_b") ?? DEFAULT_VALUES.active_parameters_b;
+  return (
+    lastValue(search, "active_parameters_b") ??
+    DEFAULT_VALUES.active_parameters_b
+  );
 }
 
 interface StateCandidates {
@@ -81,44 +108,60 @@ interface StateCandidates {
   activeParameters: string;
 }
 
-function hasInvalidState(candidates: StateCandidates): boolean {
+interface ValidStateCandidates extends StateCandidates {
+  parameters: string;
+  context: string;
+  weightBits: string;
+  kvCacheBits: string;
+}
+
+function isValidState(
+  candidates: StateCandidates,
+): candidates is ValidStateCandidates {
   return (
-    !isPositiveNumber(candidates.parameters) ||
-    !isNonNegativeInteger(candidates.context) ||
-    candidates.weightBits === null ||
-    candidates.kvCacheBits === null ||
-    !VALID_RUNTIMES.has(candidates.runtime) ||
-    !VALID_ARCHITECTURES.has(candidates.architecture) ||
-    (candidates.architecture === "moe" &&
-      !isValidActiveParameters(candidates.activeParameters, candidates.parameters))
+    isPositiveNumber(candidates.parameters) &&
+    isNonNegativeInteger(candidates.context) &&
+    candidates.weightBits !== null &&
+    candidates.kvCacheBits !== null &&
+    VALID_RUNTIMES.has(candidates.runtime) &&
+    VALID_ARCHITECTURES.has(candidates.architecture) &&
+    (candidates.architecture !== "moe" ||
+      isValidActiveParameters(
+        candidates.activeParameters,
+        candidates.parameters,
+      ))
   );
 }
 
 export function normalizedState(search: URLSearchParams): FormState {
-  if (Array.from(search.keys()).length === 0) {
+  if (search.size === 0) {
     return defaultState();
   }
-  const parameters = lastValue(search, "parameters_b");
-  const context = lastValue(search, "context_tokens");
-  const weightBits = selectedWeightBits(search);
-  const kvCacheBits = selectedKvCacheBits(search);
-  const runtime = lastValue(search, "runtime") ?? DEFAULT_VALUES.runtime;
-  const architecture = lastValue(search, "architecture") ?? DEFAULT_VALUES.architecture;
-  const activeParameters = activeParametersFrom(search, architecture);
-  if (hasInvalidState({ parameters, context, weightBits, kvCacheBits, runtime, architecture, activeParameters })) {
-    return defaultState();
-  }
-  const trained = isChecked(lastValue(search, "trained"));
-  return {
-    parameters_b: parameters,
-    context_tokens: context,
-    weight_bits: weightBits,
-    kv_cache_bits: kvCacheBits,
-    runtime,
+  const architecture =
+    lastValue(search, "architecture") ?? DEFAULT_VALUES.architecture;
+  const candidates: StateCandidates = {
+    parameters: lastValue(search, "parameters_b"),
+    context: lastValue(search, "context_tokens"),
+    weightBits: selectedWeightBits(search),
+    kvCacheBits: selectedKvCacheBits(search),
+    runtime: lastValue(search, "runtime") ?? DEFAULT_VALUES.runtime,
     architecture,
-    active_parameters_b: activeParameters,
-    trained,
-    use_adapter: trained && isChecked(lastValue(search, "use_adapter")),
+    activeParameters: activeParametersFrom(search, architecture),
+  };
+  if (!isValidState(candidates)) {
+    return defaultState();
+  }
+  const isTrained = isChecked(lastValue(search, "trained"));
+  return {
+    parameters_b: candidates.parameters,
+    context_tokens: candidates.context,
+    weight_bits: candidates.weightBits,
+    kv_cache_bits: candidates.kvCacheBits,
+    runtime: candidates.runtime,
+    architecture: candidates.architecture,
+    active_parameters_b: candidates.activeParameters,
+    trained: isTrained,
+    use_adapter: isTrained && isChecked(lastValue(search, "use_adapter")),
   };
 }
 

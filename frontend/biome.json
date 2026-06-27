@@ -1,0 +1,31 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.5.1/schema.json",
+  "files": {
+    "includes": [
+      "**/*.json",
+      "**/*.jsonc",
+      "**/*.json5",
+      "!**/node_modules",
+      "!**/dist",
+      "!**/build",
+      "!**/coverage",
+      "!**/test-results",
+      "!**/package-lock.json"
+    ]
+  },
+  "formatter": {
+    "enabled": false
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "preset": "recommended"
+    }
+  },
+  "json": {
+    "parser": {
+      "allowComments": true,
+      "allowTrailingCommas": false
+    }
+  }
+}

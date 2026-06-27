@@ -1,0 +1,12 @@
+{
+  "$schema": "https://unpkg.com/syncpack@15/dist/schema.json",
+  "versionGroups": [
+    {
+      "label": "Repo convention: prod/dev dependencies track the `latest` dist-tag.",
+      "dependencies": ["**"],
+      "packages": ["**"],
+      "dependencyTypes": ["prod", "dev"],
+      "pinVersion": "latest"
+    }
+  ]
+}

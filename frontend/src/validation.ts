@@ -1,6 +1,16 @@
-import type { ComparisonRow, DisplayRow, HardwareRow, ReportPayload } from "./types";
+import type {
+  ComparisonRow,
+  DisplayRow,
+  HardwareRow,
+  ReportPayload,
+} from "./types";
 
-const SUPPORTED_PRECISION_LABELS = new Set(["32-bit", "16-bit", "8-bit", "4-bit"]);
+const SUPPORTED_PRECISION_LABELS = new Set([
+  "32-bit",
+  "16-bit",
+  "8-bit",
+  "4-bit",
+]);
 const REQUIRED_ASSUMPTION_LABELS = new Set([
   "Safety margin",
   "CUDA/system tax",
@@ -8,7 +18,12 @@ const REQUIRED_ASSUMPTION_LABELS = new Set([
   "Host RAM rule",
   "Supported precisions",
 ]);
-const REQUIRED_BREAKDOWN_LABELS = ["Weights", "KV cache", "Task", "CUDA/system"];
+const REQUIRED_BREAKDOWN_LABELS = [
+  "Weights",
+  "KV cache",
+  "Task",
+  "CUDA/system",
+];
 const BREAKDOWN_ROW_COUNT = 4;
 const COMPARISON_ROW_COUNT = 4;
 const ASSUMPTION_ROW_COUNT = 5;
@@ -22,7 +37,11 @@ function hasText(value: string): boolean {
 }
 
 function isDisplayRow(value: unknown): value is DisplayRow {
-  return isRecord(value) && typeof value.label === "string" && typeof value.value === "string";
+  return (
+    isRecord(value) &&
+    typeof value.label === "string" &&
+    typeof value.value === "string"
+  );
 }
 
 function isHardwareRow(value: unknown): value is HardwareRow {
@@ -49,14 +68,19 @@ function isComparisonRow(value: unknown): value is ComparisonRow {
   );
 }
 
-function hasSupportedComparisonRows(rows: ComparisonRow[], selectedWeightBits: string): boolean {
+function hasSupportedComparisonRows(
+  rows: ComparisonRow[],
+  selectedWeightBits: string,
+): boolean {
   const selectedRows = rows.filter((row) => row.selected);
   const precisionLabels = new Set(rows.map((row) => row.precision));
   return (
     selectedRows.length === 1 &&
     selectedRows[0].precision === `${selectedWeightBits}-bit` &&
     precisionLabels.size === SUPPORTED_PRECISION_LABELS.size &&
-    Array.from(SUPPORTED_PRECISION_LABELS).every((precision) => precisionLabels.has(precision))
+    [...SUPPORTED_PRECISION_LABELS].every((precision) =>
+      precisionLabels.has(precision),
+    )
   );
 }
 
@@ -65,13 +89,16 @@ function hasRequiredAssumptionRows(rows: DisplayRow[]): boolean {
   return (
     rows.every((row) => hasText(row.value)) &&
     assumptionLabels.size === REQUIRED_ASSUMPTION_LABELS.size &&
-    Array.from(REQUIRED_ASSUMPTION_LABELS).every((label) => assumptionLabels.has(label))
+    [...REQUIRED_ASSUMPTION_LABELS].every((label) =>
+      assumptionLabels.has(label),
+    )
   );
 }
 
 function hasRequiredBreakdownRows(rows: DisplayRow[]): boolean {
   return rows.every(
-    (row, index) => row.label === REQUIRED_BREAKDOWN_LABELS[index] && hasText(row.value),
+    (row, index) =>
+      row.label === REQUIRED_BREAKDOWN_LABELS[index] && hasText(row.value),
   );
 }
 
@@ -97,10 +124,17 @@ function hasValidBreakdown(value: Record<string, unknown>): boolean {
 }
 
 function hasValidHardware(value: Record<string, unknown>): boolean {
-  return Array.isArray(value.hardware) && value.hardware.length > 0 && value.hardware.every(isHardwareRow);
+  return (
+    Array.isArray(value.hardware) &&
+    value.hardware.length > 0 &&
+    value.hardware.every(isHardwareRow)
+  );
 }
 
-function hasValidComparison(value: Record<string, unknown>, selectedWeightBits: string): boolean {
+function hasValidComparison(
+  value: Record<string, unknown>,
+  selectedWeightBits: string,
+): boolean {
   return (
     Array.isArray(value.comparison) &&
     value.comparison.length === COMPARISON_ROW_COUNT &&
@@ -129,7 +163,10 @@ function hasValidTopLevelText(value: Record<string, unknown>): boolean {
   );
 }
 
-export function isReportPayload(value: unknown, selectedWeightBits: string): value is ReportPayload {
+export function isReportPayload(
+  value: unknown,
+  selectedWeightBits: string,
+): value is ReportPayload {
   return (
     isRecord(value) &&
     hasValidTopLevelText(value) &&

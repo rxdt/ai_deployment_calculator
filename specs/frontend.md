@@ -82,12 +82,6 @@ PRIORITY 1 - frontend parity implemented; keep green.
 
 ## Open Parity Gaps (code review)
 
-Calculator output deviates from `docs/plan.md` (master). Current tests pin the
-CODE's numbers, not the plan's, so they lock in these deviations — when fixing,
-re-derive expected values from `docs/plan.md`, not the current code.
-
-3. Vision-language uses text architecture for the vision tower; plan wants
-   `vision_layers`/`vision_hidden_size` or a pixel-proxy fallback. Neither exists.
 - Minor: `cloudCost` ignores `recommended_gpu_count` on >320GB overflow
   (`hardware.ts` ~L70); `_hasLocalFile` arg is dead (`calculator-core.ts`
   L182,222); zero-row hiding is exact `=== 0` only, so sub-0.05 rows show

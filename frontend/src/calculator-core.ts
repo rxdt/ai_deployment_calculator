@@ -51,6 +51,11 @@ export interface TransformerArchitecture {
   headDim: number;
 }
 
+interface VisionArchitecture {
+  layers: number;
+  hidden: number;
+}
+
 export interface CalculationSpec {
   family: WorkloadFamily;
   totalParamsB: number;
@@ -63,6 +68,7 @@ export interface CalculationSpec {
   workloadSize: number;
   kvBytes: number;
   architecture: TransformerArchitecture;
+  visionArchitecture: VisionArchitecture | null;
   knownModelFileSizeGb: number | null;
   gpuResidentFraction: number;
   loraTrainablePercent: number;
@@ -223,6 +229,7 @@ export function specFromState(state: FormState): CalculationSpec {
     workloadSize: positive(state.workload_size, 1),
     kvBytes: KV_BYTES[state.kv_cache_precision],
     architecture: architectureFor(total),
+    visionArchitecture: null,
     knownModelFileSizeGb: knownFile,
     gpuResidentFraction: positive(state.gpu_resident_fraction, 1),
     loraTrainablePercent: positive(state.lora_trainable_percent, 0.5),

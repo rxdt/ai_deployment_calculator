@@ -7,7 +7,7 @@ import {
   type CalculationSpec,
   type MemoryBreakdown,
 } from "./calculator-core";
-import type { Accuracy, FormState, WorkloadFamily } from "./types";
+import type { Accuracy, WorkloadFamily } from "./types";
 
 const BYTES_PER_GB = 1_000_000_000;
 const DEFAULT_PATCH_SIZE = 16;
@@ -17,6 +17,7 @@ const DEFAULT_TEMPORAL_DOWNSAMPLE = 4;
 const DEFAULT_AUDIO_TOKENS_PER_SECOND = 50;
 const DEFAULT_FEATURE_BYTES = 4;
 const DEFAULT_MEMORY_BANDWIDTH_GBPS = 936;
+const DEFAULT_ACTIVATION_BYTES = 2;
 
 interface WorkingMemory {
   kvCacheGb: number;
@@ -25,59 +26,67 @@ interface WorkingMemory {
 
 type WorkingMemoryBuilder = (
   spec: CalculationSpec,
-  currentWeightsGb: number,
+  weights: number,
 ) => WorkingMemory;
 
-const ROUGH_ACCURACY_FAMILIES = new Set<WorkloadFamily>([
-  "image_diffusion",
-  "video_generation",
-  "custom",
-]);
-
-function decimal(value: string, fallback: number): number {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : fallback;
-}
-
 function positive(value: string, fallback: number): number {
-  const parsed = decimal(value, fallback);
-  return parsed > 0 ? parsed : fallback;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 
 function decoderKvGb(spec: CalculationSpec, tokens: number): number {
   const arch = spec.architecture;
-  return (
-    (spec.workloadSize *
-      tokens *
-      2 *
-      arch.layers *
-      arch.kvHeads *
-      arch.headDim *
-      spec.kvBytes) /
-    BYTES_PER_GB
-  );
+  const elements =
+    spec.workloadSize * tokens * 2 * arch.layers * arch.kvHeads * arch.headDim;
+  return (elements * spec.kvBytes) / BYTES_PER_GB;
+}
+
+function activationGb(
+  spec: CalculationSpec,
+  tokens: number,
+  layers: number,
+  hidden: number,
+): number {
+  const elements = 2 * spec.workloadSize * tokens * layers * hidden;
+  return (elements * DEFAULT_ACTIVATION_BYTES) / BYTES_PER_GB;
 }
 
 function encoderActivationGb(spec: CalculationSpec, tokens: number): number {
   const arch = spec.architecture;
-  return (
-    (2 * spec.workloadSize * tokens * arch.layers * arch.hidden * 2) /
-    BYTES_PER_GB
+  return activationGb(spec, tokens, arch.layers, arch.hidden);
+}
+
+function pixelProxyGb(
+  spec: CalculationSpec,
+  width: number,
+  height: number,
+  imageCount: number,
+): number {
+  const elements = spec.workloadSize * imageCount * width * height * 4 * 8;
+  return (elements * DEFAULT_ACTIVATION_BYTES) / BYTES_PER_GB;
+}
+
+function visionActivationGb(spec: CalculationSpec, tokens: number): number {
+  const arch = spec.visionArchitecture;
+  if (arch !== null) {
+    return activationGb(spec, tokens, arch.layers, arch.hidden);
+  }
+  return pixelProxyGb(
+    spec,
+    positive(spec.state.image_width, 1024),
+    positive(spec.state.image_height, 1024),
+    positive(spec.state.image_count, 1),
   );
 }
 
 function imageTokens(width: number, height: number): number {
-  return (
+  const patches =
     Math.ceil(width / DEFAULT_PATCH_SIZE) *
-      Math.ceil(height / DEFAULT_PATCH_SIZE) +
-    1
-  );
+    Math.ceil(height / DEFAULT_PATCH_SIZE);
+  return patches + 1;
 }
 
-function videoSize(resolution: FormState["video_resolution"]): {
-  width: number;
-  height: number;
-} {
+function videoSize(resolution: "720p" | "1080p") {
   return resolution === "1080p"
     ? { width: 1920, height: 1080 }
     : { width: 1280, height: 720 };
@@ -124,8 +133,7 @@ function visionMemory(spec: CalculationSpec): WorkingMemory {
   const height = positive(spec.state.image_height, 1024);
   const tokens = imageTokens(width, height);
   const transformer = encoderActivationGb(spec, tokens);
-  const pixels =
-    (spec.workloadSize * width * height * 4 * 2 * 8) / BYTES_PER_GB;
+  const pixels = pixelProxyGb(spec, width, height, 1);
   return { kvCacheGb: 0, inputActivationGb: Math.max(transformer, pixels) };
 }
 
@@ -133,18 +141,15 @@ function visionLanguageMemory(
   spec: CalculationSpec,
   currentWeightsGb: number,
 ): WorkingMemory {
+  const width = positive(spec.state.image_width, 1024);
+  const height = positive(spec.state.image_height, 1024);
   const imageTokenCount =
-    positive(spec.state.image_count, 1) *
-    (imageTokens(
-      positive(spec.state.image_width, 1024),
-      positive(spec.state.image_height, 1024),
-    ) -
-      1);
+    positive(spec.state.image_count, 1) * (imageTokens(width, height) - 1);
   const kv = decoderKvGb(
     spec,
     positive(spec.state.text_context_tokens, 4000) + imageTokenCount,
   );
-  const vision = encoderActivationGb(spec, imageTokenCount);
+  const vision = visionActivationGb(spec, imageTokenCount);
   return {
     kvCacheGb: kv,
     inputActivationGb: vision + currentWeightsGb * 0.02,
@@ -161,13 +166,9 @@ function imageDiffusionMemory(
   const latentWidth = Math.ceil(
     positive(spec.state.image_width, 1024) / DEFAULT_LATENT_DOWNSAMPLE,
   );
-  const latent =
-    (spec.workloadSize *
-      latentHeight *
-      latentWidth *
-      DEFAULT_LATENT_CHANNELS *
-      2) /
-    BYTES_PER_GB;
+  const elements =
+    spec.workloadSize * latentHeight * latentWidth * DEFAULT_LATENT_CHANNELS;
+  const latent = (elements * DEFAULT_ACTIVATION_BYTES) / BYTES_PER_GB;
   return {
     kvCacheGb: 0,
     inputActivationGb: Math.max(latent * 64, currentWeightsGb * 0.35),
@@ -184,14 +185,13 @@ function videoMemory(
   );
   const latentHeight = Math.ceil(size.height / DEFAULT_LATENT_DOWNSAMPLE);
   const latentWidth = Math.ceil(size.width / DEFAULT_LATENT_DOWNSAMPLE);
-  const latent =
-    (spec.workloadSize *
-      latentFrames *
-      latentHeight *
-      latentWidth *
-      DEFAULT_LATENT_CHANNELS *
-      2) /
-    BYTES_PER_GB;
+  const elements =
+    spec.workloadSize *
+    latentFrames *
+    latentHeight *
+    latentWidth *
+    DEFAULT_LATENT_CHANNELS;
+  const latent = (elements * DEFAULT_ACTIVATION_BYTES) / BYTES_PER_GB;
   return {
     kvCacheGb: 0,
     inputActivationGb: Math.max(latent * 96, currentWeightsGb * 0.5),
@@ -280,7 +280,7 @@ export function accuracyFor(spec: CalculationSpec): Accuracy {
   if (spec.knownModelFileSizeGb !== null) {
     return "File-size based";
   }
-  if (ROUGH_ACCURACY_FAMILIES.has(spec.family)) {
+  if (["image_diffusion", "video_generation", "custom"].includes(spec.family)) {
     return "Rough";
   }
   if (spec.family === "tabular") {

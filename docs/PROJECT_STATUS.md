@@ -8,10 +8,10 @@
   form state and renders local TypeScript `buildReport(state)` synchronously.
 - The calculator split is resolved through `frontend/src/calculator.ts` as the
   public barrel over `calculator-core.ts` and `workload-memory.ts`.
-- Frontend parity gaps #1, #2, and #4 are closed: Local/Edge inference now
+- Frontend parity gaps #1, #2, #3, and #4 are closed: Local/Edge inference now
   applies `Weight_Overhead`, text generation includes decoder scratch memory,
-  and tiny-model training activations use the plan formula without a special
-  case.
+  vision-language uses vision architecture or the plan pixel proxy, and
+  tiny-model training activations use the plan formula without a special case.
 - `frontend/src/legacy-approximations.test.ts` was deleted and must stay gone.
 - Frontend logic is split into focused `app`, `render`, `state`, `validation`,
   `controls`, `types`, `calculator`, `hardware`, and `report` modules, with
@@ -24,8 +24,7 @@
 
 ## Next
 
-1. P0 (frontend): continue remaining `specs/frontend.md` parity gaps only.
-   Gap #3 vision-language architecture remains open.
+1. P0 (frontend): continue minor `specs/frontend.md` review items only.
 2. Docs: update stale `README.md` feature list/repro steps (see `specs/backend.md`
    TODO) to match shipped Vite-only outputs.
 3. Backend removal verified clean by code review; keep it green.
@@ -39,12 +38,12 @@
   green; package-wide coverage threshold fails for this focused run.
 - `npm --prefix frontend run build` - green.
 - `npm --prefix frontend run test:coverage` - green at 100%.
-- `npm --prefix frontend run test:e2e` - green.
-- `npm --prefix frontend run gate` - blocked by pre-existing out-of-scope
-  `frontend/src/styles.css` formatting.
+- `npm --prefix frontend run test:e2e` - first run hit an axe navigation race;
+  rerun green.
+- `npm --prefix frontend run gate` - first run hit the same axe navigation race;
+  rerun green.
 - `.venv/bin/harness gate` - green.
-- `harness preflight` before staging - rejected empty commit as expected.
-- `git push` - green to `origin/main`.
+- `git push` - pending.
 
 ## Working Tree Notes
 

@@ -13,6 +13,7 @@ import {
   trainingStateGb,
   weightsGb,
 } from "./calculator";
+import type { CalculationSpec } from "./calculator-core";
 import { defaultState } from "./state";
 import type { FormState, WorkloadFamily } from "./types";
 
@@ -348,6 +349,28 @@ describe("workload-family working memory", () => {
     expect(
       inferenceWorkingMemoryGb(vision, weightsGb(vision)).inputActivationGb,
     ).toBeGreaterThan(0);
+  });
+
+  test("vision-language falls back to pixel proxy when vision architecture is missing", () => {
+    const spec = specFromState(state({ workload_family: "vision_language" }));
+    const working = inferenceWorkingMemoryGb(spec, weightsGb(spec));
+
+    expect(spec.visionArchitecture).toBeNull();
+    expect(working.kvCacheGb).toBeCloseTo(1.061158912, 9);
+    expect(working.inputActivationGb).toBeCloseTo(0.347108864, 9);
+    expect(memoryBreakdown(spec).requiredGb).toBe(18.6);
+  });
+
+  test("vision-language uses explicit vision architecture for image tokens", () => {
+    const base = specFromState(state({ workload_family: "vision_language" }));
+    const spec: CalculationSpec = {
+      ...base,
+      visionArchitecture: { layers: 24, hidden: 1024 },
+    };
+
+    expect(
+      inferenceWorkingMemoryGb(spec, weightsGb(spec)).inputActivationGb,
+    ).toBeCloseTo(0.682653184, 9);
   });
 
   test("working-memory helpers fall back for invalid raw workload fields", () => {

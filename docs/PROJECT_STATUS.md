@@ -3,8 +3,7 @@
 ## Current State
 
 - The active implementation spec for this pass is `specs/frontend.md`.
-- Current branch is `main`; `git fetch origin` completed and local commits
-  remain ahead of `origin/main`.
+- Current branch is `main`; this pass was pushed to `origin/main`.
 - The app is a static Vite calculator. `CalculatorApp.loadReport` normalizes
   form state and renders local TypeScript `buildReport(state)` synchronously.
 - The calculator split is resolved through `frontend/src/calculator.ts` as the
@@ -25,7 +24,7 @@
    calculations or legacy approximation tests.
 2. Human owner reviews unrelated dirty files that predate this pass:
    `PROMPT.md`, `README.md`, and `frontend/harness/gate.test.ts`.
-3. Push current branch when the pre-push hook allows it.
+3. Continue from a normal shell if another worker is needed.
 
 ## Checks From This Pass
 
@@ -37,13 +36,12 @@
 - `npm --prefix frontend run gate` - green.
 - `.venv/bin/harness gate` - green.
 - `harness preflight` - green.
-- `git push` - pending.
+- `git push` - green.
 
 ## Working Tree Notes
 
 - Existing unrelated dirty paths predate this pass; do not revert user-owned
   files.
-- Current branch has local commits that are not pushed because plain `git push`
-  was previously rejected by the hook failure recorded above.
+- Current branch is even with `origin/main` after this pass.
 - Leave `frontend/example_user_will_delete/` alone. The user will delete it once
   the frontend is done.

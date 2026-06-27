@@ -3,7 +3,7 @@
 ## Current State
 
 - The active implementation spec for this pass is `specs/frontend.md`.
-- Current branch is `main`; this pass is pending commit and push.
+- Current branch is `main`; this pass was pushed to `origin/main` at `3bc899e`.
 - The app is a static Vite calculator. `CalculatorApp.loadReport` normalizes
   form state and renders local TypeScript `buildReport(state)` synchronously.
 - The calculator split is resolved through `frontend/src/calculator.ts` as the
@@ -47,12 +47,12 @@
   rerun green.
 - `npm --prefix frontend run gate` - first run fixed formatting/lint, second hit
   the axe navigation race, rerun green including `.venv/bin/harness gate`.
-- `git push` - pending.
+- `git push` - green to `origin/main` at `3bc899e`.
 
 ## Working Tree Notes
 
 - Existing unrelated dirty paths predate this pass; do not revert user-owned
   files.
-- Current branch is `main`; this pass is pending commit and push.
+- Current branch is `main`; this pass was pushed to `origin/main` at `3bc899e`.
 - Leave `frontend/example_user_will_delete/` alone. The user will delete it once
   the frontend is done.

@@ -30,8 +30,8 @@
 
 ## Next
 
-1. Launch the next frontend worker only from a normal shell, not from this
-   active `harness run codex 1 40` worker.
+1. P0: launch the next frontend worker only from a normal shell. This shell has
+   `RALPH_LOOP=1`, so the orchestrator must not spawn nested workers here.
 2. `PROMPT.md` is set for `specs/frontend.md`: verify local TypeScript report
    parity, no `/api/report`, corrected values, UI/output coverage, and gate.
 3. Human owner reviews remaining unrelated working-tree edits: `docs/plan.md`
@@ -71,6 +71,8 @@
 - Current orchestration attempt repeated that nested-launch failure; the child
   `harness run codex 1 20` process tree was terminated and no implementation
   worker completed.
+- This orchestration pass detected `RALPH_LOOP=1` before launching workers and
+  stopped at handoff updates, per `specs/orchestrate.md`.
 - Selected the frontend spec because the training checkbox wording was an open
   launch UX item with direct Vite and no-build fallback coverage; the frontend
   lint gate then required splitting oversized existing files without relaxing

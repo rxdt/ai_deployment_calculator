@@ -84,7 +84,7 @@ describe("corrected text-generation totals", () => {
       79.2,
     ],
     [
-      "47B local 4-bit MoE uses active parameters only for KV",
+      "47B local 4-bit MoE applies quantized weight overhead",
       {
         total_params: "47",
         precision: "4-bit",
@@ -92,7 +92,7 @@ describe("corrected text-generation totals", () => {
         moe_enabled: true,
         active_params: "1.3",
       },
-      27.3,
+      31,
     ],
     [
       "70B long-context 4-bit FP8 KV uses estimated GQA KV heads",
@@ -138,6 +138,18 @@ describe("corrected text-generation totals", () => {
         }),
       ),
     ).toEqual([39.8, 21.3, 12.5, 8.1]);
+  });
+
+  test("local 4-bit weights apply quantized overhead", () => {
+    const spec = specFromState(
+      state({
+        total_params: "47",
+        precision: "4-bit",
+        runtime_profile: "Local / Edge",
+      }),
+    );
+
+    expect(roundTo(weightsGb(spec), 1)).toBe(27);
   });
 });
 

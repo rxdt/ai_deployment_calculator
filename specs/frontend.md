@@ -86,10 +86,6 @@ Calculator output deviates from `docs/plan.md` (master). Current tests pin the
 CODE's numbers, not the plan's, so they lock in these deviations — when fixing,
 re-derive expected values from `docs/plan.md`, not the current code.
 
-1. Local/Edge inference drops `Weight_Overhead` (`calculator-core.ts` ~L251).
-   Plan's `Weights_GB = Resident_Params_B * Weight_Bytes * Weight_Overhead` is
-   unconditional; local 4-bit 47B should be 27.0, code gives 23.5. CONFIRM
-   INTENT with human first — may be deliberate for local GGUF.
 3. Vision-language uses text architecture for the vision tower; plan wants
    `vision_layers`/`vision_hidden_size` or a pixel-proxy fallback. Neither exists.
 - Minor: `cloudCost` ignores `recommended_gpu_count` on >320GB overflow

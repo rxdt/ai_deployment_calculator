@@ -248,12 +248,6 @@ export function weightsGb(spec: CalculationSpec): number {
     return spec.knownModelFileSizeGb * spec.gpuResidentFraction;
   }
   const precision = PRECISION_MAP[spec.precision];
-  if (
-    spec.executionMode === "Inference" &&
-    spec.runtimeProfile === "Local / Edge"
-  ) {
-    return spec.residentParamsB * precision.weightBytes;
-  }
   return (
     spec.residentParamsB * precision.weightBytes * precision.weightOverhead
   );

@@ -1,6 +1,6 @@
 # Frontend Refactor Spec
 
-PRIORITY 1 - implemented this pass; keep green.
+PRIORITY 1 - frontend parity implemented; keep green.
 
 ## Current Contract
 
@@ -73,6 +73,8 @@ PRIORITY 1 - implemented this pass; keep green.
   recommendation, confidence, cloud visibility, and legacy flag removal.
 - Playwright covers accessibility, local report rendering, adaptive controls,
   no generic `Batch Size`, local cloud-cost hiding, MoE visibility, and escaping.
+- `frontend/src/legacy-approximations.test.ts` was deleted; do not reintroduce
+  it or any legacy-approximation test.
 - Required commands: `npm --prefix frontend run build`,
   `npm --prefix frontend run test:coverage`,
   `npm --prefix frontend run test:e2e`, `npm --prefix frontend run gate`,

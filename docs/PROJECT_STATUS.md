@@ -41,11 +41,12 @@
 - `npm --prefix frontend run gate` - green.
 - `.venv/bin/harness gate` - green.
 - `harness preflight` - green.
+- `git push` - green (`1ef1a3c` to `origin/main`).
 
 ## Working Tree Notes
 
 - Existing unrelated dirty paths predate this pass; do not revert user-owned
   files.
-- Current branch is `main`; this worker still needs to commit and push.
+- Current branch is `main`; this pass is pushed to `origin/main`.
 - Leave `frontend/example_user_will_delete/` alone. The user will delete it once
   the frontend is done.

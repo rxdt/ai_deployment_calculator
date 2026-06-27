@@ -185,7 +185,6 @@ export function architectureFor(parametersB: number): TransformerArchitecture {
 export function runtimeAssumptions(
   mode: ExecutionMode,
   runtimeProfile: RuntimeProfile,
-  _hasLocalFile: boolean,
 ): RuntimeAssumptions {
   if (mode !== "Inference") {
     return { overheadGb: 4, buffer: 1.25, utilization: 0.8 };
@@ -221,11 +220,7 @@ export function specFromState(state: FormState): CalculationSpec {
     precision: state.precision,
     executionMode: state.execution_mode,
     runtimeProfile: state.runtime_profile,
-    runtime: runtimeAssumptions(
-      state.execution_mode,
-      state.runtime_profile,
-      knownFile !== null,
-    ),
+    runtime: runtimeAssumptions(state.execution_mode, state.runtime_profile),
     workloadSize: positive(state.workload_size, 1),
     kvBytes: KV_BYTES[state.kv_cache_precision],
     architecture: architectureFor(total),

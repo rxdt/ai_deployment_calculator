@@ -409,19 +409,14 @@ describe("architecture, runtime, accuracy, and speed helpers", () => {
     ).toEqual([16, 28, 32, 40, 48, 80, 96, 120]);
   });
 
-  test("runtime assumptions cover training, local, local file, and server profiles", () => {
-    expect(runtimeAssumptions("Inference", "Server / Cloud", false)).toEqual({
+  test("runtime assumptions cover training, local, and server profiles", () => {
+    expect(runtimeAssumptions("Inference", "Server / Cloud")).toEqual({
       overheadGb: 1.5,
       buffer: 1.1,
       utilization: 0.85,
     });
-    expect(runtimeAssumptions("Inference", "Local / Edge", false).buffer).toBe(
-      1,
-    );
-    expect(runtimeAssumptions("Inference", "Local / Edge", true).buffer).toBe(
-      1,
-    );
-    expect(runtimeAssumptions("Full training", "Local / Edge", true)).toEqual({
+    expect(runtimeAssumptions("Inference", "Local / Edge").buffer).toBe(1);
+    expect(runtimeAssumptions("Full training", "Local / Edge")).toEqual({
       overheadGb: 4,
       buffer: 1.25,
       utilization: 0.8,

@@ -57,6 +57,24 @@ describe("buildReport", () => {
     );
   });
 
+  test("hides breakdown rows that round to 0.0 GB", () => {
+    const report = buildReport(
+      state({
+        workload_family: "tabular",
+        total_params: "0.001",
+        rows_per_batch: "1",
+        features: "1",
+      }),
+    );
+
+    expect(report.breakdown).not.toContainEqual(
+      expect.objectContaining({
+        label: "Input / activation memory",
+        value: "0.0 GB",
+      }),
+    );
+  });
+
   test("adds conditional MoE, training, and local warnings", () => {
     const report = buildReport(
       state({

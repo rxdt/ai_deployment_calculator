@@ -12,7 +12,8 @@ import type { DisplayRow, FormState, ReportPayload } from "./types";
 export { specFromState } from "./calculator";
 
 function row(label: string, value: number): DisplayRow | null {
-  return value === 0 ? null : { label, value: formatGb(value) };
+  const formatted = formatGb(value);
+  return formatted === "0.0 GB" ? null : { label, value: formatted };
 }
 
 function compactRows(rows: readonly (DisplayRow | null)[]): DisplayRow[] {

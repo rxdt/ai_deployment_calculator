@@ -40,6 +40,6 @@ describe("hardware recommendation math", () => {
     );
     expect(cloudCost(20.4, 0.85, "")).toContain("$1.00/hr static estimate");
     expect(cloudCost(20.4, 0.85, "3.5")).toContain("$3.50/hr static estimate");
-    expect(cloudCost(400, 0.8, "bad")).toContain("$10.00/hr static estimate");
+    expect(cloudCost(400, 0.8, "bad")).toContain("$20.00/hr static estimate");
   });
 });

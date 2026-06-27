@@ -82,7 +82,10 @@ PRIORITY 1 - frontend parity implemented; keep green.
 
 ## Open Parity Gaps (code review)
 
-- Minor: `cloudCost` ignores `recommended_gpu_count` on >320GB overflow
-  (`hardware.ts` ~L70); `_hasLocalFile` arg is dead (`calculator-core.ts`
-  L182,222); zero-row hiding is exact `=== 0` only, so sub-0.05 rows show
-  `0.0 GB` (`report.ts` L14).
+Gaps #1-#4 and minor parity items are closed and verified plan-conformant by
+code review (expected values hand-recomputed from `docs/plan.md`). Remaining:
+
+- For human: VL pixel-proxy (`workload-memory.ts` L62) multiplies the proxy by
+  `image_count`; `docs/plan.md` L211 defines it per single image. Default
+  `image_count=1` so no test impact — decide whether to document the scaling in
+  the plan or drop it.

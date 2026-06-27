@@ -73,10 +73,14 @@ export function cloudCost(
   override: string,
 ): string {
   const parsedOverride = Number(override);
-  const tier = recommendedTier(minimumRawVramGb(requiredGb, utilization));
-  const rate =
+  const minimum = minimumRawVramGb(requiredGb, utilization);
+  const tier = recommendedTier(minimum);
+  const [fallbackTier] = GPU_TIERS.slice(-1);
+  const gpuCount = tier === null ? Math.ceil(minimum / fallbackTier.vramGb) : 1;
+  const hourlyRate =
     Number.isFinite(parsedOverride) && parsedOverride > 0
       ? parsedOverride
-      : (tier?.hourlyRate ?? 10);
+      : (tier ?? fallbackTier).hourlyRate;
+  const rate = gpuCount * hourlyRate;
   return `$${rate.toFixed(2)}/hr static estimate. Actual pricing varies by provider, region, GPU model, commitment, and availability.`;
 }

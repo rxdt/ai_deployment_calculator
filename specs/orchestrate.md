@@ -13,6 +13,8 @@ Goal: Maintain global state. Coordinate short headless agents until `docs/plan.m
 
 ## Orchestrator Role
 
+- If `PROMPT.md` says "implementation worker", this spec does not apply to
+  you. Follow the assigned spec in `PROMPT.md` instead.
 - You are the overseer of the project, holding high-level context while headless agents are laser-focused on task commpletion.
 - You only edit `.md` files.
 - Remove completed items to `.md`. If we are done with the project, `.md` should reflect that.
@@ -22,8 +24,8 @@ Goal: Maintain global state. Coordinate short headless agents until `docs/plan.m
 
 > one loop orchestrator process begins
 **LOOP**
-- Launch [`specs/frontend.md`](frontend.md) with `harness run codex 1 230`.
-- Launch [`specs/backend.md`](backend.md) with `harness run codex 1 30`.
+- Launch [`specs/frontend.md`](frontend.md) with `harness run codex 1 30`.
+- Launch [`specs/backend.md`](backend.md) with `harness run codex 1 20`.
 - Each agent has orders to update their spec after task completion.
 - After each agent updates their spec do this:
   - Review the just-updated spec and update it **MINIMALLY** to a state for the next agent using that spec to succeed.
@@ -73,3 +75,10 @@ Goal: Maintain global state. Coordinate short headless agents until `docs/plan.m
 - 2026-06-27: `PROMPT.md` now marks spawned workers as implementation workers
   and forbids nested `harness run codex` / `harness run claude` launches.
   Human verifying during this run if Codex can run Claude nested and vice versa.
+- observations:
+  - must tighten language in `orchestrate.md` so orchestrator knows how to prevent <issues> observed in latest run
+  - prompt precedence/context leakage into the worker when orchestrator launches headless agent even when prompt says _'do NOT orchestrate, do THIS.'_
+  - when running an orchestrator, `harness run codex` is giving the child enough context that it follows specs/orchestrate.md
+  - using the old harness Python ralph.sh NOT the new (supposted to be identical Js ralph.sh)
+  - Claude flags --bare --no-session-persistence --fork-session
+  - npm exec --package . -- harness run codex 1 20

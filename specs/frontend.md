@@ -76,24 +76,24 @@ Unit coverage must include conversion, precision map, Known Model File Size over
 
 Expected corrected outputs use: Text generation / chat, concurrency 1, Server / Cloud unless local/GGUF stated, Server overhead `1.5` buffer `1.10`, Local GGUF overhead `0.5` buffer `1.00`, Training overhead `4.0` buffer `1.25`, checkpointing on, activation factor `3`, AdamW, LoRA default `0.5%` unless stated, estimated GQA KV, decoder scratch `0`.
 
-| Case | Old | Correct |
-| --- | ---: | ---: |
-| `47B`, `8000 ctx`, MoE `active=1.3`, `16-bit`, `16-bit KV` | `106.5` | `107.9 GB` |
-| `8B`, `8000 ctx`, `16-bit`, QLoRA, `2% trainable` | `21.7` | `21.0 GB` |
-| `8B`, `8000 ctx`, defaults | `20.1` | `20.4 GB` |
-| `7B`, `8000 ctx`, full training | `141.0` | `152.9 GB` |
-| `104B`, `32000 ctx`, `4-bit`, `32-bit KV`, local GGUF `52 GB` | `136.7` | `77.7 GB` |
-| `47B`, `8000 ctx`, `4-bit`, MoE `active=1.3`, local GGUF | `26.3` | `26.6 GB` |
-| `0.0004B`, `8000 ctx`, `8-bit`, `8-bit KV`, full training | `1.7` | `5.1 GB` |
-| `70B`, `128000 ctx`, `4-bit`, `8-bit KV` | `101.8` | `69.0 GB`; `63.2 GB` with exact `35 GB` |
-| `104B`, `32000 ctx`, `8-bit`, `16-bit KV` | `161.8` | `135.6 GB`; `129.9 GB` without overhead |
-| `7B`, `1,000,000 ctx`, `8-bit`, `16-bit KV` | `105.6` | `153.9 GB` with estimated GQA |
-| `8B`, `8000 ctx`, `4-bit`, QLoRA | `11.3` | `19.2 GB` |
-| `70B`, `8000 ctx`, `4-bit`, QLoRA | `52.3` | `99.9 GB` |
-| `3.8B`, `8000 ctx`, `4-bit`, QLoRA | `8.6` | `13.2 GB` |
-| `8B`, `8000 ctx`, precision `32/16/8/4-bit` | `37.7/20.1/11.3/6.9` | `38.0/20.4/12.0/7.9 GB` |
-| `104B`, `32000 ctx`, `32-bit KV`, local GGUF precision comparison | `500.7/292.7/188.7/136.7` | `441.7/233.7/129.7/77.7 GB` |
-| `70B`, `8000 ctx`, `4-bit`, `8-bit KV`, `trained=on`, `use_adapter=on` | `48.4` | invalid; use `Execution Mode`; QLoRA `2%` is `115.6 GB` |
+| Case                                                                   |                       Old |                                                 Correct |
+| ---------------------------------------------------------------------- | ------------------------: | ------------------------------------------------------: |
+| `47B`, `8000 ctx`, MoE `active=1.3`, `16-bit`, `16-bit KV`             |                   `106.5` |                                              `107.9 GB` |
+| `8B`, `8000 ctx`, `16-bit`, QLoRA, `2% trainable`                      |                    `21.7` |                                               `21.0 GB` |
+| `8B`, `8000 ctx`, defaults                                             |                    `20.1` |                                               `20.4 GB` |
+| `7B`, `8000 ctx`, full training                                        |                   `141.0` |                                              `152.9 GB` |
+| `104B`, `32000 ctx`, `4-bit`, `32-bit KV`, local GGUF `52 GB`          |                   `136.7` |                                               `77.7 GB` |
+| `47B`, `8000 ctx`, `4-bit`, MoE `active=1.3`, local GGUF               |                    `26.3` |                                               `26.6 GB` |
+| `0.0004B`, `8000 ctx`, `8-bit`, `8-bit KV`, full training              |                     `1.7` |                                                `5.1 GB` |
+| `70B`, `128000 ctx`, `4-bit`, `8-bit KV`                               |                   `101.8` |                 `69.0 GB`; `63.2 GB` with exact `35 GB` |
+| `104B`, `32000 ctx`, `8-bit`, `16-bit KV`                              |                   `161.8` |                 `135.6 GB`; `129.9 GB` without overhead |
+| `7B`, `1,000,000 ctx`, `8-bit`, `16-bit KV`                            |                   `105.6` |                           `153.9 GB` with estimated GQA |
+| `8B`, `8000 ctx`, `4-bit`, QLoRA                                       |                    `11.3` |                                               `19.2 GB` |
+| `70B`, `8000 ctx`, `4-bit`, QLoRA                                      |                    `52.3` |                                               `99.9 GB` |
+| `3.8B`, `8000 ctx`, `4-bit`, QLoRA                                     |                     `8.6` |                                               `13.2 GB` |
+| `8B`, `8000 ctx`, precision `32/16/8/4-bit`                            |      `37.7/20.1/11.3/6.9` |                                 `38.0/20.4/12.0/7.9 GB` |
+| `104B`, `32000 ctx`, `32-bit KV`, local GGUF precision comparison      | `500.7/292.7/188.7/136.7` |                             `441.7/233.7/129.7/77.7 GB` |
+| `70B`, `8000 ctx`, `4-bit`, `8-bit KV`, `trained=on`, `use_adapter=on` |                    `48.4` | invalid; use `Execution Mode`; QLoRA `2%` is `115.6 GB` |
 
 Do not use `trained=on` and `use_adapter=on` in corrected tests. If old UI numbers must remain, isolate them in `legacyHeuristicFormula.test.ts`.
 

@@ -1,145 +1,115 @@
-// Build the display-ready report payload directly from the normalized form state, replacing the former /api/report backend call with a pure local computation.
-
-import type { Bits, DeploymentSpec, Runtime, Task } from "./calculator";
 import {
-  CUDA_TAX_GB,
-  RUNTIME_MARGINS,
-  kvCacheGb,
-  roundTo,
-  taskOverheadGb,
-  totalVramGb,
+  STANDARD_HEURISTIC_WARNING,
+  accuracyFor,
+  memoryBreakdown,
+  specFromState,
+  speedEstimate,
   weightsGb,
 } from "./calculator";
-import {
-  HOST_RAM_FLOOR_GB,
-  HOST_RAM_STEP_GB,
-  deploymentPlan,
-  recommendedHostRamGb,
-  type FitLabel,
-} from "./hardware";
-import type {
-  ComparisonRow,
-  DisplayRow,
-  FormState,
-  HardwareRow,
-  ReportPayload,
-} from "./types";
+import { cloudCost, formatGb, hardwareRecommendation } from "./hardware";
+import type { DisplayRow, FormState, ReportPayload } from "./types";
 
-const SUPPORTED_WEIGHT_BITS: Bits[] = [32, 16, 8, 4];
-const COMPARISON_BASELINE_BITS: Bits = 16;
+export { specFromState } from "./calculator";
 
-function toBits(value: string): Bits {
-  const bits = Number(value);
-  const match = SUPPORTED_WEIGHT_BITS.find((candidate) => candidate === bits);
-  if (match !== undefined) {
-    return match;
+function row(label: string, value: number): DisplayRow | null {
+  return value === 0 ? null : { label, value: formatGb(value) };
+}
+
+function compactRows(rows: readonly (DisplayRow | null)[]): DisplayRow[] {
+  return rows.filter(
+    (candidate): candidate is DisplayRow => candidate !== null,
+  );
+}
+
+function familyWarning(state: FormState): string | null {
+  if (state.execution_mode !== "Inference") {
+    return "Training estimates include parameter state and checkpointed activations, but real runs vary by optimizer, sequence packing, and framework.";
   }
-  throw new Error(`unsupported bit width: ${value}`);
-}
-
-function toRuntime(value: string): Runtime {
-  if (value === "pytorch" || value === "llama_cpp_gguf") {
-    return value;
+  if (
+    state.workload_family === "image_diffusion" ||
+    state.workload_family === "video_generation"
+  ) {
+    return "Diffusion and video estimates are rough because pipeline components, schedulers, and resolution choices dominate memory.";
   }
-  throw new Error(`unsupported runtime: ${value}`);
-}
-
-function taskFromState(state: FormState): Task {
-  if (!state.trained) {
-    return "inference";
+  if (state.workload_family === "tabular") {
+    return "Tabular estimates model batch working memory, not every classical ML algorithm or data-loader path.";
   }
-  return state.use_adapter ? "qlora" : "full_training";
+  if (state.workload_family === "vision") {
+    return "Vision estimates depend on patching, image count, and preprocessing buffers.";
+  }
+  if (state.workload_family === "audio") {
+    return "Audio estimates depend on tokenizer stride, chunking, and streaming buffers.";
+  }
+  return null;
 }
 
-export function specFromState(state: FormState): DeploymentSpec {
-  return {
-    parameters_b: Number(state.parameters_b),
-    context_tokens: Number(state.context_tokens),
-    weight_bits: toBits(state.weight_bits),
-    kv_cache_bits: toBits(state.kv_cache_bits),
-    task: taskFromState(state),
-    architecture: state.architecture === "moe" ? "moe" : "dense",
-    active_parameters_b:
-      state.architecture === "moe" ? Number(state.active_parameters_b) : null,
-    runtime: toRuntime(state.runtime),
-  };
+function warningsFor(state: FormState): string[] {
+  const warnings = [STANDARD_HEURISTIC_WARNING];
+  const conditional = familyWarning(state);
+  if (conditional !== null) {
+    warnings.push(conditional);
+  }
+  if (state.moe_enabled) {
+    warnings.push(
+      "MoE active parameters affect speed, not resident weight memory, unless expert offload or sharding is enabled.",
+    );
+  }
+  if (
+    state.runtime_profile === "Local / Edge" &&
+    state.my_gpu_vram_gb.trim() !== ""
+  ) {
+    warnings.push(
+      "Local GPU fit uses usable VRAM, so drivers, displays, and other processes can still force offload.",
+    );
+  }
+  if (!state.exact_transformer_architecture) {
+    warnings.push(
+      "Transformer architecture is estimated from the parameter count.",
+    );
+  }
+  return warnings;
 }
 
-function gb(value: number): string {
-  return `${value.toFixed(1)} GB`;
-}
-
-function fitText(fit: FitLabel): string {
-  return fit === "single_gpu" ? "single GPU" : fit.replaceAll("_", " ");
-}
-
-function comparisonRows(spec: DeploymentSpec): ComparisonRow[] {
-  const baseline = totalVramGb({
-    ...spec,
-    weight_bits: COMPARISON_BASELINE_BITS,
-  });
-  return SUPPORTED_WEIGHT_BITS.map((bits) => {
-    const total = totalVramGb({ ...spec, weight_bits: bits });
-    return {
-      precision: `${String(bits)}-bit`,
-      total: gb(total),
-      savings: gb(roundTo(baseline - total, 1)),
-      selected: spec.weight_bits === bits,
-    };
-  });
-}
-
-function assumptionRows(spec: DeploymentSpec): DisplayRow[] {
-  const marginPercent = Math.round((RUNTIME_MARGINS[spec.runtime] - 1) * 100);
-  const kvHeuristic =
-    spec.architecture === "moe"
-      ? "active_parameters * (context_k / 8)"
-      : "(parameters / 10) * (context_k / 8)";
+function assumptionRows(state: FormState): DisplayRow[] {
   return [
-    { label: "Safety margin", value: `${String(marginPercent)}%` },
-    { label: "CUDA/system tax", value: gb(CUDA_TAX_GB) },
-    { label: "KV cache heuristic", value: kvHeuristic },
-    {
-      label: "Host RAM rule",
-      value: `at least ${String(HOST_RAM_FLOOR_GB)} GB, rounded up in ${String(HOST_RAM_STEP_GB)} GB increments`,
-    },
-    {
-      label: "Supported precisions",
-      value: "32-bit, 16-bit, 8-bit, and 4-bit weights and KV cache",
-    },
+    { label: "Precision", value: state.precision },
+    { label: "Runtime profile", value: state.runtime_profile },
+    { label: "Execution mode", value: state.execution_mode },
+    { label: "KV cache precision", value: state.kv_cache_precision },
+    { label: "Conservative KV heads", value: "attention_heads" },
   ];
 }
 
 export function buildReport(state: FormState): ReportPayload {
   const spec = specFromState(state);
-  const plan = deploymentPlan(spec);
+  const breakdown = memoryBreakdown(spec);
   const weights = weightsGb(spec);
-  const kvCache = kvCacheGb(spec);
-  const taskOverhead = taskOverheadGb(spec);
-  const total = totalVramGb(spec);
-  const margin = RUNTIME_MARGINS[spec.runtime];
-  const hardware: HardwareRow[] = plan.options.map((planOption) => ({
-    name: planOption.option.gpu.name,
-    detail: `${String(planOption.option.gpu_count)}x ${planOption.option.gpu.vram_gb.toFixed(0)} GB`,
-    sharding: fitText(planOption.fit),
-  }));
+  const required = breakdown.requiredGb;
+  const hardware = hardwareRecommendation(required, spec.runtime.utilization);
   return {
-    total_vram: gb(total),
-    host_ram: `${String(recommendedHostRamGb(spec))} GB host RAM`,
-    plan: {
-      primary: plan.primary.option.gpu.name,
-      primary_fit: fitText(plan.primary.fit),
-      optimization: plan.optimization,
-    },
-    breakdown: [
-      { label: "Weights", value: gb(weights) },
-      { label: "KV cache", value: gb(kvCache) },
-      { label: "Task", value: gb(taskOverhead) },
-      { label: "CUDA/system", value: gb(CUDA_TAX_GB) },
-    ],
-    hardware,
-    comparison: comparisonRows(spec),
-    assumptions: assumptionRows(spec),
-    calculation: `(${weights.toFixed(1)} + ${kvCache.toFixed(1)} + ${taskOverhead.toFixed(1)} + ${CUDA_TAX_GB.toFixed(1)}) * ${margin.toFixed(2)} = ${total.toFixed(1)} GB`,
+    totalRequiredMemory: formatGb(required),
+    recommendedHardware: hardware,
+    minimumRawVramNeeded: hardware.minimumRawVram,
+    speed: speedEstimate(spec, weights),
+    cloudCost:
+      state.runtime_profile === "Server / Cloud"
+        ? cloudCost(
+            required,
+            spec.runtime.utilization,
+            state.cloud_cost_override,
+          )
+        : null,
+    accuracy: accuracyFor(spec),
+    breakdown: compactRows([
+      row("Model / pipeline weights", breakdown.weightsGb),
+      row("KV cache", breakdown.kvCacheGb),
+      row("Input / activation memory", breakdown.inputActivationGb),
+      row("Training state", breakdown.trainingStateGb),
+      row("Runtime overhead", breakdown.runtimeOverheadGb),
+      row("Safety buffer", breakdown.safetyBufferGb),
+    ]),
+    assumptions: assumptionRows(state),
+    warnings: warningsFor(state),
+    calculation: `(${breakdown.weightsGb.toFixed(1)} + ${breakdown.kvCacheGb.toFixed(1)} + ${breakdown.inputActivationGb.toFixed(1)} + ${breakdown.trainingStateGb.toFixed(1)} + ${breakdown.runtimeOverheadGb.toFixed(1)}) * ${spec.runtime.buffer.toFixed(2)} = ${formatGb(required)}`,
   };
 }

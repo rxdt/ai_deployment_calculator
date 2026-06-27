@@ -31,7 +31,7 @@
 ## Next
 
 1. P0: launch the next frontend worker only from a normal shell. This Codex
-   session has `RALPH_LOOP=1`, so the orchestrator must not spawn workers here.
+   worker must not treat its own `RALPH_LOOP=1` as a blocker.
 2. `PROMPT.md` is set for `specs/frontend.md`: verify local TypeScript report
    parity, no `/api/report`, corrected values, UI/output coverage, and gate.
 3. Human owner reviews remaining unrelated working-tree edits: `docs/plan.md`
@@ -73,8 +73,12 @@
   worker completed.
 - Current Codex orchestration pass detected `RALPH_LOOP=1` before launching
   workers and stopped at handoff updates, per `specs/orchestrate.md`.
+- Follow-up frontend workers read `PROMPT.md` but still inherited the
+  orchestration request and acted as orchestrators; they were interrupted.
+  `PROMPT.md` and `specs/orchestrate.md` now explicitly yield to the assigned
+  implementation spec, but this harness path remains unproven.
 - Confirmed nesting by process tree, not just env: this orchestrator's `claude
-  -p` (PID parent of the shell) descends from `harness run claude 1 50` ->
+-p` (PID parent of the shell) descends from `harness run claude 1 50` ->
   `harness/ralph.sh 1 50 claude` -> `gtimeout claude -p`. Definitive that any
   `harness run codex`/`harness run claude` here is a nested launch.
 - Selected the frontend spec because the training checkbox wording was an open

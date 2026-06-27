@@ -1,188 +1,248 @@
 import * as z from "zod";
 import type { FormState } from "./types";
 
-const DEFAULT_VALUES = {
-  parameters_b: "8",
+const workloadSchema = z.enum([
+  "text_generation",
+  "text_encoder",
+  "encoder_decoder",
+  "vision",
+  "vision_language",
+  "image_diffusion",
+  "video_generation",
+  "audio",
+  "tabular",
+  "custom",
+]);
+const precisionSchema = z.enum([
+  "4-bit",
+  "5-bit GGUF",
+  "6-bit GGUF",
+  "8-bit",
+  "16-bit",
+  "32-bit",
+]);
+const kvPrecisionSchema = z.enum(["8-bit / FP8", "16-bit", "32-bit"]);
+const executionSchema = z.enum([
+  "Inference",
+  "LoRA fine-tuning",
+  "QLoRA fine-tuning",
+  "Full training",
+]);
+const runtimeSchema = z.enum(["Local / Edge", "Server / Cloud"]);
+const unitSchema = z.enum(["B", "M", "K"]);
+const optimizerSchema = z.enum(["AdamW", "8-bit Adam", "SGD-like"]);
+const resolutionSchema = z.enum(["720p", "1080p"]);
+
+const DEFAULT_STATE: FormState = {
+  workload_family: "text_generation",
+  total_params: "7",
+  parameter_unit: "B",
+  precision: "16-bit",
+  execution_mode: "Inference",
+  runtime_profile: "Server / Cloud",
+  workload_size: "1",
   context_tokens: "8000",
-  weight_bits: "16",
-  kv_cache_bits: "16",
-  runtime: "pytorch",
-  architecture: "dense",
-  active_parameters_b: "1.3",
+  sequence_tokens: "512",
+  input_tokens: "1024",
+  output_tokens: "256",
+  image_width: "1024",
+  image_height: "1024",
+  text_context_tokens: "4000",
+  image_count: "1",
+  video_resolution: "720p",
+  video_frames: "81",
+  audio_seconds: "30",
+  rows_per_batch: "10000",
+  features: "100",
+  input_size_multiplier: "1",
+  moe_enabled: false,
+  active_params: "1.3",
+  known_model_file_size_gb: "",
+  gpu_resident_fraction: "1",
+  kv_cache_precision: "16-bit",
+  exact_transformer_architecture: false,
+  lora_trainable_percent: "0.5",
+  optimizer: "AdamW",
+  gradient_checkpointing: true,
+  my_gpu_vram_gb: "",
+  cloud_cost_override: "",
 };
 
 const CHECKED_VALUES = new Set(["1", "true", "on", "yes"]);
-// Zod enums validate the untrusted query-string fields against their allowed domain.
-const bitsSchema = z.enum(["32", "16", "8", "4"]);
-const runtimeSchema = z.enum(["pytorch", "llama_cpp_gguf"]);
-const architectureSchema = z.enum(["dense", "moe"]);
 
-function defaultState(): FormState {
-  return {
-    ...DEFAULT_VALUES,
-    trained: false,
-    use_adapter: false,
-  };
-}
-
-function lastValue(search: URLSearchParams, name: string): string | null {
+function last(search: URLSearchParams, name: keyof FormState): string | null {
   return search.getAll(name).at(-1) ?? null;
 }
 
-function isDecimalNumber(value: string | null): value is string {
-  if (value === null) {
-    return false;
-  }
-  const trimmed = value.trim();
-  // Number() accepts 0x/0o/0b prefixes and "Infinity"; restrict to plain decimal/scientific digits
-  // so only base-10 literals pass. The character class is fixed-width, so no catastrophic backtracking.
-  return (
-    trimmed !== "" &&
-    Number.isFinite(Number(trimmed)) &&
-    !/[^\d.e+-]/iu.test(trimmed)
-  );
-}
-
-function isPositiveNumber(value: string | null): value is string {
-  return (
-    isDecimalNumber(value) &&
-    Number.isFinite(Number(value)) &&
-    Number(value) > 0
-  );
-}
-
-function isNonNegativeInteger(value: string | null): value is string {
-  return (
-    isDecimalNumber(value) &&
-    Number.isSafeInteger(Number(value)) &&
-    Number(value) >= 0
-  );
-}
-
-function isValidActiveParameters(
-  value: string | null,
-  totalParameters: string,
-): value is string {
-  const activeParameters = Number(value);
-  return (
-    isDecimalNumber(value) &&
-    Number.isFinite(activeParameters) &&
-    activeParameters > 0 &&
-    activeParameters <= Number(totalParameters)
-  );
-}
-
-function selectedWeightBits(search: URLSearchParams): string | null {
-  const value = lastValue(search, "weight_bits") ?? DEFAULT_VALUES.weight_bits;
-  return bitsSchema.safeParse(value).success ? value : null;
-}
-
-function selectedKvCacheBits(search: URLSearchParams): string | null {
-  const value =
-    lastValue(search, "kv_cache_bits") ?? DEFAULT_VALUES.kv_cache_bits;
-  return bitsSchema.safeParse(value).success ? value : null;
-}
-
-function isChecked(value: string | null): boolean {
-  return value !== null && CHECKED_VALUES.has(value.toLowerCase());
-}
-
-function activeParametersFrom(
+function checked(
   search: URLSearchParams,
-  architecture: string,
-): string {
-  if (architecture !== "moe") {
-    return DEFAULT_VALUES.active_parameters_b;
+  name: keyof FormState,
+  fallback: boolean,
+): boolean {
+  const value = last(search, name);
+  return value === null ? fallback : CHECKED_VALUES.has(value.toLowerCase());
+}
+
+function decimal(value: string | null, fallback: string): string {
+  if (value === null || value.trim() === "") {
+    return fallback;
   }
-  return (
-    lastValue(search, "active_parameters_b") ??
-    DEFAULT_VALUES.active_parameters_b
-  );
+  return Number.isFinite(Number(value)) && !/[^\d.e+-]/iu.test(value)
+    ? value
+    : fallback;
 }
 
-interface StateCandidates {
-  parameters: string | null;
-  context: string | null;
-  weightBits: string | null;
-  kvCacheBits: string | null;
-  runtime: string;
-  architecture: string;
-  activeParameters: string;
+function positive(value: string | null, fallback: string): string {
+  const normalized = decimal(value, fallback);
+  return Number(normalized) > 0 ? normalized : fallback;
 }
 
-interface ValidStateCandidates extends StateCandidates {
-  parameters: string;
-  context: string;
-  weightBits: string;
-  kvCacheBits: string;
+function schemaValue<T extends z.ZodType>(
+  schema: T,
+  value: string | null,
+  fallback: z.infer<T>,
+): z.infer<T> {
+  const result = schema.safeParse(value);
+  return result.success ? result.data : fallback;
 }
 
-function isValidState(
-  candidates: StateCandidates,
-): candidates is ValidStateCandidates {
-  return (
-    isPositiveNumber(candidates.parameters) &&
-    isNonNegativeInteger(candidates.context) &&
-    candidates.weightBits !== null &&
-    candidates.kvCacheBits !== null &&
-    runtimeSchema.safeParse(candidates.runtime).success &&
-    architectureSchema.safeParse(candidates.architecture).success &&
-    (candidates.architecture !== "moe" ||
-      isValidActiveParameters(
-        candidates.activeParameters,
-        candidates.parameters,
-      ))
-  );
+export function defaultState(): FormState {
+  return { ...DEFAULT_STATE };
 }
 
 export function normalizedState(search: URLSearchParams): FormState {
+  const defaults = defaultState();
   if (search.size === 0) {
-    return defaultState();
+    return defaults;
   }
-  const architecture =
-    lastValue(search, "architecture") ?? DEFAULT_VALUES.architecture;
-  const candidates: StateCandidates = {
-    parameters: lastValue(search, "parameters_b"),
-    context: lastValue(search, "context_tokens"),
-    weightBits: selectedWeightBits(search),
-    kvCacheBits: selectedKvCacheBits(search),
-    runtime: lastValue(search, "runtime") ?? DEFAULT_VALUES.runtime,
-    architecture,
-    activeParameters: activeParametersFrom(search, architecture),
-  };
-  if (!isValidState(candidates)) {
-    return defaultState();
-  }
-  const isTrained = isChecked(lastValue(search, "trained"));
   return {
-    parameters_b: candidates.parameters,
-    context_tokens: candidates.context,
-    weight_bits: candidates.weightBits,
-    kv_cache_bits: candidates.kvCacheBits,
-    runtime: candidates.runtime,
-    architecture: candidates.architecture,
-    active_parameters_b: candidates.activeParameters,
-    trained: isTrained,
-    use_adapter: isTrained && isChecked(lastValue(search, "use_adapter")),
+    workload_family: schemaValue(
+      workloadSchema,
+      last(search, "workload_family"),
+      defaults.workload_family,
+    ),
+    total_params: positive(last(search, "total_params"), defaults.total_params),
+    parameter_unit: schemaValue(
+      unitSchema,
+      last(search, "parameter_unit"),
+      defaults.parameter_unit,
+    ),
+    precision: schemaValue(
+      precisionSchema,
+      last(search, "precision"),
+      defaults.precision,
+    ),
+    execution_mode: schemaValue(
+      executionSchema,
+      last(search, "execution_mode"),
+      defaults.execution_mode,
+    ),
+    runtime_profile: schemaValue(
+      runtimeSchema,
+      last(search, "runtime_profile"),
+      defaults.runtime_profile,
+    ),
+    workload_size: positive(
+      last(search, "workload_size"),
+      defaults.workload_size,
+    ),
+    context_tokens: positive(
+      last(search, "context_tokens"),
+      defaults.context_tokens,
+    ),
+    sequence_tokens: positive(
+      last(search, "sequence_tokens"),
+      defaults.sequence_tokens,
+    ),
+    input_tokens: positive(last(search, "input_tokens"), defaults.input_tokens),
+    output_tokens: positive(
+      last(search, "output_tokens"),
+      defaults.output_tokens,
+    ),
+    image_width: positive(last(search, "image_width"), defaults.image_width),
+    image_height: positive(last(search, "image_height"), defaults.image_height),
+    text_context_tokens: positive(
+      last(search, "text_context_tokens"),
+      defaults.text_context_tokens,
+    ),
+    image_count: positive(last(search, "image_count"), defaults.image_count),
+    video_resolution: schemaValue(
+      resolutionSchema,
+      last(search, "video_resolution"),
+      defaults.video_resolution,
+    ),
+    video_frames: positive(last(search, "video_frames"), defaults.video_frames),
+    audio_seconds: positive(
+      last(search, "audio_seconds"),
+      defaults.audio_seconds,
+    ),
+    rows_per_batch: positive(
+      last(search, "rows_per_batch"),
+      defaults.rows_per_batch,
+    ),
+    features: positive(last(search, "features"), defaults.features),
+    input_size_multiplier: positive(
+      last(search, "input_size_multiplier"),
+      defaults.input_size_multiplier,
+    ),
+    moe_enabled: checked(search, "moe_enabled", defaults.moe_enabled),
+    active_params: positive(
+      last(search, "active_params"),
+      defaults.active_params,
+    ),
+    known_model_file_size_gb: decimal(
+      last(search, "known_model_file_size_gb"),
+      defaults.known_model_file_size_gb,
+    ),
+    gpu_resident_fraction: positive(
+      last(search, "gpu_resident_fraction"),
+      defaults.gpu_resident_fraction,
+    ),
+    kv_cache_precision: schemaValue(
+      kvPrecisionSchema,
+      last(search, "kv_cache_precision"),
+      defaults.kv_cache_precision,
+    ),
+    exact_transformer_architecture: checked(
+      search,
+      "exact_transformer_architecture",
+      defaults.exact_transformer_architecture,
+    ),
+    lora_trainable_percent: positive(
+      last(search, "lora_trainable_percent"),
+      defaults.lora_trainable_percent,
+    ),
+    optimizer: schemaValue(
+      optimizerSchema,
+      last(search, "optimizer"),
+      defaults.optimizer,
+    ),
+    gradient_checkpointing: checked(
+      search,
+      "gradient_checkpointing",
+      defaults.gradient_checkpointing,
+    ),
+    my_gpu_vram_gb: decimal(
+      last(search, "my_gpu_vram_gb"),
+      defaults.my_gpu_vram_gb,
+    ),
+    cloud_cost_override: decimal(
+      last(search, "cloud_cost_override"),
+      defaults.cloud_cost_override,
+    ),
   };
 }
 
 export function searchFromState(state: FormState): URLSearchParams {
   const search = new URLSearchParams();
-  search.set("parameters_b", state.parameters_b);
-  search.set("context_tokens", state.context_tokens);
-  search.set("weight_bits", state.weight_bits);
-  search.set("kv_cache_bits", state.kv_cache_bits);
-  search.set("runtime", state.runtime);
-  search.set("architecture", state.architecture);
-  if (state.architecture === "moe") {
-    search.set("active_parameters_b", state.active_parameters_b);
-  }
-  if (state.trained) {
-    search.set("trained", "on");
-  }
-  if (state.trained && state.use_adapter) {
-    search.set("use_adapter", "on");
+  for (const [name, value] of Object.entries(state)) {
+    if (typeof value === "boolean") {
+      if (value) {
+        search.set(name, "on");
+      }
+    } else if (value !== "") {
+      search.set(name, value);
+    }
   }
   return search;
 }

@@ -1,307 +1,395 @@
-// Ports tests/test_vram_calculator.py: the pure VRAM calculator core. The Python
-// DeploymentSpec validation-rejection cases map to query/state normalization and are
-// ported in app.test.ts instead. The trainable_parameters_percent overhead-scaling and
-// its rejection cases are an intentional, documented scope reduction (flat 4.0 GB QLoRA
-// overhead, no trainable-% form control) and are deliberately not ported.
-
 import { describe, expect, test } from "vitest";
 import {
-  RUNTIME_MARGINS,
-  kvCacheGb,
+  PRECISION_MAP,
+  accuracyFor,
+  architectureFor,
+  inferenceWorkingMemoryGb,
+  memoryBreakdown,
   roundTo,
-  taskOverheadGb,
-  totalVramGb,
+  runtimeAssumptions,
+  specFromState,
+  speedEstimate,
+  trainingActivationGb,
+  trainingStateGb,
   weightsGb,
-  type Bits,
-  type DeploymentSpec,
 } from "./calculator";
+import { defaultState } from "./state";
+import type { FormState, WorkloadFamily } from "./types";
 
-// Mirror the Python DeploymentSpec defaults (inference, 16-bit weights/KV, dense, pytorch).
-/**
- 
-@param overrides
- */
-function spec(
-  overrides: Partial<DeploymentSpec> & {
-    parameters_b: number;
-    context_tokens: number;
-  },
-): DeploymentSpec {
-  return {
-    weight_bits: 16,
-    kv_cache_bits: 16,
-    task: "inference",
-    architecture: "dense",
-    active_parameters_b: null,
-    runtime: "pytorch",
-    ...overrides,
-  };
+function state(overrides: Partial<FormState> = {}): FormState {
+  return { ...defaultState(), ...overrides };
 }
 
-describe("weights", () => {
-  test.each<[Bits, number]>([
-    [32, 32],
-    [16, 16],
-    [8, 8],
-    [4, 4],
-  ])("scale with %i-bit precision", (weight_bits, expected) => {
-    expect(
-      weightsGb(spec({ parameters_b: 8, context_tokens: 0, weight_bits })),
-    ).toBe(expected);
-  });
-});
+function required(overrides: Partial<FormState>): number {
+  return memoryBreakdown(specFromState(state(overrides))).requiredGb;
+}
 
-describe("kv cache", () => {
-  test("matches the worked example", () => {
+describe("parameter conversion and precision maps", () => {
+  test("converts B, M, and K units into billions of parameters", () => {
     expect(
-      kvCacheGb(spec({ parameters_b: 8, context_tokens: 8000 })),
-    ).toBeCloseTo(0.8);
-  });
-
-  test("stays 16-bit under weight quantization", () => {
+      specFromState(state({ total_params: "7", parameter_unit: "B" }))
+        .totalParamsB,
+    ).toBe(7);
     expect(
-      kvCacheGb(
-        spec({ parameters_b: 70, context_tokens: 8000, weight_bits: 4 }),
-      ),
-    ).toBeCloseTo(7);
+      specFromState(state({ total_params: "7000", parameter_unit: "M" }))
+        .totalParamsB,
+    ).toBe(7);
+    expect(
+      specFromState(state({ total_params: "7000000", parameter_unit: "K" }))
+        .totalParamsB,
+    ).toBe(7);
   });
 
-  test("shrinks only when the KV cache is quantized", () => {
-    expect(
-      kvCacheGb(
-        spec({ parameters_b: 8, context_tokens: 8000, kv_cache_bits: 8 }),
-      ),
-    ).toBeCloseTo(0.4);
-  });
-
-  test("expands for 32-bit precision", () => {
-    expect(
-      kvCacheGb(
-        spec({ parameters_b: 8, context_tokens: 8000, kv_cache_bits: 32 }),
-      ),
-    ).toBeCloseTo(1.6);
-  });
-
-  test("uses MoE active parameters, not total weights", () => {
-    const moe = spec({
-      parameters_b: 47,
-      context_tokens: 8000,
-      architecture: "moe",
-      active_parameters_b: 1.3,
+  test("matches the required precision byte and overhead table", () => {
+    expect(PRECISION_MAP).toEqual({
+      "4-bit": { weightBytes: 0.5, weightOverhead: 1.15 },
+      "5-bit GGUF": { weightBytes: 0.625, weightOverhead: 1.12 },
+      "6-bit GGUF": { weightBytes: 0.75, weightOverhead: 1.1 },
+      "8-bit": { weightBytes: 1, weightOverhead: 1.05 },
+      "16-bit": { weightBytes: 2, weightOverhead: 1 },
+      "32-bit": { weightBytes: 4, weightOverhead: 1 },
     });
-    expect(weightsGb(moe)).toBeCloseTo(94);
-    expect(kvCacheGb(moe)).toBeCloseTo(1.3);
-    expect(totalVramGb(moe)).toBeCloseTo(106.5);
-  });
-
-  test("is zero with no context", () => {
-    expect(kvCacheGb(spec({ parameters_b: 8, context_tokens: 0 }))).toBeCloseTo(
-      0,
-    );
   });
 });
 
-describe("task overhead", () => {
-  test("is zero for inference", () => {
-    expect(
-      taskOverheadGb(
-        spec({ parameters_b: 8, context_tokens: 8000, task: "inference" }),
-      ),
-    ).toBeCloseTo(0);
+describe("corrected text-generation totals", () => {
+  test.each<[string, Partial<FormState>, number]>([
+    [
+      "47B MoE server inference keeps resident weight memory dense",
+      {
+        total_params: "47",
+        moe_enabled: true,
+        active_params: "1.3",
+        precision: "16-bit",
+      },
+      107.9,
+    ],
+    ["8B server inference defaults to 20.4 GB", { total_params: "8" }, 20.4],
+    [
+      "104B local exact GGUF file uses local overhead and no server buffer",
+      {
+        total_params: "104",
+        context_tokens: "32000",
+        precision: "4-bit",
+        kv_cache_precision: "32-bit",
+        runtime_profile: "Local / Edge",
+        known_model_file_size_gb: "52",
+      },
+      77.7,
+    ],
+    [
+      "47B local 4-bit MoE uses active parameters only for KV",
+      {
+        total_params: "47",
+        precision: "4-bit",
+        runtime_profile: "Local / Edge",
+        moe_enabled: true,
+        active_params: "1.3",
+      },
+      26.6,
+    ],
+    [
+      "70B long-context 4-bit FP8 KV uses estimated GQA KV heads",
+      {
+        total_params: "70",
+        context_tokens: "128000",
+        precision: "4-bit",
+        kv_cache_precision: "8-bit / FP8",
+      },
+      69,
+    ],
+    [
+      "70B exact file long-context case preserves architecture KV",
+      {
+        total_params: "70",
+        context_tokens: "128000",
+        precision: "4-bit",
+        kv_cache_precision: "8-bit / FP8",
+        known_model_file_size_gb: "35",
+      },
+      63.2,
+    ],
+    [
+      "104B 8-bit 16-bit KV uses weight overhead",
+      { total_params: "104", context_tokens: "32000", precision: "8-bit" },
+      135.6,
+    ],
+    [
+      "7B million-token context uses estimated GQA",
+      { context_tokens: "1000000", precision: "8-bit" },
+      153.9,
+    ],
+  ])("%s", (_name, overrides, expected) => {
+    expect(required(overrides)).toBe(expected);
   });
 
-  test("is a fixed 4.0 GB for QLoRA", () => {
+  test("compares precision totals with corrected defaults", () => {
     expect(
-      taskOverheadGb(
-        spec({
-          parameters_b: 70,
-          context_tokens: 8000,
-          weight_bits: 4,
-          task: "qlora",
+      ["32-bit", "16-bit", "8-bit", "4-bit"].map((precision) =>
+        required({
+          total_params: "8",
+          precision: precision as FormState["precision"],
         }),
       ),
-    ).toBeCloseTo(4);
+    ).toEqual([38, 20.4, 12, 7.9]);
+  });
+});
+
+describe("training estimates", () => {
+  test.each<[string, Partial<FormState>, number]>([
+    [
+      "8B QLoRA with 2% trainable adapters",
+      {
+        total_params: "8",
+        execution_mode: "QLoRA fine-tuning",
+        lora_trainable_percent: "2",
+      },
+      21,
+    ],
+    [
+      "7B full training includes weights, states, activations, overhead, and buffer",
+      { execution_mode: "Full training" },
+      152.9,
+    ],
+    [
+      "tiny FP8 full training is dominated by training runtime overhead",
+      {
+        total_params: "0.0004",
+        precision: "8-bit",
+        kv_cache_precision: "8-bit / FP8",
+        execution_mode: "Full training",
+      },
+      5.1,
+    ],
+    [
+      "8B default QLoRA uses 0.5% trainable adapters",
+      {
+        total_params: "8",
+        precision: "4-bit",
+        execution_mode: "QLoRA fine-tuning",
+      },
+      19.2,
+    ],
+    [
+      "70B default QLoRA scales adapter state and activations",
+      {
+        total_params: "70",
+        precision: "4-bit",
+        execution_mode: "QLoRA fine-tuning",
+      },
+      99.9,
+    ],
+    [
+      "3.8B default QLoRA uses the <=4B architecture bucket",
+      {
+        total_params: "3.8",
+        precision: "4-bit",
+        execution_mode: "QLoRA fine-tuning",
+      },
+      13.2,
+    ],
+    [
+      "70B 2% QLoRA replaces legacy trained/use_adapter query flags",
+      {
+        total_params: "70",
+        precision: "4-bit",
+        execution_mode: "QLoRA fine-tuning",
+        lora_trainable_percent: "2",
+      },
+      115.6,
+    ],
+  ])("%s", (_name, overrides, expected) => {
+    expect(required(overrides)).toBe(expected);
   });
 
-  test("scales with parameters for full training", () => {
+  test("LoRA and optimizer options affect only adapter training state", () => {
+    const lora = specFromState(
+      state({
+        execution_mode: "LoRA fine-tuning",
+        optimizer: "8-bit Adam",
+        lora_trainable_percent: "1",
+      }),
+    );
+    expect(trainingStateGb(lora)).toBeCloseTo(0.42);
+    expect(trainingActivationGb(lora)).toBeGreaterThan(0);
+    expect(weightsGb(lora)).toBe(14);
+  });
+
+  test("training activation uses encoder and encoder-decoder token shapes", () => {
+    const encoder = specFromState(
+      state({
+        workload_family: "text_encoder",
+        execution_mode: "LoRA fine-tuning",
+        sequence_tokens: "256",
+      }),
+    );
+    const encoderDecoder = specFromState(
+      state({
+        workload_family: "encoder_decoder",
+        execution_mode: "LoRA fine-tuning",
+        input_tokens: "512",
+        output_tokens: "128",
+      }),
+    );
+
+    expect(trainingActivationGb(encoder)).toBeGreaterThan(0);
+    expect(trainingActivationGb(encoderDecoder)).toBeGreaterThan(
+      trainingActivationGb(encoder),
+    );
+  });
+
+  test("calculator parsing falls back for invalid direct state values", () => {
+    const spec = specFromState(
+      state({
+        total_params: "bad",
+        workload_size: "bad",
+        active_params: "bad",
+        moe_enabled: true,
+        gpu_resident_fraction: "bad",
+        lora_trainable_percent: "bad",
+      }),
+    );
+
+    expect(spec.totalParamsB).toBe(7);
+    expect(spec.workloadSize).toBe(1);
+    expect(spec.activeParamsB).toBe(7);
+    expect(spec.gpuResidentFraction).toBe(1);
+    expect(spec.loraTrainablePercent).toBe(0.5);
+  });
+
+  test("checkpointing changes activation scale and SGD-like state is valid", () => {
+    const checkpointed = specFromState(
+      state({ execution_mode: "Full training" }),
+    );
+    const uncheckpointed = specFromState(
+      state({
+        execution_mode: "Full training",
+        gradient_checkpointing: false,
+        optimizer: "SGD-like",
+      }),
+    );
+    expect(trainingActivationGb(uncheckpointed)).toBeGreaterThan(
+      trainingActivationGb(checkpointed),
+    );
+    expect(trainingStateGb(uncheckpointed)).toBe(70);
+  });
+});
+
+describe("workload-family working memory", () => {
+  test.each<WorkloadFamily>([
+    "text_encoder",
+    "encoder_decoder",
+    "vision",
+    "vision_language",
+    "image_diffusion",
+    "video_generation",
+    "audio",
+    "tabular",
+    "custom",
+  ])("%s produces a positive non-legacy working-memory estimate", (family) => {
+    const spec = specFromState(state({ workload_family: family }));
+    const weights = weightsGb(spec);
+    const working = inferenceWorkingMemoryGb(spec, weights);
+    expect(working.inputActivationGb + working.kvCacheGb).toBeGreaterThan(0);
+    if (
+      family === "text_encoder" ||
+      family === "vision" ||
+      family === "image_diffusion"
+    ) {
+      expect(working.kvCacheGb).toBe(0);
+    }
+  });
+
+  test("video 1080p branch and image pixel proxy branch are reachable", () => {
+    const video = specFromState(
+      state({ workload_family: "video_generation", video_resolution: "1080p" }),
+    );
+    const vision = specFromState(
+      state({
+        workload_family: "vision",
+        image_width: "32",
+        image_height: "32",
+      }),
+    );
     expect(
-      taskOverheadGb(
-        spec({ parameters_b: 8, context_tokens: 8000, task: "full_training" }),
+      inferenceWorkingMemoryGb(video, weightsGb(video)).inputActivationGb,
+    ).toBeGreaterThan(0);
+    expect(
+      inferenceWorkingMemoryGb(vision, weightsGb(vision)).inputActivationGb,
+    ).toBeGreaterThan(0);
+  });
+});
+
+describe("architecture, runtime, accuracy, and speed helpers", () => {
+  test("covers every transformer architecture bucket", () => {
+    expect(
+      [1, 4, 10, 20, 40, 80, 160, 161].map(
+        (value) => architectureFor(value).layers,
       ),
-    ).toBeCloseTo(128);
+    ).toEqual([16, 28, 32, 40, 48, 80, 96, 120]);
   });
-});
 
-describe("total VRAM", () => {
-  test("8B inference acceptance signal is 20.1 GB", () => {
+  test("runtime assumptions cover training, local, local file, and server profiles", () => {
+    expect(runtimeAssumptions("Inference", "Server / Cloud", false)).toEqual({
+      overheadGb: 1.5,
+      buffer: 1.1,
+      utilization: 0.85,
+    });
+    expect(runtimeAssumptions("Inference", "Local / Edge", false).buffer).toBe(
+      1,
+    );
+    expect(runtimeAssumptions("Inference", "Local / Edge", true).buffer).toBe(
+      1,
+    );
+    expect(runtimeAssumptions("Full training", "Local / Edge", true)).toEqual({
+      overheadGb: 4,
+      buffer: 1.25,
+      utilization: 0.8,
+    });
+  });
+
+  test("accuracy labels cover all documented values", () => {
     expect(
-      totalVramGb(spec({ parameters_b: 8, context_tokens: 8000 })),
-    ).toBeCloseTo(20.1);
+      accuracyFor(specFromState(state({ known_model_file_size_gb: "52" }))),
+    ).toBe("File-size based");
+    expect(
+      accuracyFor(
+        specFromState(state({ exact_transformer_architecture: true })),
+      ),
+    ).toBe("Advanced override");
+    expect(
+      accuracyFor(specFromState(state({ workload_family: "vision_language" }))),
+    ).toBe("Component-based");
+    expect(
+      accuracyFor(specFromState(state({ workload_family: "image_diffusion" }))),
+    ).toBe("Rough");
+    expect(
+      accuracyFor(specFromState(state({ workload_family: "tabular" }))),
+    ).toBe("Estimated");
   });
 
-  test("7B full-training acceptance signal", () => {
-    const s = spec({
-      parameters_b: 7,
-      context_tokens: 8000,
-      task: "full_training",
-    });
-    expect(weightsGb(s)).toBeCloseTo(14);
-    expect(kvCacheGb(s)).toBeCloseTo(0.7);
-    expect(taskOverheadGb(s)).toBeCloseTo(112);
-    expect(totalVramGb(s)).toBeCloseTo(141);
+  test("speed labels vary by workload family and MoE compute weights", () => {
+    for (const family of [
+      "text_generation",
+      "image_diffusion",
+      "video_generation",
+      "tabular",
+      "audio",
+    ] as const) {
+      const spec = specFromState(
+        state({
+          workload_family: family,
+          moe_enabled: family === "text_generation",
+        }),
+      );
+      expect(speedEstimate(spec, weightsGb(spec))).toMatch(
+        /tokens|images|clips|rows|audio/u,
+      );
+    }
   });
 
-  test("llama.cpp GGUF uses the additive total without a safety margin", () => {
-    const s = spec({
-      parameters_b: 104,
-      context_tokens: 32_000,
-      weight_bits: 4,
-      kv_cache_bits: 32,
-      runtime: "llama_cpp_gguf",
-    });
-    expect(weightsGb(s)).toBeCloseTo(52);
-    expect(kvCacheGb(s)).toBeCloseTo(83.2);
-    expect(taskOverheadGb(s)).toBeCloseTo(0);
-    expect(RUNTIME_MARGINS[s.runtime]).toBeCloseTo(1);
-    expect(totalVramGb(s)).toBeCloseTo(136.7);
-  });
-
-  test("llama.cpp GGUF MoE uses quantized total weights and active-parameter KV", () => {
-    const s = spec({
-      parameters_b: 47,
-      context_tokens: 8000,
-      weight_bits: 4,
-      architecture: "moe",
-      active_parameters_b: 1.3,
-      runtime: "llama_cpp_gguf",
-    });
-    expect(weightsGb(s)).toBeCloseTo(23.5);
-    expect(kvCacheGb(s)).toBeCloseTo(1.3);
-    expect(taskOverheadGb(s)).toBeCloseTo(0);
-    expect(RUNTIME_MARGINS[s.runtime]).toBeCloseTo(1);
-    expect(totalVramGb(s)).toBeCloseTo(26.3);
-  });
-
-  test("a tiny FP8 full-training run rounds to a CUDA-dominated total", () => {
-    const s = spec({
-      parameters_b: 0.0004,
-      context_tokens: 8000,
-      weight_bits: 8,
-      kv_cache_bits: 8,
-      task: "full_training",
-    });
-    expect(weightsGb(s)).toBeCloseTo(0.0004);
-    expect(kvCacheGb(s)).toBeCloseTo(0.00002);
-    expect(taskOverheadGb(s)).toBeCloseTo(0.0064);
-    expect(totalVramGb(s)).toBeCloseTo(1.7);
-  });
-
-  test.each<[DeploymentSpec, number, number, number]>([
-    [
-      spec({
-        parameters_b: 70,
-        context_tokens: 128_000,
-        weight_bits: 4,
-        kv_cache_bits: 8,
-      }),
-      35,
-      56,
-      101.8,
-    ],
-    [
-      spec({
-        parameters_b: 104,
-        context_tokens: 32_000,
-        weight_bits: 8,
-        kv_cache_bits: 16,
-      }),
-      104,
-      41.6,
-      161.8,
-    ],
-    [
-      spec({
-        parameters_b: 7,
-        context_tokens: 1_000_000,
-        weight_bits: 8,
-        kv_cache_bits: 16,
-      }),
-      7,
-      87.5,
-      105.6,
-    ],
-  ])("large inference regression", (s, weights, kv, total) => {
-    expect(weightsGb(s)).toBeCloseTo(weights);
-    expect(kvCacheGb(s)).toBeCloseTo(kv);
-    expect(taskOverheadGb(s)).toBeCloseTo(0);
-    expect(totalVramGb(s)).toBeCloseTo(total);
-  });
-
-  // Margin applied to worked QLoRA subtotals. The 70B case is the rounding edge where the
-  // historical float-scaling round produced 52.2; the faithful round reproduces Python's 52.3.
-  test.each<[DeploymentSpec, number]>([
-    [
-      spec({
-        parameters_b: 8,
-        context_tokens: 8000,
-        weight_bits: 4,
-        task: "qlora",
-      }),
-      11.3,
-    ],
-    [
-      spec({
-        parameters_b: 70,
-        context_tokens: 8000,
-        weight_bits: 4,
-        task: "qlora",
-      }),
-      52.3,
-    ],
-    [
-      spec({
-        parameters_b: 3.8,
-        context_tokens: 8000,
-        weight_bits: 4,
-        task: "qlora",
-      }),
-      8.6,
-    ],
-  ])("applies the 10%% margin to the worked subtotal", (s, expected) => {
-    expect(totalVramGb(s)).toBe(expected);
-  });
-});
-
-describe("roundTo reproduces Python round() half-to-even", () => {
-  test("rounds exact halves to even", () => {
-    expect(roundTo(2.5, 0)).toBe(2);
-    expect(roundTo(3.5, 0)).toBe(4);
-    expect(roundTo(1.45, 1)).toBe(1.4);
-    expect(roundTo(1.35, 1)).toBe(1.4);
-    expect(roundTo(-2.5, 0)).toBe(-2);
-  });
-
-  test("rounds genuine non-halves by magnitude, not banker's", () => {
-    expect(roundTo(1.24, 1)).toBe(1.2);
-    expect(roundTo(1.26, 1)).toBe(1.3);
-    expect(roundTo(1.251, 1)).toBe(1.3); // 5 followed by a non-zero tail rounds up
-    // The historical *10 scaling collapsed this onto an exact half and rounded to 14.8.
-    expect(roundTo(13.5 * 1.1, 1)).toBe(14.9);
-    expect(roundTo(47.5 * 1.1, 1)).toBe(52.3);
-  });
-
-  test("carries across the integer boundary", () => {
-    expect(roundTo(9.95, 1)).toBe(10);
-  });
-
-  test("returns short or already-rounded inputs unchanged", () => {
-    expect(roundTo(5, 1)).toBe(5);
-    expect(roundTo(5.2, 1)).toBe(5.2);
-  });
-
-  test("passes through non-finite and exponential magnitudes", () => {
-    expect(roundTo(Infinity, 1)).toBe(Infinity);
-    expect(roundTo(NaN, 1)).toBeNaN();
-    expect(roundTo(1e-7, 1)).toBe(1e-7);
+  test("roundTo produces fixed one-decimal contract values", () => {
+    expect(roundTo(20.44, 1)).toBe(20.4);
+    expect(roundTo(20.45, 1)).toBe(20.5);
   });
 });

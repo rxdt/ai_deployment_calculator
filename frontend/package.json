@@ -21,6 +21,8 @@
     "security": "semgrep scan --config=p/typescript --config=p/javascript --config=p/security-audit --error --metrics=off && secretlint \"**/*\" && npm audit --audit-level=high && npm audit signatures && lockfile-lint --path package-lock.json --type npm --allowed-hosts npm --validate-https && syncpack lint",
     "setup:e2e": "playwright install --with-deps",
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test",
     "TEST": "vitest run --coverage && vitest run --config harness/vitest.config.ts --coverage && playwright test",
     "typecheck": "tsc --noEmit"
   },

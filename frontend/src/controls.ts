@@ -1,26 +1,48 @@
-export function syncAdapterControl(app: HTMLDivElement): void {
-  const trained = app.querySelector<HTMLInputElement>('input[name="trained"]');
-  const adapter = app.querySelector<HTMLInputElement>(
-    'input[name="use_adapter"]',
-  );
-  if (!trained || !adapter) {
-    return;
-  }
-  adapter.disabled = !trained.checked;
-  if (!trained.checked) {
-    adapter.checked = false;
-  }
+import type { WorkloadFamily } from "./types";
+
+const MOE_FAMILIES = new Set<WorkloadFamily>([
+  "text_generation",
+  "text_encoder",
+  "encoder_decoder",
+  "vision_language",
+  "custom",
+]);
+
+export function familySupportsMoe(family: WorkloadFamily): boolean {
+  return MOE_FAMILIES.has(family);
 }
 
-export function syncArchitectureControl(app: HTMLDivElement): void {
-  const architecture = app.querySelector<HTMLSelectElement>(
-    'select[name="architecture"]',
+export function isTrainingMode(mode: string): boolean {
+  return mode !== "Inference";
+}
+
+export function syncConditionalControls(app: HTMLDivElement): void {
+  const family = app.querySelector<HTMLSelectElement>(
+    'select[name="workload_family"]',
   );
-  const activeParameters = app.querySelector<HTMLInputElement>(
-    'input[name="active_parameters_b"]',
+  const mode = app.querySelector<HTMLSelectElement>(
+    'select[name="execution_mode"]',
   );
-  if (!architecture || !activeParameters) {
-    return;
+  const moe = app.querySelector<HTMLInputElement>('input[name="moe_enabled"]');
+  const active = app.querySelector<HTMLInputElement>(
+    'input[name="active_params"]',
+  );
+  const workload = app.querySelector<HTMLElement>("[data-workload-label]");
+  if (family !== null && moe !== null && active !== null) {
+    const supportsMoe = familySupportsMoe(family.value as WorkloadFamily);
+    moe
+      .closest<HTMLElement>(".moe-control")
+      ?.toggleAttribute("hidden", !supportsMoe);
+    if (!supportsMoe) {
+      moe.checked = false;
+    }
+    active
+      .closest<HTMLElement>(".active-params")
+      ?.toggleAttribute("hidden", !supportsMoe || !moe.checked);
   }
-  activeParameters.disabled = architecture.value !== "moe";
+  if (mode !== null && workload !== null) {
+    workload.textContent = isTrainingMode(mode.value)
+      ? "Micro Batch Size"
+      : "Concurrent Requests";
+  }
 }

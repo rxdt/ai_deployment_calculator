@@ -1,4 +1,4 @@
-import { syncAdapterControl, syncArchitectureControl } from "./controls";
+import { syncConditionalControls } from "./controls";
 import { renderForm, renderResults, renderStatusBar } from "./render";
 import { buildReport } from "./report";
 import { normalizedState, searchFromState } from "./state";
@@ -6,7 +6,7 @@ import type { BrowserRuntime } from "./types";
 
 export { renderResults } from "./render";
 export { buildReport } from "./report";
-export { normalizedState, searchFromState } from "./state";
+export { defaultState, normalizedState, searchFromState } from "./state";
 export { isReportPayload } from "./validation";
 export type { BrowserRuntime, FormState, ReportPayload } from "./types";
 
@@ -38,7 +38,9 @@ export class CalculatorApp implements EventListenerObject {
   public handleEvent(event: Event): void {
     if (event.type === "change") {
       this.handleChange(event);
-    } else if (event.type === "submit") {
+      return;
+    }
+    if (event.type === "submit") {
       this.handleSubmit(event);
     }
   }
@@ -46,23 +48,17 @@ export class CalculatorApp implements EventListenerObject {
   public loadReport(rawSearch: URLSearchParams): void {
     const state = normalizedState(rawSearch);
     const report = buildReport(state);
-    this.app.innerHTML = `${renderStatusBar()}${renderForm(state)}${renderResults(report, state)}`;
-    syncAdapterControl(this.app);
-    syncArchitectureControl(this.app);
+    this.app.innerHTML = `${renderStatusBar()}${renderForm(state)}${renderResults(report)}`;
+    syncConditionalControls(this.app);
   }
 
   private handleChange(event: Event): void {
     const { target } = event;
     if (
-      !(target instanceof HTMLInputElement) &&
-      !(target instanceof HTMLSelectElement)
+      target instanceof HTMLInputElement ||
+      target instanceof HTMLSelectElement
     ) {
-      return;
-    }
-    if (target.name === "trained") {
-      syncAdapterControl(this.app);
-    } else if (target.name === "architecture") {
-      syncArchitectureControl(this.app);
+      syncConditionalControls(this.app);
     }
   }
 
@@ -74,9 +70,7 @@ export class CalculatorApp implements EventListenerObject {
     const search = new URLSearchParams();
     const formData = new FormData(event.target);
     for (const [name, value] of formData) {
-      if (typeof value === "string") {
-        search.set(name, value);
-      }
+      search.set(name, String(value));
     }
     const normalizedSearch = searchFromState(normalizedState(search));
     this.runtime.history.replaceState(

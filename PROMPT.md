@@ -6,6 +6,10 @@ Objective: Verify frontend parity against `docs/plan.md` and `specs/frontend.md`
 
 You are an implementation worker, not the orchestrator. Do not run `harness run
 codex`, `harness run claude`, or launch any nested agents.
+`RALPH_LOOP=1` is expected inside this worker. It is not a blocker unless you
+are about to launch another `harness run ...` process.
+Do not read or act on `specs/orchestrate.md`. Your assigned spec is
+`specs/frontend.md`; complete that frontend objective directly.
 
 # Ralph loop prompt
 

@@ -68,9 +68,9 @@ describe("corrected text-generation totals", () => {
         active_params: "1.3",
         precision: "16-bit",
       },
-      107.9,
+      113.1,
     ],
-    ["8B server inference defaults to 20.4 GB", { total_params: "8" }, 20.4],
+    ["8B server inference defaults to 21.3 GB", { total_params: "8" }, 21.3],
     [
       "104B local exact GGUF file uses local overhead and no server buffer",
       {
@@ -81,7 +81,7 @@ describe("corrected text-generation totals", () => {
         runtime_profile: "Local / Edge",
         known_model_file_size_gb: "52",
       },
-      77.7,
+      79.2,
     ],
     [
       "47B local 4-bit MoE uses active parameters only for KV",
@@ -92,7 +92,7 @@ describe("corrected text-generation totals", () => {
         moe_enabled: true,
         active_params: "1.3",
       },
-      26.6,
+      27.3,
     ],
     [
       "70B long-context 4-bit FP8 KV uses estimated GQA KV heads",
@@ -102,7 +102,7 @@ describe("corrected text-generation totals", () => {
         precision: "4-bit",
         kv_cache_precision: "8-bit / FP8",
       },
-      69,
+      71.2,
     ],
     [
       "70B exact file long-context case preserves architecture KV",
@@ -113,17 +113,17 @@ describe("corrected text-generation totals", () => {
         kv_cache_precision: "8-bit / FP8",
         known_model_file_size_gb: "35",
       },
-      63.2,
+      65.1,
     ],
     [
       "104B 8-bit 16-bit KV uses weight overhead",
       { total_params: "104", context_tokens: "32000", precision: "8-bit" },
-      135.6,
+      141.6,
     ],
     [
       "7B million-token context uses estimated GQA",
       { context_tokens: "1000000", precision: "8-bit" },
-      153.9,
+      154.3,
     ],
   ])("%s", (_name, overrides, expected) => {
     expect(required(overrides)).toBe(expected);
@@ -137,7 +137,7 @@ describe("corrected text-generation totals", () => {
           precision: precision as FormState["precision"],
         }),
       ),
-    ).toEqual([38, 20.4, 12, 7.9]);
+    ).toEqual([39.8, 21.3, 12.5, 8.1]);
   });
 });
 
@@ -158,14 +158,14 @@ describe("training estimates", () => {
       152.9,
     ],
     [
-      "tiny FP8 full training is dominated by training runtime overhead",
+      "tiny FP8 full training uses checkpointed activations without a special case",
       {
         total_params: "0.0004",
         precision: "8-bit",
         kv_cache_precision: "8-bit / FP8",
         execution_mode: "Full training",
       },
-      5.1,
+      7,
     ],
     [
       "8B default QLoRA uses 0.5% trainable adapters",
@@ -287,6 +287,18 @@ describe("training estimates", () => {
 });
 
 describe("workload-family working memory", () => {
+  test("text generation includes decoder scratch by runtime profile", () => {
+    const server = specFromState(state());
+    const local = specFromState(state({ runtime_profile: "Local / Edge" }));
+
+    expect(
+      inferenceWorkingMemoryGb(server, weightsGb(server)).inputActivationGb,
+    ).toBeCloseTo(0.7);
+    expect(
+      inferenceWorkingMemoryGb(local, weightsGb(local)).inputActivationGb,
+    ).toBeCloseTo(0.42);
+  });
+
   test.each<WorkloadFamily>([
     "text_encoder",
     "encoder_decoder",

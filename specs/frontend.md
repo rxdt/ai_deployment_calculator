@@ -64,8 +64,8 @@ PRIORITY 1 - frontend parity implemented; keep green.
 
 ## Tests And Checks
 
-- Unit tests pin corrected totals: `47B` MoE `107.9 GB`, default `8B`
-  `20.4 GB`, `7B` full training `152.9 GB`, local exact `104B` `77.7 GB`,
+- Unit tests pin corrected totals: `47B` MoE `113.1 GB`, default `8B`
+  `21.3 GB`, `7B` full training `152.9 GB`, local exact `104B` `79.2 GB`,
   QLoRA defaults and `2%` cases, long-context GQA KV, and precision comparison.
 - Unit tests cover conversion, precision map, file-size override, MoE resident
   memory, decoder KV scaling, no encoder KV, encoder-decoder memory,
@@ -79,3 +79,20 @@ PRIORITY 1 - frontend parity implemented; keep green.
   `npm --prefix frontend run test:coverage`,
   `npm --prefix frontend run test:e2e`, `npm --prefix frontend run gate`,
   `.venv/bin/harness gate`, `harness preflight`.
+
+## Open Parity Gaps (code review)
+
+Calculator output deviates from `docs/plan.md` (master). Current tests pin the
+CODE's numbers, not the plan's, so they lock in these deviations — when fixing,
+re-derive expected values from `docs/plan.md`, not the current code.
+
+1. Local/Edge inference drops `Weight_Overhead` (`calculator-core.ts` ~L251).
+   Plan's `Weights_GB = Resident_Params_B * Weight_Bytes * Weight_Overhead` is
+   unconditional; local 4-bit 47B should be 27.0, code gives 23.5. CONFIRM
+   INTENT with human first — may be deliberate for local GGUF.
+3. Vision-language uses text architecture for the vision tower; plan wants
+   `vision_layers`/`vision_hidden_size` or a pixel-proxy fallback. Neither exists.
+- Minor: `cloudCost` ignores `recommended_gpu_count` on >320GB overflow
+  (`hardware.ts` ~L70); `_hasLocalFile` arg is dead (`calculator-core.ts`
+  L182,222); zero-row hiding is exact `=== 0` only, so sub-0.05 rows show
+  `0.0 GB` (`report.ts` L14).

@@ -83,10 +83,14 @@ function videoSize(resolution: FormState["video_resolution"]): {
     : { width: 1280, height: 720 };
 }
 
-function textGenerationMemory(spec: CalculationSpec): WorkingMemory {
+function textGenerationMemory(
+  spec: CalculationSpec,
+  currentWeightsGb: number,
+): WorkingMemory {
+  const scratchRatio = spec.runtimeProfile === "Local / Edge" ? 0.03 : 0.05;
   return {
     kvCacheGb: decoderKvGb(spec, positive(spec.state.context_tokens, 8000)),
-    inputActivationGb: 0,
+    inputActivationGb: currentWeightsGb * scratchRatio,
   };
 }
 

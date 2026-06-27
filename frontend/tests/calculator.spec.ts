@@ -23,12 +23,12 @@ test("renders the default deployment computed locally", async ({ page }) => {
   await expect(page.getByLabel("Workload Family")).toHaveValue(
     "text_generation",
   );
-  await expect(page.locator(".total")).toHaveText("18.2 GB");
+  await expect(page.locator(".total")).toHaveText("19.0 GB");
   await expect(page.getByLabel("Required outputs")).toContainText(
     "Minimum Raw VRAM Needed",
   );
   await expect(page.getByLabel("Recommended Hardware")).toContainText(
-    "18.2 GB / 85% = 21.4 GB raw VRAM",
+    "19.0 GB / 85% = 22.4 GB raw VRAM",
   );
   await expect(page.getByLabel("Accuracy")).toContainText("Estimated");
   await expect(page.getByLabel("Warnings")).toContainText("planning estimate");
@@ -48,7 +48,7 @@ test("recomputes a local GGUF-style exact file deployment", async ({
   await page.getByLabel("KV Cache Precision").selectOption("32-bit");
   await page.getByRole("button", { name: "Calculate" }).click();
 
-  await expect(page.locator(".total")).toHaveText("77.7 GB");
+  await expect(page.locator(".total")).toHaveText("79.2 GB");
   await expect(page.getByLabel("Accuracy")).toContainText("File-size based");
   await expect(page.getByLabel("Required outputs")).not.toContainText(
     "Cloud cost",
@@ -95,7 +95,7 @@ test("escapes reflected query values without injecting markup", async ({
   await page.goto(hostileQuery);
 
   await expect(page.locator("img")).toHaveCount(0);
-  await expect(page.locator(".total")).toHaveText("18.2 GB");
+  await expect(page.locator(".total")).toHaveText("19.0 GB");
   await expect
     .poll(async () =>
       page.evaluate(() =>

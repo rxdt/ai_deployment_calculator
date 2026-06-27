@@ -237,7 +237,7 @@ describe("calculator app", () => {
     const root = appRoot();
     mountCalculator(root, runtime());
 
-    expect(root.querySelector(".total")?.textContent).toBe("18.2 GB");
+    expect(root.querySelector(".total")?.textContent).toBe("19.0 GB");
     expect(root.textContent).toContain("Workload Family");
     expect(root.textContent).toContain("Advanced assumptions");
     expect(root.textContent).not.toContain("Batch Size");
@@ -282,7 +282,7 @@ describe("calculator app", () => {
     }
 
     expect(rt.history.replaceState).toHaveBeenCalled();
-    expect(root.querySelector(".total")?.textContent).toBe("6.1 GB");
+    expect(root.querySelector(".total")?.textContent).toBe("6.3 GB");
   });
 
   test("handles direct change and submit events defensively", () => {

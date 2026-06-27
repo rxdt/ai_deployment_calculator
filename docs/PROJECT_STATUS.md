@@ -8,6 +8,9 @@
   form state and renders local TypeScript `buildReport(state)` synchronously.
 - The calculator split is resolved through `frontend/src/calculator.ts` as the
   public barrel over `calculator-core.ts` and `workload-memory.ts`.
+- Frontend parity gaps #2 and #4 are closed: text generation now includes
+  decoder scratch memory, and tiny-model training activations use the plan
+  formula without a special case.
 - `frontend/src/legacy-approximations.test.ts` was deleted and must stay gone.
 - Frontend logic is split into focused `app`, `render`, `state`, `validation`,
   `controls`, `types`, `calculator`, `hardware`, and `report` modules, with
@@ -20,28 +23,29 @@
 
 ## Next
 
-1. Keep frontend parity green; do not reintroduce backend report-service
-   calculations or legacy approximation tests.
-2. Human owner reviews unrelated dirty files that predate this pass:
-   `PROMPT.md`, `README.md`, and `frontend/harness/gate.test.ts`.
-3. Continue from a normal shell if another worker is needed.
+1. P0 (frontend): continue remaining `specs/frontend.md` parity gaps only.
+   Gap #1 local `Weight_Overhead` needs human intent confirmation first; gap #3
+   vision-language architecture remains open.
+2. Docs: update stale `README.md` feature list/repro steps (see `specs/backend.md`
+   TODO) to match shipped Vite-only outputs.
+3. Backend removal verified clean by code review; keep it green.
+4. Keep frontend parity green; do not reintroduce report-service calculations or
+   legacy approximation tests.
 
 ## Checks From This Pass
 
-- `git fetch origin` - green; `main` had local commits ahead of `origin/main`
-  before this pass.
+- `git fetch origin` - green.
 - `npm --prefix frontend run build` - green.
 - `npm --prefix frontend run test:coverage` - green at 100%.
 - `npm --prefix frontend run test:e2e` - green.
 - `npm --prefix frontend run gate` - green.
 - `.venv/bin/harness gate` - green.
 - `harness preflight` - green.
-- `git push` - green.
 
 ## Working Tree Notes
 
 - Existing unrelated dirty paths predate this pass; do not revert user-owned
   files.
-- Current branch is even with `origin/main` after this pass.
+- Current branch is `main`; this worker still needs to commit and push.
 - Leave `frontend/example_user_will_delete/` alone. The user will delete it once
   the frontend is done.

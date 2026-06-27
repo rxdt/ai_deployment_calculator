@@ -11,21 +11,21 @@ describe("buildReport", () => {
   test("builds the default report locally without network access", () => {
     const report = buildReport(state({ total_params: "8" }));
 
-    expect(report.totalRequiredMemory).toBe("20.4 GB");
-    expect(report.minimumRawVramNeeded).toBe("24.0 GB");
+    expect(report.totalRequiredMemory).toBe("21.3 GB");
+    expect(report.minimumRawVramNeeded).toBe("25.1 GB");
     expect(report.recommendedHardware).toEqual({
-      requiredMemory: "20.4 GB",
+      requiredMemory: "21.3 GB",
       usableVramTarget: "85%",
-      minimumRawVram: "24.0 GB",
-      recommendedTier:
-        "24 GB: High-end consumer GPU class, e.g. RTX 3090 / RTX 4090",
-      math: "20.4 GB / 85% = 24.0 GB raw VRAM",
+      minimumRawVram: "25.1 GB",
+      recommendedTier: "48 GB: Workstation GPU class or sharded multi-GPU",
+      math: "21.3 GB / 85% = 25.1 GB raw VRAM",
     });
-    expect(report.cloudCost).toContain("$1.00/hr static estimate");
+    expect(report.cloudCost).toContain("$1.50/hr static estimate");
     expect(report.accuracy).toBe("Estimated");
     expect(report.breakdown.map((row) => row.label)).toEqual([
       "Model / pipeline weights",
       "KV cache",
+      "Input / activation memory",
       "Runtime overhead",
       "Safety buffer",
     ]);
@@ -33,7 +33,7 @@ describe("buildReport", () => {
       expect.objectContaining({ label: "Task overhead" }),
     );
     expect(report.calculation).toBe(
-      "(16.0 + 1.0 + 0.0 + 0.0 + 1.5) * 1.10 = 20.4 GB",
+      "(16.0 + 1.0 + 0.8 + 0.0 + 1.5) * 1.10 = 21.3 GB",
     );
   });
 
@@ -49,7 +49,7 @@ describe("buildReport", () => {
       }),
     );
 
-    expect(report.totalRequiredMemory).toBe("77.7 GB");
+    expect(report.totalRequiredMemory).toBe("79.2 GB");
     expect(report.cloudCost).toBeNull();
     expect(report.accuracy).toBe("File-size based");
     expect(report.warnings).toContain(

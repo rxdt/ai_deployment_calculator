@@ -273,9 +273,6 @@ function sequenceForTraining(spec: CalculationSpec): number {
 }
 
 export function trainingActivationGb(spec: CalculationSpec): number {
-  if (spec.totalParamsB < 0.001) {
-    return spec.totalParamsB * 200;
-  }
   const factor = spec.gradientCheckpointing ? 3 : 8;
   return (
     (factor *

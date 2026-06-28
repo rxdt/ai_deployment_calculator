@@ -2,17 +2,14 @@
 
 ## Current State
 
-- Current branch is `main`; this backend guardrail pass started after
-  `git fetch origin`.
+- Current branch is `main`; this pass fetched `origin` before work.
 - The shipped app is a static Vite calculator. `CalculatorApp.loadReport`
   normalizes form state and renders local TypeScript `buildReport(state)`
   synchronously.
 - `README.md` now describes only the shipped Vite UI: no Python/FastAPI backend,
   no `/api/report`, no host-RAM output, and no stale GGUF/A100 reproduction.
-- `specs/backend.md` records the README directive as complete.
-- `frontend/src/app.test.ts` now asserts default render, form submit, and
-  adaptive rerender paths do not call `fetch`, so a revived report-service path
-  fails frontend tests.
+- `frontend/src/app.test.ts` now asserts direct query loading, default render,
+  form submit, and adaptive rerender paths do not call `fetch`.
 
 ## Next
 
@@ -24,15 +21,11 @@
 
 - `git fetch origin` - green.
 - `npm --prefix frontend run test -- --run src/app.test.ts` - green.
-- `npm --prefix frontend run typecheck` - green after strict cast fix.
-- `npm --prefix frontend run gate` - green.
-- `harness preflight` - green after staging the scoped files.
-- Initial `git push` - rejected by pre-push gate on strict test casts in
-  `frontend/src/app.test.ts`; casts were corrected.
-- Implementation commit `a1f6c28` - pushed to `origin/main`.
-- Retry `git push` - green after the pre-push gate passed.
+- `harness preflight` - green after staging scoped files.
 
 ## Working Tree Notes
 
 - Stage only `frontend/src/app.test.ts`, `specs/backend.md`, and
   `docs/PROJECT_STATUS.md` for this backend guardrail pass.
+- Pre-existing unstaged changes are present in `PROMPT.md`, `README.md`,
+  `specs/frontend.md`, and `frontend/test-results/`; do not include them.

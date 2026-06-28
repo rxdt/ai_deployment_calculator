@@ -276,6 +276,24 @@ describe("calculator app", () => {
     expect(fetchReport).not.toHaveBeenCalled();
   });
 
+  test("loads report queries from local TypeScript without a report service", () => {
+    const fetchReport = mockFetch();
+    const root = appRoot();
+    const app = new CalculatorApp(root, runtime());
+
+    app.loadReport(
+      new URLSearchParams({
+        total_params: "8",
+        precision: "4-bit",
+        runtime_profile: "Local / Edge",
+        known_model_file_size_gb: "4.6",
+      }),
+    );
+
+    expect(root.querySelector(".total")?.textContent).toBe("6.3 GB");
+    expect(fetchReport).not.toHaveBeenCalled();
+  });
+
   test("submits normalized form state into the URL and recomputes", () => {
     const fetchReport = mockFetch();
     const root = appRoot();

@@ -8,8 +8,8 @@
   synchronously.
 - `README.md` now describes only the shipped Vite UI: no Python/FastAPI backend,
   no `/api/report`, no host-RAM output, and no stale GGUF/A100 reproduction.
-- `frontend/src/app.test.ts` now asserts direct query loading, default render,
-  form submit, and adaptive rerender paths do not call `fetch`.
+- `frontend/src/app.test.ts` now asserts mounted direct query loading, default
+  render, form submit, and adaptive rerender paths do not call `fetch`.
 
 ## Next
 
@@ -20,6 +20,8 @@
 ## Checks From This Pass
 
 - `git fetch origin` - green.
+- `rg` backend-removal sweep - no Python app, report-service route, or
+  frontend `fetch(` source found.
 - `npm --prefix frontend run test -- --run src/app.test.ts` - green.
 - `harness preflight` - green after staging scoped files.
 

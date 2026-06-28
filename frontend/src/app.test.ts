@@ -279,15 +279,11 @@ describe("calculator app", () => {
   test("loads report queries from local TypeScript without a report service", () => {
     const fetchReport = mockFetch();
     const root = appRoot();
-    const app = new CalculatorApp(root, runtime());
-
-    app.loadReport(
-      new URLSearchParams({
-        total_params: "8",
-        precision: "4-bit",
-        runtime_profile: "Local / Edge",
-        known_model_file_size_gb: "4.6",
-      }),
+    mountCalculator(
+      root,
+      runtime(
+        "?total_params=8&precision=4-bit&runtime_profile=Local+%2F+Edge&known_model_file_size_gb=4.6",
+      ),
     );
 
     expect(root.querySelector(".total")?.textContent).toBe("6.3 GB");

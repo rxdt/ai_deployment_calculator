@@ -8,7 +8,7 @@ import {
   preferencesViolations,
   spreadViolations,
   underscoreViolations,
-} from "./preferences.ts";
+} from "./preferences.js";
 
 const parse = (source: string): ts.SourceFile =>
   ts.createSourceFile(

@@ -4,11 +4,11 @@ import { defineConfig } from "vitest/config";
 // Coverage is a hard 100% on the gate + preferences logic; the I/O CLI and test helpers are excluded.
 export default defineConfig({
   test: {
-    include: ["harness/*.test.ts"],
+    include: ["*.test.ts"],
     coverage: {
       provider: "v8",
       reporter: ["text"],
-      include: ["harness/gate.ts", "harness/preferences.ts"],
+      include: ["gate.ts", "preferences.ts"],
       thresholds: {
         branches: 100,
         functions: 100,

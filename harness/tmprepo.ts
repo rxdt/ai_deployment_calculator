@@ -5,7 +5,7 @@ import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
-import { gitSafeEnvironment, runGit } from "./gate.ts";
+import { gitSafeEnvironment, runGit } from "./gate.js";
 
 /**
 Run a command with a GIT_*-free env, throwing on failure so a test fails loudly.

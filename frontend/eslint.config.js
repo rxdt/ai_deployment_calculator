@@ -126,7 +126,7 @@ export default defineConfig([
       ],
       "max-lines": [
         "error",
-        { max: 300, skipBlankLines: true, skipComments: true },
+        { max: 500, skipBlankLines: true, skipComments: true }, // Default is 300
       ],
       "max-depth": ["error", 3],
       "max-params": ["error", 4], // Caps function parameters

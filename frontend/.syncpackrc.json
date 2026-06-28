@@ -2,6 +2,13 @@
   "$schema": "https://unpkg.com/syncpack@15/dist/schema.json",
   "versionGroups": [
     {
+      "label": "Tooling pinned for CLI compatibility.",
+      "dependencies": ["ajv-cli", "cspell", "lockfile-lint", "markuplint"],
+      "packages": ["**"],
+      "dependencyTypes": ["dev"],
+      "isIgnored": true
+    },
+    {
       "label": "Repo convention: prod/dev dependencies track the `latest` dist-tag.",
       "dependencies": ["**"],
       "packages": ["**"],

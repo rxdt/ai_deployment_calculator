@@ -1,11 +1,25 @@
 // Command-line interface for the JS harness: gate/preflight pass-throughs plus one ralph loop.
 
 import { spawn, spawnSync } from "node:child_process";
-import { createWriteStream, existsSync, mkdirSync, readdirSync } from "node:fs";
+import {
+  chmodSync,
+  createWriteStream,
+  existsSync,
+  lstatSync,
+  mkdirSync,
+  readFileSync,
+  readlinkSync,
+  readdirSync,
+  realpathSync,
+  statSync,
+  unlinkSync,
+  writeFileSync,
+} from "node:fs";
+import { builtinModules } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { runChecks, runGate, runGit, runPreflight } from "./gate.ts";
+import { runChecks, runGate, runGit, runPreflight } from "./gate.js";
 
 export const AGENTS: Record<string, string[]> = {
   claude: [
@@ -13,21 +27,30 @@ export const AGENTS: Record<string, string[]> = {
     "-p",
     "--permission-mode",
     "acceptEdits",
+    // "--bare", // for one-shot minimal run. skips MCP servers, hooks, plugins, and CLAUDE.md, reducing startup time, sets CLAUDE_CODE_SIMPLE, won't use CLAUDE_CODE_OAUTH_TOKEN
+    "--no-session-persistence", // don't save session data — good for disposable automation tasks
     "--output-format",
     "stream-json",
     "--verbose",
   ],
   codex: [
+    "env",
+    "-u",
+    "CODEX_THREAD_ID", // child does not bind to the parent thread/session state
+    "-u",
+    "CODEX_CONVERSATION_ID",
+    "-u",
+    "CODEX_SESSION_ID",
     "codex",
     "exec",
     "-m",
     "gpt-5.5",
     "--json",
-    "--dangerously-bypass-approvals-and-sandbox",
-    "--dangerously-bypass-hook-trust",
+    "--sandbox",
+    "danger-full-access",
     "-",
   ],
-  agy: ["agy", "--log-file", "agy.log", "--print"],
+  agy: ["sh", "-c", "cat >/dev/null"],
   copilot: [
     "sh",
     "-c",
@@ -60,6 +83,15 @@ export interface CommandResult {
   lines: string[];
 }
 
+interface PackageJson {
+  name?: string;
+  [key: string]: unknown;
+}
+
+const RESERVED_PACKAGE_NAMES = new Set(
+  builtinModules.map((moduleName) => moduleName.replace(/^node:/u, "")),
+);
+
 /**
 Resolve the Git repository root from any directory inside the checkout.
 @param from - Directory inside the repo.
@@ -86,7 +118,10 @@ export function run(
   dependencies: CliDependencies = defaultDependencies,
 ): CommandResult {
   if (command !== "preflight" && command !== "gate") {
-    return { code: 2, lines: ["usage: harness <preflight|gate|run>"] };
+    return {
+      code: 2,
+      lines: ["usage: harness <preflight|gate|run|status|install>"],
+    };
   }
   const repo = dependencies.repoRoot(process.cwd());
   const problems =
@@ -98,6 +133,185 @@ export function run(
     problems.length > 0 ? "rejected by harness" : `ok: ${command} passed`,
   );
   return { code: problems.length > 0 ? 1 : 0, lines };
+}
+
+function packageNameIsValid(name: string): boolean {
+  return /^(?:@[a-z0-9][a-z0-9._-]*\/)?[a-z0-9][a-z0-9._-]*$/u.test(name);
+}
+
+function packageNameFromInput(name: string): string {
+  const lower = name.toLowerCase().slice(0, 214);
+  return packageNameIsValid(lower)
+    ? lower
+    : lower
+        .replaceAll("/", ".")
+        .replaceAll(/[^a-z0-9.]/gu, "")
+        .replaceAll(/^\.+/gu, "");
+}
+
+function writePackageName(repo: string, name: string): void {
+  const packagePath = path.join(repo, "package.json");
+  const parsed = JSON.parse(readFileSync(packagePath, "utf8")) as PackageJson;
+  parsed.name = name;
+  writeFileSync(packagePath, `${JSON.stringify(parsed, null, 2)}\n`);
+}
+
+function runNpmInstall(repo: string): number {
+  for (const directory of ["harness", "frontend"]) {
+    if (existsSync(path.join(repo, directory, "node_modules"))) {
+      continue;
+    }
+    const result = spawnSync("npm", ["install"], {
+      cwd: path.join(repo, directory),
+      stdio: "inherit",
+    });
+    if (result.status !== 0) {
+      return result.status ?? 1;
+    }
+  }
+  return 0;
+}
+
+function removeExistingRepoHarnessLink(repo: string): void {
+  const prefix = spawnSync("npm", ["prefix", "-g"], {
+    encoding: "utf8",
+  }).stdout.trim();
+  const globalPackages = spawnSync("npm", ["root", "-g"], {
+    encoding: "utf8",
+  }).stdout.trim();
+  const harness = path.join(prefix, "bin", "harness");
+  if (
+    prefix.length === 0 ||
+    globalPackages.length === 0 ||
+    !lstatSync(harness, { throwIfNoEntry: false })?.isSymbolicLink()
+  ) {
+    return;
+  }
+  const target = path.resolve(path.dirname(harness), readlinkSync(harness));
+  const repoRoot = realpathSync(repo);
+  const resolvedTarget = existsSync(target) ? realpathSync(target) : target;
+  const packageParts = path.relative(globalPackages, target).split(path.sep);
+  const packageRoot =
+    packageParts[0]?.startsWith("@") === true
+      ? path.join(globalPackages, packageParts[0], packageParts[1] ?? "")
+      : path.join(globalPackages, packageParts[0] ?? "");
+  const linkedPackage =
+    lstatSync(packageRoot, { throwIfNoEntry: false })?.isSymbolicLink() === true
+      ? path.resolve(path.dirname(packageRoot), readlinkSync(packageRoot))
+      : "";
+  const resolvedPackage = existsSync(linkedPackage)
+    ? realpathSync(linkedPackage)
+    : linkedPackage;
+  if (
+    resolvedTarget.startsWith(`${repoRoot}${path.sep}`) ||
+    resolvedPackage === repoRoot ||
+    (!existsSync(target) && target.startsWith(`${globalPackages}${path.sep}`))
+  ) {
+    unlinkSync(harness);
+  }
+}
+
+function linkHarnessBinary(repo: string): number {
+  removeExistingRepoHarnessLink(repo);
+  const result = spawnSync("npm", ["link"], {
+    cwd: repo,
+    stdio: "inherit",
+  });
+  return result.status ?? 1;
+}
+
+function writeHook(repo: string, name: string, command: string): void {
+  const hook = path.join(repo, ".githooks", name);
+  writeFileSync(hook, ["#!/bin/sh", "set -eu", "", command, ""].join("\n"));
+  chmodSync(hook, 0o755);
+}
+
+function writeHooks(repo: string): void {
+  const hooks = path.join(repo, ".githooks");
+  mkdirSync(hooks, { recursive: true });
+  writeHook(repo, "pre-commit", "harness preflight");
+  writeHook(repo, "pre-push", "harness gate");
+}
+
+function runInstall(arguments_: string[]): CommandResult {
+  const repo = repoRoot(process.cwd());
+  const [name] = arguments_;
+  const normalizedName =
+    name === undefined ? undefined : packageNameFromInput(name);
+  if (normalizedName !== undefined) {
+    if (
+      !packageNameIsValid(normalizedName) ||
+      RESERVED_PACKAGE_NAMES.has(normalizedName)
+    ) {
+      return { code: 2, lines: [`invalid package name: ${name}`] };
+    }
+    writePackageName(repo, normalizedName);
+  }
+  const installCode = runNpmInstall(repo);
+  if (installCode !== 0) {
+    return { code: installCode, lines: ["npm install failed"] };
+  }
+  const linkCode = linkHarnessBinary(repo);
+  if (linkCode !== 0) {
+    return { code: linkCode, lines: ["npm link failed"] };
+  }
+  writeHooks(repo);
+  runGit(repo, ["config", "core.hooksPath", ".githooks"]);
+  const hooksPath = runGit(repo, ["config", "core.hooksPath"]).trim();
+  const lines =
+    normalizedName === undefined
+      ? [
+          "dependencies installed",
+          "harness binary linked",
+          "git hooks installed",
+          `git hooks path: ${hooksPath}`,
+        ]
+      : [
+          `project name set: ${normalizedName}`,
+          "dependencies installed",
+          "harness binary linked",
+          "git hooks installed",
+          `git hooks path: ${hooksPath}`,
+        ];
+  return { code: 0, lines };
+}
+
+function listRunLogs(repo: string): string[] {
+  const runs = path.join(repo, "scratchpad", "runs");
+  if (!existsSync(runs)) {
+    return [];
+  }
+  const pattern = /^[0-9]+\.jsonl$/u;
+  return readdirSync(runs, { withFileTypes: true }).flatMap((agent) => {
+    const agentDirectory = path.join(runs, agent.name);
+    return agent.isDirectory()
+      ? readdirSync(agentDirectory, { withFileTypes: true }).flatMap((day) => {
+          const dayDirectory = path.join(agentDirectory, day.name);
+          return day.isDirectory()
+            ? readdirSync(dayDirectory, { withFileTypes: true }).flatMap(
+                (log) =>
+                  log.isFile() && pattern.test(log.name)
+                    ? [path.join(dayDirectory, log.name)]
+                    : [],
+              )
+            : [];
+        })
+      : [];
+  });
+}
+
+function runStatus(): CommandResult {
+  const repo = repoRoot(process.cwd());
+  const runs = path.join(repo, "scratchpad", "runs");
+  const logs = listRunLogs(repo);
+  const lines = [`${logs.length} run log(s) in ${runs}`];
+  if (logs.length > 0) {
+    const newest = logs.toSorted(
+      (left, right) => statSync(right).mtimeMs - statSync(left).mtimeMs,
+    )[0];
+    lines.push(`newest: ${newest}`);
+  }
+  return { code: 0, lines };
 }
 
 /**
@@ -334,9 +548,19 @@ Run the harness for argv and set the process exit code from the result.
 export async function main(cliArguments: string[]): Promise<void> {
   const command = cliArguments[0] ?? "";
   const result =
-    command === "run" ? await runLoop(cliArguments.slice(1)) : run(command);
+    command === "run"
+      ? await runLoop(cliArguments.slice(1))
+      : command === "status"
+        ? runStatus()
+        : command === "install"
+          ? runInstall(cliArguments.slice(1))
+          : run(command);
   for (const line of result.lines) {
-    process.stderr.write(`${line}\n`);
+    const stream =
+      result.code === 0 && (command === "preflight" || command === "gate")
+        ? process.stdout
+        : process.stderr;
+    stream.write(`${line}\n`);
   }
   process.exitCode = result.code;
 }

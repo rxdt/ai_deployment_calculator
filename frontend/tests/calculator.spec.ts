@@ -30,8 +30,11 @@ test("renders the default deployment computed locally", async ({ page }) => {
   await expect(page.getByLabel("Recommended Hardware")).toContainText(
     "19.0 GB / 85% = 22.4 GB raw VRAM",
   );
-  await expect(page.getByLabel("Accuracy")).toContainText("Estimated");
-  await expect(page.getByLabel("Warnings")).toContainText("planning estimate");
+  await page.getByText("Assumptions", { exact: true }).click();
+  await expect(page.getByLabel("Assumptions")).toContainText("Estimated");
+  await expect(page.getByLabel("Warnings")).not.toContainText(
+    "planning estimate",
+  );
 });
 
 test("recomputes a local GGUF-style exact file deployment", async ({
@@ -49,7 +52,8 @@ test("recomputes a local GGUF-style exact file deployment", async ({
   await page.getByRole("button", { name: "Calculate" }).click();
 
   await expect(page.locator(".total")).toHaveText("79.2 GB");
-  await expect(page.getByLabel("Accuracy")).toContainText("File-size based");
+  await page.getByText("Assumptions", { exact: true }).click();
+  await expect(page.getByLabel("Assumptions")).toContainText("File-size based");
   await expect(page.getByLabel("Required outputs")).not.toContainText(
     "Cloud cost",
   );

@@ -1,10 +1,19 @@
 {
-  "name": "ai-deployment-calculator",
+  "name": "vram-calculator",
+  "version": "0.0.0",
   "private": true,
+  "type": "module",
   "bin": {
-    "harness": "./frontend/harness/harness.mjs"
+    "harness": "./harness/harness.mjs"
+  },
+  "engines": {
+    "node": ">=22",
+    "npm": ">=10"
   },
   "scripts": {
-    "gate": "npm --prefix frontend run gate"
+    "build": "npm --prefix frontend run build",
+    "dev": "npm --prefix frontend run dev",
+    "preview": "npm --prefix frontend run preview",
+    "test": "npm --prefix frontend run test"
   }
 }

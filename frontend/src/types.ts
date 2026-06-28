@@ -11,18 +11,10 @@ export type WorkloadFamily =
   | "custom";
 
 export type Precision =
-  | "4-bit"
-  | "5-bit GGUF"
-  | "6-bit GGUF"
-  | "8-bit"
-  | "16-bit"
-  | "32-bit";
+  "4-bit" | "5-bit GGUF" | "6-bit GGUF" | "8-bit" | "16-bit" | "32-bit";
 export type KvPrecision = "8-bit / FP8" | "16-bit" | "32-bit";
 export type ExecutionMode =
-  | "Inference"
-  | "LoRA fine-tuning"
-  | "QLoRA fine-tuning"
-  | "Full training";
+  "Inference" | "LoRA fine-tuning" | "QLoRA fine-tuning" | "Full training";
 export type RuntimeProfile = "Local / Edge" | "Server / Cloud";
 export type ParameterUnit = "B" | "M" | "K";
 export type Accuracy =

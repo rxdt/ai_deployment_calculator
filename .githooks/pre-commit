@@ -1,6 +1,4 @@
 #!/bin/sh
-# Ralph commit preflight: fast lint/format for everyone, plus loop containment.
-# Bypassing this hook is forbidden by AGENTS.md.
 set -eu
 
-.venv/bin/harness preflight
+harness preflight

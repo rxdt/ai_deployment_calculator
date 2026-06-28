@@ -17,11 +17,12 @@ import {
   runGate,
   runGit,
   runPreflight,
-} from "./gate.ts";
-import { makeRepo, runCommand, stageFile, stagedNames } from "./tmprepo.ts";
+} from "./gate.js";
+import { makeRepo, runCommand, stageFile, stagedNames } from "./tmprepo.js";
 
-const FRONTEND = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
-const REPO = path.join(FRONTEND, "..");
+const HARNESS = path.dirname(fileURLToPath(import.meta.url));
+const REPO = path.join(HARNESS, "..");
+const FRONTEND = path.join(REPO, "frontend");
 const noFailures = (): string[] => [];
 const readFrontend = (relpath: string): string =>
   readFileSync(path.join(FRONTEND, relpath), "utf8");
@@ -222,6 +223,10 @@ describe("loop containment", () => {
   });
 
   test.each([
+    "harness/package.json",
+    "harness/gate.ts",
+    "harness/harness.mjs",
+    "harness/vitest.config.ts",
     "harness/util.ts",
     "frontend/harness/x.ts",
     ".github/ci.yml",
@@ -326,6 +331,22 @@ describe("loop containment", () => {
     expect(staged).toContain("src/keep.ts");
   });
 
+  test("ejects both sides of a rename when the source is forbidden", () => {
+    process.env.RALPH_LOOP = "1";
+    const repo = makeRepo();
+    stageFile(repo, "harness/locked.ts", "export const locked = 1;\n");
+    runCommand(["git", "commit", "-q", "-m", "add locked harness file"], repo);
+    mkdirSync(path.join(repo, "src"), { recursive: true });
+    runCommand(["git", "mv", "harness/locked.ts", "src/unlocked.ts"], repo);
+    stageFile(repo, "src/keep.ts", "export const keep = 1;\n");
+
+    expect(runPreflight(repo, noFailures)).toEqual([]);
+    const staged = stagedNames(repo);
+    expect(staged).not.toContain("harness/locked.ts");
+    expect(staged).not.toContain("src/unlocked.ts");
+    expect(staged).toContain("src/keep.ts");
+  });
+
   test("does not run preferences on forbidden paths after dropping them", () => {
     process.env.RALPH_LOOP = "1";
     const repo = makeRepo();
@@ -361,6 +382,18 @@ describe("banned patterns and preferences under loop", () => {
     expect(isFlagged).toBe(true);
   });
 
+  test("does not flag banned words that appear only in a filename", () => {
+    process.env.RALPH_LOOP = "1";
+    const repo = makeRepo();
+    stageFile(repo, "src/noqa.ts", "export const clean = 1;\n");
+
+    const problems = runPreflight(repo, noFailures);
+
+    expect(problems).not.toEqual(
+      expect.arrayContaining([expect.stringContaining("banned pattern")]),
+    );
+  });
+
   test("flags a staged preference break (underscore name)", () => {
     process.env.RALPH_LOOP = "1";
     const repo = makeRepo();
@@ -376,7 +409,6 @@ describe("frontend gate shape", () => {
   test("package.json gate runs every public stage in order", () => {
     const scripts = readScripts();
     const { gate } = scripts;
-    expect(gate).toContain("cd .. && .venv/bin/harness gate");
     for (const stage of [
       "preflight",
       "typecheck",
@@ -391,6 +423,7 @@ describe("frontend gate shape", () => {
     expect(gate.indexOf("preflight")).toBeLessThan(gate.indexOf("lint"));
     expect(gate.indexOf("typecheck")).toBeLessThan(gate.indexOf("security"));
     expect(gate.indexOf("security")).toBeLessThan(gate.indexOf("TEST"));
+    expect(gate).not.toContain(".venv/bin/harness");
   });
 
   test("public check groups cover the installed tools", () => {
@@ -398,7 +431,7 @@ describe("frontend gate shape", () => {
     expect(scripts.typecheck).toContain("tsc");
     expect(scripts.typecheck).toContain("--noEmit");
     expect(scripts.preflight).toContain("npm run format");
-    expect(scripts.preflight).toContain("eslint src harness");
+    expect(scripts.preflight).toContain("eslint src");
     expect(scripts.security).toContain("semgrep scan");
     expect(scripts.security).toContain("--error");
     expect(scripts.security).toContain("secretlint");
@@ -439,13 +472,12 @@ describe("frontend gate shape", () => {
       ["lint:dead", scripts.lint, "knip"],
       ["lint:html", scripts.lint, 'markuplint "**/*.html"'],
       ["lint:js", scripts.lint, "eslint . --max-warnings=0"],
-      ["lint:js:preflight", scripts.preflight, "eslint src harness"],
+      ["lint:js:preflight", scripts.preflight, "eslint src"],
       ["lint:spell", scripts.lint, "cspell ."],
       ["security:sast", scripts.security, "semgrep scan"],
       ["security:secrets", scripts.security, "secretlint"],
       ["test:coverage", scripts.TEST, "vitest run --coverage"],
       ["test:e2e", scripts.TEST, "playwright test"],
-      ["test:harness", scripts.TEST, "harness/vitest.config.ts"],
       ["test:unit", scripts.test, "vitest run"],
     ] as const;
 
@@ -499,44 +531,47 @@ describe("frontend gate shape", () => {
     expect(config).toContain("eslint-plugin-security");
     expect(config).toContain("no-explicit-any");
   });
-
-  test("GitHub CI runs Python checks before the frontend gate", () => {
-    const ci = readRepo(".github/workflows/ci.yml");
-    expect(ci).toContain("uv run --no-sync ruff check .");
-    expect(ci).toContain("uv run --no-sync pyright");
-    expect(ci).toContain("uv run --no-sync pytest --cov");
-    expect(ci).toContain("npm --prefix frontend run gate");
-  });
-
-  test("frontend CI reference is clearly inactive and runs the full gate", () => {
-    const ci = readFrontend("ci.yml");
-    expect(ci).toContain("Reference copy only");
-    expect(ci).toContain("npm run gate");
-    expect(ci).not.toContain("npm run TEST");
-    expect(ci).not.toContain("npm run test:harness");
-  });
-
   test("git hooks are two simple entrypoints", () => {
     const hooks = readdirSync(path.join(REPO, ".githooks")).toSorted();
     expect(hooks).toEqual(["pre-commit", "pre-push"]);
-    expect(readRepo(".githooks/pre-commit")).toContain(
-      ".venv/bin/harness preflight",
-    );
-    expect(readRepo(".githooks/pre-push")).toContain(".venv/bin/harness gate");
+    expect(readRepo(".githooks/pre-commit")).toContain("harness preflight");
+    expect(readRepo(".githooks/pre-push")).toContain("harness gate");
   });
 
-  test("pre-push and GitHub CI use the same local gate backstop", () => {
+  test("outside entrypoints do not call the Python harness", () => {
+    const checked = new Map([
+      [".githooks/pre-commit", readRepo(".githooks/pre-commit")],
+      [".githooks/pre-push", readRepo(".githooks/pre-push")],
+      ["package.json", readRepo("package.json")],
+      ["frontend/package.json", readFrontend("package.json")],
+      [".github/workflows/ci.yml", readRepo(".github/workflows/ci.yml")],
+    ]);
+    const forbidden = [
+      ".venv/bin/harness",
+      "harness/cli.py",
+      "harness/gate.py",
+      "harness/preferences.py",
+      "python -m harness",
+      "uv run harness",
+    ];
+    for (const [file, text] of checked) {
+      for (const fragment of forbidden) {
+        expect(text, `${file} calls ${fragment}`).not.toContain(fragment);
+      }
+    }
+  });
+
+  test("pre-push and GitHub CI use the JavaScript gate", () => {
     const prePush = readRepo(".githooks/pre-push");
     const githubCi = readRepo(".github/workflows/ci.yml");
     const packageGate = readScripts().gate;
-    expect(prePush).toContain(".venv/bin/harness gate");
-    expect(githubCi).toContain("npm --prefix frontend run gate");
-    expect(packageGate).toContain("cd .. && .venv/bin/harness gate");
+    expect(prePush).toContain("harness gate");
+    expect(githubCi).toContain("npm run gate");
+    expect(packageGate).not.toContain(".venv/bin/harness");
     expect(packageGate).not.toContain("harness/cli.ts gate");
   });
 
-  test("local gates and CI both load preference checks", () => {
-    expect(readRepo("harness/gate.py")).toContain("preferences_violations");
-    expect(readFrontend("harness/gate.ts")).toContain("preferencesViolations");
+  test("JavaScript gate loads JavaScript preference checks", () => {
+    expect(readRepo("harness/gate.ts")).toContain("preferencesViolations");
   });
 });

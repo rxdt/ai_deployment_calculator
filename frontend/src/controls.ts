@@ -63,7 +63,7 @@ function syncWorkloadLabel(app: HTMLDivElement): void {
   const workload = app.querySelector<HTMLElement>("[data-workload-label]");
   if (mode !== null && workload !== null) {
     workload.textContent = isTrainingMode(mode.value)
-      ? "Micro Batch Size"
+      ? "Training Batch Size"
       : "Concurrent Requests";
   }
 }

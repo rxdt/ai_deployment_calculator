@@ -1,58 +1,31 @@
-name: gate
-
-# The unbypassable backstop.
-# hook, but this re-runs the same checks on every PR and push, so nothing merges
-# without passing them. Branch protection makes this required.
+name: frontend-gate
 
 on:
   pull_request:
   push:
-    branches: [main]
+    branches: [main, master, prod, production]
 
 jobs:
-  gate:
+  frontend-gate:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
     steps:
       - uses: actions/checkout@v4
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v5
-        with:
-          enable-cache: true
-
-      - name: uv Sync Dependencies
-        run: uv sync
-
-      - name: Ruff Lint
-        run: uv run --no-sync ruff check .
-
-      - name: Pylint Structural Rules
-        run: uv run --no-sync pylint src harness
-
-      - name: Ruff Format Check
-        run: uv run --no-sync ruff format --check .
-
-      - name: Pyright Type Check
-        run: uv run --no-sync pyright
-
-      - name: Semgrep Security Scan
-        run: uv run --no-sync semgrep scan --config auto --config p/secrets --error --quiet .
-
-      - name: Tests with Coverage Gate
-        run: uv run --no-sync pytest --cov --cov-report=term-missing --cov-fail-under=100
 
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
-      - name: Install frontend deps
-        run: npm --prefix frontend ci
+      - name: npm Clean Install
+        run: npm ci
 
-      - name: Frontend lint
-        run: npm --prefix frontend run lint
+      - name: Install Playwright Browser
+        run: npx playwright install --with-deps chromium
 
-      - name: Frontend gate
-        run: npm --prefix frontend run gate
+      - name: Frontend Gate
+        run: npm run gate

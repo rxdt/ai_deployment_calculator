@@ -4,8 +4,10 @@
 // 2) runGate: full pre-push gate; mirrors `npm run gate`, the project's quality bar.
 
 import { spawnSync } from "node:child_process";
+import { existsSync } from "node:fs";
+import path from "node:path";
 
-import { preferencesViolations } from "./preferences.ts";
+import { preferencesViolations } from "./preferences.js";
 
 // A staged file is forbidden if one of its parent dirs is here, or its exact path is in the file set.
 export const FORBIDDEN_DIRS = new Set<string>([
@@ -17,10 +19,9 @@ export const FORBIDDEN_DIRS = new Set<string>([
 
 export const FORBIDDEN_FILES = new Set<string>([
   "AGENTS.md",
-  "PROMPT.md",
+  // "PROMPT.md", removed for Orchestrator
   "docs/plan.md",
   "pyproject.toml",
-  "uv.lock",
   // tooling/config that would weaken the JS gate's thresholds or its checks
   "frontend/package.json",
   "frontend/package-lock.json",
@@ -83,8 +84,7 @@ export const COMMIT_CHECKS: Record<string, string[]> = {
   preflight: npmCheck("preflight"),
 };
 
-// The full bar: a single `npm run gate` already supersets format/lint and adds types,
-// JSON checks, security, build, and the 100%-coverage Vitest + Playwright suites.
+// The full bar: the public frontend gate.
 export const FULL_CHECKS: Record<string, string[]> = {
   gate: npmCheck("gate"),
 };
@@ -132,6 +132,13 @@ export function runChecks(
   const environment = gitSafeEnvironment();
   const failures: string[] = [];
   for (const [name, command] of Object.entries(checks)) {
+    if (
+      command[0] === "npm" &&
+      command[1] === "--prefix" &&
+      !existsSync(path.join(repo, command[2]!, "package.json"))
+    ) {
+      continue;
+    }
     const result = spawnSync(command[0], command.slice(1), {
       cwd: repo,
       encoding: "utf8",

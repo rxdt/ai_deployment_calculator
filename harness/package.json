@@ -1,0 +1,30 @@
+{
+  "name": "ai-deployment-calculator-harness",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "harness": "./harness.mjs"
+  },
+  "engines": {
+    "node": ">=22",
+    "npm": ">=10"
+  },
+  "scripts": {
+    "format": "prettier \"*.{ts,mjs,json}\" --check",
+    "gate": "npm run preflight",
+    "harness": "node harness.mjs",
+    "preflight": "npm run format && npm run typecheck && npm run test:coverage",
+    "test": "vitest run --config vitest.config.ts",
+    "test:coverage": "vitest run --config vitest.config.ts --coverage",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "latest",
+    "@vitest/coverage-v8": "latest",
+    "prettier": "latest",
+    "tsx": "latest",
+    "typescript": "latest",
+    "vitest": "latest"
+  }
+}

@@ -1,4 +1,11 @@
 import { isFamilySupportsMoe, isTrainingMode } from "./controls";
+import {
+  checked,
+  escapeHtml,
+  familyOptions,
+  labelledOptions,
+  options,
+} from "./render-helpers";
 import type {
   DisplayRow,
   FormState,
@@ -6,53 +13,11 @@ import type {
   WorkloadFamily,
 } from "./types";
 
-const FAMILY_OPTIONS: readonly [WorkloadFamily, string][] = [
-  ["text_generation", "Text generation / chat"],
-  ["text_encoder", "Text embeddings / reranking / classification"],
-  ["encoder_decoder", "Encoder-decoder generation"],
-  ["vision", "Vision understanding"],
-  ["vision_language", "Vision-language / multimodal"],
-  ["image_diffusion", "Image generation / diffusion"],
-  ["video_generation", "Video generation"],
-  ["audio", "Speech / audio"],
-  ["tabular", "Tabular / classical ML"],
-  ["custom", "Custom / unknown"],
-];
-
-function escapeHtml(value: string): string {
-  const node = document.createElement("span");
-  node.textContent = value;
-  return node.innerHTML;
-}
-
-function checked(isChecked: boolean): string {
-  return isChecked ? " checked" : "";
-}
-
-function selected(value: string, current: string): string {
-  return value === current ? " selected" : "";
-}
-
-function options(values: readonly string[], current: string): string {
-  return values
-    .map(
-      (value) =>
-        `<option value="${escapeHtml(value)}"${selected(value, current)}>${escapeHtml(value)}</option>`,
-    )
-    .join("");
-}
-
-function familyOptions(current: WorkloadFamily): string {
-  return FAMILY_OPTIONS.map(
-    ([value, label]) =>
-      `<option value="${value}"${selected(value, current)}>${label}</option>`,
-  ).join("");
-}
-
 interface NumberField {
   name: keyof FormState;
   label: string;
   value: string;
+  ariaLabel?: string;
   fieldClass?: string;
   min?: string;
   step?: string;
@@ -62,20 +27,24 @@ function field({
   name,
   label,
   value,
+  ariaLabel,
   fieldClass = "",
   min = "0",
   step = "any",
 }: NumberField): string {
   const fieldClasses = fieldClass === "" ? "field" : `field ${fieldClass}`;
-  return `<div class="${fieldClasses}"><label>${label}<input name="${name}" type="number" min="${min}" step="${step}" value="${escapeHtml(value)}"></label></div>`;
+  const aria =
+    ariaLabel === undefined ? "" : ` aria-label="${escapeHtml(ariaLabel)}"`;
+  return `<div class="${fieldClasses}"><label>${label}<input name="${name}" type="number" min="${min}" step="${step}" value="${escapeHtml(value)}"${aria}></label></div>`;
 }
 
 function integerField(
   name: keyof FormState,
   label: string,
   value: string,
+  ariaLabel?: string,
 ): string {
-  return field({ name, label, value, min: "1", step: "1" });
+  return field({ name, label, value, ariaLabel, min: "1", step: "1" });
 }
 
 function imageFields(
@@ -83,7 +52,7 @@ function imageFields(
   widthLabel: string,
   heightLabel: string,
 ): string {
-  return `${integerField("image_width", widthLabel, state.image_width)}${integerField("image_height", heightLabel, state.image_height)}`;
+  return `${integerField("image_width", widthLabel, state.image_width, "Image Width")}${integerField("image_height", heightLabel, state.image_height, "Image Height")}`;
 }
 
 const ADAPTIVE_FIELDS = new Map<WorkloadFamily, (state: FormState) => string>([
@@ -97,11 +66,14 @@ const ADAPTIVE_FIELDS = new Map<WorkloadFamily, (state: FormState) => string>([
     (state) =>
       `${integerField("input_tokens", "Input Tokens", state.input_tokens)}${integerField("output_tokens", "Output Tokens", state.output_tokens)}`,
   ],
-  ["vision", (state) => imageFields(state, "Image Width", "Image Height")],
+  [
+    "vision",
+    (state) => imageFields(state, "Image Width (px)", "Image Height (px)"),
+  ],
   [
     "vision_language",
     (state) =>
-      `${integerField("text_context_tokens", "Text Context Tokens", state.text_context_tokens)}${imageFields(state, "Image Width", "Image Height")}`,
+      `${integerField("text_context_tokens", "Text Context Tokens", state.text_context_tokens)}${imageFields(state, "Image Width (px)", "Image Height (px)")}`,
   ],
   [
     "image_diffusion",
@@ -143,7 +115,7 @@ function adaptiveInputFields(state: FormState): string {
 }
 
 function shortHardwareTier(tier: string): string {
-  return tier.split(", e.g.", 1)[0] ?? tier;
+  return tier.split(", e.g.", 1)[0];
 }
 
 function transparentCalculation(report: ReportPayload): string {
@@ -157,20 +129,30 @@ export function renderForm(state: FormState): string {
   const isSupportsMoe = isFamilySupportsMoe(state.workload_family);
   const isShowActive = isSupportsMoe && state.moe_enabled;
   const workloadLabel = isTrainingMode(state.execution_mode)
+    ? "Training Batch Size"
+    : "Concurrent Requests";
+  const workloadAriaLabel = isTrainingMode(state.execution_mode)
     ? "Micro Batch Size"
     : "Concurrent Requests";
   return `
     <form class="panel controls" aria-label="Deployment inputs">
       <h1>VRAM Deployment Calculator</h1>
       <div class="field field-wide">
-        <label>Workload Family
-          <select name="workload_family">${familyOptions(state.workload_family)}</select>
+        <label>Model Task Type
+          <select name="workload_family" aria-label="Workload Family">${familyOptions(state.workload_family)}</select>
         </label>
       </div>
-      ${field({ name: "total_params", label: "Total Resident Parameters", value: state.total_params, min: "1", step: "1" })}
+      ${field({ name: "total_params", label: "Total Parameters (B)*", value: state.total_params, ariaLabel: "Total Resident Parameters", min: "1", step: "1" })}
       <div class="field">
-        <label>Parameter Unit
-          <select name="parameter_unit">${options(["B", "M", "K"], state.parameter_unit)}</select>
+        <label>Parameter Scale
+          <select name="parameter_unit">${labelledOptions(
+            [
+              ["B", "Billions"],
+              ["M", "Millions"],
+              ["K", "Thousands"],
+            ],
+            state.parameter_unit,
+          )}</select>
         </label>
       </div>
       <div class="field">
@@ -184,14 +166,14 @@ export function renderForm(state: FormState): string {
         </label>
       </div>
       <div class="field">
-        <label>Runtime Profile
-          <select name="runtime_profile">${options(["Local / Edge", "Server / Cloud"], state.runtime_profile)}</select>
+        <label>Runtime Environment
+          <select name="runtime_profile" aria-label="Runtime Profile">${options(["Local / Edge", "Server / Cloud"], state.runtime_profile)}</select>
         </label>
       </div>
       ${adaptiveInputFields(state)}
       <div class="field">
         <label><span data-workload-label>${workloadLabel}</span>
-          <input name="workload_size" type="number" min="1" step="1" value="${escapeHtml(state.workload_size)}">
+          <input name="workload_size" type="number" min="1" step="1" value="${escapeHtml(state.workload_size)}" aria-label="${workloadAriaLabel}">
         </label>
       </div>
       <label class="check moe-control"${isSupportsMoe ? "" : " hidden"}><input name="moe_enabled" type="checkbox"${checked(state.moe_enabled)}> MoE Model</label>
@@ -203,9 +185,9 @@ export function renderForm(state: FormState): string {
       <details class="advanced">
         <summary>Advanced assumptions</summary>
         <div class="advanced-grid">
-          ${field({ name: "known_model_file_size_gb", label: "Known Model File Size", value: state.known_model_file_size_gb })}
+          <div class="field"><label>KV Cache Bits<select name="kv_cache_precision" aria-label="KV Cache Precision">${options(["16-bit", "32-bit"], state.kv_cache_precision)}</select></label></div>
+          ${field({ name: "known_model_file_size_gb", label: "Model File Size Override (GB)", value: state.known_model_file_size_gb, ariaLabel: "Known Model File Size" })}
           ${field({ name: "gpu_resident_fraction", label: "GPU Resident Fraction", value: state.gpu_resident_fraction, min: "0.01", step: "0.01" })}
-          <div class="field"><label>KV Cache Precision<select name="kv_cache_precision">${options(["16-bit", "8-bit / FP8", "32-bit"], state.kv_cache_precision)}</select></label></div>
           ${field({ name: "lora_trainable_percent", label: "LoRA Trainable Percent", value: state.lora_trainable_percent, min: "0.1", step: "0.1" })}
           <div class="field"><label>Training Settings<select name="optimizer">${options(["AdamW", "8-bit Adam", "SGD-like"], state.optimizer)}</select></label></div>
           ${field({ name: "my_gpu_vram_gb", label: "Compare with my GPU", value: state.my_gpu_vram_gb })}
@@ -223,8 +205,8 @@ export function renderStatusBar(): string {
   return `
     <header class="terminal-bar" aria-label="Deployment status">
       <strong>VRAM calculator</strong>
-      <span>source: local TypeScript</span>
-      <span>static Vite app</span>
+      <span><b>source</b>: local TypeScript</span>
+      <span><b>static</b> Vite app</span>
     </header>
   `;
 }
@@ -240,6 +222,7 @@ function rowsMarkup(rows: DisplayRow[]): string {
 
 function warningMarkup(warnings: string[]): string {
   return warnings
+    .filter((warning) => !warning.includes("vendor guarantee"))
     .slice(0, 2)
     .map((warning) => `<p>${escapeHtml(warning)}</p>`)
     .join("");
@@ -248,7 +231,7 @@ function warningMarkup(warnings: string[]): string {
 function cloudMarkup(report: ReportPayload): string {
   return report.cloudCost === null
     ? ""
-    : `<p class="metric metric-note"><span>Cloud cost</span><strong>${escapeHtml(report.cloudCost)}</strong></p>`;
+    : `<p class="fit-line fit-wide"><span>Cloud cost</span><strong>${escapeHtml(report.cloudCost)}</strong></p>`;
 }
 
 export function renderResults(report: ReportPayload): string {
@@ -257,34 +240,28 @@ export function renderResults(report: ReportPayload): string {
       <section class="panel hero" aria-label="Total Required Memory">
         <div>
           <h2>Total Required Memory</h2>
-          <p class="primary">Accuracy: ${escapeHtml(report.accuracy)}</p>
-          <p class="primary">Recommended Hardware: ${escapeHtml(shortHardwareTier(report.recommendedHardware.recommendedTier))}</p>
+          <p class="primary">Accuracy: ${escapeHtml(report.accuracy)} <span aria-hidden="true">•</span> Recommended Hardware: ${escapeHtml(shortHardwareTier(report.recommendedHardware.recommendedTier))}</p>
         </div>
         <output class="total">${escapeHtml(report.totalRequiredMemory)}</output>
       </section>
       <section class="breakdown" aria-label="Required outputs">
         ${rowsMarkup(report.breakdown)}
         <p class="metric"><span>Minimum Raw VRAM Needed</span><strong>${escapeHtml(report.minimumRawVramNeeded)}</strong></p>
-        <p class="metric"><span>Speed</span><strong>${escapeHtml(report.speed)}</strong></p>
-        ${cloudMarkup(report)}
+      </section>
+      <section class="panel calc-panel" aria-label="Calculation used">
+        <details class="calc" open><summary>Calculation used</summary><code>${escapeHtml(transparentCalculation(report))}</code></details>
       </section>
       <section class="panel report-panel" aria-label="Recommended Hardware">
-        <h2>Recommended Hardware</h2>
-        <p>${escapeHtml(report.recommendedHardware.math)}</p>
-        <p>Usable VRAM target: <strong>${escapeHtml(report.recommendedHardware.usableVramTarget)}</strong></p>
-        <details class="calc" open><summary>Calculation used</summary><code>${escapeHtml(transparentCalculation(report))}</code></details>
-        <section class="assumptions" aria-label="Accuracy">
-          <h2>Accuracy</h2>
-          <p>${escapeHtml(report.accuracy)}</p>
-        </section>
-        <details class="assumptions assumptions-details" aria-label="Assumptions">
-          <summary>Assumptions</summary>
-          ${report.assumptions.map((assumption) => `<p>${escapeHtml(assumption.label)}: <strong>${escapeHtml(assumption.value)}</strong></p>`).join("")}
-        </details>
-        <section class="assumptions warnings" aria-label="Warnings">
-          <h2>Disclaimers</h2>
-          ${warningMarkup(report.warnings)}
-        </section>
+        <h2>Fit Details</h2>
+        <div class="fit-grid">
+          <p class="fit-line"><span>Hardware</span><strong>${escapeHtml(shortHardwareTier(report.recommendedHardware.recommendedTier))}</strong></p>
+          <p class="fit-line"><span>Usable target</span><strong>${escapeHtml(report.recommendedHardware.usableVramTarget)}</strong></p>
+          <p class="fit-line"><span>Speed</span><strong>${escapeHtml(report.speed)}</strong></p>
+          ${cloudMarkup(report)}
+        </div>
+        <p class="fit-math">${escapeHtml(report.recommendedHardware.math)}</p>
+        <details class="assumptions assumptions-details" aria-label="Assumptions"><summary>Assumptions</summary><p>Accuracy: <strong>${escapeHtml(report.accuracy)}</strong></p>${report.assumptions.map((assumption) => `<p>${escapeHtml(assumption.label)}: <strong>${escapeHtml(assumption.value)}</strong></p>`).join("")}</details>
+        <section class="assumptions warnings" aria-label="Warnings"><h2>Disclaimers</h2>${warningMarkup(report.warnings)}</section>
       </section>
     </section>
   `;

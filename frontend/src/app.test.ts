@@ -31,6 +31,10 @@ function state(overrides: Partial<FormState> = {}): FormState {
   return Object.assign(defaultState(), overrides);
 }
 
+function mockFetch(): ReturnType<typeof vi.spyOn> {
+  return vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response("{}"));
+}
+
 afterEach(() => {
   document.body.replaceChildren();
   vi.restoreAllMocks();
@@ -106,9 +110,12 @@ describe("rendering and validation", () => {
     const emptyAssumptions = buildReport(state());
     const emptyWarnings = buildReport(state());
     emptyRequired.totalRequiredMemory = "";
-    (nullHardware as { recommendedHardware: null }).recommendedHardware = null;
-    (numericCloudCost as { cloudCost: number }).cloudCost = 1;
-    (invalidAccuracy as { accuracy: "Certain" }).accuracy = "Certain";
+    (
+      nullHardware as unknown as { recommendedHardware: null }
+    ).recommendedHardware = null;
+    (numericCloudCost as unknown as { cloudCost: number }).cloudCost = 1;
+    (invalidAccuracy as unknown as { accuracy: "Certain" }).accuracy =
+      "Certain";
     emptyBreakdown.breakdown = [];
     emptyAssumptions.assumptions = [];
     emptyWarnings.warnings = [];
@@ -258,9 +265,7 @@ describe("conditional controls", () => {
 
 describe("calculator app", () => {
   test("renders the default local TypeScript report without network access", () => {
-    const fetchReport = vi
-      .spyOn(globalThis, "fetch")
-      .mockResolvedValue(new Response("{}"));
+    const fetchReport = mockFetch();
     const root = appRoot();
     mountCalculator(root, runtime());
 
@@ -272,6 +277,7 @@ describe("calculator app", () => {
   });
 
   test("submits normalized form state into the URL and recomputes", () => {
+    const fetchReport = mockFetch();
     const root = appRoot();
     const rt = runtime();
     mountCalculator(root, rt);
@@ -311,6 +317,7 @@ describe("calculator app", () => {
 
     expect(rt.history.replaceState).toHaveBeenCalled();
     expect(root.querySelector(".total")?.textContent).toBe("6.3 GB");
+    expect(fetchReport).not.toHaveBeenCalled();
   });
 
   test("handles direct change and submit events defensively", () => {
@@ -326,6 +333,7 @@ describe("calculator app", () => {
   });
 
   test("rerenders adaptive fields on family and execution-mode changes", () => {
+    const fetchReport = mockFetch();
     const root = appRoot();
     mountCalculator(root, runtime());
     const family = root.querySelector<HTMLSelectElement>(
@@ -350,6 +358,7 @@ describe("calculator app", () => {
       mode.dispatchEvent(new Event("change", { bubbles: true }));
     }
     expect(root.textContent).toContain("Training Batch Size");
+    expect(fetchReport).not.toHaveBeenCalled();
   });
 
   test("main module mounts when an app root exists and throws without one", async () => {

@@ -43,6 +43,7 @@ export class CalculatorApp implements EventListenerObject {
 
   public mount(): void {
     this.app.addEventListener("change", this);
+    this.app.addEventListener("input", this);
     this.app.addEventListener("submit", this);
     this.loadReport(new URLSearchParams(this.runtime.location.search));
   }
@@ -50,6 +51,10 @@ export class CalculatorApp implements EventListenerObject {
   public handleEvent(event: Event): void {
     if (event.type === "change") {
       this.handleChange(event);
+      return;
+    }
+    if (event.type === "input") {
+      this.handleInput(event);
       return;
     }
     if (event.type === "submit") {
@@ -79,7 +84,30 @@ export class CalculatorApp implements EventListenerObject {
         return;
       }
       syncConditionalControls(this.app);
+      if (target.form instanceof HTMLFormElement) {
+        this.updateResultsFromForm(target.form);
+      }
     }
+  }
+
+  private handleInput(event: Event): void {
+    const { target } = event;
+    if (
+      (target instanceof HTMLInputElement ||
+        target instanceof HTMLSelectElement) &&
+      target.form instanceof HTMLFormElement
+    ) {
+      this.updateResultsFromForm(target.form);
+    }
+  }
+
+  private updateResultsFromForm(form: HTMLFormElement): void {
+    const results = this.app.querySelector(".results");
+    if (results === null) {
+      return;
+    }
+    const state = normalizedState(searchFromForm(form));
+    results.outerHTML = renderResults(buildReport(state));
   }
 
   private renderFromForm(form: HTMLFormElement): void {

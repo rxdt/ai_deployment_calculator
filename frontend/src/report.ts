@@ -6,7 +6,7 @@ import {
   speedEstimate,
   weightsGb,
 } from "./calculator";
-import { cloudCost, formatGb, hardwareRecommendation } from "./hardware";
+import { formatGb, hardwareRecommendation } from "./hardware";
 import type { DisplayRow, FormState, ReportPayload } from "./types";
 
 export { specFromState } from "./calculator";
@@ -44,6 +44,22 @@ function familyWarning(state: FormState): string | null {
   return null;
 }
 
+const TRANSFORMER_ARCHITECTURE_FAMILIES = new Set<FormState["workload_family"]>(
+  [
+    "text_generation",
+    "text_encoder",
+    "encoder_decoder",
+    "vision_language",
+    "custom",
+  ],
+);
+
+function isTransformerArchitectureWorkload(
+  family: FormState["workload_family"],
+): boolean {
+  return TRANSFORMER_ARCHITECTURE_FAMILIES.has(family);
+}
+
 function warningsFor(state: FormState): string[] {
   const warnings = [STANDARD_HEURISTIC_WARNING];
   const conditional = familyWarning(state);
@@ -63,7 +79,10 @@ function warningsFor(state: FormState): string[] {
       "Local GPU fit uses usable VRAM, so drivers, displays, and other processes can still force offload.",
     );
   }
-  if (!state.exact_transformer_architecture) {
+  if (
+    !state.exact_transformer_architecture &&
+    isTransformerArchitectureWorkload(state.workload_family)
+  ) {
     warnings.push(
       "Transformer architecture is estimated from the parameter count.",
     );
@@ -76,9 +95,15 @@ function assumptionRows(state: FormState): DisplayRow[] {
     { label: "Precision", value: state.precision },
     { label: "Runtime profile", value: state.runtime_profile },
     { label: "Execution mode", value: state.execution_mode },
-    { label: "KV cache precision", value: state.kv_cache_precision },
+    { label: "Context memory precision", value: state.kv_cache_precision },
     { label: "Conservative KV heads", value: "attention_heads" },
   ];
+}
+
+function weightsLabel(state: FormState): string {
+  return state.execution_mode === "QLoRA fine-tuning"
+    ? "QLoRA base model memory"
+    : "Model memory";
 }
 
 export function buildReport(state: FormState): ReportPayload {
@@ -92,22 +117,14 @@ export function buildReport(state: FormState): ReportPayload {
     recommendedHardware: hardware,
     minimumRawVramNeeded: hardware.minimumRawVram,
     speed: speedEstimate(spec, weights),
-    cloudCost:
-      state.runtime_profile === "Server / Cloud"
-        ? cloudCost(
-            required,
-            spec.runtime.utilization,
-            state.cloud_cost_override,
-          )
-        : null,
     accuracy: accuracyFor(spec),
     breakdown: compactRows([
-      row("Model / pipeline weights", breakdown.weightsGb),
-      row("KV cache", breakdown.kvCacheGb),
-      row("Input / activation memory", breakdown.inputActivationGb),
-      row("Training state", breakdown.trainingStateGb),
-      row("Runtime overhead", breakdown.runtimeOverheadGb),
-      row("Safety buffer", breakdown.safetyBufferGb),
+      row(weightsLabel(state), breakdown.weightsGb),
+      row("Context memory", breakdown.kvCacheGb),
+      row("Activation memory", breakdown.inputActivationGb),
+      row("Training memory", breakdown.trainingStateGb),
+      row("Runtime reserve", breakdown.runtimeOverheadGb),
+      row("Safety margin", breakdown.safetyBufferGb),
     ]),
     assumptions: assumptionRows(state),
     warnings: warningsFor(state),

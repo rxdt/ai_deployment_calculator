@@ -29,7 +29,7 @@ const executionSchema = z.enum([
   "Full training",
 ]);
 const runtimeSchema = z.enum(["Local / Edge", "Server / Cloud"]);
-const unitSchema = z.enum(["B", "M", "K"]);
+const unitSchema = z.enum(["B", "M"]);
 const optimizerSchema = z.enum(["AdamW", "8-bit Adam", "SGD-like"]);
 const resolutionSchema = z.enum(["720p", "1080p"]);
 
@@ -65,7 +65,6 @@ const DEFAULT_STATE: FormState = {
   optimizer: "AdamW",
   gradient_checkpointing: true,
   my_gpu_vram_gb: "",
-  cloud_cost_override: "",
 };
 
 const CHECKED_VALUES = new Set(["1", "true", "on", "yes"]);
@@ -117,7 +116,7 @@ export function normalizedState(search: URLSearchParams): FormState {
   if (search.size === 0) {
     return defaults;
   }
-  return {
+  const normalized: FormState = {
     workload_family: schemaValue(
       workloadSchema,
       last(search, "workload_family"),
@@ -228,11 +227,15 @@ export function normalizedState(search: URLSearchParams): FormState {
       last(search, "my_gpu_vram_gb"),
       defaults.my_gpu_vram_gb,
     ),
-    cloud_cost_override: decimal(
-      last(search, "cloud_cost_override"),
-      defaults.cloud_cost_override,
-    ),
   };
+  if (normalized.execution_mode === "QLoRA fine-tuning") {
+    return {
+      ...normalized,
+      precision: "4-bit",
+      runtime_profile: "Local / Edge",
+    };
+  }
+  return normalized;
 }
 
 export function searchFromState(state: FormState): URLSearchParams {

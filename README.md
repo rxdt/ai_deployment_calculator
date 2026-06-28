@@ -43,7 +43,8 @@ Cloud cost is omitted for `Local / Edge`.
 
 ```sh
 cd frontend
-npm ci
+harness preflight
+harness gate
 npm run dev -- --port 5173
 ```
 

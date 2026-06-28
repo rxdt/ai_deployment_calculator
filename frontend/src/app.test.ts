@@ -64,7 +64,7 @@ describe("state normalization", () => {
   test("accepts last repeated valid values and boolean flags", () => {
     const normalized = normalizedState(
       new URLSearchParams(
-        "total_params=bad&total_params=70&parameter_unit=B&precision=4-bit&execution_mode=QLoRA+fine-tuning&runtime_profile=Local+%2F+Edge&workload_size=2&moe_enabled=ON&active_params=8&gradient_checkpointing=false&exact_transformer_architecture=1&known_model_file_size_gb=35&cloud_cost_override=3.5",
+        "total_params=bad&total_params=70&parameter_unit=B&precision=4-bit&execution_mode=QLoRA+fine-tuning&runtime_profile=Local+%2F+Edge&workload_size=2&moe_enabled=ON&active_params=8&gradient_checkpointing=false&exact_transformer_architecture=1&known_model_file_size_gb=35",
       ),
     );
 
@@ -79,8 +79,20 @@ describe("state normalization", () => {
       gradient_checkpointing: false,
       exact_transformer_architecture: true,
       known_model_file_size_gb: "35",
-      cloud_cost_override: "3.5",
     });
+  });
+
+  test("forces QLoRA to 4-bit local runtime assumptions", () => {
+    const normalized = normalizedState(
+      new URLSearchParams({
+        execution_mode: "QLoRA fine-tuning",
+        precision: "16-bit",
+        runtime_profile: "Server / Cloud",
+      }),
+    );
+
+    expect(normalized.precision).toBe("4-bit");
+    expect(normalized.runtime_profile).toBe("Local / Edge");
   });
 
   test("serializes only meaningful query values", () => {
@@ -104,7 +116,6 @@ describe("rendering and validation", () => {
     const report = buildReport(state());
     const emptyRequired = buildReport(state());
     const nullHardware = buildReport(state());
-    const numericCloudCost = buildReport(state());
     const invalidAccuracy = buildReport(state());
     const emptyBreakdown = buildReport(state());
     const emptyAssumptions = buildReport(state());
@@ -113,7 +124,6 @@ describe("rendering and validation", () => {
     (
       nullHardware as unknown as { recommendedHardware: null }
     ).recommendedHardware = null;
-    (numericCloudCost as unknown as { cloudCost: number }).cloudCost = 1;
     (invalidAccuracy as unknown as { accuracy: "Certain" }).accuracy =
       "Certain";
     emptyBreakdown.breakdown = [];
@@ -124,7 +134,6 @@ describe("rendering and validation", () => {
     expect(isReportPayload(null)).toBe(false);
     expect(isReportPayload(emptyRequired)).toBe(false);
     expect(isReportPayload(nullHardware)).toBe(false);
-    expect(isReportPayload(numericCloudCost)).toBe(false);
     expect(isReportPayload(invalidAccuracy)).toBe(false);
     expect(isReportPayload(emptyBreakdown)).toBe(false);
     expect(isReportPayload(emptyAssumptions)).toBe(false);
@@ -138,7 +147,6 @@ describe("rendering and validation", () => {
       totalRequiredMemory: "<b>20.4 GB</b>",
       minimumRawVramNeeded: baseReport.minimumRawVramNeeded,
       speed: baseReport.speed,
-      cloudCost: baseReport.cloudCost,
       accuracy: baseReport.accuracy,
       breakdown: baseReport.breakdown,
       assumptions: baseReport.assumptions,
@@ -154,9 +162,11 @@ describe("rendering and validation", () => {
     };
     const html = renderResults(report);
 
-    expect(html).toContain("Total Required Memory");
+    expect(html).toContain("Estimated VRAM required");
+    expect(html).toContain("Estimated speed");
+    expect(html).not.toContain("Estimated GPU VRAM required");
     expect(html).toContain("Recommended Hardware");
-    expect(html).toContain("Minimum Raw VRAM Needed");
+    expect(html).toContain("Minimum GPU memory needed");
     expect(html).toContain("&lt;b&gt;20.4 GB&lt;/b&gt;");
     expect(html).toContain("&lt;script&gt;bad()&lt;/script&gt;");
   });
@@ -194,14 +204,8 @@ describe("rendering and validation", () => {
     );
     expect(
       renderForm(state({ workload_family: "custom", moe_enabled: true })),
-    ).toContain("Active Parameters");
+    ).toContain("Active parameters per token");
     expect(renderStatusBar()).toContain("local TypeScript");
-  });
-
-  test("omits cloud cost markup for local reports", () => {
-    const local = buildReport(state({ runtime_profile: "Local / Edge" }));
-
-    expect(renderResults(local)).not.toContain("Cloud cost");
   });
 });
 
@@ -270,10 +274,36 @@ describe("calculator app", () => {
     mountCalculator(root, runtime());
 
     expect(root.querySelector(".total")?.textContent).toBe("19.0 GB");
+    expect(root.textContent).toContain(
+      "Estimate VRAM and hardware fit for AI workloads.",
+    );
     expect(root.textContent).toContain("Model Task Type");
     expect(root.textContent).toContain("Advanced assumptions");
+    expect(root.textContent).not.toContain("Thousands");
     expect(root.textContent).not.toContain("Batch Size");
     expect(fetchReport).not.toHaveBeenCalled();
+  });
+
+  test("renders QLoRA as locked 4-bit local assumptions", () => {
+    const root = appRoot();
+    mountCalculator(root, runtime("?execution_mode=QLoRA+fine-tuning"));
+
+    const precision = root.querySelector<HTMLSelectElement>(
+      'select[name="precision"]',
+    );
+    const runtimeProfile = root.querySelector<HTMLSelectElement>(
+      'select[name="runtime_profile"]',
+    );
+
+    expect(precision?.disabled).toBe(true);
+    expect(precision?.value).toBe("4-bit QLoRA base");
+    expect(runtimeProfile?.disabled).toBe(true);
+    expect(runtimeProfile?.value).toBe("Local / Edge");
+    expect(root.textContent).toContain(
+      "QLoRA uses a frozen 4-bit base model plus trainable adapters.",
+    );
+    expect(root.textContent).toContain("Training runtime assumptions");
+    expect(root.textContent).toContain("QLoRA base model memory");
   });
 
   test("loads report queries from local TypeScript without a report service", () => {
@@ -332,6 +362,24 @@ describe("calculator app", () => {
     expect(rt.history.replaceState).toHaveBeenCalled();
     expect(root.querySelector(".total")?.textContent).toBe("6.3 GB");
     expect(fetchReport).not.toHaveBeenCalled();
+  });
+
+  test("updates the estimate as input values change", () => {
+    const root = appRoot();
+    const rt = runtime();
+    mountCalculator(root, rt);
+
+    expect(root.querySelector(".total")?.textContent).toBe("19.0 GB");
+    const totalParameters = root.querySelector<HTMLInputElement>(
+      'input[name="total_params"]',
+    );
+    if (totalParameters !== null) {
+      totalParameters.value = "8";
+      totalParameters.dispatchEvent(new Event("input", { bubbles: true }));
+    }
+
+    expect(root.querySelector(".total")?.textContent).toBe("21.3 GB");
+    expect(rt.history.replaceState).not.toHaveBeenCalled();
   });
 
   test("handles direct change and submit events defensively", () => {

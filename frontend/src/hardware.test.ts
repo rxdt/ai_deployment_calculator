@@ -1,7 +1,6 @@
 import { describe, expect, test } from "vitest";
 import {
   GPU_TIERS,
-  cloudCost,
   formatGb,
   hardwareRecommendation,
   minimumRawVramGb,
@@ -19,7 +18,7 @@ describe("hardware recommendation math", () => {
     expect(recommendedTier(24.1)?.vramGb).toBe(48);
     expect(recommendedTier(321)).toBeNull();
     expect(GPU_TIERS.map((tier) => tier.vramGb)).toEqual([
-      8, 12, 16, 24, 48, 80, 160, 320,
+      8, 12, 16, 24, 48, 80, 141, 160, 180, 320,
     ]);
   });
 
@@ -29,17 +28,14 @@ describe("hardware recommendation math", () => {
       usableVramTarget: "85%",
       minimumRawVram: "24.0 GB",
       recommendedTier:
-        "24 GB: High-end consumer GPU class, e.g. RTX 3090 / RTX 4090",
-      math: "20.4 GB / 85% = 24.0 GB raw VRAM",
+        "24 GB physical VRAM: RTX 3090, RTX 4090, or RTX 4500 Ada",
+      math: "Estimated workload memory is 20.4 GB. With a 85% usable VRAM target, use a GPU with at least 24.0 GB of physical VRAM so the workload does not consume the entire card.",
     });
   });
 
-  test("labels deployments beyond the tier table and prices cloud estimates", () => {
+  test("labels deployments beyond the hardware table", () => {
     expect(hardwareRecommendation(400, 0.8).recommendedTier).toBe(
-      "> 320 GB: Distributed multi-node or heavy offload",
+      "> 320 GB physical VRAM: multi-node, larger GPU pool, or heavy offload",
     );
-    expect(cloudCost(20.4, 0.85, "")).toContain("$1.00/hr static estimate");
-    expect(cloudCost(20.4, 0.85, "3.5")).toContain("$3.50/hr static estimate");
-    expect(cloudCost(400, 0.8, "bad")).toContain("$20.00/hr static estimate");
   });
 });

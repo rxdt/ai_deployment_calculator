@@ -3,34 +3,19 @@ import type { HardwareRecommendation } from "./types";
 export interface GpuTier {
   vramGb: number;
   label: string;
-  hourlyRate: number;
 }
 
 export const GPU_TIERS: readonly GpuTier[] = [
-  { vramGb: 8, label: "Entry local GPU class", hourlyRate: 0.25 },
-  { vramGb: 12, label: "Mid-range consumer GPU class", hourlyRate: 0.4 },
-  {
-    vramGb: 16,
-    label: "Larger consumer / small workstation class",
-    hourlyRate: 0.6,
-  },
-  {
-    vramGb: 24,
-    label: "High-end consumer GPU class, e.g. RTX 3090 / RTX 4090",
-    hourlyRate: 1,
-  },
-  {
-    vramGb: 48,
-    label: "Workstation GPU class or sharded multi-GPU",
-    hourlyRate: 1.5,
-  },
-  {
-    vramGb: 80,
-    label: "Datacenter GPU class, e.g. A100/H100 80GB",
-    hourlyRate: 2.5,
-  },
-  { vramGb: 160, label: "2x 80GB GPUs with memory sharding", hourlyRate: 5 },
-  { vramGb: 320, label: "4x 80GB GPUs with memory sharding", hourlyRate: 10 },
+  { vramGb: 8, label: "RTX 4060 Ti or RTX 3070" },
+  { vramGb: 12, label: "RTX 3060 or RTX 4070" },
+  { vramGb: 16, label: "RTX 4080 or RTX 5000 Ada" },
+  { vramGb: 24, label: "RTX 3090, RTX 4090, or RTX 4500 Ada" },
+  { vramGb: 48, label: "RTX 6000 Ada, L40S, RTX A6000, or A40" },
+  { vramGb: 80, label: "A100, H100, or H800" },
+  { vramGb: 141, label: "H200" },
+  { vramGb: 160, label: "2x 80GB GPUs with model/tensor parallelism" },
+  { vramGb: 180, label: "B200" },
+  { vramGb: 320, label: "4x 80GB GPUs with model/tensor parallelism" },
 ];
 
 export function minimumRawVramGb(
@@ -56,31 +41,14 @@ export function hardwareRecommendation(
   const tier = recommendedTier(minimum);
   const recommendedTierText =
     tier === null
-      ? "> 320 GB: Distributed multi-node or heavy offload"
-      : `${tier.vramGb} GB: ${tier.label}`;
+      ? "> 320 GB physical VRAM: multi-node, larger GPU pool, or heavy offload"
+      : `${tier.vramGb} GB physical VRAM: ${tier.label}`;
+  const usablePercent = Math.round(utilization * 100);
   return {
     requiredMemory: formatGb(requiredGb),
-    usableVramTarget: `${Math.round(utilization * 100)}%`,
+    usableVramTarget: `${usablePercent}%`,
     minimumRawVram: formatGb(minimum),
     recommendedTier: recommendedTierText,
-    math: `${formatGb(requiredGb)} / ${Math.round(utilization * 100)}% = ${formatGb(minimum)} raw VRAM`,
+    math: `Estimated workload memory is ${formatGb(requiredGb)}. With a ${usablePercent}% usable VRAM target, use a GPU with at least ${formatGb(minimum)} of physical VRAM so the workload does not consume the entire card.`,
   };
-}
-
-export function cloudCost(
-  requiredGb: number,
-  utilization: number,
-  override: string,
-): string {
-  const parsedOverride = Number(override);
-  const minimum = minimumRawVramGb(requiredGb, utilization);
-  const tier = recommendedTier(minimum);
-  const [fallbackTier] = GPU_TIERS.slice(-1);
-  const gpuCount = tier === null ? Math.ceil(minimum / fallbackTier.vramGb) : 1;
-  const hourlyRate =
-    Number.isFinite(parsedOverride) && parsedOverride > 0
-      ? parsedOverride
-      : (tier ?? fallbackTier).hourlyRate;
-  const rate = gpuCount * hourlyRate;
-  return `$${rate.toFixed(2)}/hr static estimate. Actual pricing varies by provider, region, GPU model, commitment, and availability.`;
 }

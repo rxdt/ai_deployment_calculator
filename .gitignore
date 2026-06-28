@@ -5,6 +5,8 @@ dist/
 .codex
 .vscode/
 **/node_modules/
+frontend/test-results/
+specs/fp_*
 
 # in-repo worker worktrees (isolated agent workspaces; never /tmp)
 .worktrees/

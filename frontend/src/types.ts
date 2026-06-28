@@ -16,7 +16,7 @@ export type KvPrecision = "8-bit / FP8" | "16-bit" | "32-bit";
 export type ExecutionMode =
   "Inference" | "LoRA fine-tuning" | "QLoRA fine-tuning" | "Full training";
 export type RuntimeProfile = "Local / Edge" | "Server / Cloud";
-export type ParameterUnit = "B" | "M" | "K";
+export type ParameterUnit = "B" | "M";
 export type Accuracy =
   | "File-size based"
   | "Component-based"
@@ -42,7 +42,6 @@ export interface ReportPayload {
   recommendedHardware: HardwareRecommendation;
   minimumRawVramNeeded: string;
   speed: string;
-  cloudCost: string | null;
   accuracy: Accuracy;
   breakdown: DisplayRow[];
   assumptions: DisplayRow[];
@@ -82,7 +81,6 @@ export interface FormState {
   optimizer: "AdamW" | "8-bit Adam" | "SGD-like";
   gradient_checkpointing: boolean;
   my_gpu_vram_gb: string;
-  cloud_cost_override: string;
 }
 
 export interface BrowserRuntime {

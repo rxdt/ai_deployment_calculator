@@ -23,15 +23,19 @@ test("renders the default deployment computed locally", async ({ page }) => {
   await expect(page.getByLabel("Workload Family")).toHaveValue(
     "text_generation",
   );
+  await expect(page.getByText("Thousands")).toHaveCount(0);
   await expect(page.locator(".total")).toHaveText("19.0 GB");
+  await expect(page.getByText("Estimated GPU VRAM required")).toHaveCount(0);
+  await expect(page.getByText("Estimated speed")).toBeVisible();
   await expect(page.getByLabel("Required outputs")).toContainText(
-    "Minimum Raw VRAM Needed",
+    "Minimum GPU memory needed",
   );
   await expect(page.getByLabel("Recommended Hardware")).toContainText(
-    "19.0 GB / 85% = 22.4 GB raw VRAM",
+    "Estimated workload memory is 19.0 GB. With a 85% usable VRAM target, use a GPU with at least 22.4 GB of physical VRAM so the workload does not consume the entire card.",
   );
-  await page.getByText("Assumptions", { exact: true }).click();
-  await expect(page.getByLabel("Assumptions")).toContainText("Estimated");
+  await page.getByText("Calculation used").click();
+  await expect(page.getByLabel("Assumptions")).not.toContainText("Accuracy:");
+  await expect(page.getByLabel("Assumptions")).toContainText("Precision");
   await expect(page.getByLabel("Warnings")).not.toContainText(
     "planning estimate",
   );
@@ -48,14 +52,15 @@ test("recomputes a local GGUF-style exact file deployment", async ({
   await page.getByLabel("Context Window").fill("32000");
   await page.getByText("Advanced assumptions").click();
   await page.getByLabel("Known Model File Size").fill("52");
-  await page.getByLabel("KV Cache Precision").selectOption("32-bit");
-  await page.getByRole("button", { name: "Calculate" }).click();
+  await page.getByLabel("Context Memory Precision").selectOption("32-bit");
+  await expect(page.locator(".total")).toHaveText("79.2 GB");
+  await page.getByRole("button", { name: "Save estimate URL" }).click();
 
   await expect(page.locator(".total")).toHaveText("79.2 GB");
-  await page.getByText("Assumptions", { exact: true }).click();
-  await expect(page.getByLabel("Assumptions")).toContainText("File-size based");
-  await expect(page.getByLabel("Required outputs")).not.toContainText(
-    "Cloud cost",
+  await page.getByText("Calculation used").click();
+  await expect(page.getByLabel("Assumptions")).not.toContainText("Accuracy:");
+  await expect(page.getByLabel("Assumptions")).toContainText(
+    "Precision: 4-bit",
   );
   await expect
     .poll(() =>
@@ -76,6 +81,17 @@ test("switches adaptive inputs and training workload label", async ({
 
   await page.getByLabel("Execution Mode").selectOption("QLoRA fine-tuning");
   await expect(page.getByLabel("Micro Batch Size")).toBeVisible();
+  await expect(page.locator('select[name="precision"]')).toBeDisabled();
+  await expect(page.locator('select[name="precision"]')).toHaveValue(
+    "4-bit QLoRA base",
+  );
+  await expect(page.getByLabel("Runtime Profile")).toBeDisabled();
+  await expect(page.getByLabel("Runtime Profile")).toHaveValue("Local / Edge");
+  await expect(
+    page.getByText(
+      "QLoRA uses a frozen 4-bit base model plus trainable adapters.",
+    ),
+  ).toBeVisible();
   await expect(page.getByText("Batch Size", { exact: true })).toHaveCount(0);
 });
 

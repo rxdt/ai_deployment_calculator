@@ -21,7 +21,6 @@ const reportSchema = z.object({
   recommendedHardware: hardware,
   minimumRawVramNeeded: nonEmpty,
   speed: nonEmpty,
-  cloudCost: z.string().nullable(),
   accuracy: z.enum([
     "File-size based",
     "Component-based",

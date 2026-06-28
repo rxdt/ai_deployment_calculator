@@ -28,7 +28,6 @@ export const PRECISION_MAP: Record<
 const UNIT_MULTIPLIERS: Record<ParameterUnit, number> = {
   B: 1,
   M: 0.001,
-  K: 0.000001,
 };
 
 const KV_BYTES: Record<KvPrecision, number> = {

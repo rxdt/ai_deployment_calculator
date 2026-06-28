@@ -17,17 +17,17 @@ describe("buildReport", () => {
       requiredMemory: "21.3 GB",
       usableVramTarget: "85%",
       minimumRawVram: "25.1 GB",
-      recommendedTier: "48 GB: Workstation GPU class or sharded multi-GPU",
-      math: "21.3 GB / 85% = 25.1 GB raw VRAM",
+      recommendedTier:
+        "48 GB physical VRAM: RTX 6000 Ada, L40S, RTX A6000, or A40",
+      math: "Estimated workload memory is 21.3 GB. With a 85% usable VRAM target, use a GPU with at least 25.1 GB of physical VRAM so the workload does not consume the entire card.",
     });
-    expect(report.cloudCost).toContain("$1.50/hr static estimate");
     expect(report.accuracy).toBe("Estimated");
     expect(report.breakdown.map((row) => row.label)).toEqual([
-      "Model / pipeline weights",
-      "KV cache",
-      "Input / activation memory",
-      "Runtime overhead",
-      "Safety buffer",
+      "Model memory",
+      "Context memory",
+      "Activation memory",
+      "Runtime reserve",
+      "Safety margin",
     ]);
     expect(report.breakdown).not.toContainEqual(
       expect.objectContaining({ label: "Task overhead" }),
@@ -37,7 +37,7 @@ describe("buildReport", () => {
     );
   });
 
-  test("hides cloud cost for local runtime and marks file-size accuracy", () => {
+  test("marks file-size accuracy for local runtime", () => {
     const report = buildReport(
       state({
         runtime_profile: "Local / Edge",
@@ -50,7 +50,6 @@ describe("buildReport", () => {
     );
 
     expect(report.totalRequiredMemory).toBe("79.2 GB");
-    expect(report.cloudCost).toBeNull();
     expect(report.accuracy).toBe("File-size based");
     expect(report.warnings).toContain(
       "Transformer architecture is estimated from the parameter count.",
@@ -69,7 +68,7 @@ describe("buildReport", () => {
 
     expect(report.breakdown).not.toContainEqual(
       expect.objectContaining({
-        label: "Input / activation memory",
+        label: "Activation memory",
         value: "0.0 GB",
       }),
     );
@@ -94,6 +93,7 @@ describe("buildReport", () => {
     expect(report.warnings).toContain(
       "Local GPU fit uses usable VRAM, so drivers, displays, and other processes can still force offload.",
     );
+    expect(report.breakdown[0]?.label).toBe("QLoRA base model memory");
   });
 
   test("does not add estimated architecture warning when exact architecture is supplied", () => {
@@ -113,6 +113,9 @@ describe("buildReport", () => {
     expect(
       buildReport(state({ workload_family: "tabular" })).warnings.join(" "),
     ).toContain("Tabular estimates");
+    expect(
+      buildReport(state({ workload_family: "tabular" })).warnings.join(" "),
+    ).not.toContain("Transformer architecture is estimated");
     expect(
       buildReport(state({ workload_family: "vision" })).warnings.join(" "),
     ).toContain("Vision estimates");
@@ -145,7 +148,6 @@ describe("buildReport", () => {
         "assumptions",
         "breakdown",
         "calculation",
-        "cloudCost",
         "minimumRawVramNeeded",
         "recommendedHardware",
         "speed",

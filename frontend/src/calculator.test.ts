@@ -32,17 +32,13 @@ function required(overrides: Partial<FormState>): number {
 }
 
 describe("parameter conversion and precision maps", () => {
-  test("converts B, M, and K units into billions of parameters", () => {
+  test("converts B and M units into billions of parameters", () => {
     expect(
       specFromState(state({ total_params: "7", parameter_unit: "B" }))
         .totalParamsB,
     ).toBe(7);
     expect(
       specFromState(state({ total_params: "7000", parameter_unit: "M" }))
-        .totalParamsB,
-    ).toBe(7);
-    expect(
-      specFromState(state({ total_params: "7000000", parameter_unit: "K" }))
         .totalParamsB,
     ).toBe(7);
   });

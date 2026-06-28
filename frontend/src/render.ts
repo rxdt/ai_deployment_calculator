@@ -114,20 +114,83 @@ function adaptiveInputFields(state: FormState): string {
   );
 }
 
-function shortHardwareTier(tier: string): string {
-  return tier.split(", e.g.", 1)[0];
+function loraTrainableOptions(current: string): string {
+  const values = [
+    "0.1",
+    "0.2",
+    "0.3",
+    "0.4",
+    "0.5",
+    "0.6",
+    "0.7",
+    "0.8",
+    "0.9",
+  ];
+  return options(
+    values.includes(current) ? values : [...values, current],
+    current,
+  );
+}
+
+function shortHardwareClass(hardwareClass: string): string {
+  return hardwareClass.split(", e.g.", 1)[0];
+}
+
+const OUTPUT_TOOLTIPS: Partial<Record<string, string>> = {
+  "Estimated VRAM required":
+    "Estimated GPU memory needed to load the model and run this workload.",
+  "Model memory": "GPU memory used to keep the model itself loaded.",
+  "QLoRA base model memory":
+    "Memory for the 4-bit base model. QLoRA keeps this model frozen and trains small adapters.",
+  "Context memory":
+    "Memory used by text generation to remember earlier tokens. Non-text workloads usually do not use this.",
+  "Activation memory":
+    "Temporary GPU memory used while the model processes the input. For text generation this also includes a heuristic decoder scratch reserve estimated as a fraction of loaded weight size (~5% server, ~3% local), not an exact runtime measurement.",
+  "Training memory":
+    "Extra memory needed for training or fine-tuning, such as adapters, gradients, and optimizer data.",
+  "Runtime reserve":
+    "GPU memory needed by the software running the model, separate from the model itself.",
+  "Safety margin":
+    "Extra padding because real GPU memory use can fluctuate. Without it, a close fit may still crash.",
+  "Minimum GPU memory needed":
+    "Smallest physical GPU memory size that should fit this workload after leaving room for runtime use.",
+  "Recommended hardware class":
+    "The smallest common GPU memory size that should fit this workload.",
+  "Usable VRAM target":
+    "How much of the GPU memory the calculator allows the workload to use. The rest is left for runtime overhead and spikes.",
+  "Estimated speed":
+    "Rough estimate of how fast this hardware may run the workload. Real speed depends on the exact GPU and runtime.",
+  "Active parameters per token":
+    "For MoE models, the amount of the model used for each token. This affects speed estimates, not loaded model memory.",
+};
+function labelWithTip(label: string): string {
+  const escapedLabel = escapeHtml(label);
+  const tip = OUTPUT_TOOLTIPS[label];
+  if (tip === undefined) {
+    return escapedLabel;
+  }
+  return `${escapedLabel}<span class="tip" data-tip="${escapeHtml(tip)}" aria-hidden="true">?</span>`;
 }
 
 function transparentCalculation(report: ReportPayload): string {
-  const components = report.breakdown.map(
-    (row) => `${row.label}: ${row.value}`,
-  );
-  return `${components.join(" + ")} = ${report.totalRequiredMemory}`;
+  const labels = report.breakdown.map((row) => row.label);
+  const values = report.breakdown.map((row) => row.value);
+  return `${labels.join(" + ")}\n${values.join(" + ")} = ${report.totalRequiredMemory}`;
+}
+
+function assumptionsMarkup(report: ReportPayload): string {
+  return report.assumptions
+    .map(
+      (assumption) =>
+        `<p><span>${escapeHtml(assumption.label)}:</span> <strong>${escapeHtml(assumption.value)}</strong></p>`,
+    )
+    .join("");
 }
 
 export function renderForm(state: FormState): string {
   const isSupportsMoe = isFamilySupportsMoe(state.workload_family);
   const isShowActive = isSupportsMoe && state.moe_enabled;
+  const isQlora = state.execution_mode === "QLoRA fine-tuning";
   const workloadLabel = isTrainingMode(state.execution_mode)
     ? "Training Batch Size"
     : "Concurrent Requests";
@@ -137,6 +200,7 @@ export function renderForm(state: FormState): string {
   return `
     <form class="panel controls" aria-label="Deployment inputs">
       <h1>VRAM Deployment Calculator</h1>
+      <p class="subtitle">Estimate VRAM and hardware fit for AI workloads.</p>
       <div class="field field-wide">
         <label>Model Task Type
           <select name="workload_family" aria-label="Workload Family">${familyOptions(state.workload_family)}</select>
@@ -149,7 +213,6 @@ export function renderForm(state: FormState): string {
             [
               ["B", "Billions"],
               ["M", "Millions"],
-              ["K", "Thousands"],
             ],
             state.parameter_unit,
           )}</select>
@@ -157,7 +220,11 @@ export function renderForm(state: FormState): string {
       </div>
       <div class="field">
         <label>Precision
-          <select name="precision">${options(["4-bit", "5-bit GGUF", "6-bit GGUF", "8-bit", "16-bit", "32-bit"], state.precision)}</select>
+          ${
+            isQlora
+              ? `<select name="precision" disabled aria-describedby="qlora-helper"><option>4-bit QLoRA base</option></select><input type="hidden" name="precision" value="4-bit"><span class="helper" id="qlora-helper">QLoRA uses a frozen 4-bit base model plus trainable adapters.</span>`
+              : `<select name="precision">${options(["4-bit", "5-bit GGUF", "6-bit GGUF", "8-bit", "16-bit", "32-bit"], state.precision)}</select>`
+          }
         </label>
       </div>
       <div class="field">
@@ -167,7 +234,11 @@ export function renderForm(state: FormState): string {
       </div>
       <div class="field">
         <label>Runtime Environment
-          <select name="runtime_profile" aria-label="Runtime Profile">${options(["Local / Edge", "Server / Cloud"], state.runtime_profile)}</select>
+          ${
+            isQlora
+              ? `<select name="runtime_profile" aria-label="Runtime Profile" disabled><option>Local / Edge</option></select><input type="hidden" name="runtime_profile" value="Local / Edge"><span class="helper">Training runtime assumptions: overhead 4.0 GB, buffer 25%, usable target 80%.</span>`
+              : `<select name="runtime_profile" aria-label="Runtime Profile">${options(["Local / Edge", "Server / Cloud"], state.runtime_profile)}</select>`
+          }
         </label>
       </div>
       ${adaptiveInputFields(state)}
@@ -178,25 +249,26 @@ export function renderForm(state: FormState): string {
       </div>
       <label class="check moe-control"${isSupportsMoe ? "" : " hidden"}><input name="moe_enabled" type="checkbox"${checked(state.moe_enabled)}> MoE Model</label>
       <div class="field field-sub active-params"${isShowActive ? "" : " hidden"}>
-        <label>Active Parameters
+        <label>${labelWithTip("Active parameters per token")}
           <input name="active_params" type="number" min="0.000001" step="any" value="${escapeHtml(state.active_params)}">
         </label>
       </div>
       <details class="advanced">
         <summary>Advanced assumptions</summary>
         <div class="advanced-grid">
-          <div class="field"><label>KV Cache Bits<select name="kv_cache_precision" aria-label="KV Cache Precision">${options(["16-bit", "32-bit"], state.kv_cache_precision)}</select></label></div>
-          ${field({ name: "known_model_file_size_gb", label: "Model File Size Override (GB)", value: state.known_model_file_size_gb, ariaLabel: "Known Model File Size" })}
-          ${field({ name: "gpu_resident_fraction", label: "GPU Resident Fraction", value: state.gpu_resident_fraction, min: "0.01", step: "0.01" })}
-          ${field({ name: "lora_trainable_percent", label: "LoRA Trainable Percent", value: state.lora_trainable_percent, min: "0.1", step: "0.1" })}
-          <div class="field"><label>Training Settings<select name="optimizer">${options(["AdamW", "8-bit Adam", "SGD-like"], state.optimizer)}</select></label></div>
-          ${field({ name: "my_gpu_vram_gb", label: "Compare with my GPU", value: state.my_gpu_vram_gb })}
-          ${field({ name: "cloud_cost_override", label: "Cloud Cost Override", value: state.cloud_cost_override, fieldClass: "field-wide" })}
-          <label class="check"><input name="exact_transformer_architecture" type="checkbox"${checked(state.exact_transformer_architecture)}> Exact Transformer Architecture</label>
-          <label class="check"><input name="gradient_checkpointing" type="checkbox"${checked(state.gradient_checkpointing)}> Gradient checkpointing</label>
+          <div class="field"><label>Context bits<select name="kv_cache_precision" aria-label="Context Memory Precision">${options(["16-bit", "32-bit"], state.kv_cache_precision)}</select></label></div>
+          ${field({ name: "known_model_file_size_gb", label: "Model file GB", value: state.known_model_file_size_gb, ariaLabel: "Known Model File Size" })}
+          ${field({ name: "gpu_resident_fraction", label: "GPU resident", value: state.gpu_resident_fraction, min: "0.01", step: "0.01" })}
+          <div class="field"><label>LoRA trainable %<select name="lora_trainable_percent">${loraTrainableOptions(state.lora_trainable_percent)}</select></label></div>
+          <div class="field"><label>Optimizer<select name="optimizer">${options(["AdamW", "8-bit Adam", "SGD-like"], state.optimizer)}</select></label></div>
+          ${field({ name: "my_gpu_vram_gb", label: "Compare GPU", value: state.my_gpu_vram_gb })}
+          <div class="advanced-checks">
+            <label class="check"><input name="exact_transformer_architecture" type="checkbox"${checked(state.exact_transformer_architecture)}> Exact arch</label>
+            <label class="check"><input name="gradient_checkpointing" type="checkbox"${checked(state.gradient_checkpointing)}> Grad checkpoint</label>
+          </div>
         </div>
       </details>
-      <button type="submit">Calculate</button>
+      <button type="submit">Save estimate URL</button>
     </form>
   `;
 }
@@ -215,7 +287,7 @@ function rowsMarkup(rows: DisplayRow[]): string {
   return rows
     .map(
       (row) =>
-        `<p class="metric"><span>${escapeHtml(row.label)}</span><strong>${escapeHtml(row.value)}</strong></p>`,
+        `<p class="metric"><span>${labelWithTip(row.label)}</span><strong>${escapeHtml(row.value)}</strong></p>`,
     )
     .join("");
 }
@@ -224,44 +296,41 @@ function warningMarkup(warnings: string[]): string {
   return warnings
     .filter((warning) => !warning.includes("vendor guarantee"))
     .slice(0, 2)
-    .map((warning) => `<p>${escapeHtml(warning)}</p>`)
+    .map((warning) =>
+      warning ===
+      "Transformer architecture is estimated from the parameter count."
+        ? `<p class="info-note">${escapeHtml(warning)}</p>`
+        : `<p class="warning-note">${escapeHtml(warning)}</p>`,
+    )
     .join("");
-}
-
-function cloudMarkup(report: ReportPayload): string {
-  return report.cloudCost === null
-    ? ""
-    : `<p class="fit-line fit-wide"><span>Cloud cost</span><strong>${escapeHtml(report.cloudCost)}</strong></p>`;
 }
 
 export function renderResults(report: ReportPayload): string {
   return `
     <section class="results">
-      <section class="panel hero" aria-label="Total Required Memory">
+      <section class="panel hero" aria-label="Estimated VRAM required">
         <div>
-          <h2>Total Required Memory</h2>
-          <p class="primary">Accuracy: ${escapeHtml(report.accuracy)} <span aria-hidden="true">•</span> Recommended Hardware: ${escapeHtml(shortHardwareTier(report.recommendedHardware.recommendedTier))}</p>
+          <h2>Estimated VRAM required ${labelWithTip("Estimated VRAM required").replace("Estimated VRAM required", "")}</h2>
         </div>
-        <output class="total">${escapeHtml(report.totalRequiredMemory)}</output>
+        <div class="total-wrap"><output class="total">${escapeHtml(report.totalRequiredMemory)}</output></div>
       </section>
       <section class="breakdown" aria-label="Required outputs">
         ${rowsMarkup(report.breakdown)}
-        <p class="metric"><span>Minimum Raw VRAM Needed</span><strong>${escapeHtml(report.minimumRawVramNeeded)}</strong></p>
+        <p class="metric"><span>${labelWithTip("Minimum GPU memory needed")}</span><strong>${escapeHtml(report.minimumRawVramNeeded)}</strong></p>
       </section>
       <section class="panel calc-panel" aria-label="Calculation used">
-        <details class="calc" open><summary>Calculation used</summary><code>${escapeHtml(transparentCalculation(report))}</code></details>
+        <details class="calc"><summary>Calculation used</summary><div class="calc-body"><code>${escapeHtml(transparentCalculation(report))}</code><div class="calc-assumptions" aria-label="Assumptions"><h3>Assumptions</h3>${assumptionsMarkup(report)}</div></div></details>
       </section>
       <section class="panel report-panel" aria-label="Recommended Hardware">
-        <h2>Fit Details</h2>
-        <div class="fit-grid">
-          <p class="fit-line"><span>Hardware</span><strong>${escapeHtml(shortHardwareTier(report.recommendedHardware.recommendedTier))}</strong></p>
-          <p class="fit-line"><span>Usable target</span><strong>${escapeHtml(report.recommendedHardware.usableVramTarget)}</strong></p>
-          <p class="fit-line"><span>Speed</span><strong>${escapeHtml(report.speed)}</strong></p>
-          ${cloudMarkup(report)}
-        </div>
-        <p class="fit-math">${escapeHtml(report.recommendedHardware.math)}</p>
-        <details class="assumptions assumptions-details" aria-label="Assumptions"><summary>Assumptions</summary><p>Accuracy: <strong>${escapeHtml(report.accuracy)}</strong></p>${report.assumptions.map((assumption) => `<p>${escapeHtml(assumption.label)}: <strong>${escapeHtml(assumption.value)}</strong></p>`).join("")}</details>
-        <section class="assumptions warnings" aria-label="Warnings"><h2>Disclaimers</h2>${warningMarkup(report.warnings)}</section>
+        <details class="calc fit-details" open><summary>Recommended GPU Fit</summary><div class="fit-body">
+          <div class="fit-grid">
+            <p class="fit-line fit-hardware"><span>${labelWithTip("Recommended hardware class")}</span><strong>${escapeHtml(shortHardwareClass(report.recommendedHardware.recommendedTier))}</strong></p>
+            <p class="fit-line"><span>${labelWithTip("Usable VRAM target")}</span><strong>${escapeHtml(report.recommendedHardware.usableVramTarget)}</strong></p>
+            <p class="fit-line"><span>${labelWithTip("Estimated speed")}</span><strong>${escapeHtml(report.speed)}</strong></p>
+          </div>
+          <p class="fit-math">${escapeHtml(report.recommendedHardware.math)}</p>
+        </div></details>
+        <section class="assumptions warnings" aria-label="Warnings"><p class="estimate-note">Estimates use heuristics. Real usage varies by model architecture, runtime, kernels, quantization, sharding, and offload settings.</p>${warningMarkup(report.warnings)}</section>
       </section>
     </section>
   `;

@@ -29,8 +29,8 @@
 - `harness preflight` - green after staging the scoped files.
 - Initial `git push` - rejected by pre-push gate on strict test casts in
   `frontend/src/app.test.ts`; casts were corrected.
-- Commit - local on `main`.
-- `git push` - retry pending after verification.
+- Implementation commit `a1f6c28` - pushed to `origin/main`.
+- Retry `git push` - green after the pre-push gate passed.
 
 ## Working Tree Notes
 

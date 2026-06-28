@@ -14,6 +14,8 @@ PRIORITY 1 - implemented; keep green.
   been removed or replaced by Vitest and Playwright coverage.
 - `README.md` describes the shipped Vite-only UI and no longer documents stale
   backend-era outputs or reproduction steps.
+- Frontend app coverage asserts the default calculator render completes without
+  calling `fetch`, guarding against report-service regressions.
 
 ## Ownership
 

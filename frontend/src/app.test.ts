@@ -28,7 +28,7 @@ function runtime(search = ""): BrowserRuntime {
 }
 
 function state(overrides: Partial<FormState> = {}): FormState {
-  return { ...defaultState(), ...overrides };
+  return Object.assign(defaultState(), overrides);
 }
 
 afterEach(() => {
@@ -98,27 +98,51 @@ describe("state normalization", () => {
 describe("rendering and validation", () => {
   test("validates the report payload and rejects malformed reports", () => {
     const report = buildReport(state());
+    const emptyRequired = buildReport(state());
+    const nullHardware = buildReport(state());
+    const numericCloudCost = buildReport(state());
+    const invalidAccuracy = buildReport(state());
+    const emptyBreakdown = buildReport(state());
+    const emptyAssumptions = buildReport(state());
+    const emptyWarnings = buildReport(state());
+    emptyRequired.totalRequiredMemory = "";
+    (nullHardware as { recommendedHardware: null }).recommendedHardware = null;
+    (numericCloudCost as { cloudCost: number }).cloudCost = 1;
+    (invalidAccuracy as { accuracy: "Certain" }).accuracy = "Certain";
+    emptyBreakdown.breakdown = [];
+    emptyAssumptions.assumptions = [];
+    emptyWarnings.warnings = [];
 
     expect(isReportPayload(report)).toBe(true);
     expect(isReportPayload(null)).toBe(false);
-    expect(isReportPayload({ ...report, totalRequiredMemory: "" })).toBe(false);
-    expect(isReportPayload({ ...report, recommendedHardware: null })).toBe(
-      false,
-    );
-    expect(isReportPayload({ ...report, cloudCost: 1 })).toBe(false);
-    expect(isReportPayload({ ...report, accuracy: "Certain" })).toBe(false);
-    expect(isReportPayload({ ...report, breakdown: [] })).toBe(false);
-    expect(isReportPayload({ ...report, assumptions: [] })).toBe(false);
-    expect(isReportPayload({ ...report, warnings: [] })).toBe(false);
+    expect(isReportPayload(emptyRequired)).toBe(false);
+    expect(isReportPayload(nullHardware)).toBe(false);
+    expect(isReportPayload(numericCloudCost)).toBe(false);
+    expect(isReportPayload(invalidAccuracy)).toBe(false);
+    expect(isReportPayload(emptyBreakdown)).toBe(false);
+    expect(isReportPayload(emptyAssumptions)).toBe(false);
+    expect(isReportPayload(emptyWarnings)).toBe(false);
   });
 
   test("renders escaped report values and required sections", () => {
+    const baseReport = buildReport(state());
+    const baseHardware = baseReport.recommendedHardware;
     const report = {
-      ...buildReport(state()),
       totalRequiredMemory: "<b>20.4 GB</b>",
+      minimumRawVramNeeded: baseReport.minimumRawVramNeeded,
+      speed: baseReport.speed,
+      cloudCost: baseReport.cloudCost,
+      accuracy: baseReport.accuracy,
+      breakdown: baseReport.breakdown,
+      assumptions: baseReport.assumptions,
+      warnings: baseReport.warnings,
+      calculation: baseReport.calculation,
       recommendedHardware: {
-        ...buildReport(state()).recommendedHardware,
+        requiredMemory: baseHardware.requiredMemory,
+        usableVramTarget: baseHardware.usableVramTarget,
+        minimumRawVram: baseHardware.minimumRawVram,
         recommendedTier: "<script>bad()</script>",
+        math: baseHardware.math,
       },
     };
     const html = renderResults(report);
@@ -159,12 +183,12 @@ describe("rendering and validation", () => {
       "Input Size Preset",
     );
     expect(renderForm(state({ execution_mode: "Full training" }))).toContain(
-      "Micro Batch Size",
+      "Training Batch Size",
     );
     expect(
       renderForm(state({ workload_family: "custom", moe_enabled: true })),
     ).toContain("Active Parameters");
-    expect(renderStatusBar()).toContain("source: local TypeScript");
+    expect(renderStatusBar()).toContain("local TypeScript");
   });
 
   test("omits cloud cost markup for local reports", () => {
@@ -219,7 +243,7 @@ describe("conditional controls", () => {
       syncConditionalControls(root);
     }
     expect(root.querySelector("[data-workload-label]")?.textContent).toBe(
-      "Micro Batch Size",
+      "Training Batch Size",
     );
   });
 
@@ -233,14 +257,18 @@ describe("conditional controls", () => {
 });
 
 describe("calculator app", () => {
-  test("renders the default local TypeScript report", () => {
+  test("renders the default local TypeScript report without network access", () => {
+    const fetchReport = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(new Response("{}"));
     const root = appRoot();
     mountCalculator(root, runtime());
 
     expect(root.querySelector(".total")?.textContent).toBe("19.0 GB");
-    expect(root.textContent).toContain("Workload Family");
+    expect(root.textContent).toContain("Model Task Type");
     expect(root.textContent).toContain("Advanced assumptions");
     expect(root.textContent).not.toContain("Batch Size");
+    expect(fetchReport).not.toHaveBeenCalled();
   });
 
   test("submits normalized form state into the URL and recomputes", () => {
@@ -321,7 +349,7 @@ describe("calculator app", () => {
       mode.value = "Full training";
       mode.dispatchEvent(new Event("change", { bubbles: true }));
     }
-    expect(root.textContent).toContain("Micro Batch Size");
+    expect(root.textContent).toContain("Training Batch Size");
   });
 
   test("main module mounts when an app root exists and throws without one", async () => {

@@ -1,439 +1,257 @@
-import { afterEach, describe, expect, test, vi } from "vitest";
-import {
-  CalculatorApp,
-  buildReport,
-  defaultState,
-  isReportPayload,
-  mountCalculator,
-  normalizedState,
-  renderResults,
-  searchFromState,
-  type BrowserRuntime,
-  type FormState,
-} from "./app";
-import { syncConditionalControls } from "./controls";
-import { renderForm, renderStatusBar } from "./render";
+// @vitest-environment jsdom
+import { afterEach, describe, expect, test } from "vitest";
+import indexHtml from "../index.html?raw";
+import { CalculatorApp, mountCalculator, sanitizeNumberInput } from "./app";
 
-function appRoot(): HTMLDivElement {
-  const root = document.createElement("div");
-  document.body.append(root);
-  return root;
+function loadDom(): void {
+  document.body.replaceChildren();
+  const parsed = new DOMParser().parseFromString(indexHtml, "text/html");
+  document.body.append(...parsed.body.childNodes);
 }
 
-function runtime(search = ""): BrowserRuntime {
-  return {
-    history: { replaceState: vi.fn() },
-    location: { search },
-  };
+function makeForm(): HTMLFormElement {
+  const form = document.createElement("form");
+  form.classList.add("inputs");
+  return form;
 }
 
-function state(overrides: Partial<FormState> = {}): FormState {
-  return Object.assign(defaultState(), overrides);
+function makeTemplate(): HTMLTemplateElement {
+  const template = document.createElement("template");
+  template.id = "row-template";
+  return template;
 }
 
-function mockFetch(): ReturnType<typeof vi.spyOn> {
-  return vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response("{}"));
+function out(name: string): string {
+  const nodes = [...document.querySelectorAll<HTMLElement>("[data-out]")];
+  return nodes.find((node) => node.dataset["out"] === name)?.textContent ?? "";
+}
+
+function field(name: string): HTMLInputElement | HTMLSelectElement {
+  const node = document.querySelector("form")?.elements.namedItem(name);
+  if (!(
+    node instanceof HTMLInputElement || node instanceof HTMLSelectElement
+  )) {
+    throw new TypeError(`Missing field: ${name}`);
+  }
+  return node;
+}
+
+function fireInput(name: string, value: string): void {
+  const node = field(name);
+  node.value = value;
+  node.dispatchEvent(new Event("input", { bubbles: true }));
+}
+
+function fireChange(name: string, value: string): void {
+  const node = field(name);
+  node.value = value;
+  node.dispatchEvent(new Event("change", { bubbles: true }));
+}
+
+function isRowHidden(name: string): boolean {
+  const row = field(name).closest("p");
+  return row instanceof HTMLElement && row.hidden === true;
 }
 
 afterEach(() => {
   document.body.replaceChildren();
-  vi.restoreAllMocks();
 });
 
-describe("state normalization", () => {
-  test("uses defaults for empty or invalid query values", () => {
-    expect(normalizedState(new URLSearchParams())).toEqual(defaultState());
-    expect(
-      normalizedState(
-        new URLSearchParams({
-          workload_family: "bad",
-          total_params: "0",
-          parameter_unit: "bad",
-          precision: "3-bit",
-          execution_mode: "trained=on",
-          runtime_profile: "bad",
-          workload_size: "-1",
-          context_tokens: "0x10",
-          video_resolution: "4k",
-          optimizer: "bad",
-        }),
-      ),
-    ).toEqual(defaultState());
+describe("CalculatorApp construction", () => {
+  test("throws when the inputs form is missing", () => {
+    expect(() => new CalculatorApp(document.createElement("div"))).toThrow(
+      "Missing inputs form",
+    );
   });
 
-  test("accepts last repeated valid values and boolean flags", () => {
-    const normalized = normalizedState(
-      new URLSearchParams(
-        "total_params=bad&total_params=70&parameter_unit=B&precision=4-bit&execution_mode=QLoRA+fine-tuning&runtime_profile=Local+%2F+Edge&workload_size=2&moe_enabled=ON&active_params=8&gradient_checkpointing=false&exact_transformer_architecture=1&known_model_file_size_gb=35",
-      ),
-    );
-
-    expect(normalized).toMatchObject({
-      total_params: "70",
-      precision: "4-bit",
-      execution_mode: "QLoRA fine-tuning",
-      runtime_profile: "Local / Edge",
-      workload_size: "2",
-      moe_enabled: true,
-      active_params: "8",
-      gradient_checkpointing: false,
-      exact_transformer_architecture: true,
-      known_model_file_size_gb: "35",
-    });
+  test("throws when the row template is missing", () => {
+    const root = document.createElement("div");
+    root.append(makeForm());
+    expect(() => new CalculatorApp(root)).toThrow("Missing row template");
   });
 
-  test("forces QLoRA to 4-bit local runtime assumptions", () => {
-    const normalized = normalizedState(
-      new URLSearchParams({
-        execution_mode: "QLoRA fine-tuning",
-        precision: "16-bit",
-        runtime_profile: "Server / Cloud",
-      }),
-    );
-
-    expect(normalized.precision).toBe("4-bit");
-    expect(normalized.runtime_profile).toBe("Local / Edge");
+  test("throws when the reset button is missing", () => {
+    const root = document.createElement("div");
+    root.append(makeForm(), makeTemplate());
+    expect(() => new CalculatorApp(root)).toThrow("Missing reset button");
   });
 
-  test("serializes only meaningful query values", () => {
-    const search = searchFromState(
-      state({
-        moe_enabled: true,
-        exact_transformer_architecture: true,
-        known_model_file_size_gb: "",
-      }),
+  test("throws when an output slot is missing", () => {
+    loadDom();
+    document.querySelector('[data-out="total"]')?.remove();
+    expect(() => mountCalculator(document)).toThrow(
+      "Missing output slot: total",
     );
+  });
 
-    expect(search.get("moe_enabled")).toBe("on");
-    expect(search.get("exact_transformer_architecture")).toBe("on");
-    expect(search.get("known_model_file_size_gb")).toBeNull();
-    expect(search.get("workload_family")).toBe("text_generation");
+  test("throws when the row template lacks slots", () => {
+    loadDom();
+    const template = document.querySelector("#row-template");
+    if (template instanceof HTMLTemplateElement) {
+      template.content.replaceChildren(document.createElement("li"));
+    }
+    expect(() => mountCalculator(document)).toThrow(
+      "Missing row template slots",
+    );
   });
 });
 
-describe("rendering and validation", () => {
-  test("validates the report payload and rejects malformed reports", () => {
-    const report = buildReport(state());
-    const emptyRequired = buildReport(state());
-    const nullHardware = buildReport(state());
-    const invalidAccuracy = buildReport(state());
-    const emptyBreakdown = buildReport(state());
-    const emptyAssumptions = buildReport(state());
-    const emptyWarnings = buildReport(state());
-    emptyRequired.totalRequiredMemory = "";
-    (
-      nullHardware as unknown as { recommendedHardware: null }
-    ).recommendedHardware = null;
-    (invalidAccuracy as unknown as { accuracy: "Certain" }).accuracy =
-      "Certain";
-    emptyBreakdown.breakdown = [];
-    emptyAssumptions.assumptions = [];
-    emptyWarnings.warnings = [];
-
-    expect(isReportPayload(report)).toBe(true);
-    expect(isReportPayload(null)).toBe(false);
-    expect(isReportPayload(emptyRequired)).toBe(false);
-    expect(isReportPayload(nullHardware)).toBe(false);
-    expect(isReportPayload(invalidAccuracy)).toBe(false);
-    expect(isReportPayload(emptyBreakdown)).toBe(false);
-    expect(isReportPayload(emptyAssumptions)).toBe(false);
-    expect(isReportPayload(emptyWarnings)).toBe(false);
+describe("mounted calculator", () => {
+  test("renders the default 7B estimate on mount", () => {
+    loadDom();
+    mountCalculator(document);
+    expect(out("total")).toBe("19.0 GB");
+    expect(out("vram-say")).toBe("The workload needs 19.0 GB usable VRAM.");
+    expect(out("gpu-class")).toBe("24 GB GPU hardware tier");
+    expect(out("min-cap")).toBe("22.4 GB");
+    expect(out("speed")).toMatch(/tokens\/sec$/u);
+    expect(document.querySelectorAll('[data-out="breakdown"] li').length).toBe(
+      5,
+    );
   });
 
-  test("renders escaped report values and required sections", () => {
-    const baseReport = buildReport(state());
-    const baseHardware = baseReport.recommendedHardware;
-    const report = {
-      totalRequiredMemory: "<b>20.4 GB</b>",
-      minimumRawVramNeeded: baseReport.minimumRawVramNeeded,
-      speed: baseReport.speed,
-      accuracy: baseReport.accuracy,
-      breakdown: baseReport.breakdown,
-      assumptions: baseReport.assumptions,
-      warnings: baseReport.warnings,
-      calculation: baseReport.calculation,
-      recommendedHardware: {
-        requiredMemory: baseHardware.requiredMemory,
-        usableVramTarget: baseHardware.usableVramTarget,
-        minimumRawVram: baseHardware.minimumRawVram,
-        recommendedTier: "<script>bad()</script>",
-        math: baseHardware.math,
-      },
-    };
-    const html = renderResults(report);
-
-    expect(html).toContain("Estimated VRAM required");
-    expect(html).toContain("Estimated speed");
-    expect(html).not.toContain("Estimated GPU VRAM required");
-    expect(html).toContain("Recommended Hardware");
-    expect(html).toContain("Minimum GPU memory needed");
-    expect(html).toContain("&lt;b&gt;20.4 GB&lt;/b&gt;");
-    expect(html).toContain("&lt;script&gt;bad()&lt;/script&gt;");
+  test("recomputes when a numeric input changes", () => {
+    loadDom();
+    mountCalculator(document);
+    fireInput("total_params", "104");
+    expect(out("total")).toBe("245.4 GB");
   });
 
-  test("renders every adaptive input family", () => {
-    expect(renderForm(state({ workload_family: "text_encoder" }))).toContain(
-      "Sequence Length",
-    );
-    expect(renderForm(state({ workload_family: "encoder_decoder" }))).toContain(
-      "Input Tokens",
-    );
-    expect(renderForm(state({ workload_family: "vision" }))).toContain(
-      "Image Width",
-    );
-    expect(renderForm(state({ workload_family: "image_diffusion" }))).toContain(
-      "Output Image Width",
-    );
-    expect(renderForm(state({ workload_family: "vision_language" }))).toContain(
-      "Text Context Tokens",
-    );
-    expect(
-      renderForm(state({ workload_family: "video_generation" })),
-    ).toContain("Output Resolution");
-    expect(renderForm(state({ workload_family: "audio" }))).toContain(
-      "Audio Length",
-    );
-    expect(renderForm(state({ workload_family: "tabular" }))).toContain(
-      "Rows per Batch",
-    );
-    expect(renderForm(state({ workload_family: "custom" }))).toContain(
-      "Input Size Preset",
-    );
-    expect(renderForm(state({ execution_mode: "Full training" }))).toContain(
-      "Training Batch Size",
-    );
-    expect(
-      renderForm(state({ workload_family: "custom", moe_enabled: true })),
-    ).toContain("Active parameters per token");
-    expect(renderStatusBar()).toContain("local TypeScript");
+  test("recomputes on input and change from a select", () => {
+    loadDom();
+    mountCalculator(document);
+    // selects fire input then change; the input event exercises the
+    // non-input-element branch of the input listener.
+    fireInput("precision", "4-bit");
+    fireChange("precision", "4-bit");
+    expect(out("total")).not.toBe("19.0 GB");
+  });
+
+  test("sanitizes negatives, exponents, and clamps the maximum", () => {
+    loadDom();
+    mountCalculator(document);
+    fireInput("context_tokens", "-9e5");
+    expect(field("context_tokens").value).toBe("95");
+    fireInput("context_tokens", "1000000");
+    expect(field("context_tokens").value).toBe("999999");
+  });
+
+  test("reset zeroes inputs and outputs and explains the empty estimate", () => {
+    loadDom();
+    mountCalculator(document);
+    fireInput("total_params", "104");
+    requireButton().click();
+    expect(field("total_params").value).toBe("0");
+    expect(out("total")).toBe("0.0 GB");
+    expect(out("gpu-class")).toBe("No model loaded");
+    expect(out("why")).toContain("Enter model and workload inputs");
+  });
+
+  test("prevents form submission so the page never reloads", () => {
+    loadDom();
+    mountCalculator(document);
+    const form = document.querySelector("form");
+    const event = new Event("submit", { bubbles: true, cancelable: true });
+    const notCancelled = form?.dispatchEvent(event);
+    expect(notCancelled).toBe(false);
+  });
+
+  test("serializes a checked MoE box into the estimate", () => {
+    loadDom();
+    mountCalculator(document);
+    const moe = field("moe_enabled");
+    if (moe instanceof HTMLInputElement) {
+      moe.checked = true;
+    }
+    moe.dispatchEvent(new Event("change", { bubbles: true }));
+    expect(out("total")).toBe("19.0 GB");
+  });
+
+  test("renders training warnings and drops the standard disclaimer", () => {
+    loadDom();
+    mountCalculator(document);
+    fireChange("execution_mode", "Full training");
+    const warnings =
+      document.querySelector('[data-out="warnings"]')?.textContent ?? "";
+    expect(warnings).toContain("Training estimates include parameter state");
+    expect(warnings).not.toContain("vendor guarantee");
+  });
+
+  test("renders the why detail outputs", () => {
+    loadDom();
+    mountCalculator(document);
+    expect(out("usable-on-class")).not.toBe("");
+    expect(out("fit-headroom")).not.toBe("");
+    expect(out("why")).toContain("advertised VRAM");
   });
 });
 
-describe("conditional controls", () => {
-  test("shows MoE only for supported families and active parameters only when checked", () => {
-    const root = appRoot();
-    mountCalculator(root, runtime());
-
-    const family = root.querySelector<HTMLSelectElement>(
-      'select[name="workload_family"]',
-    );
-    const moe = root.querySelector<HTMLInputElement>(
-      'input[name="moe_enabled"]',
-    );
-    const active = root.querySelector<HTMLInputElement>(
-      'input[name="active_params"]',
-    );
-    expect(family).not.toBeNull();
-    expect(moe).not.toBeNull();
-    expect(active).not.toBeNull();
-
-    moe?.click();
-    syncConditionalControls(root);
-    expect(active?.closest<HTMLElement>(".active-params")?.hidden).toBe(false);
-
-    if (family !== null && moe !== null) {
-      family.value = "vision";
-      syncConditionalControls(root);
-      expect(moe.closest<HTMLElement>(".moe-control")?.hidden).toBe(true);
-      expect(moe.checked).toBe(false);
-    }
+describe("adaptive controls", () => {
+  test("shows family-specific inputs and hides MoE for vision", () => {
+    loadDom();
+    mountCalculator(document);
+    expect(isRowHidden("context_tokens")).toBe(false);
+    fireChange("workload_family", "vision");
+    expect(isRowHidden("context_tokens")).toBe(true);
+    expect(isRowHidden("image_width")).toBe(false);
+    expect(isRowHidden("moe_enabled")).toBe(true);
   });
 
-  test("updates workload-size label for training modes", () => {
-    const root = appRoot();
-    mountCalculator(root, runtime());
-    const mode = root.querySelector<HTMLSelectElement>(
-      'select[name="execution_mode"]',
-    );
-
-    expect(root.querySelector("[data-workload-label]")?.textContent).toBe(
-      "Concurrent Requests",
-    );
-    if (mode !== null) {
-      mode.value = "Full training";
-      syncConditionalControls(root);
+  test("reveals active parameters only when MoE is checked", () => {
+    loadDom();
+    mountCalculator(document);
+    expect(isRowHidden("moe_enabled")).toBe(false);
+    expect(isRowHidden("active_params")).toBe(true);
+    const moe = field("moe_enabled");
+    if (moe instanceof HTMLInputElement) {
+      moe.checked = true;
     }
-    expect(root.querySelector("[data-workload-label]")?.textContent).toBe(
-      "Training Batch Size",
-    );
+    moe.dispatchEvent(new Event("change", { bubbles: true }));
+    expect(isRowHidden("active_params")).toBe(false);
   });
 
-  test("does nothing when conditional controls are absent", () => {
-    const root = appRoot();
-
-    syncConditionalControls(root);
-
-    expect(root.childElementCount).toBe(0);
+  test("switches the workload size label for training", () => {
+    loadDom();
+    mountCalculator(document);
+    const label = document.querySelector("[data-workload-label]");
+    expect(label?.textContent).toBe("Concurrent Requests");
+    fireChange("execution_mode", "Full training");
+    expect(label?.textContent).toBe("Micro Batch Size");
   });
 });
 
-describe("calculator app", () => {
-  test("renders the default local TypeScript report without network access", () => {
-    const fetchReport = mockFetch();
-    const root = appRoot();
-    mountCalculator(root, runtime());
-
-    expect(root.querySelector(".total")?.textContent).toBe("19.0 GB");
-    expect(root.textContent).toContain(
-      "Estimate VRAM and hardware fit for AI workloads.",
-    );
-    expect(root.textContent).toContain("Model Task Type");
-    expect(root.textContent).toContain("Advanced assumptions");
-    expect(root.textContent).not.toContain("Thousands");
-    expect(root.textContent).not.toContain("Batch Size");
-    expect(fetchReport).not.toHaveBeenCalled();
+describe("sanitizeNumberInput", () => {
+  test("keeps a single decimal point for decimal inputs", () => {
+    const input = document.createElement("input");
+    input.inputMode = "decimal";
+    input.value = "1.2.3";
+    sanitizeNumberInput(input);
+    expect(input.value).toBe("1.23");
   });
 
-  test("renders QLoRA as locked 4-bit local assumptions", () => {
-    const root = appRoot();
-    mountCalculator(root, runtime("?execution_mode=QLoRA+fine-tuning"));
-
-    const precision = root.querySelector<HTMLSelectElement>(
-      'select[name="precision"]',
-    );
-    const runtimeProfile = root.querySelector<HTMLSelectElement>(
-      'select[name="runtime_profile"]',
-    );
-
-    expect(precision?.disabled).toBe(true);
-    expect(precision?.value).toBe("4-bit QLoRA base");
-    expect(runtimeProfile?.disabled).toBe(true);
-    expect(runtimeProfile?.value).toBe("Local / Edge");
-    expect(root.textContent).toContain(
-      "QLoRA uses a frozen 4-bit base model plus trainable adapters.",
-    );
-    expect(root.textContent).toContain("Training runtime assumptions");
-    expect(root.textContent).toContain("QLoRA base model memory");
+  test("leaves an already-clean value untouched", () => {
+    const input = document.createElement("input");
+    input.inputMode = "numeric";
+    input.value = "42";
+    sanitizeNumberInput(input);
+    expect(input.value).toBe("42");
   });
+});
 
-  test("loads report queries from local TypeScript without a report service", () => {
-    const fetchReport = mockFetch();
-    const root = appRoot();
-    mountCalculator(
-      root,
-      runtime(
-        "?total_params=8&precision=4-bit&runtime_profile=Local+%2F+Edge&known_model_file_size_gb=4.6",
-      ),
-    );
-
-    expect(root.querySelector(".total")?.textContent).toBe("6.3 GB");
-    expect(fetchReport).not.toHaveBeenCalled();
-  });
-
-  test("submits normalized form state into the URL and recomputes", () => {
-    const fetchReport = mockFetch();
-    const root = appRoot();
-    const rt = runtime();
-    mountCalculator(root, rt);
-
-    const totalParameters = root.querySelector<HTMLInputElement>(
-      'input[name="total_params"]',
-    );
-    const knownFile = root.querySelector<HTMLInputElement>(
-      'input[name="known_model_file_size_gb"]',
-    );
-    if (totalParameters !== null) {
-      totalParameters.value = "8";
-    }
-    const precision = root.querySelector<HTMLSelectElement>(
-      'select[name="precision"]',
-    );
-    const runtimeProfile = root.querySelector<HTMLSelectElement>(
-      'select[name="runtime_profile"]',
-    );
-    if (precision !== null && runtimeProfile !== null) {
-      precision.value = "4-bit";
-      runtimeProfile.value = "Local / Edge";
-    }
-    if (knownFile !== null) {
-      knownFile.value = "4.6";
-    }
-    const form = root.querySelector("form");
-    if (form !== null) {
-      const upload = document.createElement("input");
-      upload.type = "file";
-      upload.name = "ignored_upload";
-      form.append(upload);
-      form.dispatchEvent(
-        new SubmitEvent("submit", { bubbles: true, cancelable: true }),
-      );
-    }
-
-    expect(rt.history.replaceState).toHaveBeenCalled();
-    expect(root.querySelector(".total")?.textContent).toBe("6.3 GB");
-    expect(fetchReport).not.toHaveBeenCalled();
-  });
-
-  test("updates the estimate as input values change", () => {
-    const root = appRoot();
-    const rt = runtime();
-    mountCalculator(root, rt);
-
-    expect(root.querySelector(".total")?.textContent).toBe("19.0 GB");
-    const totalParameters = root.querySelector<HTMLInputElement>(
-      'input[name="total_params"]',
-    );
-    if (totalParameters !== null) {
-      totalParameters.value = "8";
-      totalParameters.dispatchEvent(new Event("input", { bubbles: true }));
-    }
-
-    expect(root.querySelector(".total")?.textContent).toBe("21.3 GB");
-    expect(rt.history.replaceState).not.toHaveBeenCalled();
-  });
-
-  test("handles direct change and submit events defensively", () => {
-    const root = appRoot();
-    const app = new CalculatorApp(root, runtime());
-    app.mount();
-
-    app.handleEvent(new Event("change"));
-    app.handleEvent(new Event("submit"));
-    app.handleEvent(new Event("focus"));
-
-    expect(root.querySelector("form")).not.toBeNull();
-  });
-
-  test("rerenders adaptive fields on family and execution-mode changes", () => {
-    const fetchReport = mockFetch();
-    const root = appRoot();
-    mountCalculator(root, runtime());
-    const family = root.querySelector<HTMLSelectElement>(
-      'select[name="workload_family"]',
-    );
-
-    if (family !== null) {
-      family.value = "vision";
-      family.dispatchEvent(new Event("change", { bubbles: true }));
-    }
-    expect(root.textContent).toContain("Image Width");
-    const moe = root.querySelector<HTMLInputElement>(
-      'input[name="moe_enabled"]',
-    );
-    expect(moe?.closest<HTMLElement>(".moe-control")?.hidden).toBe(true);
-
-    const mode = root.querySelector<HTMLSelectElement>(
-      'select[name="execution_mode"]',
-    );
-    if (mode !== null) {
-      mode.value = "Full training";
-      mode.dispatchEvent(new Event("change", { bubbles: true }));
-    }
-    expect(root.textContent).toContain("Training Batch Size");
-    expect(fetchReport).not.toHaveBeenCalled();
-  });
-
-  test("main module mounts when an app root exists and throws without one", async () => {
-    const root = document.createElement("main");
-    root.id = "app";
-    document.body.append(root);
-
-    vi.resetModules();
+describe("main entrypoint", () => {
+  test("mounts against the document on import", async () => {
+    loadDom();
     await import("./main");
-    expect(root.querySelector("form")).not.toBeNull();
-    document.body.replaceChildren();
-
-    vi.resetModules();
-    await expect(import("./main")).rejects.toThrow("Missing app root");
+    expect(out("total")).toBe("19.0 GB");
   });
 });
+
+function requireButton(): HTMLButtonElement {
+  const button = document.querySelector<HTMLButtonElement>(
+    '[data-action="reset"]',
+  );
+  if (button === null) {
+    throw new Error("Missing reset button");
+  }
+  return button;
+}

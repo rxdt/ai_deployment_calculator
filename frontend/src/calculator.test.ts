@@ -1,21 +1,34 @@
 import { describe, expect, test } from "vitest";
+import type { CalculationSpec } from "./calculator-core";
 import {
   PRECISION_MAP,
-  accuracyFor,
   architectureFor,
-  inferenceWorkingMemoryGb,
-  memoryBreakdown,
   roundTo,
   runtimeAssumptions,
   specFromState,
-  speedEstimate,
   trainingActivationGb,
   trainingStateGb,
   weightsGb,
-} from "./calculator";
-import type { CalculationSpec } from "./calculator-core";
+} from "./calculator-core";
+import { HARDWARE_TIERS } from "./hardware";
 import { defaultState } from "./state";
 import type { FormState, WorkloadFamily } from "./types";
+import {
+  inferenceWorkingMemoryGb,
+  memoryBreakdown,
+  speedEstimate,
+} from "./workload-memory";
+
+function speedTierForTest() {
+  const match = HARDWARE_TIERS.find((row) => row.vramGb === 24);
+  if (match === undefined) {
+    throw new Error("Missing 24 GB test tier");
+  }
+  return match;
+}
+
+// 24 GB consumer class, an arbitrary tier for speed-format assertions.
+const SPEED_TIER = speedTierForTest();
 
 const NO_KV_FAMILIES = new Set<WorkloadFamily>([
   "text_encoder",
@@ -135,6 +148,20 @@ describe("corrected text-generation totals", () => {
         }),
       ),
     ).toEqual([39.8, 21.3, 12.5, 8.1]);
+  });
+
+  test("compares a 104B local precision sweep at 32k context with 32-bit KV", () => {
+    expect(
+      ["32-bit", "16-bit", "8-bit", "4-bit"].map((precision) =>
+        required({
+          total_params: "104",
+          context_tokens: "32000",
+          kv_cache_precision: "32-bit",
+          runtime_profile: "Local / Edge",
+          precision: precision as FormState["precision"],
+        }),
+      ),
+    ).toEqual([454.1, 239.9, 138.1, 87.3]);
   });
 
   test("local 4-bit weights apply quantized overhead", () => {
@@ -275,6 +302,21 @@ describe("training estimates", () => {
       specFromState(state({ total_params: "-1", workload_size: "-2" }))
         .totalParamsB,
     ).toBe(7);
+  });
+
+  test("zero baseline produces zero output memory and speed", () => {
+    const spec = specFromState(
+      state({
+        total_params: "0",
+        workload_size: "0",
+        context_tokens: "0",
+      }),
+    );
+
+    expect(memoryBreakdown(spec).requiredGb).toBe(0);
+    expect(speedEstimate(spec, weightsGb(spec), SPEED_TIER)).toBe(
+      "0.0 tokens/second",
+    );
   });
 
   test("checkpointing changes activation scale and SGD-like state is valid", () => {
@@ -419,26 +461,6 @@ describe("architecture, runtime, accuracy, and speed helpers", () => {
     });
   });
 
-  test("accuracy labels cover all documented values", () => {
-    expect(
-      accuracyFor(specFromState(state({ known_model_file_size_gb: "52" }))),
-    ).toBe("File-size based");
-    expect(
-      accuracyFor(
-        specFromState(state({ exact_transformer_architecture: true })),
-      ),
-    ).toBe("Advanced override");
-    expect(
-      accuracyFor(specFromState(state({ workload_family: "vision_language" }))),
-    ).toBe("Component-based");
-    expect(
-      accuracyFor(specFromState(state({ workload_family: "image_diffusion" }))),
-    ).toBe("Rough");
-    expect(
-      accuracyFor(specFromState(state({ workload_family: "tabular" }))),
-    ).toBe("Estimated");
-  });
-
   test("speed labels vary by workload family and MoE compute weights", () => {
     for (const family of [
       "text_generation",
@@ -453,10 +475,32 @@ describe("architecture, runtime, accuracy, and speed helpers", () => {
           moe_enabled: family === "text_generation",
         }),
       );
-      expect(speedEstimate(spec, weightsGb(spec))).toMatch(
+      expect(speedEstimate(spec, weightsGb(spec), SPEED_TIER)).toMatch(
         /tokens|images|clips|rows|audio/u,
       );
     }
+  });
+
+  test("MoE never reduces resident weight memory", () => {
+    const dense = specFromState(
+      state({ total_params: "47", precision: "16-bit" }),
+    );
+    const moe = specFromState(
+      state({
+        total_params: "47",
+        precision: "16-bit",
+        moe_enabled: true,
+        active_params: "3",
+      }),
+    );
+    expect(weightsGb(moe)).toBe(weightsGb(dense));
+  });
+
+  test("zero active params falls back to the total for MoE compute", () => {
+    const spec = specFromState(
+      state({ moe_enabled: true, active_params: "0" }),
+    );
+    expect(spec.activeParamsB).toBe(spec.totalParamsB);
   });
 
   test("roundTo produces fixed one-decimal contract values", () => {

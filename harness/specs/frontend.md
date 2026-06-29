@@ -13,13 +13,13 @@ PRIORITY 1 - frontend parity implemented; keep green.
   `Encoder-decoder generation`, `Vision understanding`,
   `Vision-language / multimodal`, `Image generation / diffusion`,
   `Video generation`, `Speech / audio`, `Tabular / classical ML`,
-  `Custom / unknown`, `Known Model File Size`, `Compare with my GPU`,
-  `Total Resident Parameters`, `Precision`, `Execution Mode`,
+  `Custom / unknown`, `Known Model File Size`,
+  `Total Model Parameters`, `Precision`, `Execution Mode`,
   `Runtime Profile`, and `Advanced assumptions`.
 
 ## UI State
 
-- Main form shows `Workload Family`, `Total Resident Parameters`,
+- Main form shows `Workload Family`, `Total Model Parameters`,
   `Parameter Unit`, `Precision`, `Execution Mode`, `Runtime Profile`,
   adaptive input controls, adaptive workload size, and relevant `MoE Model`.
 - Rare controls live in `<details><summary>Advanced assumptions</summary>`.
@@ -49,8 +49,7 @@ buffer`.
 ## Outputs
 
 - Reports show `Total Required Memory`, `Recommended Hardware`,
-  `Minimum Raw VRAM Needed`, workload speed, cloud cost only for
-  `Server / Cloud`, and `Accuracy`.
+  `Minimum Raw VRAM Needed`, workload speed, and `Accuracy`.
 - Breakdown labels are `Model / pipeline weights`, `KV cache`,
   `Input / activation memory`, `Training state`, `Runtime overhead`, and
   `Safety buffer`; zero rows are hidden.
@@ -72,7 +71,7 @@ buffer`.
   diffusion/video/audio/tabular scaling, LoRA, QLoRA, full training, hardware
   recommendation, confidence, cloud visibility, and legacy flag removal.
 - Playwright covers accessibility, local report rendering, adaptive controls,
-  no generic `Batch Size`, local cloud-cost hiding, MoE visibility, and escaping.
+  no generic `Batch Size`, MoE visibility, and escaping.
 - `frontend/src/legacy-approximations.test.ts` was deleted; do not reintroduce
   it or any legacy-approximation test.
 - Required commands: `npm --prefix frontend run build`,

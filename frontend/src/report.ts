@@ -1,15 +1,16 @@
+import { specFromState, weightsGb } from "./calculator-core";
 import {
-  STANDARD_HEURISTIC_WARNING,
-  accuracyFor,
-  memoryBreakdown,
-  specFromState,
-  speedEstimate,
-  weightsGb,
-} from "./calculator";
-import { formatGb, hardwareRecommendation } from "./hardware";
+  formatGb,
+  hardware,
+  hardwareRecommendation,
+  minimumRawVramGb,
+  speedLabel,
+  speedTierFor,
+} from "./hardware";
 import type { DisplayRow, FormState, ReportPayload } from "./types";
+import { memoryBreakdown, speedEstimate } from "./workload-memory";
 
-export { specFromState } from "./calculator";
+export { specFromState } from "./calculator-core";
 
 function row(label: string, value: number): DisplayRow | null {
   const formatted = formatGb(value);
@@ -22,47 +23,16 @@ function compactRows(rows: readonly (DisplayRow | null)[]): DisplayRow[] {
   );
 }
 
-function familyWarning(state: FormState): string | null {
+function trainingWarning(state: FormState): string | null {
   if (state.execution_mode !== "Inference") {
     return "Training estimates include parameter state and checkpointed activations, but real runs vary by optimizer, sequence packing, and framework.";
-  }
-  if (
-    state.workload_family === "image_diffusion" ||
-    state.workload_family === "video_generation"
-  ) {
-    return "Diffusion and video estimates are rough because pipeline components, schedulers, and resolution choices dominate memory.";
-  }
-  if (state.workload_family === "tabular") {
-    return "Tabular estimates model batch working memory, not every classical ML algorithm or data-loader path.";
-  }
-  if (state.workload_family === "vision") {
-    return "Vision estimates depend on patching, image count, and preprocessing buffers.";
-  }
-  if (state.workload_family === "audio") {
-    return "Audio estimates depend on tokenizer stride, chunking, and streaming buffers.";
   }
   return null;
 }
 
-const TRANSFORMER_ARCHITECTURE_FAMILIES = new Set<FormState["workload_family"]>(
-  [
-    "text_generation",
-    "text_encoder",
-    "encoder_decoder",
-    "vision_language",
-    "custom",
-  ],
-);
-
-function isTransformerArchitectureWorkload(
-  family: FormState["workload_family"],
-): boolean {
-  return TRANSFORMER_ARCHITECTURE_FAMILIES.has(family);
-}
-
 function warningsFor(state: FormState): string[] {
-  const warnings = [STANDARD_HEURISTIC_WARNING];
-  const conditional = familyWarning(state);
+  const warnings: string[] = [];
+  const conditional = trainingWarning(state);
   if (conditional !== null) {
     warnings.push(conditional);
   }
@@ -79,24 +49,21 @@ function warningsFor(state: FormState): string[] {
       "Local GPU fit uses usable VRAM, so drivers, displays, and other processes can still force offload.",
     );
   }
-  if (
-    !state.exact_transformer_architecture &&
-    isTransformerArchitectureWorkload(state.workload_family)
-  ) {
-    warnings.push(
-      "Transformer architecture is estimated from the parameter count.",
-    );
-  }
   return warnings;
 }
 
 function assumptionRows(state: FormState): DisplayRow[] {
+  const spec = specFromState(state);
   return [
     { label: "Precision", value: state.precision },
     { label: "Runtime profile", value: state.runtime_profile },
     { label: "Execution mode", value: state.execution_mode },
-    { label: "Context memory precision", value: state.kv_cache_precision },
-    { label: "Conservative KV heads", value: "attention_heads" },
+    { label: "KV Cache precision", value: state.kv_cache_precision },
+    { label: "KV heads used", value: spec.architecture.kvHeads.toString() },
+    {
+      label: "Conservative KV heads",
+      value: spec.architecture.attentionHeads.toString(),
+    },
   ];
 }
 
@@ -110,14 +77,24 @@ export function buildReport(state: FormState): ReportPayload {
   const spec = specFromState(state);
   const breakdown = memoryBreakdown(spec);
   const weights = weightsGb(spec);
-  const required = breakdown.requiredGb;
-  const hardware = hardwareRecommendation(required, spec.runtime.utilization);
+  const { requiredGb: required } = breakdown;
+  const { utilization } = spec.runtime;
+  const canShard = state.memory_sharding_enabled;
+  const recommendation = hardwareRecommendation(required, utilization, {
+    allowSharding: canShard,
+  });
+  const tier = hardware(minimumRawVramGb(required, utilization), {
+    allowSharding: canShard,
+  });
+  const warnings = warningsFor(state);
+  if (tier !== "overflow" && tier.requiresSharding) {
+    warnings.push(speedLabel(tier));
+  }
   return {
     totalRequiredMemory: formatGb(required),
-    recommendedHardware: hardware,
-    minimumRawVramNeeded: hardware.minimumRawVram,
-    speed: speedEstimate(spec, weights),
-    accuracy: accuracyFor(spec),
+    recommendedHardware: recommendation,
+    minimumRawVramNeeded: recommendation.minimumRawVram,
+    speed: speedEstimate(spec, weights, speedTierFor(tier)),
     breakdown: compactRows([
       row(weightsLabel(state), breakdown.weightsGb),
       row("Context memory", breakdown.kvCacheGb),
@@ -127,7 +104,7 @@ export function buildReport(state: FormState): ReportPayload {
       row("Safety margin", breakdown.safetyBufferGb),
     ]),
     assumptions: assumptionRows(state),
-    warnings: warningsFor(state),
+    warnings,
     calculation: `(${breakdown.weightsGb.toFixed(1)} + ${breakdown.kvCacheGb.toFixed(1)} + ${breakdown.inputActivationGb.toFixed(1)} + ${breakdown.trainingStateGb.toFixed(1)} + ${breakdown.runtimeOverheadGb.toFixed(1)}) * ${spec.runtime.buffer.toFixed(2)} = ${formatGb(required)}`,
   };
 }

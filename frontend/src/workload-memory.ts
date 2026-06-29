@@ -7,7 +7,8 @@ import {
   type CalculationSpec,
   type MemoryBreakdown,
 } from "./calculator-core";
-import type { Accuracy, WorkloadFamily } from "./types";
+import { estimateSpeed, type HardwareTier } from "./hardware";
+import type { WorkloadFamily } from "./types";
 
 const BYTES_PER_GB = 1_000_000_000;
 const DEFAULT_PATCH_SIZE = 16;
@@ -16,7 +17,6 @@ const DEFAULT_LATENT_CHANNELS = 4;
 const DEFAULT_TEMPORAL_DOWNSAMPLE = 4;
 const DEFAULT_AUDIO_TOKENS_PER_SECOND = 50;
 const DEFAULT_FEATURE_BYTES = 4;
-const DEFAULT_MEMORY_BANDWIDTH_GBPS = 936;
 const DEFAULT_ACTIVATION_BYTES = 2;
 
 interface WorkingMemory {
@@ -29,9 +29,9 @@ type WorkingMemoryBuilder = (
   weights: number,
 ) => WorkingMemory;
 
-function positive(value: string, fallback: number): number {
+function nonNegative(value: string, fallback: number): number {
   const parsed = Number(value);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
 }
 
 function decoderKvGb(spec: CalculationSpec, tokens: number): number {
@@ -73,9 +73,9 @@ function visionActivationGb(spec: CalculationSpec, tokens: number): number {
   }
   return pixelProxyGb(
     spec,
-    positive(spec.state.image_width, 1024),
-    positive(spec.state.image_height, 1024),
-    positive(spec.state.image_count, 1),
+    nonNegative(spec.state.image_width, 1024),
+    nonNegative(spec.state.image_height, 1024),
+    nonNegative(spec.state.image_count, 1),
   );
 }
 
@@ -98,7 +98,7 @@ function textGenerationMemory(
 ): WorkingMemory {
   const scratchRatio = spec.runtimeProfile === "Local / Edge" ? 0.03 : 0.05;
   return {
-    kvCacheGb: decoderKvGb(spec, positive(spec.state.context_tokens, 8000)),
+    kvCacheGb: decoderKvGb(spec, nonNegative(spec.state.context_tokens, 8000)),
     inputActivationGb: currentWeightsGb * scratchRatio,
   };
 }
@@ -108,7 +108,7 @@ function textEncoderMemory(spec: CalculationSpec): WorkingMemory {
     kvCacheGb: 0,
     inputActivationGb: encoderActivationGb(
       spec,
-      positive(spec.state.sequence_tokens, 512),
+      nonNegative(spec.state.sequence_tokens, 512),
     ),
   };
 }
@@ -119,9 +119,9 @@ function encoderDecoderMemory(
 ): WorkingMemory {
   const input = encoderActivationGb(
     spec,
-    positive(spec.state.input_tokens, 1024),
+    nonNegative(spec.state.input_tokens, 1024),
   );
-  const kv = decoderKvGb(spec, positive(spec.state.output_tokens, 256));
+  const kv = decoderKvGb(spec, nonNegative(spec.state.output_tokens, 256));
   return {
     kvCacheGb: kv,
     inputActivationGb: input + currentWeightsGb * 0.05,
@@ -129,8 +129,8 @@ function encoderDecoderMemory(
 }
 
 function visionMemory(spec: CalculationSpec): WorkingMemory {
-  const width = positive(spec.state.image_width, 1024);
-  const height = positive(spec.state.image_height, 1024);
+  const width = nonNegative(spec.state.image_width, 1024);
+  const height = nonNegative(spec.state.image_height, 1024);
   const tokens = imageTokens(width, height);
   const transformer = encoderActivationGb(spec, tokens);
   const pixels = pixelProxyGb(spec, width, height, 1);
@@ -141,13 +141,13 @@ function visionLanguageMemory(
   spec: CalculationSpec,
   currentWeightsGb: number,
 ): WorkingMemory {
-  const width = positive(spec.state.image_width, 1024);
-  const height = positive(spec.state.image_height, 1024);
+  const width = nonNegative(spec.state.image_width, 1024);
+  const height = nonNegative(spec.state.image_height, 1024);
   const imageTokenCount =
-    positive(spec.state.image_count, 1) * (imageTokens(width, height) - 1);
+    nonNegative(spec.state.image_count, 1) * (imageTokens(width, height) - 1);
   const kv = decoderKvGb(
     spec,
-    positive(spec.state.text_context_tokens, 4000) + imageTokenCount,
+    nonNegative(spec.state.text_context_tokens, 4000) + imageTokenCount,
   );
   const vision = visionActivationGb(spec, imageTokenCount);
   return {
@@ -161,10 +161,10 @@ function imageDiffusionMemory(
   currentWeightsGb: number,
 ): WorkingMemory {
   const latentHeight = Math.ceil(
-    positive(spec.state.image_height, 1024) / DEFAULT_LATENT_DOWNSAMPLE,
+    nonNegative(spec.state.image_height, 1024) / DEFAULT_LATENT_DOWNSAMPLE,
   );
   const latentWidth = Math.ceil(
-    positive(spec.state.image_width, 1024) / DEFAULT_LATENT_DOWNSAMPLE,
+    nonNegative(spec.state.image_width, 1024) / DEFAULT_LATENT_DOWNSAMPLE,
   );
   const elements =
     spec.workloadSize * latentHeight * latentWidth * DEFAULT_LATENT_CHANNELS;
@@ -181,7 +181,7 @@ function videoMemory(
 ): WorkingMemory {
   const size = videoSize(spec.state.video_resolution);
   const latentFrames = Math.ceil(
-    positive(spec.state.video_frames, 81) / DEFAULT_TEMPORAL_DOWNSAMPLE,
+    nonNegative(spec.state.video_frames, 81) / DEFAULT_TEMPORAL_DOWNSAMPLE,
   );
   const latentHeight = Math.ceil(size.height / DEFAULT_LATENT_DOWNSAMPLE);
   const latentWidth = Math.ceil(size.width / DEFAULT_LATENT_DOWNSAMPLE);
@@ -200,7 +200,7 @@ function videoMemory(
 
 function audioMemory(spec: CalculationSpec): WorkingMemory {
   const tokens =
-    positive(spec.state.audio_seconds, 30) * DEFAULT_AUDIO_TOKENS_PER_SECOND;
+    nonNegative(spec.state.audio_seconds, 30) * DEFAULT_AUDIO_TOKENS_PER_SECOND;
   return {
     kvCacheGb: 0,
     inputActivationGb: encoderActivationGb(spec, tokens),
@@ -209,8 +209,8 @@ function audioMemory(spec: CalculationSpec): WorkingMemory {
 
 function tabularMemory(spec: CalculationSpec): WorkingMemory {
   const tabular =
-    (positive(spec.state.rows_per_batch, 10_000) *
-      positive(spec.state.features, 100) *
+    (nonNegative(spec.state.rows_per_batch, 10_000) *
+      nonNegative(spec.state.features, 100) *
       DEFAULT_FEATURE_BYTES) /
     BYTES_PER_GB;
   return { kvCacheGb: 0, inputActivationGb: tabular * 4 };
@@ -223,7 +223,9 @@ function customMemory(
   return {
     kvCacheGb: 0,
     inputActivationGb:
-      currentWeightsGb * 0.25 * positive(spec.state.input_size_multiplier, 1),
+      currentWeightsGb *
+      0.25 *
+      nonNegative(spec.state.input_size_multiplier, 1),
   };
 }
 
@@ -253,6 +255,7 @@ export function inferenceWorkingMemoryGb(
 
 export function memoryBreakdown(spec: CalculationSpec): MemoryBreakdown {
   const weights = weightsGb(spec);
+  const runtimeOverhead = spec.totalParamsB === 0 ? 0 : spec.runtime.overheadGb;
   const working =
     spec.executionMode === "Inference"
       ? inferenceWorkingMemoryGb(spec, weights)
@@ -263,49 +266,47 @@ export function memoryBreakdown(spec: CalculationSpec): MemoryBreakdown {
     working.kvCacheGb +
     working.inputActivationGb +
     trainingState +
-    spec.runtime.overheadGb;
+    runtimeOverhead;
   const required = subtotal * spec.runtime.buffer;
   return {
     weightsGb: weights,
     kvCacheGb: working.kvCacheGb,
     inputActivationGb: working.inputActivationGb,
     trainingStateGb: trainingState,
-    runtimeOverheadGb: spec.runtime.overheadGb,
+    runtimeOverheadGb: runtimeOverhead,
     safetyBufferGb: required - subtotal,
     requiredGb: roundTo(required, 1),
   };
 }
 
-export function accuracyFor(spec: CalculationSpec): Accuracy {
-  if (spec.knownModelFileSizeGb !== null) {
-    return "File-size based";
-  }
-  if (["image_diffusion", "video_generation", "custom"].includes(spec.family)) {
-    return "Rough";
-  }
-  if (spec.family === "tabular") {
-    return "Estimated";
-  }
-  if (spec.exactArchitecture) {
-    return "Advanced override";
-  }
-  if (spec.family === "vision_language") {
-    return "Component-based";
-  }
-  return "Estimated";
+function zeroSpeedEstimate(family: WorkloadFamily): string {
+  const estimates: Partial<Record<WorkloadFamily, string>> = {
+    audio: "0.0 audio tokens/second",
+    image_diffusion: "0.0 images/minute",
+    tabular: "0 rows/second",
+    video_generation: "0.0 clips/minute",
+  };
+  return estimates[family] ?? "0.0 tokens/second";
 }
 
 export function speedEstimate(
   spec: CalculationSpec,
   currentWeightsGb: number,
+  recommendedTier: HardwareTier,
 ): string {
+  if (spec.totalParamsB === 0) {
+    return zeroSpeedEstimate(spec.family);
+  }
   const precision = PRECISION_MAP[spec.precision];
   const computeWeightGb = spec.state.moe_enabled
     ? spec.activeParamsB * precision.weightBytes * precision.weightOverhead
     : currentWeightsGb;
   const tokens = Math.max(
     0.1,
-    DEFAULT_MEMORY_BANDWIDTH_GBPS / Math.max(computeWeightGb, 0.1),
+    estimateSpeed({
+      computeWeightGb: Math.max(computeWeightGb, 0.1),
+      recommendedTier,
+    }),
   );
   if (spec.family === "image_diffusion") {
     return `${roundTo(tokens / 20, 1).toFixed(1)} images/minute`;

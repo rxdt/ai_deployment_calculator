@@ -8,18 +8,12 @@ PRIORITY 1 - frontend parity and UI compaction implemented; keep green.
   formula source, or fetch mock.
 - `CalculatorApp` normalizes form state, calls local TypeScript
   `buildReport(state)`, and renders synchronously.
-- Keep public names from `docs/plan.md`: `Workload Family`,
-  `Text generation / chat`, `Text embeddings / reranking / classification`,
-  `Encoder-decoder generation`, `Vision understanding`,
-  `Vision-language / multimodal`, `Image generation / diffusion`,
-  `Video generation`, `Speech / audio`, `Tabular / classical ML`,
-  `Custom / unknown`, `Known Model File Size`, `Compare with my GPU`,
-  `Total Resident Parameters`, `Precision`, `Execution Mode`,
-  `Runtime Profile`, and `Advanced assumptions`.
+- Public UI names follow the Naming Contract in `specs/plan.md`; do not redefine
+  them here.
 
 ## UI State
 
-- Main form shows `Workload Family`, `Total Resident Parameters`,
+- Main form shows `Workload Family`, `Total Model Parameters`,
   `Parameter Unit`, `Precision`, `Execution Mode`, `Runtime Profile`,
   adaptive input controls, adaptive workload size, and relevant `MoE Model`.
 - Rare controls live in `<details><summary>Advanced assumptions</summary>`.
@@ -32,35 +26,36 @@ PRIORITY 1 - frontend parity and UI compaction implemented; keep green.
 
 ## Calculation State
 
-- `frontend/src/calculator.ts` owns the canonical equation:
-  `(weights + KV + input/activation + training state + runtime overhead) *
-buffer`.
-- Decoder KV is architecture-based. Encoders, vision, diffusion, audio,
-  tabular, and custom workloads do not use the legacy `Active_P / 10` formula.
-- `Known Model File Size` overrides parameter-based weight estimates.
-- MoE active parameters affect speed and KV, not resident weight memory.
-- Training modes use adapter/full-training state plus checkpointed activations;
-  legacy `trained=on&use_adapter=on` query flags are ignored.
-- Server defaults: overhead `1.5`, buffer `1.10`, utilization `0.85`.
-  Local GGUF-style inference: overhead `0.5`, buffer `1.00`, utilization
-  `0.90`. Training override: overhead `4.0`, buffer `1.25`, utilization
-  `0.80`.
+- `frontend/src/calculator-core.ts`, `workload-memory.ts`, and `hardware.ts` own
+  the calculation; `report.ts` assembles the rendered report. The canonical
+  equation, presets, per-family formulas, and hardware/speed math are detailed in
+  the Formulas section below.
+- `Known Model File Size` overrides parameter-based weight estimates; MoE active
+  parameters affect speed/KV only, not resident weight memory; training modes use
+  adapter/full-training state plus checkpointed activations; legacy
+  `trained=on&use_adapter=on` query flags are ignored.
 
 ## Outputs
 
-- Reports show `Total Required Memory`, `Recommended Hardware`,
-  `Minimum Raw VRAM Needed`, workload speed, cloud cost only for
-  `Server / Cloud`, and `Accuracy`.
-- Breakdown labels are `Model / pipeline weights`, `KV cache`,
-  `Input / activation memory`, `Training state`, `Runtime overhead`, and
-  `Safety buffer`; zero rows are hidden.
-- Recommended hardware includes required memory, usable VRAM target, and
-  `required / utilization = minimum raw VRAM` math.
-- Accuracy values are `File-size based`, `Component-based`,
-  `Advanced override`, `Estimated`, and `Rough`.
-- Warnings include the standard heuristic warning plus conditional estimated
-  architecture, diffusion/video, MoE, training, local offload, tabular, vision,
-  and audio warnings.
+- First glance (hero): `Estimated VRAM Required` (the total), a short
+  "The workload needs N GB usable VRAM." line, and `Recommended GPU Class`
+  (e.g. `24 GB GPU hardware tier`). Nothing else is shown by default.
+- Collapsed `<details>` panels hold the rest:
+  - `Why this recommendation` — a plain-language "why" sentence plus
+    `Minimum GPU VRAM Capacity`, `Usable VRAM Target`,
+    `Usable VRAM on Recommended Class`, `Fit Headroom`, and `Estimated Speed`
+    (rendered as `tokens/sec`).
+  - `Calculation used` — the per-component breakdown rows (`Model memory` or
+    `QLoRA base model memory`, `Context memory`, `Activation memory`,
+    `Training memory`, `Runtime reserve`, `Safety margin`), the inline formula,
+    and the assumptions list. Rows that round to `0.0 GB` are hidden.
+- The hardware-recommendation and fit math (usable VRAM on class, fit headroom,
+  overflow `n/a`, speed) is defined in the Formulas section below.
+- Warnings are conditional only: estimated architecture, diffusion/video, MoE,
+  training, local offload, tabular, vision, and audio. The always-on "standard
+  heuristic" disclaimer has been removed; default inference renders no warnings.
+- There is no `Accuracy` output and no separate `Your GPU Fit` panel; both were
+  removed by product decision.
 
 ## Tests And Checks
 
@@ -70,9 +65,10 @@ buffer`.
 - Unit tests cover conversion, precision map, file-size override, MoE resident
   memory, decoder KV scaling, no encoder KV, encoder-decoder memory,
   diffusion/video/audio/tabular scaling, LoRA, QLoRA, full training, hardware
-  recommendation, confidence, cloud visibility, and legacy flag removal.
+  tier matching (single-GPU vs sharded, overflow), tier-bandwidth speed,
+  confidence, and legacy flag removal.
 - Playwright covers accessibility, local report rendering, adaptive controls,
-  no generic `Batch Size`, local cloud-cost hiding, MoE visibility, and escaping.
+  no generic `Batch Size`, MoE visibility, and escaping.
 - `frontend/src/legacy-approximations.test.ts` was deleted; do not reintroduce
   it or any legacy-approximation test.
 - Required commands: `npm --prefix frontend run build`,
@@ -91,9 +87,11 @@ code review (expected values hand-recomputed from `docs/plan.md`). Remaining:
   the plan or drop it.
 
 ## Formulas
-Recall formulas that should be implemented:
 
-Use this. The pasted plan still contains stale formula language like `/api/report` migration and old heuristic examples, so replace the deleted formula section with this canonical one.
+This is the canonical, implemented formula reference. It supersedes any older
+`/api/report` migration language or legacy heuristic examples (those are gone).
+Variable names and constants below match `frontend/src/calculator-core.ts`,
+`workload-memory.ts`, and `hardware.ts`.
 
 ```md
 ## Canonical VRAM Formula
@@ -126,11 +124,11 @@ Display:
 
 `Total_Params_B = input_value * unit_multiplier`
 
-`unit_multiplier = 1` for billions.
+`unit_multiplier = 1` for billions (`B`).
 
-`unit_multiplier = 0.001` for millions.
+`unit_multiplier = 0.001` for millions (`M`).
 
-`unit_multiplier = 0.000001` for thousands.
+The UI exposes only `B` and `M` (`ParameterUnit = "B" | "M"`).
 
 ---
 
@@ -185,6 +183,43 @@ Training / fine-tuning override:
 `Buffer = 1.25`
 
 `GPU_Utilization_Target = 0.80`
+
+---
+
+## Architecture Buckets
+
+Estimated transformer architecture by total parameter count:
+
+```txt
+<= 1B:   layers 16, hidden 2048, heads 32, kv_heads 8, head_dim 64
+<= 4B:   layers 28, hidden 3072, heads 24, kv_heads 8, head_dim 128
+<= 10B:  layers 32, hidden 4096, heads 32, kv_heads 8, head_dim 128
+<= 20B:  layers 40, hidden 5120, heads 40, kv_heads 8, head_dim 128
+<= 40B:  layers 48, hidden 6144, heads 48, kv_heads 8, head_dim 128
+<= 80B:  layers 80, hidden 8192, heads 64, kv_heads 8, head_dim 128
+<= 160B: layers 96, hidden 10240, heads 80, kv_heads 8, head_dim 128
+> 160B:  layers 120, hidden 12288, heads 96, kv_heads 8, head_dim 128
+```
+
+Also compute `conservative_kv_heads = attention_heads` and show it in advanced
+output.
+
+---
+
+## Training Defaults
+
+```txt
+AdamW optimizer_bytes = 8
+8-bit Adam optimizer_bytes = 2
+SGD-like optimizer_bytes = 4
+gradient_bytes = 2
+activation_bytes = 2
+master_weight_bytes = 4
+adapter_weight_bytes = 2
+gradient_checkpointing checked -> activation_factor_training = 3
+gradient_checkpointing unchecked -> activation_factor_training = 8
+lora_trainable_percent options = 0.1%, 0.5%, 1%, 2%
+```
 
 ---
 
@@ -450,17 +485,49 @@ They do not reduce weight memory unless expert offload or sharding is explicitly
 
 `Minimum_Raw_VRAM_GB = Required_GB / GPU_Utilization_Target`
 
-`Recommended_GPU_Tier_GB = smallest GPU tier where GPU_Tier_GB >= Minimum_Raw_VRAM_GB`
+`Recommended_Tier = smallest eligible tier where Tier_VRAM_GB >= Minimum_Raw_VRAM_GB`
 
-GPU tiers:
+The single canonical tier table is `HARDWARE_TIERS` in `frontend/src/hardware.ts`.
+Each tier carries `vramGb`, `label`, `examples`, `bandwidthGbps`, `kind`,
+`gpuCount`, and `requiresSharding`. The 141 GB (H200) and 180 GB (B200) tiers are
+single-GPU; only the 160 GB and 320 GB aggregate tiers set `requiresSharding` and
+are eligible only when `memory_sharding_enabled` is on:
 
-`8, 12, 16, 24, 48, 80, 160, 320`
+|    VRAM | Primary label                            | Examples                              | Speed bandwidth | Sharding |
+| ------: | ---------------------------------------- | ------------------------------------- | --------------: | -------- |
+|    8 GB | 8 GB consumer class                      | RTX 4060 / older 8 GB GPUs            |        272 GB/s | No       |
+|   12 GB | 12 GB consumer class                     | RTX 3060 / RTX 4070 class             |        504 GB/s | No       |
+|   16 GB | 16 GB consumer / small workstation class | RTX 4080 / RTX 5000 Ada class         |        448 GB/s | No       |
+|   24 GB | 24 GB high-end consumer class            | RTX 3090 / RTX 4090 class             |        936 GB/s | No       |
+|   48 GB | 48 GB workstation / pro inference class  | RTX A6000 / RTX 6000 Ada / L40S class |        768 GB/s | No       |
+|   80 GB | 80 GB datacenter class                   | A100 / H100 / H800 class              |       2039 GB/s | No       |
+|  141 GB | 141 GB datacenter class                  | H200 class                            |       4800 GB/s | No       |
+|  160 GB | 160 GB sharded datacenter class          | 2x 80 GB GPUs                         |       4078 GB/s | Yes      |
+|  180 GB | 180 GB datacenter class                  | B200 class                            |       8000 GB/s | No       |
+|  320 GB | 320 GB sharded datacenter class          | 4x 80 GB GPUs                         |       8156 GB/s | Yes      |
+| >320 GB | Distributed / offload required           | Multi-node or larger GPU pool         |             N/A | Yes      |
 
-Compare-with-my-GPU:
+When nothing eligible fits, return overflow: "No single-GPU fit. Enable memory
+sharding or use offload." below 320 GB raw, otherwise "> 320 GB: distributed
+multi-node, larger GPU pool, or heavy offload".
+
+Display `fit headroom`.
+
+`Usable_VRAM_GB = Recommended_Tier_VRAM_GB * GPU_Utilization_Target`
+
+`Fit_Headroom_GB = Usable_VRAM_GB - Required_GB`
+
+For the recommended tier `Fit_Headroom_GB >= 0` by construction. Overflow and the
+empty workload report `n/a` for usable VRAM and fit headroom.
+
+Compare-with-my-GPU (advisory only; `my_gpu_vram_gb`):
 
 `My_Usable_VRAM_GB = My_GPU_Raw_VRAM_GB * GPU_Utilization_Target`
 
 `Fits_My_GPU = Required_GB <= My_Usable_VRAM_GB`
+
+Today this only adds the Local / Edge offload warning when a GPU is entered; the
+report does not yet surface a separate `Fits_My_GPU` value.
 
 ---
 
@@ -476,17 +543,10 @@ For MoE models:
 
 Text generation speed:
 
-`Tokens_Per_Second = Memory_Bandwidth_GBps / Compute_Weight_GB`
+`Tokens_Per_Second = Recommended_Tier_Bandwidth_GBps / Compute_Weight_GB`
 
-This is a rough estimate only.
-
----
-
-## Cloud Cost
-
-`Cloud_Cost_Per_Hour = Recommended_GPU_Count * Hourly_Rate_For_Recommended_Tier`
-
-Label as static estimate unless rates are fetched live.
+Bandwidth comes from the recommended tier in `HARDWARE_TIERS`, not a global
+constant. On overflow, use the largest tier's bandwidth. This is rough only.
 
 ---
 
@@ -524,7 +584,6 @@ Case	Status	Scratch-included expected (implemented)	Scratch-zero comparison
 8B, 8000 ctx, defaults	Done. Architecture KV + server decoder scratch.	21.3 GB	20.4 GB
 7B, 8000 ctx, full training	Done. No decoder scratch in training.	152.9 GB	152.9 GB
 104B, 32000 ctx, 4-bit, 32-bit KV, llama_cpp_gguf (52 GB exact)	Done. Local overhead + file-size override.	79.2 GB	77.7 GB
-47B, 8000 ctx, 4-bit, MoE active=1.3, llama_cpp_gguf	OPEN. No gguf-file test exists; the local 4-bit MoE no-file variant tests at 31.0 GB. Decide whether to add the gguf-file case.	(add test)	26.6 GB
 0.0004B, 8000 ctx, 8-bit weights, 8-bit KV, full training	Done. Training overhead dominates.	7.0 GB	5.1 GB
 70B, 128000 ctx, 4-bit weights, 8-bit KV	Done. Estimated GQA KV; exact uses 35 GB resident.	71.2 GB generic, 65.1 GB exact 35 GB	69.0 / 63.2 GB
 104B, 32000 ctx, 8-bit weights, 16-bit KV	Done.	141.6 GB	135.6 GB
@@ -533,7 +592,7 @@ Case	Status	Scratch-included expected (implemented)	Scratch-zero comparison
 70B, 8000 ctx, 4-bit weights, QLoRA	Done.	99.9 GB	99.9 GB
 3.8B, 8000 ctx, 4-bit weights, QLoRA	Done. <=4B architecture bucket.	13.2 GB	13.2 GB
 8B, 8000 ctx, precision comparison 32/16/8/4-bit	Done.	39.8 / 21.3 / 12.5 / 8.1 GB	38.0 / 20.4 / 12.0 / 7.9 GB
-104B, 32000 ctx, 32-bit KV, llama_cpp_gguf, precision comparison	OPEN. No four-value 104B precision test exists. Add or drop.	(add test)	441.7 / 233.7 / 129.7 / 77.7 GB
+104B, 32000 ctx, 32-bit KV, local, parameter-derived precision comparison	Done. Replaces the underspecified gguf-exact sweep (which required one known file size per precision). Generic parameter-derived sweep instead.	454.1 / 239.9 / 138.1 / 87.3 GB	n/a (no scratch-zero variant tested)
 70B, 8000 ctx, 4-bit, 8-bit KV, QLoRA 2% (replaces trained=on&use_adapter=on)	Done. Booleans replaced by Execution Mode.	115.6 GB	115.6 GB
 
 
@@ -563,7 +622,7 @@ assert known file size overrides parameter-derived weight estimate
 
 RAM calculator should follow that pattern: fewer visible controls, one dominant result, compact supporting metrics, technical details hidden/collapsed.
 
-Main problem: the current UI looks like a debug dashboard. Everything has equal weight: total VRAM, raw VRAM, safety buffer, runtime overhead, speed, cloud cost, hardware text, assumptions, warnings, advanced fields. That creates scroll and makes the result feel less trustworthy.
+Main problem: the current UI looks like a debug dashboard. Everything has equal weight: total VRAM, raw VRAM, safety buffer, runtime overhead, speed, hardware text, assumptions, warnings, advanced fields. That creates scroll and makes the result feel less trustworthy.
 
 Target desktop layout:
 
@@ -712,7 +771,7 @@ Always show:
 Only show for MoE:
   Active routed parameters
 
-Never show “Total resident parameters” as the main label.
+NEVER show “Total resident parameters” as the main label!
 
 Preserve the test-pinned accessible label exactly:
 
@@ -744,7 +803,6 @@ Advanced assumptions
   Known model file size
   GPU resident fraction
   CUDA/system overhead
-  Cloud cost override
 
 For “Vision understanding”, do not lead with KV cache unless the selected workload includes a text decoder. Show image width, image height, and batch first. KV precision belongs in advanced for VLMs, not the primary flow.
 
@@ -772,10 +830,6 @@ Collapsed:
   Assumptions
   Warnings
   Quantization comparison
-
-Remove the big cloud cost card. Replace it with one muted line:
-
-Cloud estimate: ~$1.00/hr static estimate. Provider pricing varies.
 
 The current “Speed 291.6 tokens/second” card is risky for non-LLM workloads. Rename it to “Throughput estimate” or hide it outside text-generation workloads.
 
@@ -810,7 +864,7 @@ Goals:
 
 Acceptance:
 - axe has no violations
-- 1440x900 screenshot: no page scroll, right form fully visible, no clipped cloud/hardware card
+- 1440x900 screenshot: no page scroll, right form fully visible, no clipped hardware card
 - 390x844 screenshot: clean responsive layout, no horizontal overflow
 - no calculation logic changed
 
@@ -827,7 +881,7 @@ Use **one primary result card**, not multiple competing blocks. The top card sho
 ```text
 Total Required Memory
 20.1 GB
-Recommended: 24 GB GPU class
+Recommended: 24 GB GPU tier
 ```
 
 Then put smaller secondary stats below:
@@ -933,7 +987,7 @@ vLLM documents FP8 KV cache as a memory-reduction feature, not something every n
 Remove the hardware table from the main surface. Keep:
 
 ```text
-Recommended Hardware: 24 GB GPU class
+Recommended Hardware Tier: 24 GB GPU Tier
 Why: 20.1 GB required / 90% usable target = 22.3 GB raw VRAM needed
 ```
 
@@ -1021,7 +1075,6 @@ KV heads
 Head dim
 Tensor parallel size
 Memory sharding enabled
-Compare with my GPU, GB
 ```
 
 These should be hidden by default.
@@ -1031,11 +1084,8 @@ Add outputs:
 ```text
 Minimum raw VRAM needed
 Estimated speed
-Estimated cloud cost
 Formula used
 ```
-
-Cloud cost must be labeled static unless you fetch live pricing. The current spec language says “current cloud hourly rates,” but a static frontend cannot honestly claim current pricing without a data source.
 
 5. **Would an engineer trust this?**
 
@@ -1100,7 +1150,7 @@ Use these exact main labels:
 ```text
 Model Family
 Execution Mode
-Total Resident Parameters
+Total Model Parameters
 Unit
 Precision
 Runtime
@@ -1114,7 +1164,7 @@ For default LLM inference, visible fields should be:
 ```text
 Model Family: LLM / text generation
 Execution Mode: Inference
-Total Resident Parameters: 7
+Total Model Parameters: 7
 Unit: B
 Precision: 16-bit
 Runtime: Local / Edge
@@ -1139,7 +1189,7 @@ to:
 Inference estimate
 20.1 GB required
 
-Recommended: 24 GB GPU class
+Recommended: 24 GB GPU tier
 Fits because 24 GB × 90% usable = 21.6 GB
 ```
 

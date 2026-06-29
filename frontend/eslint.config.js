@@ -34,6 +34,7 @@ export default defineConfig([
     files: ["**/*.ts"], // Rules on all TS files (no JSX in this project)
     extends: [
       js.configs.recommended,
+      ...tseslint.configs.strictTypeChecked,
       ...tseslint.configs.all, // Every TypeScript-ESLint rule; explicit overrides below keep the local policy readable
       unicorn.configs["flat/all"],
       sonarjs.configs.recommended,
@@ -96,6 +97,7 @@ export default defineConfig([
       // SECURITY & ROBUSTNESS (Blocks data leaks and bad patterns)
       ...securityErrors,
       "no-console": ["error", { allow: ["warn", "error"] }], // Real loggers, no console.log
+      "no-restricted-globals": ["error", "event"],
       eqeqeq: ["error", "always"],
       "no-alert": "error",
       "no-caller": "error",
@@ -142,6 +144,11 @@ export default defineConfig([
           selector: "ForInStatement",
           message:
             "Avoid for-in over prototype chains; use Object.keys/Object.entries on owned data.",
+        },
+        {
+          selector: "AssignmentExpression[left.property.name='innerHTML']",
+          message:
+            "Do not assign innerHTML. Use safe rendering or sanitized HTML.",
         },
         {
           selector: "TSEnumDeclaration",

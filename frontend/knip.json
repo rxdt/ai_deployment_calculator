@@ -1,6 +1,14 @@
 {
   "$schema": "https://unpkg.com/knip@5/schema.json",
-  "ignore": ["harness/**"],
-  "ignoreDependencies": ["@secretlint/secretlint-rule-preset-recommend"],
-  "ignoreBinaries": ["semgrep"]
+  "ignore": ["harness/**", "lighthouserc.cjs"],
+  "ignoreDependencies": [
+    "@secretlint/secretlint-rule-preset-recommend",
+    "ajv",
+    "ajv-formats",
+    "ajv-keywords",
+    "secure-json-parse",
+    "lighthouse",
+    "pnpm"
+  ],
+  "ignoreBinaries": ["semgrep", "osv-scanner", "gitleaks"]
 }

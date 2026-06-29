@@ -13,9 +13,25 @@ export default defineConfig({
     trace: "on-first-retry",
   },
   projects: [
+    { name: "desktop-chrome", use: { ...devices["Desktop Chrome"] } },
+    { name: "desktop-safari", use: { ...devices["Desktop Safari"] } },
+    { name: "iphone", use: { ...devices["iPhone 13"] } },
+    { name: "pixel", use: { ...devices["Pixel 5"] } },
     {
-      name: "chromium",
-      use: { ...devices["Desktop Chrome"] },
+      name: "small-320",
+      use: {
+        viewport: { width: 320, height: 700 },
+        isMobile: true,
+        hasTouch: true,
+      },
+    },
+    {
+      name: "tablet",
+      use: {
+        viewport: { width: 768, height: 1024 },
+        isMobile: true,
+        hasTouch: true,
+      },
     },
   ],
 });

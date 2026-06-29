@@ -2,11 +2,447 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <meta
+      name="description"
+      content="Estimate VRAM requirements and hardware fit for AI workloads."
+    />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <title>VRAM Deployment Calculator</title>
-    <script type="module" src="/src/main.ts"></script>
   </head>
   <body>
-    <main id="app" aria-label="VRAM deployment calculator"></main>
+    <div class="app">
+      <header class="topbar">
+        <a class="brand" href="/">VRAM Calculator</a>
+        <nav class="topnav">
+          <a href="https://github.com/rxdt/ai_deployment_calculator">Source</a>
+        </nav>
+      </header>
+
+      <main class="layout">
+        <!-- INPUTS -->
+        <form class="inputs" aria-label="Deployment inputs">
+          <div class="intro">
+            <h1>VRAM Deployment Calculator</h1>
+            <p>Estimate VRAM and hardware fit for AI workloads.</p>
+          </div>
+
+          <fieldset class="group">
+            <legend>Model</legend>
+
+            <p class="field field--wide">
+              <label for="workload_family">Workload Family</label>
+              <select id="workload_family" name="workload_family">
+                <option value="text_generation">Text generation / chat</option>
+                <option value="text_encoder">
+                  Text embeddings / reranking / classification
+                </option>
+                <option value="encoder_decoder">
+                  Encoder-decoder generation
+                </option>
+                <option value="vision">Vision understanding</option>
+                <option value="vision_language">
+                  Vision-language / multimodal
+                </option>
+                <option value="image_diffusion">
+                  Image generation / diffusion
+                </option>
+                <option value="video_generation">Video generation</option>
+                <option value="audio">Speech / audio</option>
+                <option value="tabular">Tabular / classical ML</option>
+                <option value="custom">Custom / unknown</option>
+              </select>
+            </p>
+
+            <p class="field">
+              <label for="total_params">Total Model Parameters</label>
+              <input
+                id="total_params"
+                name="total_params"
+                type="text"
+                inputmode="numeric"
+                value="7"
+              />
+            </p>
+
+            <p class="field">
+              <label for="parameter_unit">Parameter Unit</label>
+              <select id="parameter_unit" name="parameter_unit">
+                <option value="B">Billions</option>
+                <option value="M">Millions</option>
+              </select>
+            </p>
+
+            <p class="field">
+              <label for="precision">Precision</label>
+              <select id="precision" name="precision">
+                <option value="4-bit">4-bit</option>
+                <option value="5-bit GGUF">5-bit GGUF</option>
+                <option value="6-bit GGUF">6-bit GGUF</option>
+                <option value="8-bit">8-bit</option>
+                <option value="16-bit" selected>16-bit</option>
+                <option value="32-bit">32-bit</option>
+              </select>
+            </p>
+          </fieldset>
+
+          <fieldset class="group">
+            <legend>Deployment</legend>
+
+            <p class="field">
+              <label for="execution_mode">Execution Mode</label>
+              <select id="execution_mode" name="execution_mode">
+                <option value="Inference">Inference</option>
+                <option value="LoRA fine-tuning">LoRA fine-tuning</option>
+                <option value="QLoRA fine-tuning">QLoRA fine-tuning</option>
+                <option value="Full training">Full training</option>
+              </select>
+            </p>
+
+            <p class="field">
+              <label for="runtime_profile">Runtime Profile</label>
+              <select id="runtime_profile" name="runtime_profile">
+                <option value="Local / Edge">Local / Edge</option>
+                <option value="Server / Cloud" selected>Server / Cloud</option>
+              </select>
+            </p>
+
+            <!-- Adaptive, per-family input controls -->
+            <p class="field" data-families="text_generation">
+              <label for="context_tokens">Context Window</label>
+              <input
+                id="context_tokens"
+                name="context_tokens"
+                type="text"
+                inputmode="numeric"
+                value="8000"
+              />
+            </p>
+            <p class="field" data-families="text_encoder">
+              <label for="sequence_tokens">Sequence Length</label>
+              <input
+                id="sequence_tokens"
+                name="sequence_tokens"
+                type="text"
+                inputmode="numeric"
+                value="512"
+              />
+            </p>
+            <p class="field" data-families="encoder_decoder">
+              <label for="input_tokens">Input Tokens</label>
+              <input
+                id="input_tokens"
+                name="input_tokens"
+                type="text"
+                inputmode="numeric"
+                value="1024"
+              />
+            </p>
+            <p class="field" data-families="encoder_decoder">
+              <label for="output_tokens">Output Tokens</label>
+              <input
+                id="output_tokens"
+                name="output_tokens"
+                type="text"
+                inputmode="numeric"
+                value="256"
+              />
+            </p>
+            <p class="field" data-families="vision_language">
+              <label for="text_context_tokens">Text Context Tokens</label>
+              <input
+                id="text_context_tokens"
+                name="text_context_tokens"
+                type="text"
+                inputmode="numeric"
+                value="4000"
+              />
+            </p>
+            <p
+              class="field"
+              data-families="vision vision_language image_diffusion"
+            >
+              <label for="image_width">Image Width (px)</label>
+              <input
+                id="image_width"
+                name="image_width"
+                type="text"
+                inputmode="numeric"
+                value="1024"
+              />
+            </p>
+            <p
+              class="field"
+              data-families="vision vision_language image_diffusion"
+            >
+              <label for="image_height">Image Height (px)</label>
+              <input
+                id="image_height"
+                name="image_height"
+                type="text"
+                inputmode="numeric"
+                value="1024"
+              />
+            </p>
+            <p class="field" data-families="vision_language">
+              <label for="image_count">Image Count</label>
+              <input
+                id="image_count"
+                name="image_count"
+                type="text"
+                inputmode="numeric"
+                value="1"
+              />
+            </p>
+            <p class="field" data-families="video_generation">
+              <label for="video_resolution">Output Resolution</label>
+              <select id="video_resolution" name="video_resolution">
+                <option value="720p">720p</option>
+                <option value="1080p">1080p</option>
+              </select>
+            </p>
+            <p class="field" data-families="video_generation">
+              <label for="video_frames">Frames</label>
+              <input
+                id="video_frames"
+                name="video_frames"
+                type="text"
+                inputmode="numeric"
+                value="81"
+              />
+            </p>
+            <p class="field" data-families="audio">
+              <label for="audio_seconds">Audio Length</label>
+              <input
+                id="audio_seconds"
+                name="audio_seconds"
+                type="text"
+                inputmode="numeric"
+                value="30"
+              />
+            </p>
+            <p class="field" data-families="tabular">
+              <label for="rows_per_batch">Rows per Batch</label>
+              <input
+                id="rows_per_batch"
+                name="rows_per_batch"
+                type="text"
+                inputmode="numeric"
+                value="10000"
+              />
+            </p>
+            <p class="field" data-families="tabular">
+              <label for="features">Features</label>
+              <input
+                id="features"
+                name="features"
+                type="text"
+                inputmode="numeric"
+                value="100"
+              />
+            </p>
+            <p class="field" data-families="custom">
+              <label for="input_size_multiplier">Input Size Preset</label>
+              <input
+                id="input_size_multiplier"
+                name="input_size_multiplier"
+                type="text"
+                inputmode="decimal"
+                value="1"
+              />
+            </p>
+
+            <p class="field">
+              <label for="workload_size"
+                ><span data-workload-label>Concurrent Requests</span></label
+              >
+              <input
+                id="workload_size"
+                name="workload_size"
+                type="text"
+                inputmode="numeric"
+                value="1"
+              />
+            </p>
+
+            <p
+              class="field field--check"
+              data-moe-families="text_generation text_encoder encoder_decoder vision_language custom"
+            >
+              <label>
+                <input id="moe_enabled" name="moe_enabled" type="checkbox" />
+                MoE Model
+              </label>
+            </p>
+            <p class="field" data-active>
+              <label for="active_params">Active Parameters</label>
+              <input
+                id="active_params"
+                name="active_params"
+                type="text"
+                inputmode="decimal"
+                value="1.3"
+              />
+            </p>
+          </fieldset>
+
+          <details class="advanced">
+            <summary>Advanced assumptions</summary>
+            <div class="group">
+              <p class="field">
+                <label for="kv_cache_precision">KV Cache Precision</label>
+                <select id="kv_cache_precision" name="kv_cache_precision">
+                  <!-- show only for text-gen/Encoder-decoder/VLM -->
+                  <option value="8-bit / FP8">8-bit / FP8</option>
+                  <option value="16-bit" selected>16-bit</option>
+                </select>
+              </p>
+              <p class="field">
+                <label for="known_model_file_size_gb"
+                  >Known Model File Size</label
+                >
+                <input
+                  id="known_model_file_size_gb"
+                  name="known_model_file_size_gb"
+                  type="text"
+                  inputmode="decimal"
+                />
+              </p>
+              <p class="field">
+                <label for="gpu_resident_fraction">GPU Resident Fraction</label>
+                <input
+                  id="gpu_resident_fraction"
+                  name="gpu_resident_fraction"
+                  type="text"
+                  inputmode="decimal"
+                  value="1"
+                />
+              </p>
+              <p class="field">
+                <label for="lora_trainable_percent">LoRA Trainable %</label>
+                <input
+                  id="lora_trainable_percent"
+                  name="lora_trainable_percent"
+                  type="text"
+                  inputmode="decimal"
+                  value="0.5"
+                />
+              </p>
+              <p class="field">
+                <label for="optimizer">Optimizer</label>
+                <select id="optimizer" name="optimizer">
+                  <option value="AdamW">AdamW</option>
+                  <option value="8-bit Adam">8-bit Adam</option>
+                  <option value="SGD-like">SGD-like</option>
+                </select>
+              </p>
+              <p class="field field--check">
+                <label>
+                  <input
+                    id="gradient_checkpointing"
+                    name="gradient_checkpointing"
+                    type="checkbox"
+                    checked
+                  />
+                  Gradient Checkpointing
+                </label>
+              </p>
+              <p class="field field--check">
+                <label>
+                  <input
+                    id="memory_sharding_enabled"
+                    name="memory_sharding_enabled"
+                    type="checkbox"
+                  />
+                  Memory Sharding
+                </label>
+              </p>
+              <p class="field field--check">
+                <label>
+                  <input
+                    id="exact_transformer_architecture"
+                    name="exact_transformer_architecture"
+                    type="checkbox"
+                  />
+                  Exact Transformer Architecture
+                </label>
+              </p>
+            </div>
+          </details>
+
+          <div class="actions">
+            <button type="submit" data-action="reset">Reset assumptions</button>
+          </div>
+        </form>
+
+        <!-- RESULTS -->
+        <section class="results" aria-label="Estimate">
+          <!-- Tier 1: the answer, at a glance -->
+          <div class="hero">
+            <p class="hero__label">Estimated VRAM Required</p>
+            <p class="hero__value"><output data-out="total">0.0 GB</output></p>
+            <p class="hero__say" data-out="vram-say"></p>
+          </div>
+
+          <div class="hero hero--secondary">
+            <p class="hero__label">Recommended Hardware Tier</p>
+            <p class="hero__value hero__value--small" data-out="gpu-class"></p>
+          </div>
+
+          <!-- Tier 2: the reasoning and numbers, hidden until asked for -->
+          <details class="panel">
+            <summary>Why this recommendation</summary>
+            <div class="panel__body">
+              <p data-out="why"></p>
+              <ul class="fit">
+                <li>
+                  <span>Minimum GPU VRAM Capacity</span
+                  ><strong data-out="min-cap"></strong>
+                </li>
+                <li>
+                  <span>Usable VRAM Target</span
+                  ><strong data-out="usable-target"></strong>
+                </li>
+                <li>
+                  <span>Usable VRAM on Recommended Class</span
+                  ><strong data-out="usable-on-class"></strong>
+                </li>
+                <li>
+                  <span>Fit Headroom</span
+                  ><strong data-out="fit-headroom"></strong>
+                </li>
+                <li>
+                  <span>Estimated Speed</span><strong data-out="speed"></strong>
+                </li>
+              </ul>
+            </div>
+          </details>
+
+          <details class="panel">
+            <summary>Calculation used</summary>
+            <div class="panel__body">
+              <ul class="breakdown" data-out="breakdown"></ul>
+              <code data-out="calc-formula"></code>
+              <ul class="assumptions" data-out="assumptions"></ul>
+            </div>
+          </details>
+
+          <ul class="warnings" data-out="warnings"></ul>
+
+          <p class="note">
+            Estimates use heuristics. Real usage varies by model architecture,
+            runtime, kernels, quantization, sharding, and offload settings.
+          </p>
+        </section>
+      </main>
+    </div>
+
+    <template id="row-template">
+      <li class="metric">
+        <span data-slot="label"></span><strong data-slot="value"></strong>
+      </li>
+    </template>
+
+    <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

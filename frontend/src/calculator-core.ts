@@ -10,9 +10,6 @@ import type {
 
 const BYTES_PER_GB = 1_000_000_000;
 
-export const STANDARD_HEURISTIC_WARNING =
-  "This is a planning estimate, not a vendor guarantee. Validate with the exact model, runtime, batch shape, and hardware before buying or reserving GPUs.";
-
 export const PRECISION_MAP: Record<
   Precision,
   { weightBytes: number; weightOverhead: number }
@@ -97,9 +94,14 @@ function positive(value: string, fallback: number): number {
   return parsed > 0 ? parsed : fallback;
 }
 
+function nonNegative(value: string, fallback: number): number {
+  const parsed = decimal(value, fallback);
+  return parsed >= 0 ? parsed : fallback;
+}
+
 function totalParametersB(state: FormState): number {
   return (
-    positive(state.total_params, 7) * UNIT_MULTIPLIERS[state.parameter_unit]
+    nonNegative(state.total_params, 7) * UNIT_MULTIPLIERS[state.parameter_unit]
   );
 }
 
@@ -220,13 +222,13 @@ export function specFromState(state: FormState): CalculationSpec {
     executionMode: state.execution_mode,
     runtimeProfile: state.runtime_profile,
     runtime: runtimeAssumptions(state.execution_mode, state.runtime_profile),
-    workloadSize: positive(state.workload_size, 1),
+    workloadSize: nonNegative(state.workload_size, 1),
     kvBytes: KV_BYTES[state.kv_cache_precision],
     architecture: architectureFor(total),
     visionArchitecture: null,
     knownModelFileSizeGb: knownFile,
-    gpuResidentFraction: positive(state.gpu_resident_fraction, 1),
-    loraTrainablePercent: positive(state.lora_trainable_percent, 0.5),
+    gpuResidentFraction: nonNegative(state.gpu_resident_fraction, 1),
+    loraTrainablePercent: nonNegative(state.lora_trainable_percent, 0.5),
     optimizerBytes: optimizerBytes(state.optimizer),
     gradientCheckpointing: state.gradient_checkpointing,
     exactArchitecture: state.exact_transformer_architecture,
@@ -258,13 +260,14 @@ function sequenceForTraining(spec: CalculationSpec): number {
   const { state } = spec;
   if (spec.family === "encoder_decoder") {
     return (
-      positive(state.input_tokens, 1024) + positive(state.output_tokens, 256)
+      nonNegative(state.input_tokens, 1024) +
+      nonNegative(state.output_tokens, 256)
     );
   }
   if (spec.family === "text_encoder") {
-    return positive(state.sequence_tokens, 512);
+    return nonNegative(state.sequence_tokens, 512);
   }
-  return positive(state.context_tokens, 8000);
+  return nonNegative(state.context_tokens, 8000);
 }
 
 export function trainingActivationGb(spec: CalculationSpec): number {

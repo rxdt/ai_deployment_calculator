@@ -12,42 +12,19 @@ export type WorkloadFamily =
 
 export type Precision =
   "4-bit" | "5-bit GGUF" | "6-bit GGUF" | "8-bit" | "16-bit" | "32-bit";
+
 export type KvPrecision = "8-bit / FP8" | "16-bit" | "32-bit";
+
 export type ExecutionMode =
   "Inference" | "LoRA fine-tuning" | "QLoRA fine-tuning" | "Full training";
+
 export type RuntimeProfile = "Local / Edge" | "Server / Cloud";
+
 export type ParameterUnit = "B" | "M";
-export type Accuracy =
-  | "File-size based"
-  | "Component-based"
-  | "Advanced override"
-  | "Estimated"
-  | "Rough";
 
-export interface DisplayRow {
-  label: string;
-  value: string;
-}
+type Optimizer = "AdamW" | "8-bit Adam" | "SGD-like";
 
-export interface HardwareRecommendation {
-  requiredMemory: string;
-  usableVramTarget: string;
-  minimumRawVram: string;
-  recommendedTier: string;
-  math: string;
-}
-
-export interface ReportPayload {
-  totalRequiredMemory: string;
-  recommendedHardware: HardwareRecommendation;
-  minimumRawVramNeeded: string;
-  speed: string;
-  accuracy: Accuracy;
-  breakdown: DisplayRow[];
-  assumptions: DisplayRow[];
-  warnings: string[];
-  calculation: string;
-}
+type VideoResolution = "720p" | "1080p";
 
 export interface FormState {
   workload_family: WorkloadFamily;
@@ -65,7 +42,7 @@ export interface FormState {
   image_height: string;
   text_context_tokens: string;
   image_count: string;
-  video_resolution: "720p" | "1080p";
+  video_resolution: VideoResolution;
   video_frames: string;
   audio_seconds: string;
   rows_per_batch: string;
@@ -78,12 +55,34 @@ export interface FormState {
   kv_cache_precision: KvPrecision;
   exact_transformer_architecture: boolean;
   lora_trainable_percent: string;
-  optimizer: "AdamW" | "8-bit Adam" | "SGD-like";
+  optimizer: Optimizer;
   gradient_checkpointing: boolean;
+  memory_sharding_enabled: boolean;
   my_gpu_vram_gb: string;
 }
 
-export interface BrowserRuntime {
-  history: Pick<History, "replaceState">;
-  location: Pick<Location, "search">;
+export interface DisplayRow {
+  label: string;
+  value: string;
+}
+
+export interface HardwareRecommendation {
+  requiredMemory: string;
+  usableVramTarget: string;
+  usableVramOnClass: string;
+  fitHeadroom: string;
+  minimumRawVram: string;
+  recommendedTier: string;
+  math: string;
+}
+
+export interface ReportPayload {
+  totalRequiredMemory: string;
+  recommendedHardware: HardwareRecommendation;
+  minimumRawVramNeeded: string;
+  speed: string;
+  breakdown: DisplayRow[];
+  assumptions: DisplayRow[];
+  warnings: string[];
+  calculation: string;
 }

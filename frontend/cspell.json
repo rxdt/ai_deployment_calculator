@@ -7,10 +7,18 @@
     "build",
     "coverage",
     "test-results",
-    "package-lock.json"
+    "package-lock.json",
+    "pnpm-lock.yaml",
+    "pnpm-workspace.yaml"
   ],
   "words": [
+    "autorun",
+    "crawlable",
+    "lhci",
+    "lighthouseci",
+    "lighthouserc",
     "ancestordirectories",
+    "describedby",
     "behaviour",
     "carb",
     "Cimg",
@@ -39,6 +47,7 @@
     "ralph",
     "reranking",
     "relpath",
+    "rxdt",
     "secretlint",
     "semgrep",
     "sonarjs",

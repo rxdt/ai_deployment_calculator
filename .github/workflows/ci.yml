@@ -1,5 +1,8 @@
 name: frontend-gate
 
+permissions:
+  contents: read
+
 on:
   pull_request:
   push:
@@ -13,7 +16,12 @@ jobs:
         working-directory: frontend
     steps:
       - uses: actions/checkout@v4
-
+      - uses: actions/dependency-review-action@v5
+        with:
+          fail-on-severity: moderate
+          fail-on-scopes: runtime, development
+          license-check: true
+          vulnerability-check: true
       - name: Setup Node
         uses: actions/setup-node@v4
         with:

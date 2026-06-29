@@ -84,7 +84,6 @@ describe("buildReport", () => {
         context_tokens: "2048",
         workload_size: "1",
         kv_cache_precision: "16-bit",
-        my_gpu_vram_gb: "8",
       }),
     );
 
@@ -177,13 +176,12 @@ describe("buildReport", () => {
     );
   });
 
-  test("adds conditional MoE, training, and local warnings", () => {
+  test("adds conditional MoE and training warnings", () => {
     const report = buildReport(
       state({
         execution_mode: "QLoRA fine-tuning",
         runtime_profile: "Local / Edge",
         moe_enabled: true,
-        my_gpu_vram_gb: "24",
       }),
     );
 
@@ -193,18 +191,7 @@ describe("buildReport", () => {
     expect(report.warnings).toContain(
       "MoE active parameters affect speed, not resident weight memory, unless expert offload or sharding is enabled.",
     );
-    expect(report.warnings).toContain(
-      "Local GPU fit uses usable VRAM, so drivers, displays, and other processes can still force offload.",
-    );
     expect(report.breakdown[0]?.label).toBe("QLoRA base model memory");
-  });
-
-  test("does not add estimated architecture warning when exact architecture is supplied", () => {
-    const report = buildReport(state({ exact_transformer_architecture: true }));
-
-    expect(report.warnings.join(" ")).not.toContain(
-      "Transformer architecture is estimated",
-    );
   });
 
   test("keeps family-specific guidance out of warnings", () => {

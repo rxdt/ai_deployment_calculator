@@ -70,7 +70,6 @@ export interface CalculationSpec {
   loraTrainablePercent: number;
   optimizerBytes: number;
   gradientCheckpointing: boolean;
-  exactArchitecture: boolean;
   state: FormState;
 }
 
@@ -231,7 +230,6 @@ export function specFromState(state: FormState): CalculationSpec {
     loraTrainablePercent: nonNegative(state.lora_trainable_percent, 0.5),
     optimizerBytes: optimizerBytes(state.optimizer),
     gradientCheckpointing: state.gradient_checkpointing,
-    exactArchitecture: state.exact_transformer_architecture,
     state,
   };
 }

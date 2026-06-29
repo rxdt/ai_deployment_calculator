@@ -53,12 +53,10 @@ export interface FormState {
   known_model_file_size_gb: string;
   gpu_resident_fraction: string;
   kv_cache_precision: KvPrecision;
-  exact_transformer_architecture: boolean;
   lora_trainable_percent: string;
   optimizer: Optimizer;
   gradient_checkpointing: boolean;
   memory_sharding_enabled: boolean;
-  my_gpu_vram_gb: string;
 }
 
 export interface DisplayRow {

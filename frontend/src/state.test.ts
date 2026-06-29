@@ -49,10 +49,8 @@ describe("normalizedState", () => {
         moe_enabled: "on",
         memory_sharding_enabled: "true",
         gradient_checkpointing: "yes",
-        exact_transformer_architecture: "1",
         known_model_file_size_gb: "40",
         gpu_resident_fraction: "0.8",
-        my_gpu_vram_gb: "24",
       }),
     );
     expect(state.workload_family).toBe("vision");
@@ -62,7 +60,6 @@ describe("normalizedState", () => {
     expect(state.moe_enabled).toBe(true);
     expect(state.memory_sharding_enabled).toBe(true);
     expect(state.gradient_checkpointing).toBe(true);
-    expect(state.exact_transformer_architecture).toBe(true);
     expect(state.known_model_file_size_gb).toBe("40");
   });
 
@@ -144,12 +141,12 @@ describe("searchFromState", () => {
       moe_enabled: true,
       memory_sharding_enabled: false,
       total_params: "8",
-      my_gpu_vram_gb: "",
+      known_model_file_size_gb: "",
     };
     const search = searchFromState(state);
     expect(search.get("moe_enabled")).toBe("on");
     expect(search.has("memory_sharding_enabled")).toBe(false);
     expect(search.get("total_params")).toBe("8");
-    expect(search.has("my_gpu_vram_gb")).toBe(false);
+    expect(search.has("known_model_file_size_gb")).toBe(false);
   });
 });

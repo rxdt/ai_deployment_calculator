@@ -41,14 +41,6 @@ function warningsFor(state: FormState): string[] {
       "MoE active parameters affect speed, not resident weight memory, unless expert offload or sharding is enabled.",
     );
   }
-  if (
-    state.runtime_profile === "Local / Edge" &&
-    state.my_gpu_vram_gb.trim() !== ""
-  ) {
-    warnings.push(
-      "Local GPU fit uses usable VRAM, so drivers, displays, and other processes can still force offload.",
-    );
-  }
   return warnings;
 }
 

@@ -60,12 +60,10 @@ const DEFAULT_STATE: FormState = {
   known_model_file_size_gb: "",
   gpu_resident_fraction: "1",
   kv_cache_precision: "16-bit",
-  exact_transformer_architecture: false,
   lora_trainable_percent: "0.5",
   optimizer: "AdamW",
   gradient_checkpointing: true,
   memory_sharding_enabled: false,
-  my_gpu_vram_gb: "",
 };
 
 const CHECKED_VALUES = new Set(["1", "true", "on", "yes"]);
@@ -166,12 +164,10 @@ export function zeroState(): FormState {
     known_model_file_size_gb: "0",
     gpu_resident_fraction: "0",
     kv_cache_precision: "16-bit",
-    exact_transformer_architecture: false,
     lora_trainable_percent: "0",
     optimizer: "AdamW",
     gradient_checkpointing: false,
     memory_sharding_enabled: false,
-    my_gpu_vram_gb: "0",
   };
 }
 
@@ -280,11 +276,6 @@ export function normalizedState(search: URLSearchParams): FormState {
       last(search, "kv_cache_precision"),
       defaults.kv_cache_precision,
     ),
-    exact_transformer_architecture: isChecked(
-      search,
-      "exact_transformer_architecture",
-      defaults.exact_transformer_architecture,
-    ),
     lora_trainable_percent: nonNegative(
       last(search, "lora_trainable_percent"),
       defaults.lora_trainable_percent,
@@ -303,10 +294,6 @@ export function normalizedState(search: URLSearchParams): FormState {
       search,
       "memory_sharding_enabled",
       defaults.memory_sharding_enabled,
-    ),
-    my_gpu_vram_gb: decimal(
-      last(search, "my_gpu_vram_gb"),
-      defaults.my_gpu_vram_gb,
     ),
   };
   if (normalized.execution_mode === "QLoRA fine-tuning") {

@@ -17,6 +17,18 @@ latency under load, power, storage, networking, or provider availability.
 Project contracts live in `specs/plan.md`; frontend implementation details live
 in `specs/frontend.md`. README stays as the human entry point.
 
+## Flow
+
+```mermaid
+flowchart LR
+    workload[Workload inputs] --> estimator[Memory estimator]
+    model[Model settings] --> estimator
+    precision[Precision and batch settings] --> estimator
+    estimator --> vram[Usable VRAM estimate]
+    estimator --> gpu[GPU class recommendation]
+    estimator --> explanation[Plain-language drivers]
+```
+
 ## Run
 
 ```sh
@@ -62,4 +74,5 @@ For the full repository gate, run `.venv/bin/harness gate` from the repo root.
 - `codex exec --json "Spawn explorer and worker subagents..."`, Codex spawns flat, parallel worker threads (explorer, reviewer, worker) in a managed cloud environment or local worktree to split up tasks simultaneously. Sub-types: default, worker, explorer (read-heavy). ORCHESTRATE: Spawn two Codex subagents:
   - explorer: read-only, map the relevant files and risks.
   - worker: implement the smallest fix after explorer reports. Wait for both, reconcile conflicts, then run verification.
+  - `brew install gitleaks` must be run by users. Same as `osv` scanner.
 > do NOT DELETE!:

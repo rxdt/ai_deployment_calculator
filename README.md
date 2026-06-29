@@ -52,11 +52,15 @@ cd frontend
 npm run preview
 ```
 
-## Check
+## Quick checks
 
 ```sh
-cd frontend
-npm run gate
+harness preflight
+```
+
+## Full checks (lint, tests, security, type-checking, etc.)
+```sh
+harness gate
 ```
 
 For the full repository gate, run `.venv/bin/harness gate` from the repo root.

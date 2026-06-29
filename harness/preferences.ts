@@ -1,4 +1,5 @@
 // AST-based structural style checks for staged TypeScript files — the JS port of harness/preferences.py, pointed at the frontend. OPTIONAL for humans to edit or delete.
+// It parses staged TypeScript and reports owner-preference violations before they enter commits.
 //
 // Agents in the loop cannot edit this file: `frontend/harness` is a FORBIDDEN_DIR in gate.ts.
 //

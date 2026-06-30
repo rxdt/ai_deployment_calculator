@@ -29,6 +29,38 @@ flowchart LR
     estimator --> explanation[Plain-language drivers]
 ```
 
+## Install
+
+Run harness setup from the repository root:
+
+```sh
+node harness/harness.mjs install
+```
+
+or, after root scripts are present:
+
+```sh
+npm run install
+```
+
+`harness install` does three things:
+
+- installs the harness dependencies;
+- discovers repository packages below the root and installs each package that has
+  a `package.json`;
+- installs the Git hooks used by the harness.
+
+It deliberately does not run `npm install` at the repository root. Root
+`package.json` has an `install` script that launches harness setup, and running
+root `npm install` from inside harness setup would recurse through npm's
+`install` lifecycle.
+
+To set or update the project name at the same time:
+
+```sh
+node harness/harness.mjs install my-project-name
+```
+
 ## Run
 
 ```sh

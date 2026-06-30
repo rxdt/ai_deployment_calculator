@@ -6,15 +6,8 @@
     "moduleResolution": "NodeNext",
     "types": ["node", "vitest"],
     "strict": true,
-    "isolatedModules": true,
-    "verbatimModuleSyntax": true,
-    "moduleDetection": "force",
-    "allowImportingTsExtensions": true,
-    "noEmit": true,
-    "skipLibCheck": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "noFallthroughCasesInSwitch": true
+    "noImplicitReturns": true,
+    "noUncheckedSideEffectImports": true
   },
   "include": ["*.ts"]
 }

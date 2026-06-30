@@ -1,0 +1,156 @@
+rules:
+  workflow-has-name:
+    description: GitHub Actions workflows must have a name.
+    given: "$"
+    severity: error
+    then:
+      field: name
+      function: truthy
+
+  workflow-has-jobs:
+    description: GitHub Actions workflows must define at least one job.
+    given: "$"
+    severity: error
+    then:
+      field: jobs
+      function: truthy
+
+  workflow-uses-read-only-contents:
+    description: Workflows must keep default token contents permission read-only.
+    given: "$.permissions"
+    severity: error
+    then:
+      field: contents
+      function: pattern
+      functionOptions:
+        match: "^read$"
+
+  workflow-forbids-pull-request-target:
+    description: pull_request_target runs untrusted PR code with elevated token context.
+    given: "$.on"
+    severity: error
+    then:
+      field: pull_request_target
+      function: falsy
+
+  workflow-jobs-must-not-continue-on-error:
+    description: Gate jobs must fail closed.
+    given: "$.jobs.*"
+    severity: error
+    then:
+      field: continue-on-error
+      function: falsy
+
+  workflow-steps-must-not-continue-on-error:
+    description: Gate steps must fail closed.
+    given: "$.jobs.*.steps[*]"
+    severity: error
+    then:
+      field: continue-on-error
+      function: falsy
+
+  workflow-actions-are-approved-and-pinned:
+    description: Workflows may only use approved first-party actions pinned to a major version.
+    given: "$.jobs.*.steps[*].uses"
+    severity: error
+    then:
+      function: pattern
+      functionOptions:
+        match: "^actions/(checkout|dependency-review-action|setup-node)@v[0-9]+$"
+
+  workflow-run-commands-do-not-weaken-gate:
+    description: Shell steps must not bypass or weaken gate execution.
+    given: "$.jobs.*.steps[*].run"
+    severity: error
+    then:
+      function: pattern
+      functionOptions:
+        notMatch: "(\\|\\|\\s*true|--no-verify|continue-on-error|npm\\s+run\\s+gate)"
+
+  workflow-has-generic-checks-job:
+    description: CI must expose its main quality job as a generic checks job.
+    given: "$.jobs"
+    severity: error
+    then:
+      field: checks
+      function: truthy
+
+  workflow-uses-node-24:
+    description: CI must run on the current supported Node LTS major.
+    given: "$.jobs.*.steps[?(@.uses == 'actions/setup-node@v4')].with"
+    severity: error
+    then:
+      field: node-version
+      function: enumeration
+      functionOptions:
+        values: [24, "24"]
+
+  workflow-caches-all-package-locks:
+    description: Node setup must cache every npm lockfile in the repository.
+    given: "$.jobs.*.steps[?(@.uses == 'actions/setup-node@v4')].with"
+    severity: error
+    then:
+      field: cache-dependency-path
+      function: pattern
+      functionOptions:
+        match: "^\\*\\*/package-lock\\.json$"
+
+  workflow-installs-dependencies-with-npm-ci:
+    description: CI must install npm dependencies from lockfiles, not mutate dependency state.
+    given: "$.jobs.*.steps[*].run"
+    severity: error
+    then:
+      function: pattern
+      functionOptions:
+        notMatch: "(^|\\n)\\s*npm\\s+install(\\s|$)"
+
+  workflow-has-generic-lockfile-install-step:
+    description: CI must install each package-lock root generically.
+    given: "$.jobs.checks.steps"
+    severity: error
+    then:
+      function: schema
+      functionOptions:
+        schema:
+          type: array
+          contains:
+            type: object
+            required: [run]
+            properties:
+              run:
+                type: string
+                pattern: "package-lock\\.json[\\s\\S]*npm ci --prefix"
+
+  workflow-installs-browsers-through-harness:
+    description: Browser setup must run through the harness package.
+    given: "$.jobs.checks.steps"
+    severity: error
+    then:
+      function: schema
+      functionOptions:
+        schema:
+          type: array
+          contains:
+            type: object
+            required: [run]
+            properties:
+              run:
+                type: string
+                pattern: "^npm --prefix harness run setup:e2e -- chromium$"
+
+  workflow-runs-harness-gate:
+    description: CI must run the full harness gate, not a package shortcut.
+    given: "$.jobs.checks.steps"
+    severity: error
+    then:
+      function: schema
+      functionOptions:
+        schema:
+          type: array
+          contains:
+            type: object
+            required: [run]
+            properties:
+              run:
+                type: string
+                pattern: "^node harness/harness\\.mjs gate$"

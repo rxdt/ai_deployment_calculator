@@ -9,93 +9,21 @@
   },
   "scripts": {
     "build": "vite build",
-    "check:deps": "pnpm install --frozen-lockfile",
-    "check:eslint": "eslint src --max-warnings=0",
-    "check:html": "html-validate index.html",
-    "check:lighthouse": "lhci autorun",
-    "check:preview": "npm run build && npm run check:lighthouse",
-    "check:size": "npm run size",
-    "check:style": "stylelint \"src/**/*.css\" --max-warnings=0",
     "dev": "vite --host 127.0.0.1",
-    "format": "prettier . --check",
-    "gate": "npm run preflight && npm run lint && npm run typecheck && npm run security && npm run build && npm run TEST && npm run check:size && npm run check:preview",
-    "lint": "eslint . --max-warnings=0 && npm run check:style && npm run check:html && markuplint \"**/*.html\" && ajv compile -s \"schemas/**/*.schema.json\" --spec=draft2020 --strict=true --all-errors -c ajv-formats -c ajv-keywords && npmPkgJsonLint . && depcruise src --config .dependency-cruiser.cjs --output-type err && knip && cspell . --no-progress --no-summary && spectral lint ../.github/workflows/ci.yml --fail-severity=warn",
-    "osv": "osv-scanner -r .",
-    "preflight": "npm run check:deps && npm run format && npm run check:eslint && npm run check:style && npm run check:html",
     "preview": "vite preview --host 127.0.0.1",
-    "security": "semgrep scan --config=p/typescript --config=p/javascript --config=p/security-audit --error --metrics=off && secretlint \"**/*\" && npm run security:gitleaks && npm audit --audit-level=high && npm run security:audit:pnpm && npm run security:approve-builds && npm audit signatures && lockfile-lint --path package-lock.json --type npm --allowed-hosts npm --validate-https && syncpack lint && npm run security:osv",
-    "security:approve-builds": "pnpm approve-builds --all",
-    "security:audit:pnpm": "pnpm audit --audit-level high",
-    "security:gitleaks": "cd .. && gitleaks detect --source . --redact --verbose",
-    "security:osv": "cd .. && osv-scanner -r .",
-    "setup:e2e": "playwright install --with-deps",
-    "size": "pnpm build && size-limit",
-    "size:why": "pnpm build && size-limit --why",
-    "test": "vitest run",
-    "test:coverage": "vitest run --coverage",
-    "test:e2e": "playwright test",
-    "TEST": "vitest run --coverage && playwright test",
-    "typecheck": "tsc --noEmit"
+    "lint": "npm --prefix ../harness run lint",
+    "setup:e2e": "npm --prefix ../harness run setup:e2e",
+    "test:file": "npm --prefix ../harness run test:file --",
+    "test": "npm --prefix ../harness run test:coverage",
+    "test:coverage": "npm --prefix ../harness run test:coverage",
+    "test:e2e": "npm --prefix ../harness run test:e2e",
+    "typecheck": "npm --prefix ../harness run typecheck:frontend"
   },
   "dependencies": {
-    "ajv": "latest",
-    "ajv-formats": "latest",
-    "ajv-keywords": "latest",
-    "secure-json-parse": "latest",
     "zod": "latest"
   },
   "devDependencies": {
-    "@axe-core/playwright": "latest",
-    "@eslint/js": "latest",
-    "@eslint/json": "latest",
-    "@lhci/cli": "latest",
-    "@playwright/test": "latest",
-    "@secretlint/secretlint-rule-preset-recommend": "latest",
-    "@size-limit/file": "latest",
-    "@stoplight/spectral-cli": "latest",
-    "@types/node": "latest",
-    "@vitest/coverage-v8": "latest",
-    "ajv-cli": "^5.0.0",
-    "cspell": "^9.8.0",
-    "dependency-cruiser": "latest",
-    "eslint": "latest",
-    "eslint-config-prettier": "latest",
-    "eslint-import-resolver-node": "latest",
-    "eslint-plugin-import-x": "latest",
-    "eslint-plugin-jsdoc": "latest",
-    "eslint-plugin-n": "latest",
-    "eslint-plugin-no-only-tests": "latest",
-    "eslint-plugin-promise": "latest",
-    "eslint-plugin-regexp": "latest",
-    "eslint-plugin-security": "latest",
-    "eslint-plugin-sonarjs": "latest",
-    "eslint-plugin-unicorn": "latest",
-    "fast-check": "latest",
-    "globals": "latest",
-    "html-validate": "latest",
-    "jiti": "latest",
-    "jsdom": "latest",
-    "knip": "latest",
-    "lighthouse": "latest",
-    "lockfile-lint": "^4.7.4",
-    "markuplint": "^4.13.1",
-    "npm-package-json-lint": "latest",
-    "pnpm": "^11.9.0",
-    "prettier": "latest",
-    "secretlint": "latest",
-    "size-limit": "latest",
-    "stylelint": "latest",
-    "stylelint-config-standard": "latest",
-    "stylelint-declaration-strict-value": "latest",
-    "syncpack": "latest",
-    "typescript": "latest",
-    "typescript-eslint": "latest",
-    "vite": "latest",
-    "vitest": "latest"
-  },
-  "overrides": {
-    "fast-json-patch": "3.1.1",
-    "tmp": "0.2.7"
+    "vite": "latest"
   },
   "size-limit": [
     {
@@ -108,43 +36,5 @@
       "path": "dist/assets/*.css",
       "limit": "6 B"
     }
-  ],
-  "npmpackagejsonlint": {
-    "rules": {
-      "dependencies-type": "error",
-      "devDependencies-type": "error",
-      "engines-type": "error",
-      "name-type": "error",
-      "no-archive-dependencies": "error",
-      "no-archive-devDependencies": "error",
-      "no-duplicate-properties": "error",
-      "no-file-dependencies": "error",
-      "no-file-devDependencies": "error",
-      "no-git-dependencies": "error",
-      "no-git-devDependencies": "error",
-      "no-repeated-dependencies": "error",
-      "prefer-alphabetical-dependencies": "error",
-      "prefer-alphabetical-devDependencies": "error",
-      "prefer-no-engineStrict": "error",
-      "private-type": "error",
-      "require-engines": "error",
-      "require-name": "error",
-      "require-private": "error",
-      "require-scripts": "error",
-      "require-type": "error",
-      "type-type": "error",
-      "valid-values-private": [
-        "error",
-        [
-          true
-        ]
-      ],
-      "valid-values-type": [
-        "error",
-        [
-          "module"
-        ]
-      ]
-    }
-  }
+  ]
 }

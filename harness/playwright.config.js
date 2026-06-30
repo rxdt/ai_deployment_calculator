@@ -2,9 +2,9 @@ import { defineConfig, devices } from "@playwright/test";
 
 // End-to-end gate. Spins up the Vite dev server and drives the built UI.
 export default defineConfig({
-  testDir: "./tests",
+  testDir: "../frontend/tests",
   webServer: {
-    command: "npm run dev -- --port 5173",
+    command: "npm --prefix frontend run dev -- --port 5173",
     url: "http://127.0.0.1:5173",
     reuseExistingServer: !process.env.CI,
   },

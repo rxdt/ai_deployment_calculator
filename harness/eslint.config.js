@@ -13,6 +13,7 @@ import n from "eslint-plugin-n"; // Node.js correctness
 import noOnlyTests from "eslint-plugin-no-only-tests"; // Block focused tests
 import eslintConfigPrettier from "eslint-config-prettier"; // Disable formatting rules (Prettier owns formatting)
 import { defineConfig, globalIgnores } from "eslint/config"; // ESLint flat-config helpers.
+import { fileURLToPath } from "node:url";
 
 const securityErrors = Object.fromEntries(
   Object.keys(security.rules).map((ruleName) => [
@@ -20,15 +21,21 @@ const securityErrors = Object.fromEntries(
     "error",
   ]),
 );
+const repoRoot = fileURLToPath(new URL("..", import.meta.url));
 
 export default defineConfig([
   globalIgnores([
-    "coverage/",
-    "dist/",
-    "build/",
-    "node_modules/",
-    "test-results/",
-    "package-lock.json",
+    "**/coverage/",
+    "**/dist/",
+    "**/build/",
+    "**/node_modules/",
+    "**/test-results/",
+    "**/.lighthouseci/",
+    ".git/",
+    ".codex/",
+    ".agents/",
+    "scratchpad/",
+    "**/package-lock.json",
   ]),
   {
     files: ["**/*.ts"], // Rules on all TS files (no JSX in this project)
@@ -50,7 +57,7 @@ export default defineConfig([
       parserOptions: {
         // Auto-resolves the right tsconfig per file (incl. tests/configs)
         projectService: true,
-        tsconfigRootDir: import.meta.dirname,
+        tsconfigRootDir: repoRoot,
       },
     },
     settings: {
@@ -196,8 +203,8 @@ export default defineConfig([
   },
   // SOURCE ARCHITECTURE: browser production code stays browser-only and cannot reach tests/tooling.
   {
-    files: ["src/**/*.ts"],
-    ignores: ["src/**/*.test.ts"],
+    files: ["frontend/src/**/*.ts"],
+    ignores: ["frontend/src/**/*.test.ts"],
     rules: {
       "no-restricted-imports": [
         "error",
@@ -246,7 +253,7 @@ export default defineConfig([
   // element to `number | undefined`, forcing a banned non-null assertion or an unreachable `?? 0`
   // branch (breaking 100% coverage); indexed access stays clearer here.
   {
-    files: ["src/calculator.ts"],
+    files: ["frontend/src/calculator-core.ts"],
     rules: {
       "unicorn/prefer-at": "off",
     },
@@ -329,7 +336,7 @@ export default defineConfig([
   // Test files exercise edge cases and build hostile fixtures; rules that guard production code
   // are noise against mocks, exact-value float assertions, null checks, and DOM fixtures.
   {
-    files: ["**/*.test.ts", "tests/**/*.ts"],
+    files: ["**/*.test.ts", "frontend/tests/**/*.ts"],
     rules: {
       "@typescript-eslint/no-unsafe-type-assertion": "off",
       "@typescript-eslint/no-unsafe-assignment": "off",

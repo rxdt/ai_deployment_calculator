@@ -1,4 +1,3 @@
-// @ts-ignore
 import * as z from "zod";
 import type { FormState } from "./types";
 

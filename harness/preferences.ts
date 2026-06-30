@@ -5,9 +5,6 @@
 //
 // This module reflects the repo owner's personal style hates that ESLint/tsc cannot express:
 // indiscriminate _underscore names and spread "splat" in calls/literals.
-//
-// NOTE: the Python "plain class must be Pydantic" rule has no faithful TS equivalent (there is
-// no Pydantic in the browser app), so it is intentionally NOT ported. See blocker B in the report.
 
 import ts from "typescript";
 

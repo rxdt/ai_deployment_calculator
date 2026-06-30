@@ -1,7 +1,7 @@
 module.exports = {
   ci: {
     collect: {
-      startServerCommand: "npm run preview -- --port 4173",
+      startServerCommand: "npm --prefix frontend run preview -- --port 4173",
       startServerReadyPattern: "Local:",
       startServerReadyTimeout: 10000,
       url: ["http://127.0.0.1:4173/"],
@@ -38,7 +38,7 @@ module.exports = {
     },
     upload: {
       target: "filesystem",
-      outputDir: "./.lighthouseci",
+      outputDir: "./frontend/.lighthouseci",
     },
   },
 };

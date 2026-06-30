@@ -5,6 +5,7 @@ import {
   existsSync,
   mkdirSync,
   mkdtempSync,
+  readdirSync,
   readFileSync,
   realpathSync,
   symlinkSync,
@@ -31,6 +32,11 @@ import {
 import { makeRepo } from "./tmprepo.js";
 
 const FIXED_NOW = 1_782_475_200_000;
+const ANSI_PATTERN = /\u001B\[[0-?]*[ -/]*[@-~]/gu;
+
+function withoutAnsi(value: string): string {
+  return value.replaceAll(ANSI_PATTERN, "");
+}
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -264,6 +270,45 @@ describe("harness command", () => {
     });
 
     expect(result.status).toBe(0);
+  });
+
+  test("run streams and logs agent JSON from stdout and stderr", () => {
+    const repo = makeRepo();
+    const bin = path.join(repo, "bin");
+    mkdirSync(bin);
+    writeFileSync(
+      path.join(bin, "claude"),
+      [
+        "#!/bin/sh",
+        'printf \'%s\\n\' \'{"stream":"stdout","message":"saved"}\'',
+        'printf \'%s\\n\' \'{"stream":"stderr","message":"saved"}\' >&2',
+        "",
+      ].join("\n"),
+      { mode: 0o755 },
+    );
+
+    const result = spawnSync("harness", ["run", "claude", "1", "1"], {
+      cwd: repo,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        PATH: `${bin}${path.delimiter}${process.env.PATH ?? ""}`,
+      },
+    });
+    const runRoot = path.join(repo, "scratchpad", "runs", "claude");
+    const day = readdirSync(runRoot)[0] ?? "";
+    const log = path.join(runRoot, day, "0001.jsonl");
+
+    expect(result.status).toBe(0);
+    const stdout = withoutAnsi(result.stdout);
+    expect(stdout).toContain('{"stream":"stdout","message":"saved"}');
+    expect(stdout).toContain('{"stream":"stderr","message":"saved"}');
+    expect(readFileSync(log, "utf8")).toContain(
+      '{"stream":"stdout","message":"saved"}',
+    );
+    expect(readFileSync(log, "utf8")).toContain(
+      '{"stream":"stderr","message":"saved"}',
+    );
   });
 
   test("status", () => {

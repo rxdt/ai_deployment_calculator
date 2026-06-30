@@ -2,14 +2,15 @@
   "version": "0.2",
   "language": "en",
   "ignorePaths": [
-    "node_modules",
-    "dist",
-    "build",
-    "coverage",
-    "test-results",
-    "package-lock.json",
-    "pnpm-lock.yaml",
-    "pnpm-workspace.yaml"
+    "**/node_modules",
+    "**/dist",
+    "**/build",
+    "**/coverage",
+    "**/test-results",
+    "**/package-lock.json",
+    "**/pnpm-lock.yaml",
+    "**/pnpm-workspace.yaml",
+    "scratchpad"
   ],
   "words": [
     "autorun",

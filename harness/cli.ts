@@ -85,12 +85,27 @@ export interface CommandResult {
 
 interface PackageJson {
   name?: string;
+  scripts?: Record<string, string>;
   [key: string]: unknown;
 }
 
 const RESERVED_PACKAGE_NAMES = new Set(
   builtinModules.map((moduleName) => moduleName.replace(/^node:/u, "")),
 );
+
+const IGNORED_INSTALL_DIRECTORIES = new Set([
+  ".agents",
+  ".codex",
+  ".git",
+  ".lighthouseci",
+  "build",
+  "coverage",
+  "dist",
+  "harness",
+  "node_modules",
+  "scratchpad",
+  "test-results",
+]);
 
 /**
 Resolve the Git repository root from any directory inside the checkout.
@@ -149,18 +164,83 @@ function packageNameFromInput(name: string): string {
         .replaceAll(/^\.+/gu, "");
 }
 
-function writePackageName(repo: string, name: string): void {
+function readRootPackageJson(repo: string): PackageJson {
   const packagePath = path.join(repo, "package.json");
-  const parsed = JSON.parse(readFileSync(packagePath, "utf8")) as PackageJson;
-  parsed.name = name;
+  return JSON.parse(readFileSync(packagePath, "utf8")) as PackageJson;
+}
+
+function writeRootPackageJson(repo: string, parsed: PackageJson): void {
+  const packagePath = path.join(repo, "package.json");
   writeFileSync(packagePath, `${JSON.stringify(parsed, null, 2)}\n`);
 }
 
-function runNpmInstall(repo: string): number {
-  for (const directory of ["harness", "frontend"]) {
-    if (existsSync(path.join(repo, directory, "node_modules"))) {
+function writePackageName(repo: string, name: string): void {
+  const parsed = readRootPackageJson(repo);
+  parsed.name = name;
+  writeRootPackageJson(repo, parsed);
+}
+
+function packageScripts(parsed: PackageJson): Record<string, string> {
+  if (
+    typeof parsed.scripts === "object" &&
+    parsed.scripts !== null &&
+    !Array.isArray(parsed.scripts)
+  ) {
+    return parsed.scripts;
+  }
+  parsed.scripts = {};
+  return parsed.scripts;
+}
+
+const ROOT_HARNESS_SCRIPTS = {
+  gate: "node harness/harness.mjs gate",
+  install: "node harness/harness.mjs install",
+  lint: "npm --prefix harness run lint",
+  run: "node harness/harness.mjs run",
+  status: "node harness/harness.mjs status",
+  test: "npm --prefix harness run test:coverage",
+  "test:file": "npm --prefix harness run test:file --",
+} as const;
+
+function mergeRootHarnessScripts(repo: string): void {
+  const parsed = readRootPackageJson(repo);
+  const scripts = packageScripts(parsed);
+  for (const [name, command] of Object.entries(ROOT_HARNESS_SCRIPTS)) {
+    if (Object.hasOwn(scripts, name)) {
+      if (name === "lint" || name === "test") {
+        const alias = `harness:${name}`;
+        if (!Object.hasOwn(scripts, alias)) {
+          scripts[alias] = command;
+        }
+      }
       continue;
     }
+    scripts[name] = command;
+  }
+  writeRootPackageJson(repo, parsed);
+}
+
+function discoverRepoPackageDirectories(repo: string): string[] {
+  const visit = (directory: string): string[] =>
+    readdirSync(path.join(repo, directory), {
+      withFileTypes: true,
+    }).flatMap((entry) => {
+      const relative = path.join(directory, entry.name);
+      if (entry.isDirectory()) {
+        return IGNORED_INSTALL_DIRECTORIES.has(entry.name)
+          ? []
+          : visit(relative);
+      }
+      return entry.isFile() && entry.name === "package.json" && directory !== ""
+        ? [directory]
+        : [];
+    });
+  return visit("").toSorted((left, right) => left.localeCompare(right));
+}
+
+function runNpmInstall(repo: string): number {
+  const packageDirectories = ["harness", ...discoverRepoPackageDirectories(repo)];
+  for (const directory of packageDirectories) {
     const result = spawnSync("npm", ["install"], {
       cwd: path.join(repo, directory),
       stdio: "inherit",
@@ -255,6 +335,7 @@ function runInstall(arguments_: string[]): CommandResult {
   if (linkCode !== 0) {
     return { code: linkCode, lines: ["npm link failed"] };
   }
+  mergeRootHarnessScripts(repo);
   writeHooks(repo);
   runGit(repo, ["config", "core.hooksPath", ".githooks"]);
   const hooksPath = runGit(repo, ["config", "core.hooksPath"]).trim();
@@ -428,6 +509,22 @@ function findExecutable(name: string): string | undefined {
   return undefined;
 }
 
+function teeWorkerChunk(
+  chunk: string,
+  logStream: NodeJS.WritableStream,
+  isVerbose: boolean,
+  jq: string | undefined,
+  rest: string,
+): string {
+  logStream.write(chunk);
+  if (!isVerbose) {
+    return rest;
+  }
+  const drained = drainLines(`${rest}${chunk}`, jq);
+  process.stdout.write(drained.output);
+  return drained.rest;
+}
+
 /**
 Spawn the ralph worker, teeing stdout to the log and optionally to the terminal.
 @param command - Worker argv.
@@ -450,23 +547,26 @@ async function runWorker(
   const jq = findExecutable("jq");
   const child = spawn(executable, command.slice(1), {
     cwd,
-    stdio: ["ignore", "pipe", "inherit"],
+    stdio: ["ignore", "pipe", "pipe"],
   });
   child.stdout.setEncoding("utf8");
-  let rest = "";
+  child.stderr.setEncoding("utf8");
+  let stdoutRest = "";
+  let stderrRest = "";
   child.stdout.on("data", (chunk: string) => {
-    logStream.write(chunk);
-    if (isVerbose) {
-      const { output, rest: nextRest } = drainLines(`${rest}${chunk}`, jq);
-      rest = nextRest;
-      process.stdout.write(output);
-    }
+    stdoutRest = teeWorkerChunk(chunk, logStream, isVerbose, jq, stdoutRest);
+  });
+  child.stderr.on("data", (chunk: string) => {
+    stderrRest = teeWorkerChunk(chunk, logStream, isVerbose, jq, stderrRest);
   });
   return new Promise<number>((resolve, reject) => {
     child.on("error", reject);
     child.on("close", (closeCode) => {
-      if (isVerbose && rest.length > 0) {
-        process.stdout.write(formatLiveLine(rest, jq));
+      if (isVerbose && stdoutRest.length > 0) {
+        process.stdout.write(formatLiveLine(stdoutRest, jq));
+      }
+      if (isVerbose && stderrRest.length > 0) {
+        process.stdout.write(formatLiveLine(stderrRest, jq));
       }
       logStream.end(() => {
         resolve(closeCode ?? 1);

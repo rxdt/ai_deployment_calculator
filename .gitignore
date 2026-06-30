@@ -9,6 +9,4 @@ dist/
 **/.lighthouseci/
 specs/fp_*
 
-# in-repo worker worktrees (isolated agent workspaces; never /tmp)
-.worktrees/
 scratchpad/

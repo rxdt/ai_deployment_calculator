@@ -5,21 +5,17 @@ import {
   chmodSync,
   createWriteStream,
   existsSync,
-  lstatSync,
   mkdirSync,
   readFileSync,
-  readlinkSync,
   readdirSync,
-  realpathSync,
   statSync,
-  unlinkSync,
   writeFileSync,
 } from "node:fs";
 import { builtinModules } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { runChecks, runGate, runGit, runPreflight } from "./gate.js";
+import { DEFAULT_CONFIGS, runChecks, runGate, runGit, runPreflight } from "./gate.js";
 
 export const AGENTS: Record<string, string[]> = {
   claude: [
@@ -135,7 +131,7 @@ export function run(
   if (command !== "preflight" && command !== "gate") {
     return {
       code: 2,
-      lines: ["usage: harness <preflight|gate|run|status|install>"],
+      lines: ["usage: harness <preflight|gate|run|status|setup>"],
     };
   }
   const repo = dependencies.repoRoot(process.cwd());
@@ -159,9 +155,9 @@ function packageNameFromInput(name: string): string {
   return packageNameIsValid(lower)
     ? lower
     : lower
-        .replaceAll("/", ".")
-        .replaceAll(/[^a-z0-9.]/gu, "")
-        .replaceAll(/^\.+/gu, "");
+      .replaceAll("/", ".")
+      .replaceAll(/[^a-z0-9.]/gu, "")
+      .replaceAll(/^\.+/gu, "");
 }
 
 function readRootPackageJson(repo: string): PackageJson {
@@ -172,6 +168,10 @@ function readRootPackageJson(repo: string): PackageJson {
 function writeRootPackageJson(repo: string, parsed: PackageJson): void {
   const packagePath = path.join(repo, "package.json");
   writeFileSync(packagePath, `${JSON.stringify(parsed, null, 2)}\n`);
+}
+
+function currentPackageName(repo: string): string | undefined {
+  return readRootPackageJson(repo).name;
 }
 
 function writePackageName(repo: string, name: string): void {
@@ -194,7 +194,7 @@ function packageScripts(parsed: PackageJson): Record<string, string> {
 
 const ROOT_HARNESS_SCRIPTS = {
   gate: "node harness/harness.mjs gate",
-  install: "node harness/harness.mjs install",
+  setup: "node harness/harness.mjs setup",
   lint: "npm --prefix harness run lint",
   run: "node harness/harness.mjs run",
   status: "node harness/harness.mjs status",
@@ -220,6 +220,39 @@ function mergeRootHarnessScripts(repo: string): void {
   writeRootPackageJson(repo, parsed);
 }
 
+// Candidate user config filenames per check; if none exist, keep the shipped default.
+const CONFIG_CANDIDATES: Record<string, readonly string[]> = {
+  eslint: ["eslint.config.js", "eslint.config.mjs", "eslint.config.cjs", "eslint.config.ts"],
+  style: ["stylelint.config.js", "stylelint.config.cjs", ".stylelintrc.json"],
+  html: [".htmlvalidate.json", ".htmlvalidate.js"],
+  frontend_types: ["frontend/tsconfig.json", "tsconfig.json"],
+  architecture: [".dependency-cruiser.cjs", ".dependency-cruiser.js", ".dependency-cruiser.json"],
+  dead_code: ["knip.json", "knip.jsonc", "knip.config.ts"],
+  spelling: ["cspell.json", "cspell.config.js", ".cspell.json"],
+  workflow_api: [".spectral.yml", ".spectral.yaml", ".spectral.json"],
+  coverage: ["vitest.config.ts", "vitest.config.js", "vite.config.ts", "vite.config.js"],
+  e2e: ["playwright.config.ts", "playwright.config.js"],
+  lighthouse: ["lighthouserc.cjs", "lighthouserc.js", "lighthouserc.json"],
+};
+
+/**
+Resolve each gate check's config path once and write harness/configs.json: the
+user's config when present, else the shipped harness default. The gate reads
+these paths; it never decides.
+@param repo - The repo root.
+*/
+function writeConfigPaths(repo: string): void {
+  const resolved: Record<string, string> = {};
+  for (const [check, candidates] of Object.entries(CONFIG_CANDIDATES)) {
+    const found = candidates.find((file) => existsSync(path.join(repo, file)));
+    resolved[check] = found ?? DEFAULT_CONFIGS[check];
+  }
+  writeFileSync(
+    path.join(repo, "harness", "configs.json"),
+    `${JSON.stringify(resolved, null, 2)}\n`,
+  );
+}
+
 function discoverRepoPackageDirectories(repo: string): string[] {
   const visit = (directory: string): string[] =>
     readdirSync(path.join(repo, directory), {
@@ -239,7 +272,10 @@ function discoverRepoPackageDirectories(repo: string): string[] {
 }
 
 function runNpmInstall(repo: string): number {
-  const packageDirectories = ["harness", ...discoverRepoPackageDirectories(repo)];
+  const packageDirectories = [
+    "harness",
+    ...discoverRepoPackageDirectories(repo),
+  ];
   for (const directory of packageDirectories) {
     const result = spawnSync("npm", ["install"], {
       cwd: path.join(repo, directory),
@@ -252,56 +288,11 @@ function runNpmInstall(repo: string): number {
   return 0;
 }
 
-function removeExistingRepoHarnessLink(repo: string): void {
-  const prefix = spawnSync("npm", ["prefix", "-g"], {
-    encoding: "utf8",
-  }).stdout.trim();
-  const globalPackages = spawnSync("npm", ["root", "-g"], {
-    encoding: "utf8",
-  }).stdout.trim();
-  const harness = path.join(prefix, "bin", "harness");
-  if (
-    prefix.length === 0 ||
-    globalPackages.length === 0 ||
-    !lstatSync(harness, { throwIfNoEntry: false })?.isSymbolicLink()
-  ) {
-    return;
-  }
-  const target = path.resolve(path.dirname(harness), readlinkSync(harness));
-  const repoRoot = realpathSync(repo);
-  const resolvedTarget = existsSync(target) ? realpathSync(target) : target;
-  const packageParts = path.relative(globalPackages, target).split(path.sep);
-  const packageRoot =
-    packageParts[0]?.startsWith("@") === true
-      ? path.join(globalPackages, packageParts[0], packageParts[1] ?? "")
-      : path.join(globalPackages, packageParts[0] ?? "");
-  const linkedPackage =
-    lstatSync(packageRoot, { throwIfNoEntry: false })?.isSymbolicLink() === true
-      ? path.resolve(path.dirname(packageRoot), readlinkSync(packageRoot))
-      : "";
-  const resolvedPackage = existsSync(linkedPackage)
-    ? realpathSync(linkedPackage)
-    : linkedPackage;
-  if (
-    resolvedTarget.startsWith(`${repoRoot}${path.sep}`) ||
-    resolvedPackage === repoRoot ||
-    (!existsSync(target) && target.startsWith(`${globalPackages}${path.sep}`))
-  ) {
-    unlinkSync(harness);
-  }
-}
-
-function linkHarnessBinary(repo: string): number {
-  removeExistingRepoHarnessLink(repo);
-  const result = spawnSync("npm", ["link"], {
-    cwd: repo,
-    stdio: "inherit",
-  });
-  return result.status ?? 1;
-}
-
 function writeHook(repo: string, name: string, command: string): void {
   const hook = path.join(repo, ".githooks", name);
+  if (existsSync(hook)) {
+    return; // never clobber an existing hook
+  }
   writeFileSync(hook, ["#!/bin/sh", "set -eu", "", command, ""].join("\n"));
   chmodSync(hook, 0o755);
 }
@@ -309,51 +300,65 @@ function writeHook(repo: string, name: string, command: string): void {
 function writeHooks(repo: string): void {
   const hooks = path.join(repo, ".githooks");
   mkdirSync(hooks, { recursive: true });
-  writeHook(repo, "pre-commit", "harness preflight");
-  writeHook(repo, "pre-push", "harness gate");
+  writeHook(repo, "pre-commit", "node harness/harness.mjs preflight");
+  writeHook(repo, "pre-push", "node harness/harness.mjs gate");
 }
 
-function runInstall(arguments_: string[]): CommandResult {
+function runSetup(arguments_: string[]): CommandResult {
   const repo = repoRoot(process.cwd());
   const [name] = arguments_;
-  const normalizedName =
+  const explicitName =
     name === undefined ? undefined : packageNameFromInput(name);
-  if (normalizedName !== undefined) {
-    if (
-      !packageNameIsValid(normalizedName) ||
-      RESERVED_PACKAGE_NAMES.has(normalizedName)
-    ) {
-      return { code: 2, lines: [`invalid package name: ${name}`] };
-    }
-    writePackageName(repo, normalizedName);
+  if (
+    explicitName !== undefined &&
+    (!packageNameIsValid(explicitName) ||
+      RESERVED_PACKAGE_NAMES.has(explicitName))
+  ) {
+    return { code: 2, lines: [`invalid package name: ${name}`] };
+  }
+  // No name given and package.json has none: derive one from the repo folder.
+  const autoName =
+    explicitName === undefined && (currentPackageName(repo) ?? "") === ""
+      ? packageNameFromInput(path.basename(repo))
+      : undefined;
+  const resolvedName = explicitName ?? autoName;
+  let projectName: string | undefined;
+  if (
+    resolvedName !== undefined &&
+    packageNameIsValid(resolvedName) &&
+    !RESERVED_PACKAGE_NAMES.has(resolvedName)
+  ) {
+    writePackageName(repo, resolvedName);
+    projectName = resolvedName;
   }
   const installCode = runNpmInstall(repo);
   if (installCode !== 0) {
     return { code: installCode, lines: ["npm install failed"] };
   }
-  const linkCode = linkHarnessBinary(repo);
-  if (linkCode !== 0) {
-    return { code: linkCode, lines: ["npm link failed"] };
-  }
+  writeConfigPaths(repo);
   mergeRootHarnessScripts(repo);
   writeHooks(repo);
-  runGit(repo, ["config", "core.hooksPath", ".githooks"]);
+  const existing = runGit(repo, [
+    "config",
+    "--default",
+    "",
+    "--get",
+    "core.hooksPath",
+  ]).trim();
+  if (existing === "" || existing === ".githooks") {
+    runGit(repo, ["config", "core.hooksPath", ".githooks"]);
+  }
   const hooksPath = runGit(repo, ["config", "core.hooksPath"]).trim();
-  const lines =
-    normalizedName === undefined
-      ? [
-          "dependencies installed",
-          "harness binary linked",
-          "git hooks installed",
-          `git hooks path: ${hooksPath}`,
-        ]
-      : [
-          `project name set: ${normalizedName}`,
-          "dependencies installed",
-          "harness binary linked",
-          "git hooks installed",
-          `git hooks path: ${hooksPath}`,
-        ];
+  const lines = [
+    "dependencies installed",
+    "harness scripts added to package.json",
+    "configs resolved -> harness/configs.json",
+    "git hooks installed",
+    `git hooks path: ${hooksPath}`,
+  ];
+  if (projectName !== undefined) {
+    lines.unshift(`project name set: ${projectName}`);
+  }
   return { code: 0, lines };
 }
 
@@ -367,16 +372,16 @@ function listRunLogs(repo: string): string[] {
     const agentDirectory = path.join(runs, agent.name);
     return agent.isDirectory()
       ? readdirSync(agentDirectory, { withFileTypes: true }).flatMap((day) => {
-          const dayDirectory = path.join(agentDirectory, day.name);
-          return day.isDirectory()
-            ? readdirSync(dayDirectory, { withFileTypes: true }).flatMap(
-                (log) =>
-                  log.isFile() && pattern.test(log.name)
-                    ? [path.join(dayDirectory, log.name)]
-                    : [],
-              )
-            : [];
-        })
+        const dayDirectory = path.join(agentDirectory, day.name);
+        return day.isDirectory()
+          ? readdirSync(dayDirectory, { withFileTypes: true }).flatMap(
+            (log) =>
+              log.isFile() && pattern.test(log.name)
+                ? [path.join(dayDirectory, log.name)]
+                : [],
+          )
+          : [];
+      })
       : [];
   });
 }
@@ -652,8 +657,8 @@ export async function main(cliArguments: string[]): Promise<void> {
       ? await runLoop(cliArguments.slice(1))
       : command === "status"
         ? runStatus()
-        : command === "install"
-          ? runInstall(cliArguments.slice(1))
+        : command === "setup"
+          ? runSetup(cliArguments.slice(1))
           : run(command);
   for (const line of result.lines) {
     const stream =

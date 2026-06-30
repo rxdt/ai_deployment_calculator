@@ -93,7 +93,7 @@ This is the canonical, implemented formula reference. It supersedes any older
 Variable names and constants below match `frontend/src/calculator-core.ts`,
 `workload-memory.ts`, and `hardware.ts`.
 
-```md
+````md
 ## Canonical VRAM Formula
 
 There is one base equation:
@@ -200,6 +200,7 @@ Estimated transformer architecture by total parameter count:
 <= 160B: layers 96, hidden 10240, heads 80, kv_heads 8, head_dim 128
 > 160B:  layers 120, hidden 12288, heads 96, kv_heads 8, head_dim 128
 ```
+````
 
 Also compute `conservative_kv_heads = attention_heads` and show it in advanced
 output.
@@ -565,6 +566,7 @@ Do not use:
 `Required_GB = (Weights + KV + Task_Overhead + Runtime_Tax) * Buffer` as the real internal model
 
 The old display equation can appear only as a simplified explanation if its labels map to the canonical terms.
+
 ```
 
 
@@ -661,3 +663,4 @@ Accessibility:
   Playwright suite asserts. The styling pass must keep axe violations at zero and
   meet the touch-target (>=40px) and readable-text (>=13px) checks in
   `tests/responsive.spec.ts`.
+```

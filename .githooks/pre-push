@@ -1,4 +1,4 @@
 #!/bin/sh
 set -eu
 
-harness gate
+node harness/harness.mjs gate

@@ -13,9 +13,9 @@ let tsxLoader;
 try {
   tsxLoader = require.resolve("tsx");
 } catch {
-  if (args[0] !== "install") {
+  if (args[0] !== "setup") {
     process.stderr.write(
-      "harness: missing harness dependencies; run harness install\n",
+      "harness: missing harness dependencies; run harness setup\n",
     );
     process.exit(1);
   }

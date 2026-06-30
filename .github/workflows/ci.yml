@@ -39,16 +39,10 @@ jobs:
         with:
           node-version: 24
           cache: npm
-          cache-dependency-path: "**/package-lock.json"
+          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
-        shell: bash
-        run: |
-          shopt -s globstar nullglob
-          for lockfile in **/package-lock.json; do
-            package_dir="$(dirname "$lockfile")"
-            npm ci --prefix "$package_dir"
-          done
+        run: npm ci
 
       - name: Install browsers
         run: npm --prefix harness run setup:e2e -- chromium

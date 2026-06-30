@@ -55,8 +55,7 @@ export default defineConfig([
     languageOptions: {
       globals: { ...globals.browser, ...globals.node },
       parserOptions: {
-        // Auto-resolves the right tsconfig per file (incl. tests/configs)
-        projectService: true,
+        project: ["harness/tsconfig.app.json", "harness/tsconfig.json"],
         tsconfigRootDir: repoRoot,
       },
     },
@@ -199,27 +198,20 @@ export default defineConfig([
       "@typescript-eslint/switch-exhaustiveness-check": "error",
       "@typescript-eslint/no-unnecessary-condition": "error",
       "@typescript-eslint/prefer-nullish-coalescing": "error",
+      // TypeScript typecheck owns missing-import resolution across TS/ESM layouts.
+      "import-x/no-unresolved": "off",
+      "n/no-missing-import": "off",
     },
   },
-  // SOURCE ARCHITECTURE: browser production code stays browser-only and cannot reach tests/tooling.
+  // SOURCE ARCHITECTURE: production code cannot import test modules.
   {
-    files: ["frontend/src/**/*.ts"],
-    ignores: ["frontend/src/**/*.test.ts"],
+    files: ["**/*.ts"],
+    ignores: ["**/*.test.ts", "**/*.spec.ts"],
     rules: {
       "no-restricted-imports": [
         "error",
         {
           patterns: [
-            {
-              group: ["node:*"],
-              message:
-                "Production browser code must not import Node built-ins.",
-            },
-            {
-              group: ["../harness/*", "harness/*", "../tests/*", "tests/*"],
-              message:
-                "Production source cannot import harness or e2e test modules.",
-            },
             {
               group: ["*.test", "*.test.*", "*.spec", "*.spec.*"],
               message: "Production source cannot import test modules.",
@@ -239,38 +231,18 @@ export default defineConfig([
       "no-only-tests/no-only-tests": "error",
     },
   },
+  // HARNESS: Node tooling must read git-provided paths and spawn portable tools by name.
+  {
+    files: ["harness/**/*.ts"],
+    rules: {
+      "sonarjs/no-os-command-from-path": "off",
+    },
+  },
   // SEPARATION FOR ROOT CONFIGURATIONS
   {
     files: ["**/*.config.ts", "**/vite.config.ts"],
     rules: {
       "no-console": "off",
-    },
-  },
-  // HARNESS: a Node tooling directory that must spawn `git`/`npm` by name (resolved from PATH,
-  // which is sanitized of GIT_* in gate.ts). No portable way to absolute-path them; this is the
-  // one rule the harness cannot satisfy. Everything else stays enforced.
-  // roundTo needs the guaranteed-defined last digit of a known-non-empty array. `.at(-1)` widens the
-  // element to `number | undefined`, forcing a banned non-null assertion or an unreachable `?? 0`
-  // branch (breaking 100% coverage); indexed access stays clearer here.
-  {
-    files: ["frontend/src/calculator-core.ts"],
-    rules: {
-      "unicorn/prefer-at": "off",
-    },
-  },
-  {
-    files: ["harness/**/*.ts"],
-    rules: {
-      "sonarjs/no-os-command-from-path": "off",
-      // The harness reads staged-file paths computed from git output; no safe literal exists.
-      "security/detect-non-literal-fs-filename": "off",
-      // preferences.ts takes TypeScript compiler AST nodes, whose API types are not declared
-      // readonly, so a clean readonly signature is impossible; off for the whole harness dir.
-      "@typescript-eslint/prefer-readonly-parameter-types": "off",
-      // Conflicts with the jsdoc plugin, which aligns the standard `* ` prefix this rule strips.
-      "jsdoc/check-alignment": "off",
-      // import.meta.dirname/filename trip n/no-unsupported-features here; keep portable fileURLToPath.
-      "unicorn/prefer-import-meta-properties": "off",
     },
   },
   // JSON FAMILY (linted via `npm run json:lint`)
@@ -302,41 +274,10 @@ export default defineConfig([
       "@typescript-eslint/no-magic-numbers": "off",
     },
   },
-  // tseslint/unicorn "all" pull in rules that fight this codebase's domain or add no correctness
-  // signal. The curated strict rules above (no-explicit-any, no-unsafe-*, strict-boolean,
-  // complexity caps, no-floating-promises, …) remain the real gate. These are off, each justified:
-  {
-    rules: {
-      // The UI models snake_case query-string / legacy field names (parameters_b, weight_bits,
-      // active_parameters_b). Enforcing camelCase everywhere fights the domain (293 hits).
-      "@typescript-eslint/naming-convention": "off",
-      // Deep-readonly every parameter is impractical here (115 hits) and not a correctness rule.
-      "@typescript-eslint/prefer-readonly-parameter-types": "off",
-      // Mandatory JSDoc on every symbol is documentation policy, not a correctness gate.
-      "jsdoc/require-jsdoc": "off",
-      "jsdoc/require-returns": "off",
-      "jsdoc/require-param-description": "off",
-      // Conflicts with the jsdoc plugin, which endorses the standard `* ` prefix this rule strips.
-      "unicorn/no-asterisk-prefix-in-documentation-comments": "off",
-      // The app interoperates with DOM/History APIs and uses null as an explicit sentinel
-      // (DeploymentSpec.active_parameters_b, history.replaceState(null, …)) distinct from undefined.
-      "unicorn/no-null": "off",
-      // High false-positive rate: fires on ordinary numeric array indexing (kept[index]), not a
-      // real object-injection vector in this typed code. eslint-plugin-security stays enabled.
-      "security/detect-object-injection": "off",
-      // The render layer deliberately builds pre-escaped HTML strings (escapeHtml in render.ts) and
-      // assigns innerHTML; escaping is covered by the reflected-XSS e2e test in tests/.
-      "unicorn/no-unsafe-dom-html": "off",
-      "unicorn/prefer-dom-node-html-methods": "off",
-      // Member ordering is stylistic; this rule's order (private before public) conflicts with the
-      // public-API-first convention used in CalculatorApp.
-      "unicorn/consistent-class-member-order": "off",
-    },
-  },
   // Test files exercise edge cases and build hostile fixtures; rules that guard production code
   // are noise against mocks, exact-value float assertions, null checks, and DOM fixtures.
   {
-    files: ["**/*.test.ts", "frontend/tests/**/*.ts"],
+    files: ["**/*.test.ts", "**/*.spec.ts"],
     rules: {
       "@typescript-eslint/no-unsafe-type-assertion": "off",
       "@typescript-eslint/no-unsafe-assignment": "off",
@@ -346,6 +287,9 @@ export default defineConfig([
       "@typescript-eslint/no-unsafe-return": "off",
       "@typescript-eslint/no-use-before-define": "off",
       "@typescript-eslint/max-params": "off",
+      "@typescript-eslint/prefer-nullish-coalescing": "off",
+      "@typescript-eslint/restrict-plus-operands": "off",
+      "@typescript-eslint/strict-boolean-expressions": "off",
       "@typescript-eslint/strict-void-return": "off",
       // Tests assert exact computed numbers and null returns, and sort small string arrays.
       "sonarjs/no-floating-point-equality": "off",

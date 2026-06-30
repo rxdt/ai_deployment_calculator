@@ -11,7 +11,7 @@
 ## Calculation (frontend TypeScript is the source of truth)
 
 - Canonical equation: `Required_GB = (Weights + KV + Working/Activation +
-  Training_State + Runtime_Overhead) * Buffer`, rounded to one decimal.
+Training_State + Runtime_Overhead) * Buffer`, rounded to one decimal.
 - Decoder KV is architecture-based (`layers * kv_heads * head_dim * kv_bytes`),
   never `Active_P / 10`. QLoRA = frozen 4-bit base + adapter state (no flat
   4 GB). Full training = weights + master + grad + optimizer + activations (no
@@ -34,7 +34,7 @@
   overflow uses the largest tier.
 - Cost is not computed.
 - What is calculated: `Usable_VRAM_GB =
-  Tier_GB * util` and `Fit_Headroom_GB = Usable - Required` (overflow/empty show
+Tier_GB * util` and `Fit_Headroom_GB = Usable - Required` (overflow/empty show
   `n/a`).
 
 ## Checks From This Pass

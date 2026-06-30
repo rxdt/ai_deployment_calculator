@@ -31,29 +31,27 @@ flowchart LR
 
 ## Install
 
-Run harness setup from the repository root:
+First time, run harness setup from the repository root:
 
 ```sh
-node harness/harness.mjs install
+node harness/harness.mjs setup
 ```
 
 or, after root scripts are present:
 
 ```sh
-npm run install
+npm run setup
 ```
 
-`harness install` does three things:
+`harness setup` does three things:
 
-- installs the harness dependencies;
-- discovers repository packages below the root and installs each package that has
+- setup the harness dependencies;
+- discovers repository packages below the root and setups each package that has
   a `package.json`;
-- installs the Git hooks used by the harness.
+- setups the Git hooks used by the harness.
 
-It deliberately does not run `npm install` at the repository root. Root
-`package.json` has an `install` script that launches harness setup, and running
-root `npm install` from inside harness setup would recurse through npm's
-`install` lifecycle.
+It deliberately does not run `npm setup` at the repository root. Root
+`package.json` has an `setup` script that launches harness setup.
 
 To set or update the project name at the same time:
 
@@ -91,6 +89,7 @@ harness preflight
 ```
 
 ## Full checks (lint, tests, security, type-checking, etc.)
+
 ```sh
 harness gate
 ```
@@ -98,7 +97,9 @@ harness gate
 For the full repository gate, run `.venv/bin/harness gate` from the repo root.
 
 > do NOT DELETE!:
+
 ## Owner notes. DO NOT DELETE!!
+
 - Semgrep CA trust-store issue triggered from sandbox. `env -u SEMGREP_SEND_METRICS harness run...` with agent launch bypasses,
 - Except for `plan.md`, all `.md` documents should stay < 100 lines.
 - prompt precedence/context leakage into the worker when orchestrator launches headless agent even when prompt says _'do NOT orchestrate, do THIS.'_
@@ -111,4 +112,5 @@ For the full repository gate, run `.venv/bin/harness gate` from the repo root.
   - explorer: read-only, map the relevant files and risks.
   - worker: implement the smallest fix after explorer reports. Wait for both, reconcile conflicts, then run verification.
   - `brew install gitleaks` must be run by users. Same as `osv` scanner.
+
 > do NOT DELETE!:

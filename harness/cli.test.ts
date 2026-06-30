@@ -8,7 +8,6 @@ import {
   readdirSync,
   readFileSync,
   realpathSync,
-  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -29,13 +28,40 @@ import {
   runLoop,
   main,
 } from "./cli.js";
-import { makeRepo } from "./tmprepo.js";
+import { gitSafeEnvironment } from "./gate.js";
 
 const FIXED_NOW = 1_782_475_200_000;
 const ANSI_PATTERN = /\u001B\[[0-?]*[ -/]*[@-~]/gu;
 
 function withoutAnsi(value: string): string {
   return value.replaceAll(ANSI_PATTERN, "");
+}
+
+function runCommand(argv: string[], cwd: string): string {
+  const [command, ...arguments_] = argv;
+  if (command === undefined) {
+    throw new Error("missing command");
+  }
+  const result = spawnSync(command, arguments_, {
+    cwd,
+    encoding: "utf8",
+    env: gitSafeEnvironment(),
+  });
+  if (result.status !== 0) {
+    throw new Error(`${argv.join(" ")} failed: ${result.stderr}`);
+  }
+  return result.stdout;
+}
+
+function makeRepo(): string {
+  const repo = mkdtempSync(path.join(tmpdir(), "harness-"));
+  runCommand(["git", "init", "-q"], repo);
+  runCommand(["git", "config", "user.email", "harness@test.local"], repo);
+  runCommand(["git", "config", "user.name", "harness-test"], repo);
+  writeFileSync(path.join(repo, "README.md"), "seed\n");
+  runCommand(["git", "add", "README.md"], repo);
+  runCommand(["git", "commit", "-q", "-m", "seed"], repo);
+  return repo;
 }
 
 afterEach(() => {
@@ -77,7 +103,7 @@ describe("run", () => {
       }),
     ).toEqual({
       code: 2,
-      lines: ["usage: harness <preflight|gate|run|status|install>"],
+      lines: ["usage: harness <preflight|gate|run|status|setup>"],
     });
   });
 
@@ -320,10 +346,9 @@ describe("harness command", () => {
     expect(result.status).toBe(0);
   });
 
-  test("install", () => {
-    // Run the real install (no name skips the package.json rewrite) so it reaches
-    // `npm install` + `npm link` in the actual harness package.
-    const result = spawnSync("harness", ["install"], {
+  test("setup", () => {
+    // Run the real setup so it reaches `npm install` in the actual harness package.
+    const result = spawnSync("harness", ["setup"], {
       cwd: repoRoot(process.cwd()),
       encoding: "utf8",
     });
@@ -331,13 +356,13 @@ describe("harness command", () => {
     expect(result.status).toBe(0);
   });
 
-  test("install lowercases the project name", () => {
+  test("setup lowercases the project name", () => {
     const repo = makeRepo();
     writeFileSync(
       path.join(repo, "package.json"),
       '{ "name": "old-project", "private": true }\n',
     );
-    spawnSync("harness", ["install", "VRAM-calculator"], {
+    spawnSync("harness", ["setup", "VRAM-calculator"], {
       cwd: repo,
       encoding: "utf8",
     });
@@ -348,78 +373,15 @@ describe("harness command", () => {
     expect(packageJson.name).toBe("vram-calculator");
   });
 
-  test("install twice does not error on the second run", () => {
-    // The bin link already exists from the first install; the second must not EEXIST.
+  test("setup twice does not error on the second run", () => {
     const repo = repoRoot(process.cwd());
-    spawnSync("harness", ["install"], { cwd: repo, encoding: "utf8" });
-    const result = spawnSync("harness", ["install"], {
+    spawnSync("harness", ["setup"], { cwd: repo, encoding: "utf8" });
+    const result = spawnSync("harness", ["setup"], {
       cwd: repo,
       encoding: "utf8",
     });
 
     expect(result.status).toBe(0);
-  });
-
-  test("install removes a harness symlink that resolves into this repo, then npm links", () => {
-    const repo = repoRoot(process.cwd());
-    const prefix = mkdtempSync(path.join(tmpdir(), "harness-prefix-"));
-    const binDir = path.join(prefix, "bin");
-    mkdirSync(binDir, { recursive: true });
-    const link = path.join(binDir, "harness");
-    // A stale link from a prior install of THIS repo's own harness bin.
-    symlinkSync(path.join(repo, "harness", "harness.mjs"), link);
-
-    const result = spawnSync("harness", ["install"], {
-      cwd: repo,
-      encoding: "utf8",
-      env: { ...process.env, npm_config_prefix: prefix },
-    });
-
-    // The stale self-link is removed and root `npm link` recreates the bin.
-    expect(result.status).toBe(0);
-    expect(existsSync(link)).toBe(true);
-  });
-
-  test("install removes a dangling harness symlink that targets this repo, then npm links", () => {
-    const repo = repoRoot(process.cwd());
-    const prefix = mkdtempSync(path.join(tmpdir(), "harness-prefix-"));
-    const binDir = path.join(prefix, "bin");
-    mkdirSync(binDir, { recursive: true });
-    const link = path.join(binDir, "harness");
-    // A broken link whose stored target is inside this repo (a moved/old bin):
-    // ownership must be read from the link target, not by resolving it.
-    symlinkSync(path.join(repo, "harness", "old-missing-bin.mjs"), link);
-
-    const result = spawnSync("harness", ["install"], {
-      cwd: repo,
-      encoding: "utf8",
-      env: { ...process.env, npm_config_prefix: prefix },
-    });
-
-    expect(result.status).toBe(0);
-    expect(existsSync(link)).toBe(true);
-  });
-
-  test("install errors and preserves a harness symlink that resolves outside this repo", () => {
-    const repo = repoRoot(process.cwd());
-    const prefix = mkdtempSync(path.join(tmpdir(), "harness-prefix-"));
-    const binDir = path.join(prefix, "bin");
-    mkdirSync(binDir, { recursive: true });
-    const foreign = mkdtempSync(path.join(tmpdir(), "other-project-"));
-    const foreignTarget = path.join(foreign, "harness.mjs");
-    writeFileSync(foreignTarget, "#!/usr/bin/env node\n");
-    const link = path.join(binDir, "harness");
-    symlinkSync(foreignTarget, link);
-
-    const result = spawnSync("harness", ["install"], {
-      cwd: repo,
-      encoding: "utf8",
-      env: { ...process.env, npm_config_prefix: prefix },
-    });
-
-    // A foreign link is never clobbered: install must fail and leave it intact.
-    expect(result.status).not.toBe(0);
-    expect(realpathSync(link)).toBe(realpathSync(foreignTarget));
   });
 
   test.each([
@@ -427,13 +389,13 @@ describe("harness command", () => {
     [".hidden-package", "hiddenpackage"],
     ["_private", "private"],
     ["name/hooks", "name.hooks"],
-  ])("install rewrites %s to the URL-safe name %s", (input, expected) => {
+  ])("setup rewrites %s to the URL-safe name %s", (input, expected) => {
     const repo = makeRepo();
     writeFileSync(
       path.join(repo, "package.json"),
       '{ "name": "old-project", "private": true }\n',
     );
-    spawnSync("harness", ["install", input], { cwd: repo, encoding: "utf8" });
+    spawnSync("harness", ["setup", input], { cwd: repo, encoding: "utf8" });
     const packageJson = JSON.parse(
       readFileSync(path.join(repo, "package.json"), "utf8"),
     ) as { name?: string };
@@ -441,13 +403,13 @@ describe("harness command", () => {
     expect(packageJson.name).toBe(expected);
   });
 
-  test("install rejects a reserved Node core module name", () => {
+  test("setup rejects a reserved Node core module name", () => {
     const repo = makeRepo();
     writeFileSync(
       path.join(repo, "package.json"),
       '{ "name": "old-project", "private": true }\n',
     );
-    const result = spawnSync("harness", ["install", "http"], {
+    const result = spawnSync("harness", ["setup", "http"], {
       cwd: repo,
       encoding: "utf8",
     });
@@ -459,13 +421,13 @@ describe("harness command", () => {
     expect(packageJson.name).toBe("old-project");
   });
 
-  test("install caps the project name at 214 characters", () => {
+  test("setup caps the project name at 214 characters", () => {
     const repo = makeRepo();
     writeFileSync(
       path.join(repo, "package.json"),
       '{ "name": "old-project", "private": true }\n',
     );
-    spawnSync("harness", ["install", "a".repeat(300)], {
+    spawnSync("harness", ["setup", "a".repeat(300)], {
       cwd: repo,
       encoding: "utf8",
     });
@@ -487,7 +449,7 @@ describe("harness command", () => {
 
     expect(process.exitCode).toBe(2);
     expect(chunks).toEqual([
-      "usage: harness <preflight|gate|run|status|install>\n",
+      "usage: harness <preflight|gate|run|status|setup>\n",
     ]);
   });
 });

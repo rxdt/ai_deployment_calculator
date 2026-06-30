@@ -7,10 +7,12 @@ import {
   copyFileSync,
   existsSync,
   mkdirSync,
+  mkdtempSync,
   readdirSync,
   readFileSync,
   writeFileSync,
 } from "node:fs";
+import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
@@ -20,13 +22,13 @@ import {
   FORBIDDEN_FILES,
   FORBIDDEN_PATTERNS,
   FULL_CHECKS,
+  gitSafeEnvironment,
   preferenceProblems,
   runChecks,
   runGate,
   runGit,
   runPreflight,
 } from "./gate.js";
-import { makeRepo, runCommand, stageFile, stagedNames } from "./tmprepo.js";
 
 const HARNESS = path.dirname(fileURLToPath(import.meta.url));
 const REPO = path.join(HARNESS, "..");
@@ -60,6 +62,46 @@ const harnessTool = (name: string): string =>
   path.join("harness/node_modules/.bin", name);
 const commandText = (command: string[]): string => command.join(" ");
 
+function runCommand(argv: string[], cwd: string): string {
+  const [command, ...arguments_] = argv;
+  if (command === undefined) {
+    throw new Error("missing command");
+  }
+  const result = spawnSync(command, arguments_, {
+    cwd,
+    encoding: "utf8",
+    env: gitSafeEnvironment(),
+  });
+  if (result.status !== 0) {
+    throw new Error(`${argv.join(" ")} failed: ${result.stderr}`);
+  }
+  return result.stdout;
+}
+
+function makeRepo(): string {
+  const repo = mkdtempSync(path.join(tmpdir(), "harness-"));
+  runCommand(["git", "init", "-q"], repo);
+  runCommand(["git", "config", "user.email", "harness@test.local"], repo);
+  runCommand(["git", "config", "user.name", "harness-test"], repo);
+  writeFileSync(path.join(repo, "README.md"), "seed\n");
+  runCommand(["git", "add", "README.md"], repo);
+  runCommand(["git", "commit", "-q", "-m", "seed"], repo);
+  return repo;
+}
+
+function stageFile(repo: string, relpath: string, content: string): void {
+  const target = path.join(repo, relpath);
+  mkdirSync(path.dirname(target), { recursive: true });
+  writeFileSync(target, content);
+  runCommand(["git", "add", "--", relpath], repo);
+}
+
+function stagedNames(repo: string): string[] {
+  return runGit(repo, ["diff", "--cached", "--name-only"])
+    .split("\n")
+    .filter((line) => line.length > 0);
+}
+
 type FlatConfigBlock = {
   files?: unknown;
   linterOptions?: Record<string, unknown>;
@@ -69,9 +111,15 @@ type FlatConfigBlock = {
 type VitestConfig = {
   test?: {
     coverage?: {
+      include?: string[];
       thresholds?: Record<string, number>;
     };
   };
+};
+
+type EslintResolvedConfig = {
+  linterOptions?: Record<string, unknown>;
+  rules?: Record<string, unknown>;
 };
 
 type PackageJson = {
@@ -175,7 +223,11 @@ const REQUIRED_INSTALLED_GATE_TOOLS: readonly {
     check: "schema",
     commandFragment: harnessTool("ajv"),
   },
-  { dependency: "ajv-formats", check: "schema", commandFragment: "ajv-formats" },
+  {
+    dependency: "ajv-formats",
+    check: "schema",
+    commandFragment: "ajv-formats",
+  },
   {
     dependency: "ajv-keywords",
     check: "schema",
@@ -270,7 +322,12 @@ const REQUIRED_CHECK_POLICIES: readonly {
 }[] = [
   {
     check: "format",
-    fragments: [harnessTool("prettier"), ".", "--check", "harness/.prettierignore"],
+    fragments: [
+      harnessTool("prettier"),
+      ".",
+      "--check",
+      "harness/.prettierignore",
+    ],
   },
   {
     check: "eslint",
@@ -307,7 +364,10 @@ const REQUIRED_CHECK_POLICIES: readonly {
     check: "harness_types",
     fragments: [harnessTool("tsc"), "harness/tsconfig.json", "--noEmit"],
   },
-  { check: "markup", fragments: [harnessTool("markuplint"), "frontend/**/*.html"] },
+  {
+    check: "markup",
+    fragments: [harnessTool("markuplint"), "frontend/**/*.html"],
+  },
   {
     check: "schema",
     fragments: [
@@ -345,11 +405,22 @@ const REQUIRED_CHECK_POLICIES: readonly {
   },
   {
     check: "sast",
-    fragments: ["semgrep", "scan", "p/typescript", "p/javascript", "p/security-audit", "--error"],
+    fragments: [
+      "semgrep",
+      "scan",
+      "p/typescript",
+      "p/javascript",
+      "p/security-audit",
+      "--error",
+    ],
   },
   {
     check: "secrets",
-    fragments: [harnessTool("secretlint"), "**/*", "harness/.secretlintrc.json"],
+    fragments: [
+      harnessTool("secretlint"),
+      "**/*",
+      "harness/.secretlintrc.json",
+    ],
   },
   {
     check: "npm_audit",
@@ -361,7 +432,13 @@ const REQUIRED_CHECK_POLICIES: readonly {
   },
   {
     check: "pnpm_approve_builds",
-    fragments: [harnessTool("pnpm"), "--dir", "frontend", "approve-builds", "--all"],
+    fragments: [
+      harnessTool("pnpm"),
+      "--dir",
+      "frontend",
+      "approve-builds",
+      "--all",
+    ],
   },
   {
     check: "npm_signatures",
@@ -382,14 +459,25 @@ const REQUIRED_CHECK_POLICIES: readonly {
     fragments: [harnessTool("syncpack"), "lint", "frontend/package.json"],
   },
   { check: "osv", fragments: ["osv-scanner", "-r", "."] },
-  { check: "build", fragments: ["npm", "--prefix", "frontend", "run", "build"] },
+  {
+    check: "build",
+    fragments: ["npm", "--prefix", "frontend", "run", "build"],
+  },
   {
     check: "coverage",
-    fragments: [harnessTool("vitest"), "harness/vitest.config.js", "--coverage"],
+    fragments: [
+      harnessTool("vitest"),
+      "harness/vitest.config.js",
+      "--coverage",
+    ],
   },
   {
     check: "e2e",
-    fragments: [harnessTool("playwright"), "test", "harness/playwright.config.js"],
+    fragments: [
+      harnessTool("playwright"),
+      "test",
+      "harness/playwright.config.js",
+    ],
   },
   {
     check: "size",
@@ -447,7 +535,7 @@ const makeInstallRepo = (scripts: Record<string, string>): string => {
   writeFileSync(
     path.join(repo, "package.json"),
     `${JSON.stringify(
-      { name: "install-target", private: true, scripts },
+      { name: "setup-target", private: true, scripts },
       null,
       2,
     )}\n`,
@@ -457,12 +545,12 @@ const makeInstallRepo = (scripts: Record<string, string>): string => {
   return repo;
 };
 
-const runHarnessInstall = (repo: string): SpawnSyncReturns<string> => {
+const runHarnessSetup = (repo: string): SpawnSyncReturns<string> => {
   const prefix = path.join(repo, ".npm-prefix");
   mkdirSync(prefix, { recursive: true });
   return spawnSync(
     process.execPath,
-    [path.join(REPO, "harness/harness.mjs"), "install"],
+    [path.join(REPO, "harness/harness.mjs"), "setup"],
     {
       cwd: repo,
       encoding: "utf8",
@@ -507,6 +595,20 @@ console.log(JSON.stringify(module.default));`,
     REPO,
   );
   return JSON.parse(output) as VitestConfig;
+};
+
+const resolvedEslintConfig = (): EslintResolvedConfig => {
+  const output = runCommand(
+    [
+      harnessTool("eslint"),
+      "--print-config",
+      "sample.ts",
+      "--config",
+      "harness/eslint.config.js",
+    ],
+    REPO,
+  );
+  return JSON.parse(output) as EslintResolvedConfig;
 };
 
 afterEach(() => {
@@ -582,9 +684,7 @@ describe("runChecks", () => {
         "process.stdout.write('visible stdout'); process.stderr.write('visible stderr'); process.exit(9)",
       ],
     });
-    expect(failures).toEqual([
-      "noisy failed:\nvisible stdoutvisible stderr",
-    ]);
+    expect(failures).toEqual(["noisy failed:\nvisible stdoutvisible stderr"]);
   });
 
   test("continues after a failed check and preserves failure order", () => {
@@ -727,7 +827,9 @@ describe("runChecks", () => {
     expect(failures.join("\n")).toContain("packages/admin/package.json");
     expect(failures.join("\n")).toContain("packages/widget/package.json");
     expect(failures.join("\n")).not.toContain("frontend/package.json");
-    expect(failures.join("\n")).not.toContain("node_modules/hidden/package.json");
+    expect(failures.join("\n")).not.toContain(
+      "node_modules/hidden/package.json",
+    );
   });
 
   test("size check ignores malformed package manifests during discovery", () => {
@@ -882,10 +984,12 @@ describe("gate constants", () => {
   );
 
   test("full gate has no unclassified checks", () => {
-    const classified = new Set(REQUIRED_CHECK_POLICIES.map(({ check }) => check));
-    expect(Object.keys(FULL_CHECKS).filter((check) => !classified.has(check))).toEqual(
-      [],
+    const classified = new Set(
+      REQUIRED_CHECK_POLICIES.map(({ check }) => check),
     );
+    expect(
+      Object.keys(FULL_CHECKS).filter((check) => !classified.has(check)),
+    ).toEqual([]);
   });
 
   test("commit checks do not include slow gate-only tools", () => {
@@ -911,9 +1015,9 @@ describe("gate constants", () => {
       "harness/stylelint.config.js",
       "harness/vitest.config.js",
     ];
-    expect(configPaths.every((target) => existsSync(path.join(REPO, target)))).toBe(
-      true,
-    );
+    expect(
+      configPaths.every((target) => existsSync(path.join(REPO, target))),
+    ).toBe(true);
   });
 
   test("package-json lint is pinned to the repo root", () => {
@@ -948,9 +1052,10 @@ describe("gate constants", () => {
         `${dependency} has no ${check} check`,
       ).toBeDefined();
       if (commandFragment !== undefined) {
-        expect(commandText(checkCommand(FULL_CHECKS, check)), dependency).toContain(
-          commandFragment,
-        );
+        expect(
+          commandText(checkCommand(FULL_CHECKS, check)),
+          dependency,
+        ).toContain(commandFragment);
       }
     }
   });
@@ -1105,7 +1210,8 @@ describe("loop containment", () => {
         };
       }),
     ];
-    for (const { target, content } of generated) stageFile(repo, target, content);
+    for (const { target, content } of generated)
+      stageFile(repo, target, content);
     stageFile(repo, "frontend/src/report.ts", "export const keep = 1;\n");
     expect(runPreflight(repo, () => [])).toEqual([]);
     expect(stagedNames(repo)).toEqual(["frontend/src/report.ts"]);
@@ -1337,7 +1443,10 @@ describe("loop containment", () => {
     const repo = makeRepo();
     stageFile(repo, "frontend/src/old.ts", "export const oldValue = 1;\n");
     runCommand(["git", "commit", "-q", "-m", "add old source"], repo);
-    runCommand(["git", "mv", "frontend/src/old.ts", "frontend/src/new.ts"], repo);
+    runCommand(
+      ["git", "mv", "frontend/src/old.ts", "frontend/src/new.ts"],
+      repo,
+    );
     writeFileSync(
       path.join(repo, "frontend/src/new.ts"),
       `export const newValue = 1; // ${requiredForbiddenPattern("ts-ignore")}\n`,
@@ -1493,17 +1602,17 @@ describe("banned patterns and preferences under loop", () => {
   });
 });
 
-describe("harness install script merging", () => {
+describe("harness setup script merging", () => {
   test("adds missing root harness scripts without changing existing scripts", () => {
     const repo = makeInstallRepo({ build: "vite build" });
 
-    const result = runHarnessInstall(repo);
+    const result = runHarnessSetup(repo);
 
     expect(result.status, `${result.stdout}\n${result.stderr}`).toBe(0);
     const scripts = readPackageJsonInRepo(repo).scripts ?? {};
     expect(scripts.build).toBe("vite build");
     expect(scripts.gate).toBe("node harness/harness.mjs gate");
-    expect(scripts.install).toBe("node harness/harness.mjs install");
+    expect(scripts.setup).toBe("node harness/harness.mjs setup");
     expect(scripts.lint).toBe("npm --prefix harness run lint");
     expect(scripts.run).toBe("node harness/harness.mjs run");
     expect(scripts.status).toBe("node harness/harness.mjs status");
@@ -1518,7 +1627,7 @@ describe("harness install script merging", () => {
       test: "node custom-test.js",
     });
 
-    const result = runHarnessInstall(repo);
+    const result = runHarnessSetup(repo);
 
     expect(result.status, `${result.stdout}\n${result.stderr}`).toBe(0);
     const output = `${result.stdout}\n${result.stderr}`;
@@ -1547,12 +1656,13 @@ describe("harness install script merging", () => {
       "test:file": "node project-test-file.js",
     });
 
-    const result = runHarnessInstall(repo);
+    const result = runHarnessSetup(repo);
 
     expect(result.status, `${result.stdout}\n${result.stderr}`).toBe(0);
     const scripts = readPackageJsonInRepo(repo).scripts ?? {};
     expect(scripts.gate).toBe("node project-gate.js");
     expect(scripts.install).toBe("node project-install.js");
+    expect(scripts.setup).toBe("node harness/harness.mjs setup");
     expect(scripts.lint).toBe("eslint src");
     expect(scripts.run).toBe("node project-run.js");
     expect(scripts.status).toBe("node project-status.js");
@@ -1563,7 +1673,7 @@ describe("harness install script merging", () => {
       "npm --prefix harness run test:coverage",
     );
     expect(Object.hasOwn(scripts, "harness:gate")).toBe(false);
-    expect(Object.hasOwn(scripts, "harness:install")).toBe(false);
+    expect(Object.hasOwn(scripts, "harness:setup")).toBe(false);
     expect(Object.hasOwn(scripts, "harness:run")).toBe(false);
     expect(Object.hasOwn(scripts, "harness:status")).toBe(false);
     expect(Object.hasOwn(scripts, "harness:test:file")).toBe(false);
@@ -1626,7 +1736,9 @@ describe("frontend gate shape", () => {
     expect(commandText(checkCommand(selected ?? {}, "e2e"))).toContain(
       "harness/playwright.config.js",
     );
-    expect(checkCommand(selected ?? {}, "size")).toEqual([harnessTool("size-limit")]);
+    expect(checkCommand(selected ?? {}, "size")).toEqual([
+      harnessTool("size-limit"),
+    ]);
     expect(commandText(checkCommand(selected ?? {}, "lighthouse"))).toContain(
       "harness/lighthouserc.cjs",
     );
@@ -1659,11 +1771,7 @@ describe("frontend gate shape", () => {
     {
       check: "eslint",
       tool: "eslint",
-      required: [
-        ".",
-        "--config harness/eslint.config.js",
-        "--max-warnings=0",
-      ],
+      required: [".", "--config harness/eslint.config.js", "--max-warnings=0"],
     },
     {
       check: "style",
@@ -1745,23 +1853,47 @@ describe("frontend gate shape", () => {
       tool: "cspell",
       required: [".", "--config harness/cspell.json"],
     },
-  ])("$check command is scoped to $tool policy inputs", ({ check, required }) => {
-    const text = commandText(checkCommand(FULL_CHECKS, check));
-    for (const fragment of required) {
-      expect(text, `${check} missing ${fragment}`).toContain(fragment);
-    }
-  });
+  ])(
+    "$check command is scoped to $tool policy inputs",
+    ({ check, required }) => {
+      const text = commandText(checkCommand(FULL_CHECKS, check));
+      for (const fragment of required) {
+        expect(text, `${check} missing ${fragment}`).toContain(fragment);
+      }
+    },
+  );
 
-  test("knip checks frontend and harness from the single harness config", () => {
+  test("knip uses generic entry and project globs", () => {
     const config = JSON.parse(readRepo("harness/knip.json")) as {
-      workspaces?: Record<string, unknown>;
+      entry?: string[];
       ignore?: string[];
+      project?: string[];
+      workspaces?: unknown;
     };
-    expect(Object.keys(config.workspaces ?? {}).toSorted()).toEqual([
-      "frontend",
-      "harness",
-    ]);
+    expect(config.workspaces).toBeUndefined();
     expect(config.ignore ?? []).not.toContain("harness/**");
+    expect(config.entry).toEqual([
+      "**/main.ts",
+      "**/index.ts",
+      "**/cli.ts",
+      "**/*.test.ts",
+      "**/*.spec.ts",
+      "**/*.config.js",
+      "**/*.config.cjs",
+      "**/*.config.mjs",
+      "**/*.config.ts",
+      "**/*.mjs",
+      "**/*.cjs",
+    ]);
+    expect(config.entry).not.toContain("*.ts");
+    expect(config.project).toEqual([
+      "**/*.ts",
+      "**/*.mjs",
+      "**/*.js",
+      "**/*.cjs",
+      "**/*.json",
+    ]);
+    expect(existsSync(path.join(HARNESS, "tmprepo.ts"))).toBe(false);
   });
 
   test("root script menu is the stable command surface", () => {
@@ -1770,10 +1902,12 @@ describe("frontend gate shape", () => {
       "build",
       "dev",
       "gate",
-      "install",
+      "harness:lint",
+      "harness:test",
       "lint",
       "preview",
       "run",
+      "setup",
       "status",
       "test",
       "test:file",
@@ -1832,6 +1966,22 @@ describe("frontend gate shape", () => {
     );
   });
 
+  test("harness tsconfig keeps the required harness compiler flags", () => {
+    const harnessConfig = parseJsonObject("harness/tsconfig.json") as {
+      compilerOptions?: Record<string, unknown>;
+      include?: unknown;
+    };
+
+    expect(harnessConfig.include).toEqual(["*.ts"]);
+    expect(harnessConfig.compilerOptions).toEqual(
+      expect.objectContaining({
+        strict: true,
+        noImplicitReturns: true,
+        noUncheckedSideEffectImports: true,
+      }),
+    );
+  });
+
   test("frontend keeps app scripts and delegates checks to harness", () => {
     const scripts = readPackageScripts("frontend/package.json");
     expect(Object.keys(scripts).toSorted()).toEqual([
@@ -1872,12 +2022,15 @@ describe("frontend gate shape", () => {
       const manifest = packageRoot(`${root}/package.json`);
       const lock = lockRootPackage(`${root}/package-lock.json`);
       expect(lock.dependencies ?? {}).toEqual(manifest.dependencies ?? {});
-      expect(lock.devDependencies ?? {}).toEqual(manifest.devDependencies ?? {});
+      expect(lock.devDependencies ?? {}).toEqual(
+        manifest.devDependencies ?? {},
+      );
     },
   );
 
   test("vitest coverage thresholds are all 100 in exported config", async () => {
     const config = await importedVitestConfig();
+    expect(config.test?.coverage?.include).toEqual(["**/*.ts"]);
     expect(config.test?.coverage?.thresholds).toEqual({
       branches: 100,
       functions: 100,
@@ -1886,18 +2039,51 @@ describe("frontend gate shape", () => {
     });
   });
 
-  test("eslint exported config enforces type-safety and security rules", async () => {
+  test("eslint resolved config applies strict source rules to harness gate", () => {
+    const config = resolvedEslintConfig();
+    const rules = config.rules ?? {};
+    const expectRuleError = (name: string): void => {
+      const rule = rules[name];
+      expect(Array.isArray(rule) ? rule[0] : rule).toBe(2);
+    };
+
+    for (const rule of [
+      "max-lines",
+      "max-lines-per-function",
+      "max-depth",
+      "max-params",
+      "complexity",
+      "max-statements",
+      "sonarjs/cognitive-complexity",
+      "@typescript-eslint/no-explicit-any",
+      "@typescript-eslint/no-unsafe-assignment",
+      "@typescript-eslint/strict-boolean-expressions",
+      "no-eval",
+      "security/detect-eval-with-expression",
+      "security/detect-non-literal-fs-filename",
+    ]) {
+      expectRuleError(rule);
+    }
+    expect(config.linterOptions?.reportUnusedDisableDirectives).toBe(2);
+  });
+
+  test("eslint config limits directory-specific weakening to harness tooling", async () => {
     const config = await importedEslintConfig();
-    const sourceBlock = config.find((block) =>
+    const directorySpecificBlocks = config.filter((block) =>
       Array.isArray(block.files)
-        ? block.files.includes("**/*.ts")
+        ? block.files.some((file) =>
+            /(?:^|\/)(?:frontend|harness)\//u.test(String(file)),
+          )
         : false,
     );
-    const rules = sourceBlock?.rules ?? {};
-    expect(rules["@typescript-eslint/no-explicit-any"]).toBe("error");
-    expect(rules["@typescript-eslint/no-unsafe-assignment"]).toBe("error");
-    expect(rules["no-eval"]).toBe("error");
-    expect(rules["security/detect-eval-with-expression"]).toBe("error");
+    expect(directorySpecificBlocks).toHaveLength(1);
+    expect(directorySpecificBlocks[0]?.files).toEqual(["harness/**/*.ts"]);
+    expect(directorySpecificBlocks[0]?.rules).toEqual(
+      expect.objectContaining({
+        "sonarjs/no-os-command-from-path": "off",
+        "security/detect-non-literal-fs-filename": "off",
+      }),
+    );
   });
 
   test("eslint exported config rejects unused disable comments", async () => {
@@ -1908,21 +2094,15 @@ describe("frontend gate shape", () => {
     expect(hasPolicy).toBe(true);
   });
 
-  test("eslint exported config blocks source imports from tests and Node", async () => {
+  test("eslint exported config blocks production imports from tests", async () => {
     const config = await importedEslintConfig();
     const sourceBlock = config.find((block) =>
-      Array.isArray(block.files)
-        ? block.files.includes("frontend/src/**/*.ts")
-        : false,
+      Array.isArray(block.rules?.["no-restricted-imports"]),
     );
     expect(sourceBlock?.rules?.["no-restricted-imports"]).toEqual([
       "error",
       expect.objectContaining({
         patterns: expect.arrayContaining([
-          expect.objectContaining({ group: ["node:*"] }),
-          expect.objectContaining({
-            group: ["../harness/*", "harness/*", "../tests/*", "tests/*"],
-          }),
           expect.objectContaining({
             group: ["*.test", "*.test.*", "*.spec", "*.spec.*"],
           }),
@@ -1950,16 +2130,19 @@ describe("frontend gate shape", () => {
     expect(githubCi).not.toContain("npm run gate");
   });
 
-  test("GitHub CI installs both dependency roots before the gate", () => {
+  test("GitHub CI installs the root workspace before the gate", () => {
     const githubCi = readRepo(".github/workflows/ci.yml");
-    expect(githubCi).toContain("--prefix frontend");
-    expect(githubCi).toContain("--prefix harness");
+    expect(githubCi).toContain("cache-dependency-path: package-lock.json");
+    expect(githubCi).toContain("run: npm ci");
+    expect(githubCi).not.toContain("**/package-lock.json");
+    expect(githubCi).not.toContain("npm ci --prefix");
   });
 
   test("GitHub CI runs browser setup and gate through the harness", () => {
     const githubCi = readRepo(".github/workflows/ci.yml");
-    expect(githubCi).toContain("run: npm --prefix harness run setup:e2e -- chromium");
+    expect(githubCi).toContain(
+      "run: npm --prefix harness run setup:e2e -- chromium",
+    );
     expect(githubCi).toContain("run: node harness/harness.mjs gate");
   });
-
 });

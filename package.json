@@ -3,11 +3,15 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "workspaces": [
+    "frontend",
+    "harness"
+  ],
   "bin": {
     "harness": "./harness/harness.mjs"
   },
   "engines": {
-    "node": ">=22",
+    "node": "^22.16.0 || >=24.8.0",
     "npm": ">=10"
   },
   "scripts": {
@@ -17,9 +21,11 @@
     "test:file": "npm --prefix harness run test:file --",
     "test": "npm --prefix harness run test:coverage",
     "lint": "npm --prefix harness run lint",
-    "install": "node harness/harness.mjs install",
+    "setup": "node harness/harness.mjs setup",
     "gate": "node harness/harness.mjs gate",
     "run": "node harness/harness.mjs run",
-    "status": "node harness/harness.mjs status"
+    "status": "node harness/harness.mjs status",
+    "harness:lint": "npm --prefix harness run lint",
+    "harness:test": "npm --prefix harness run test:coverage"
   }
 }

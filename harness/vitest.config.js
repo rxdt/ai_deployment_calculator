@@ -9,15 +9,11 @@ export default defineConfig({
   root: repoRoot,
   test: {
     environment: "jsdom",
-    include: ["frontend/src/**/*.test.ts", "harness/*.test.ts"],
+    include: ["**/*.test.ts"],
     coverage: {
       provider: "v8",
       reporter: ["text"],
-      include: [
-        "frontend/src/**/*.ts",
-        "harness/gate.ts",
-        "harness/preferences.ts",
-      ],
+      include: ["**/*.ts"],
       thresholds: {
         branches: 100,
         functions: 100,

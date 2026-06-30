@@ -23,6 +23,11 @@
     "zod": "latest"
   },
   "devDependencies": {
+    "@axe-core/playwright": "latest",
+    "@playwright/test": "latest",
+    "fast-check": "latest",
+    "jsdom": "latest",
+    "vitest": "latest",
     "vite": "latest"
   },
   "size-limit": [

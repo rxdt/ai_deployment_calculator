@@ -1,36 +1,19 @@
 {
   "$schema": "https://unpkg.com/knip@5/schema.json",
-  "ignoreDependencies": [
-    "@secretlint/secretlint-rule-preset-recommend"
-  ],
+  "ignoreDependencies": ["@secretlint/secretlint-rule-preset-recommend"],
   "ignoreBinaries": ["semgrep"],
-  "workspaces": {
-    "frontend": {
-      "entry": [
-        "src/main.ts",
-        "src/**/*.test.ts",
-        "tests/**/*.ts"
-      ],
-      "project": [
-        "src/**/*.ts",
-        "tests/**/*.ts",
-        "schemas/**/*.json"
-      ]
-    },
-    "harness": {
-      "entry": [
-        "harness.mjs",
-        "*.ts",
-        "*.test.ts",
-        "*.config.ts"
-      ],
-      "project": [
-        "*.ts",
-        "*.mjs",
-        "*.js",
-        "*.cjs",
-        "*.json"
-      ]
-    }
-  }
+  "entry": [
+    "**/main.ts",
+    "**/index.ts",
+    "**/cli.ts",
+    "**/*.test.ts",
+    "**/*.spec.ts",
+    "**/*.config.js",
+    "**/*.config.cjs",
+    "**/*.config.mjs",
+    "**/*.config.ts",
+    "**/*.mjs",
+    "**/*.cjs"
+  ],
+  "project": ["**/*.ts", "**/*.mjs", "**/*.js", "**/*.cjs", "**/*.json"]
 }

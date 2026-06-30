@@ -32,8 +32,8 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "latest",
-    "@eslint/json": "latest",
     "@eslint/js": "latest",
+    "@eslint/json": "latest",
     "@google/design.md": "latest",
     "@lhci/cli": "latest",
     "@playwright/test": "latest",
@@ -71,6 +71,7 @@
     "markuplint": "latest",
     "npm-package-json-lint": "latest",
     "pnpm": "latest",
+    "prettier": "^3.9.4",
     "secretlint": "latest",
     "size-limit": "latest",
     "stylelint": "latest",

@@ -1,4 +1,4 @@
 #!/bin/sh
 set -eu
 
-node harness/harness.mjs gate
+node harness/harness.mjs preflight

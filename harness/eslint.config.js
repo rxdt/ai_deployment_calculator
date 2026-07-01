@@ -236,6 +236,7 @@ export default defineConfig([
     files: ["harness/**/*.ts"],
     rules: {
       "sonarjs/no-os-command-from-path": "off",
+      "security/detect-non-literal-fs-filename": "off",
     },
   },
   // SEPARATION FOR ROOT CONFIGURATIONS

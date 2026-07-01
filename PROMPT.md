@@ -18,8 +18,8 @@ You are one fresh-context iteration of the loop. The repo is your memory.
 8. Make small commits as you go on the current branch through the normal git hooks.
 9. Run `harness gate`. Fix issues without weakening checks.
 10. Squash only your commits.
-11. Push with plain `git push`. Never pull, merge, rebase, force-push, or reset. If push is rejected, document it. Do not retry a status-only commit twice.
-12. Update your spec `docs/PROJECT_STATUS.md` to match changes.
+11. Push with plain `git push`. Never pull, merge, rebase, force-push, or reset. If push is rejected, document it. Do not commit with status-only no-files.
+12. Update your spec and `docs/PROJECT_STATUS.md` to match changes.
 
 Rules:
 

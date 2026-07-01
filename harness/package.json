@@ -18,6 +18,7 @@
     "lint": "npm run eslint && npm run style && npm run html",
     "eslint": "cd .. && harness/node_modules/.bin/eslint . --config harness/eslint.config.js --max-warnings=0",
     "preflight": "node harness.mjs preflight",
+    "shell": "command -v direnv >/dev/null 2>&1 || brew install direnv; grep -q 'direnv hook' ~/.zshrc || printf '\\neval \"$(direnv hook zsh)\"\\n' >> ~/.zshrc; direnv allow ..",
     "style": "cd .. && harness/node_modules/.bin/stylelint \"**/*.css\" --config harness/stylelint.config.js --max-warnings=0 --allow-empty-input",
     "test": "cd .. && harness/node_modules/.bin/vitest run --config harness/vitest.config.js",
     "test:file": "cd .. && harness/node_modules/.bin/vitest run --config harness/vitest.config.js --coverage=false",

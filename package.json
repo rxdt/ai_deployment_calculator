@@ -19,13 +19,12 @@
     "dev": "npm --prefix frontend run dev",
     "preview": "npm --prefix frontend run preview",
     "test:file": "npm --prefix harness run test:file --",
-    "test": "npm --prefix harness run test:coverage",
+    "test": "harness test",
     "lint": "npm --prefix harness run lint",
-    "setup": "node harness/harness.mjs setup",
+    "setup": "node harness/harness.mjs setup && npm --prefix harness run shell",
     "gate": "node harness/harness.mjs gate",
+    "preflight": "node harness/harness.mjs gate",
     "run": "node harness/harness.mjs run",
-    "status": "node harness/harness.mjs status",
-    "harness:lint": "npm --prefix harness run lint",
-    "harness:test": "npm --prefix harness run test:coverage"
+    "status": "node harness/harness.mjs status"
   }
 }

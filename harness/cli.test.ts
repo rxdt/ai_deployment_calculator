@@ -202,6 +202,21 @@ describe("run helpers", () => {
     expect(packageJson.devDependencies?.tsx).toBe("latest");
     expect(existsSync(path.join(packageRoot, binPath ?? ""))).toBe(true);
   });
+
+  test("the root workspace exposes the harness executable", () => {
+    const packagePath = path.join(
+      fileURLToPath(new URL("..", import.meta.url)),
+      "package.json",
+    );
+    const packageRoot = path.dirname(packagePath);
+    const packageJson = JSON.parse(readFileSync(packagePath, "utf8")) as {
+      bin?: Record<string, string>;
+    };
+    const binPath = packageJson.bin?.harness;
+
+    expect(binPath).toBe("./harness/harness.mjs");
+    expect(existsSync(path.join(packageRoot, binPath ?? ""))).toBe(true);
+  });
 });
 
 describe("runLoop", () => {

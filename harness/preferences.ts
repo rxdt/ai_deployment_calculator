@@ -16,6 +16,21 @@ const TS_DOM_SELECTOR_METHOD_NAMES = new Set([
   "querySelector",
   "querySelectorAll",
 ]);
+const TS_LAYOUT_MEASUREMENT_METHOD_NAMES = new Set(["getBoundingClientRect"]);
+const TS_ELEMENT_LAYOUT_READ_PROPERTY_NAMES = new Set([
+  "offsetWidth",
+  "offsetHeight",
+  "offsetTop",
+  "offsetLeft",
+  "clientWidth",
+  "clientHeight",
+  "scrollWidth",
+  "scrollHeight",
+]);
+const TS_WINDOW_LAYOUT_READ_PROPERTY_NAMES = new Set([
+  "innerWidth",
+  "innerHeight",
+]);
 const ALLOWED_TS_DOM_DATA_SELECTORS = new Set([
   '[data-action="reset"]',
   "[data-active]",
@@ -49,6 +64,43 @@ The 1-based source line a node starts on.
 */
 function lineOf(source: ts.SourceFile, node: ts.Node): number {
   return source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1;
+}
+
+/**
+Static member name from dot access or quoted bracket access.
+@param node - The AST node to inspect.
+@returns The member name, or undefined when the access is dynamic or not a member access.
+*/
+function staticTsMemberName(node: ts.Node): string | undefined {
+  if (ts.isPropertyAccessExpression(node) || ts.isPropertyAccessChain(node)) {
+    return node.name.text;
+  }
+  if (
+    (ts.isElementAccessExpression(node) || ts.isElementAccessChain(node)) &&
+    ts.isStringLiteralLike(node.argumentExpression)
+  ) {
+    return node.argumentExpression.text;
+  }
+  return undefined;
+}
+
+/**
+Whether a member access starts from the global window object.
+@param node - The AST node to inspect.
+@returns True when the node is window.name or window["name"].
+*/
+function isTsMemberBaseWindowIdentifier(node: ts.Node): boolean {
+  if (
+    ts.isPropertyAccessExpression(node) ||
+    ts.isPropertyAccessChain(node) ||
+    ts.isElementAccessExpression(node) ||
+    ts.isElementAccessChain(node)
+  ) {
+    return (
+      ts.isIdentifier(node.expression) && node.expression.text === "window"
+    );
+  }
+  return false;
 }
 
 /**
@@ -146,6 +198,46 @@ function tsDomSelectorPreferenceProblem(
 }
 
 /**
+Layout measurement preference problem introduced by a node, if any.
+@param path - The file path, for the message.
+@param source - The parsed source file.
+@param node - The AST node to inspect.
+@returns A problem message, or undefined when no direct layout measurement is found.
+*/
+function tsLayoutMeasurementPreferenceProblem(
+  path: string,
+  source: ts.SourceFile,
+  node: ts.Node,
+): string | undefined {
+  const location = `${path}:${String(lineOf(source, node))}`;
+
+  if (ts.isCallExpression(node)) {
+    const method = staticTsMemberName(node.expression);
+    if (
+      method !== undefined &&
+      TS_LAYOUT_MEASUREMENT_METHOD_NAMES.has(method)
+    ) {
+      return `${location}: direct layout measurement '${method}'; use CSS or a human-approved layout utility`;
+    }
+  }
+
+  const property = staticTsMemberName(node);
+  if (property === undefined) {
+    return undefined;
+  }
+  if (TS_ELEMENT_LAYOUT_READ_PROPERTY_NAMES.has(property)) {
+    return `${location}: direct layout read '${property}'; use CSS or a human-approved layout utility`;
+  }
+  if (
+    TS_WINDOW_LAYOUT_READ_PROPERTY_NAMES.has(property) &&
+    isTsMemberBaseWindowIdentifier(node)
+  ) {
+    return `${location}: direct viewport read 'window.${property}'; use CSS or a human-approved layout utility`;
+  }
+  return undefined;
+}
+
+/**
 Run every structural check on one TypeScript file in a single AST traversal.
 @param path - The file path, for the message.
 @param code - The file's source text.
@@ -164,6 +256,14 @@ export function preferencesViolations(path: string, code: string): string[] {
     const problem = tsDomSelectorPreferenceProblem(path, source, node);
     if (problem !== undefined) {
       problems.push(problem);
+    }
+    const layoutProblem = tsLayoutMeasurementPreferenceProblem(
+      path,
+      source,
+      node,
+    );
+    if (layoutProblem !== undefined) {
+      problems.push(layoutProblem);
     }
   });
   return problems;

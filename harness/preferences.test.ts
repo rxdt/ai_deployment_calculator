@@ -52,6 +52,66 @@ describe("preferencesViolations", () => {
     );
   });
 
+  test("flags direct layout measurement method calls", () => {
+    const source = [
+      "box.getBoundingClientRect();",
+      "box?.getBoundingClientRect();",
+      'box["getBoundingClientRect"]();',
+    ].join("\n");
+
+    expect(preferencesViolations("m.ts", source)).toEqual([
+      "m.ts:1: direct layout measurement 'getBoundingClientRect'; use CSS or a human-approved layout utility",
+      "m.ts:2: direct layout measurement 'getBoundingClientRect'; use CSS or a human-approved layout utility",
+      "m.ts:3: direct layout measurement 'getBoundingClientRect'; use CSS or a human-approved layout utility",
+    ]);
+  });
+
+  test("flags direct element layout reads", () => {
+    const source = [
+      "void box.offsetWidth;",
+      "void box.offsetHeight;",
+      "void box.offsetTop;",
+      "void box.offsetLeft;",
+      "void box.clientWidth;",
+      "void box.clientHeight;",
+      "void box.scrollWidth;",
+      'void box["scrollHeight"];',
+    ].join("\n");
+
+    expect(preferencesViolations("m.ts", source)).toEqual([
+      "m.ts:1: direct layout read 'offsetWidth'; use CSS or a human-approved layout utility",
+      "m.ts:2: direct layout read 'offsetHeight'; use CSS or a human-approved layout utility",
+      "m.ts:3: direct layout read 'offsetTop'; use CSS or a human-approved layout utility",
+      "m.ts:4: direct layout read 'offsetLeft'; use CSS or a human-approved layout utility",
+      "m.ts:5: direct layout read 'clientWidth'; use CSS or a human-approved layout utility",
+      "m.ts:6: direct layout read 'clientHeight'; use CSS or a human-approved layout utility",
+      "m.ts:7: direct layout read 'scrollWidth'; use CSS or a human-approved layout utility",
+      "m.ts:8: direct layout read 'scrollHeight'; use CSS or a human-approved layout utility",
+    ]);
+  });
+
+  test("flags direct viewport reads from window", () => {
+    const source = [
+      "void window.innerWidth;",
+      'void window["innerHeight"];',
+    ].join("\n");
+
+    expect(preferencesViolations("m.ts", source)).toEqual([
+      "m.ts:1: direct viewport read 'window.innerWidth'; use CSS or a human-approved layout utility",
+      "m.ts:2: direct viewport read 'window.innerHeight'; use CSS or a human-approved layout utility",
+    ]);
+  });
+
+  test("allows non-window viewport names and dynamic property access", () => {
+    const source = [
+      'const property = "offsetWidth";',
+      "void box[property];",
+      "void panel.innerWidth;",
+    ].join("\n");
+
+    expect(preferencesViolations("m.ts", source)).toEqual([]);
+  });
+
   test("a compliant module produces no violations", () => {
     const source =
       'export function output(root: ParentNode): Element | null {\n  return root.querySelector("[data-out]");\n}\n';

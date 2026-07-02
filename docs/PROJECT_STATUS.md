@@ -2,8 +2,7 @@
 
 ## Current State
 
-- Branch is `main`, 1 commit behind `origin/main`. Working tree has uncommitted
-  changes; do not auto-commit, push, pull, merge, or rebase without instruction.
+- Work on the current branch. do not auto-commit, push, pull, merge, or rebase without instruction.
 - The shipped app is a static Vite + TypeScript calculator. `CalculatorApp`
   normalizes form state, calls local `buildReport(state)`, and renders
   synchronously. No backend, no `/api/report`.

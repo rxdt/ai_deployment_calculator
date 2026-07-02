@@ -12,7 +12,6 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 
 import { afterEach, describe, expect, test, vi } from "vitest";
 
@@ -76,6 +75,21 @@ function makeRepo(): string {
   runCommand(["git", "commit", "-q", "-m", "seed"], repo);
   return repo;
 }
+
+// Invoke the harness CLI by path (no global `harness` symlink; template must be self-contained).
+const harnessCli = (
+  args: string[],
+  options: { cwd: string; env?: NodeJS.ProcessEnv },
+): ReturnType<typeof spawnSync> =>
+  spawnSync(
+    process.execPath,
+    [path.join(repoRoot(process.cwd()), "harness", "harness.mjs"), ...args],
+    {
+      cwd: options.cwd,
+      encoding: "utf8",
+      ...(options.env === undefined ? {} : { env: options.env }),
+    },
+  );
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -201,9 +215,7 @@ describe("run helpers", () => {
   });
 
   test("the harness package exposes a harness executable", () => {
-    const packagePath = fileURLToPath(
-      new URL("package.json", import.meta.url),
-    );
+    const packagePath = path.join(import.meta.dirname, "package.json");
     const packageRoot = path.dirname(packagePath);
     const packageJson = JSON.parse(readFileSync(packagePath, "utf8")) as {
       bin?: Record<string, string>;
@@ -217,10 +229,7 @@ describe("run helpers", () => {
   });
 
   test("the root workspace exposes the harness executable", () => {
-    const packagePath = path.join(
-      fileURLToPath(new URL("..", import.meta.url)),
-      "package.json",
-    );
+    const packagePath = path.join(import.meta.dirname, "..", "package.json");
     const packageRoot = path.dirname(packagePath);
     const packageJson = JSON.parse(readFileSync(packagePath, "utf8")) as {
       bin?: Record<string, string>;
@@ -309,19 +318,13 @@ describe("runLoop", () => {
 
 describe("harness command", () => {
   test("preflight", () => {
-    const result = spawnSync("harness", ["preflight"], {
-      cwd: makeRepo(),
-      encoding: "utf8",
-    });
+    const result = harnessCli(["preflight"], { cwd: makeRepo() });
 
     expect(result.status).toBe(0);
   });
 
   test("loop", () => {
-    const result = spawnSync("harness", ["loop", "agy", "1", "1"], {
-      cwd: makeRepo(),
-      encoding: "utf8",
-    });
+    const result = harnessCli(["loop", "agy", "1", "1"], { cwd: makeRepo() });
 
     expect(result.status).toBe(0);
   });
@@ -341,9 +344,8 @@ describe("harness command", () => {
       { mode: 0o755 },
     );
 
-    const result = spawnSync("harness", ["loop", "claude", "1", "1"], {
+    const result = harnessCli(["loop", "claude", "1", "1"], {
       cwd: repo,
-      encoding: "utf8",
       env: {
         ...process.env,
         PATH: `${bin}${path.delimiter}${process.env.PATH ?? ""}`,
@@ -366,20 +368,14 @@ describe("harness command", () => {
   });
 
   test("status", () => {
-    const result = spawnSync("harness", ["status"], {
-      cwd: makeRepo(),
-      encoding: "utf8",
-    });
+    const result = harnessCli(["status"], { cwd: makeRepo() });
 
     expect(result.status).toBe(0);
   });
 
   test("setup", () => {
     // Run the real setup so it reaches `npm install` in the actual harness package.
-    const result = spawnSync("harness", ["setup"], {
-      cwd: repoRoot(process.cwd()),
-      encoding: "utf8",
-    });
+    const result = harnessCli(["setup"], { cwd: repoRoot(process.cwd()) });
 
     expect(result.status).toBe(0);
   });
@@ -410,11 +406,8 @@ describe("harness command", () => {
 
   test("setup twice does not error on the second run", () => {
     const repo = repoRoot(process.cwd());
-    spawnSync("harness", ["setup"], { cwd: repo, encoding: "utf8" });
-    const result = spawnSync("harness", ["setup"], {
-      cwd: repo,
-      encoding: "utf8",
-    });
+    harnessCli(["setup"], { cwd: repo });
+    const result = harnessCli(["setup"], { cwd: repo });
 
     expect(result.status).toBe(0);
   });

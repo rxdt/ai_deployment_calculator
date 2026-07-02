@@ -615,7 +615,10 @@ function dropBannedPatternFiles(repo: string): void {
 * @param repo
 * @param files
 */
-function preferenceProblems(repo: string, files: readonly string[]): string[] {
+export function preferenceProblems(
+  repo: string,
+  files: readonly string[],
+): string[] {
   return files
     .toSorted((left, right) => left.localeCompare(right))
     .flatMap((file) => {

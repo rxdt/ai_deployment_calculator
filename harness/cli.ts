@@ -42,7 +42,8 @@ export const AGENTS: Record<string, string[]> = {
     "danger-full-access",
     "-",
   ],
-  agy: ["agy", "--log-file", "agy.log", "--print"],
+  // -p reads the prompt from stdin (ralph pipes it); skip-permissions for non-interactive runs
+  agy: ["agy", "--log-file", "agy.log", "-p", "--dangerously-skip-permissions"],
   copilot: [
     "sh",
     "-c",
@@ -62,7 +63,7 @@ const ROOT_HARNESS_SCRIPTS: Record<string, string> = {
 };
 
 // Candidate user config filenames per check; harness-owned configs are already defaults.
-const CONFIG_CANDIDATES: Record<string, readonly string[]> = {
+export const CONFIG_CANDIDATES: Record<string, readonly string[]> = {
   eslint: [
     "eslint.config.js",
     "eslint.config.mjs",
@@ -105,11 +106,7 @@ const IGNORED_INSTALL_DIRECTORIES = new Set([
   "test-results",
 ]);
 
-// jq path, resolved once for live JSONL coloring (undefined if not installed).
-const JQ = (process.env.PATH ?? "")
-  .split(path.delimiter)
-  .map((directory) => path.join(directory, "jq"))
-  .find((candidate) => existsSync(candidate));
+const USAGE = "usage: harness <preflight|gate|loop|status|setup>";
 
 // Repo root from any directory inside the checkout.
 /**
@@ -150,30 +147,90 @@ function discoverPackageDirectories(repo: string): string[] {
   return found.toSorted((left, right) => left.localeCompare(right));
 }
 
-// Compact valid JSONL for terminal output; preserve invalid lines exactly.
+// UTC calendar day for the run log directory (stable across time zones).
+/**
+
+* @param nowMs
+*/
+export function formatDate(nowMs: number): string {
+  return new Date(nowMs).toISOString().slice(0, 10);
+}
+
+// Next run sequence: one past the highest existing sequence (1 when there are none).
+/**
+
+* @param sequences
+*/
+export function nextSequence(sequences: readonly number[]): number {
+  return 1 + Math.max(0, ...sequences);
+}
+
+// Parse a positive-integer CLI count, falling back when omitted; undefined when invalid.
+/**
+
+* @param raw
+* @param fallback
+*/
+export function parseCount(
+  raw: string | undefined,
+  fallback: number,
+): number | undefined {
+  if (raw === undefined) {
+    return fallback;
+  }
+  const value = Number(raw);
+  return Number.isSafeInteger(value) && value >= 1 ? value : undefined;
+}
+
+// Compact one valid JSONL line for terminal output; preserve invalid lines exactly.
 /**
 
 * @param line
 */
-function renderLine(line: string): string {
-  if (JQ !== undefined) {
-    const rendered = spawnSync(JQ, ["-C", "-c", "."], {
-      input: line,
-      encoding: "utf8",
-    });
-    if (rendered.status === 0 && rendered.stdout.length > 0) {
-      return rendered.stdout;
-    }
-  }
+export function formatLiveLine(line: string): string {
+  const content = line.endsWith("\n") ? line.slice(0, -1) : line;
   try {
-    return `${JSON.stringify(JSON.parse(line))}\n`;
+    return `${JSON.stringify(JSON.parse(content))}\n`;
   } catch {
-    return `${line}\n`;
+    return `${content}\n`;
   }
 }
 
-// Run the worker, saving stdout to the log and optionally streaming it live. stderr
-// inherits the terminal; the worker reads its prompt from PROMPT.md inside ralph.sh.
+// Split a stream buffer into complete lines to emit plus the trailing partial line to keep.
+/**
+
+* @param buffer
+*/
+export function drainLines(buffer: string): { output: string; rest: string } {
+  const lines = buffer.split("\n");
+  const rest = lines.pop() ?? "";
+  const output = lines.map((line) => `${line}\n`).join("");
+  return { output, rest };
+}
+
+// Injected side effects for runLoop, so the pure sequencing logic stays testable.
+interface LoopDependencies {
+  now: () => number;
+  cwd: () => string;
+  ralphPath: () => string;
+  listSequences: (directory: string) => number[];
+  ensureDirectory: (directory: string) => unknown;
+  worker: (
+    command: string[],
+    cwd: string,
+    log: string,
+    isVerbose: boolean,
+  ) => Promise<number>;
+}
+
+interface CommandResult {
+  code: number;
+  lines: string[];
+}
+
+// Run the worker, teeing stdout+stderr to the log and (when verbose) live to our stdout.
+// The worker reads its prompt from PROMPT.md inside ralph.sh. Orchestration is fire-and-log:
+// a missing (ENOENT) or failing agent is reported but never fails the harness itself.
 /**
 
 * @param command
@@ -191,48 +248,72 @@ async function runWorker(
   const logStream = createWriteStream(log, { encoding: "utf8" });
   const child = spawn(executable, arguments_, {
     cwd,
-    stdio: ["ignore", "pipe", "inherit"],
+    stdio: ["ignore", "pipe", "pipe"],
   });
-  child.stdout.setEncoding("utf8");
   let buffer = "";
-  child.stdout.on("data", (chunk: string) => {
+  const consume = (chunk: string): void => {
     logStream.write(chunk);
     if (!isVerbose) {
       return;
     }
     buffer += chunk;
-    const lines = buffer.split("\n");
-    buffer = lines.pop() ?? "";
-    for (const line of lines) {
-      process.stdout.write(renderLine(line));
+    const { output, rest } = drainLines(buffer);
+    buffer = rest;
+    for (const line of output.split("\n").filter((entry) => entry.length > 0)) {
+      process.stdout.write(formatLiveLine(line));
     }
-  });
-  return new Promise<number>((resolve, reject) => {
-    child.on("error", reject);
+  };
+  child.stdout.setEncoding("utf8");
+  child.stderr.setEncoding("utf8");
+  child.stdout.on("data", consume);
+  child.stderr.on("data", consume);
+  return new Promise<number>((resolve) => {
+    // The agent binary may be uninstalled; report it, don't crash the loop.
+    child.on("error", (error) => {
+      process.stderr.write(`harness: agent did not run: ${error.message}\n`);
+      logStream.end(() => {
+        resolve(0);
+      });
+    });
     child.on("close", (code) => {
       if (isVerbose && buffer.length > 0) {
-        process.stdout.write(renderLine(buffer));
+        process.stdout.write(formatLiveLine(buffer));
       }
-      logStream.end(() => { resolve(code ?? 1); });
+      if (code !== null && code !== 0) {
+        process.stderr.write(`harness: agent exited ${String(code)}\n`);
+      }
+      logStream.end(() => {
+        resolve(0);
+      });
     });
   });
 }
 
-// preflight or gate: print one line per problem, then a verdict, and return the exit code.
+// Pure dispatcher for the synchronous gate commands: returns the exit code and output lines.
 /**
 
-* @param kind
+* @param command
+* @param deps
 */
-function runGateCommand(kind: "preflight" | "gate"): number {
-  const repo = repoRoot(process.cwd());
-  const problems = kind === "preflight" ? runPreflight(repo) : runGate(repo);
-  for (const problem of problems) {
-    process.stderr.write(`gate: ${problem}\n`);
+export function run(
+  command: string,
+  deps: {
+    preflight: (repo: string) => string[];
+    gate: (repo: string) => string[];
+    repoRoot: (from: string) => string;
+  },
+): CommandResult {
+  if (command !== "preflight" && command !== "gate") {
+    return { code: 2, lines: [USAGE] };
   }
-  const verdict =
-    problems.length > 0 ? "rejected by harness" : `ok: ${kind} passed`;
-  process.stderr.write(`${verdict}\n`);
-  return problems.length > 0 ? 1 : 0;
+  const repo = deps.repoRoot(process.cwd());
+  const problems =
+    command === "preflight" ? deps.preflight(repo) : deps.gate(repo);
+  const lines = problems.map((problem) => `gate: ${problem}`);
+  lines.push(
+    problems.length > 0 ? "rejected by harness" : `ok: ${command} passed`,
+  );
+  return { code: problems.length > 0 ? 1 : 0, lines };
 }
 
 // Count run logs under scratchpad/runs and point at the newest.
@@ -242,15 +323,14 @@ function runGateCommand(kind: "preflight" | "gate"): number {
 function runStatus(): number {
   const runs = path.join(repoRoot(process.cwd()), "scratchpad", "runs");
   const logs = existsSync(runs)
-    ? readdirSync(runs)
+    ? readdirSync(runs, { recursive: true })
+        .map((entry) => String(entry))
         .filter((name) => name.endsWith(".jsonl"))
         .toSorted((left, right) => left.localeCompare(right))
     : [];
   process.stdout.write(`${String(logs.length)} run log(s) in ${runs}\n`);
   if (logs.length > 0) {
-    process.stdout.write(
-      `newest: ${path.join(runs, logs.at(-1) ?? "")}\n`,
-    );
+    process.stdout.write(`newest: ${path.join(runs, logs.at(-1) ?? "")}\n`);
   }
   return 0;
 }
@@ -300,7 +380,9 @@ function runSetup(arguments_: string[]): number {
   }
 
   const harnessPackagePath = path.join(repo, "harness", "package.json");
-  const harnessPackage = JSON.parse(readFileSync(harnessPackagePath, "utf8")) as {
+  const harnessPackage = JSON.parse(
+    readFileSync(harnessPackagePath, "utf8"),
+  ) as {
     scripts?: Record<string, string>;
   };
   const harnessScripts = harnessPackage.scripts ?? {};
@@ -347,54 +429,72 @@ function runSetup(arguments_: string[]): number {
   return 0;
 }
 
-// Run one harnessed ralph loop: harness loop <agent> [iterations] [minutes] [verbose].
+// Sequence one harnessed ralph loop; side effects are injected so the logic stays testable.
 /**
 
 * @param arguments_
+* @param deps
 */
-export async function runLoop(arguments_: string[]): Promise<number> {
+export async function runLoop(
+  arguments_: string[],
+  deps: LoopDependencies,
+): Promise<CommandResult> {
   const agent = (arguments_[0] ?? "").toLowerCase();
   const agentCommand = AGENTS[agent];
   if (agentCommand === undefined) {
-    process.stderr.write(
-      `unknown agent '${agent}'; choose from ${Object.keys(AGENTS).join(", ")}\n`,
-    );
-    return 2;
+    return {
+      code: 2,
+      lines: [
+        `unknown agent '${agent}'; choose from ${Object.keys(AGENTS).join(", ")}`,
+      ],
+    };
   }
-  const iterations = arguments_[1] === undefined ? 2 : Number(arguments_[1]);
-  const minutes = arguments_[2] === undefined ? 20 : Number(arguments_[2]);
-  if (
-    !Number.isSafeInteger(iterations) ||
-    iterations < 1 ||
-    !Number.isSafeInteger(minutes) ||
-    minutes < 1
-  ) {
-    process.stderr.write("num_iterations and max_minutes must be >= 1\n");
-    return 2;
+  const iterations = parseCount(arguments_[1], 2);
+  const minutes = parseCount(arguments_[2], 20);
+  if (iterations === undefined || minutes === undefined) {
+    return { code: 2, lines: ["num_iterations and max_minutes must be >= 1"] };
   }
   const isVerbose = arguments_[3] !== "false";
-  const repo = repoRoot(process.cwd());
-  const runs = path.join(repo, "scratchpad", "runs");
-  mkdirSync(runs, { recursive: true });
-
-  // next sequence = 1 + the highest numeric prefix among existing NNNN-agent.jsonl logs
-  const sequences = readdirSync(runs)
-    .filter((name) => name.endsWith(".jsonl") && name.includes("-"))
-    .map((name) => Number(name.slice(0, name.indexOf("-"))))
-    .filter((value) => Number.isSafeInteger(value));
-  const sequence = 1 + Math.max(0, ...sequences);
-  const log = path.join(
-    runs,
-    `${String(sequence).padStart(4, "0")}-${agent}.jsonl`,
+  const cwd = deps.cwd();
+  const day = path.join(
+    cwd,
+    "scratchpad",
+    "runs",
+    agent,
+    formatDate(deps.now()),
   );
+  deps.ensureDirectory(day);
+  const sequence = nextSequence(deps.listSequences(day));
+  const log = path.join(day, `${String(sequence).padStart(4, "0")}.jsonl`);
+  const command = [
+    deps.ralphPath(),
+    String(iterations),
+    String(minutes),
+    ...agentCommand,
+  ];
+  const code = await deps.worker(command, cwd, log, isVerbose);
+  return { code, lines: [`harness: ${command.join(" ")} -> ${log}`] };
+}
 
-  const ralph = path.join(
-    import.meta.dirname,
-    "ralph.sh",
-  );
-  const command = [ralph, String(iterations), String(minutes), ...agentCommand];
-  process.stderr.write(`harness: ${command.join(" ")} -> ${log}\n`);
-  return runWorker(command, repo, log, isVerbose);
+// Production dependencies for runLoop: real clock, cwd, filesystem, and worker.
+/**
+
+*/
+function loopDependencies(): LoopDependencies {
+  return {
+    now: () => Date.now(),
+    cwd: () => repoRoot(process.cwd()),
+    ralphPath: () => path.join(import.meta.dirname, "ralph.sh"),
+    listSequences: (directory) =>
+      (existsSync(directory) ? readdirSync(directory) : [])
+        .filter((name) => name.endsWith(".jsonl"))
+        .map((name) => Number(name.slice(0, name.indexOf(".jsonl"))))
+        .filter((value) => Number.isSafeInteger(value)),
+    ensureDirectory: (directory) => {
+      mkdirSync(directory, { recursive: true });
+    },
+    worker: runWorker,
+  };
 }
 
 // Dispatch argv to a command and set the process exit code.
@@ -406,31 +506,39 @@ export async function main(argv: string[]): Promise<void> {
   const [command, ...rest] = argv;
   let code: number;
   switch (command) {
-  case "preflight": 
-  case "gate": {
-    code = runGateCommand(command);
-  
-  break;
-  }
-  case "status": {
-    code = runStatus();
-  
-  break;
-  }
-  case "setup": {
-    code = runSetup(rest);
-  
-  break;
-  }
-  case "loop": {
-    code = await runLoop(rest);
-  
-  break;
-  }
-  default: {
-    process.stderr.write("usage: harness <preflight|gate|loop|status|setup>\n");
-    code = 2;
-  }
+    case "preflight":
+    case "gate": {
+      const result = run(command, {
+        preflight: runPreflight,
+        gate: runGate,
+        repoRoot,
+      });
+      for (const line of result.lines) {
+        process.stderr.write(`${line}\n`);
+      }
+      code = result.code;
+      break;
+    }
+    case "status": {
+      code = runStatus();
+      break;
+    }
+    case "setup": {
+      code = runSetup(rest);
+      break;
+    }
+    case "loop": {
+      const result = await runLoop(rest, loopDependencies());
+      for (const line of result.lines) {
+        process.stderr.write(`${line}\n`);
+      }
+      code = result.code;
+      break;
+    }
+    default: {
+      process.stderr.write(`${USAGE}\n`);
+      code = 2;
+    }
   }
   process.exitCode = code;
 }

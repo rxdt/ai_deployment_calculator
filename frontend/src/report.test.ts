@@ -3,13 +3,17 @@ import { buildReport, specFromState } from "./report";
 import { defaultState } from "./state";
 import type { FormState } from "./types";
 
+/**
+ 
+@param overrides
+*/
 function state(overrides: Partial<FormState> = {}): FormState {
   return { ...defaultState(), ...overrides };
 }
 
 describe("buildReport", () => {
   test("builds the default report locally without network access", () => {
-    const report = buildReport(state({ total_params: "8" }));
+    const report = buildReport(state({ totalParams: "8" }));
 
     expect(report.totalRequiredMemory).toBe("21.3 GB");
     expect(report.minimumRawVramNeeded).toBe("25.1 GB");
@@ -41,14 +45,14 @@ describe("buildReport", () => {
   test("sizes a 47B MoE high-context high-concurrency server stress case", () => {
     const report = buildReport(
       state({
-        total_params: "47",
-        moe_enabled: true,
-        active_params: "12",
+        totalParams: "47",
+        moeEnabled: true,
+        activeParams: "12",
         precision: "4-bit",
-        runtime_profile: "Server / Cloud",
-        context_tokens: "32000",
-        workload_size: "4",
-        kv_cache_precision: "16-bit",
+        runtimeProfile: "Server / Cloud",
+        contextTokens: "32000",
+        workloadSize: "4",
+        kvCachePrecision: "16-bit",
       }),
     );
 
@@ -74,16 +78,16 @@ describe("buildReport", () => {
   test("MacBook-friendly regression case: 700M 4-bit local at 2k context", () => {
     const report = buildReport(
       state({
-        workload_family: "text_generation",
-        execution_mode: "Inference",
-        total_params: "700",
-        parameter_unit: "M",
-        moe_enabled: false,
+        workloadFamily: "text_generation",
+        executionMode: "Inference",
+        totalParams: "700",
+        parameterUnit: "M",
+        moeEnabled: false,
         precision: "4-bit",
-        runtime_profile: "Local / Edge",
-        context_tokens: "2048",
-        workload_size: "1",
-        kv_cache_precision: "16-bit",
+        runtimeProfile: "Local / Edge",
+        contextTokens: "2048",
+        workloadSize: "1",
+        kvCachePrecision: "16-bit",
       }),
     );
 
@@ -102,9 +106,9 @@ describe("buildReport", () => {
 
   test("sharding toggle switches a 62B local fit between single-GPU and sharded tiers", () => {
     const base = {
-      total_params: "62",
+      totalParams: "62",
       precision: "16-bit" as const,
-      runtime_profile: "Local / Edge" as const,
+      runtimeProfile: "Local / Edge" as const,
     };
 
     const singleGpu = buildReport(state(base));
@@ -115,7 +119,7 @@ describe("buildReport", () => {
     expect(singleGpu.warnings.join(" ")).not.toContain("sharded-tier");
 
     const sharded = buildReport(
-      state({ ...base, memory_sharding_enabled: true }),
+      state({ ...base, memoryShardingEnabled: true }),
     );
     expect(sharded.recommendedHardware.recommendedTier).toBe(
       "160 GB sharded datacenter class, e.g. 2x 80 GB GPUs with tensor/model parallelism",
@@ -128,9 +132,9 @@ describe("buildReport", () => {
   test("overflows to no-single-GPU guidance when nothing in the table fits", () => {
     const report = buildReport(
       state({
-        total_params: "90",
+        totalParams: "90",
         precision: "16-bit",
-        runtime_profile: "Local / Edge",
+        runtimeProfile: "Local / Edge",
       }),
     );
 
@@ -143,12 +147,12 @@ describe("buildReport", () => {
   test("uses the known file size for local runtime", () => {
     const report = buildReport(
       state({
-        runtime_profile: "Local / Edge",
-        known_model_file_size_gb: "52",
-        total_params: "104",
-        context_tokens: "32000",
+        runtimeProfile: "Local / Edge",
+        knownModelFileSizeGb: "52",
+        totalParams: "104",
+        contextTokens: "32000",
         precision: "4-bit",
-        kv_cache_precision: "32-bit",
+        kvCachePrecision: "32-bit",
       }),
     );
 
@@ -161,9 +165,9 @@ describe("buildReport", () => {
   test("hides breakdown rows that round to 0.0 GB", () => {
     const report = buildReport(
       state({
-        workload_family: "tabular",
-        total_params: "0.001",
-        rows_per_batch: "1",
+        workloadFamily: "tabular",
+        totalParams: "0.001",
+        rowsPerBatch: "1",
         features: "1",
       }),
     );
@@ -179,9 +183,9 @@ describe("buildReport", () => {
   test("adds conditional MoE and training warnings", () => {
     const report = buildReport(
       state({
-        execution_mode: "QLoRA fine-tuning",
-        runtime_profile: "Local / Edge",
-        moe_enabled: true,
+        executionMode: "QLoRA fine-tuning",
+        runtimeProfile: "Local / Edge",
+        moeEnabled: true,
       }),
     );
 
@@ -196,43 +200,42 @@ describe("buildReport", () => {
 
   test("keeps family-specific guidance out of warnings", () => {
     expect(
-      buildReport(state({ workload_family: "image_diffusion" })).warnings.join(
+      buildReport(state({ workloadFamily: "image_diffusion" })).warnings.join(
         " ",
       ),
     ).not.toContain("Diffusion and video estimates");
     expect(
-      buildReport(state({ workload_family: "tabular" })).warnings.join(" "),
+      buildReport(state({ workloadFamily: "tabular" })).warnings.join(" "),
     ).not.toContain("Tabular estimates");
     expect(
-      buildReport(state({ workload_family: "tabular" })).warnings.join(" "),
+      buildReport(state({ workloadFamily: "tabular" })).warnings.join(" "),
     ).not.toContain("Transformer architecture is estimated");
     expect(
-      buildReport(state({ workload_family: "vision_language" })).warnings.join(
+      buildReport(state({ workloadFamily: "vision_language" })).warnings.join(
         " ",
       ),
     ).not.toContain("Transformer architecture is estimated");
     expect(
-      buildReport(state({ workload_family: "vision" })).warnings.join(" "),
+      buildReport(state({ workloadFamily: "vision" })).warnings.join(" "),
     ).not.toContain("Vision estimates");
     expect(
-      buildReport(state({ workload_family: "audio" })).warnings.join(" "),
+      buildReport(state({ workloadFamily: "audio" })).warnings.join(" "),
     ).not.toContain("Audio estimates");
   });
 
   test("specFromState maps execution mode instead of legacy training flags", () => {
     expect(
-      specFromState(state({ execution_mode: "Inference" })).executionMode,
+      specFromState(state({ executionMode: "Inference" })).executionMode,
     ).toBe("Inference");
     expect(
-      specFromState(state({ execution_mode: "LoRA fine-tuning" }))
-        .executionMode,
+      specFromState(state({ executionMode: "LoRA fine-tuning" })).executionMode,
     ).toBe("LoRA fine-tuning");
     expect(
-      specFromState(state({ execution_mode: "QLoRA fine-tuning" }))
+      specFromState(state({ executionMode: "QLoRA fine-tuning" }))
         .executionMode,
     ).toBe("QLoRA fine-tuning");
     expect(
-      specFromState(state({ execution_mode: "Full training" })).executionMode,
+      specFromState(state({ executionMode: "Full training" })).executionMode,
     ).toBe("Full training");
   });
 
@@ -268,7 +271,7 @@ describe("buildReport", () => {
 
   test("never surfaces pricing or cost language", () => {
     const haystack = JSON.stringify(
-      buildReport(state({ total_params: "70" })),
+      buildReport(state({ totalParams: "70" })),
     ).toLowerCase();
     expect(haystack).not.toMatch(/\$|\/hr\b|per hour|\bcost\b|\bprice\b/u);
   });

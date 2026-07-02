@@ -25,7 +25,7 @@ test("renders the default deployment computed locally", async ({ page }) => {
 test("recomputes when parameters change", async ({ page }) => {
   await page.goto("/");
 
-  await page.locator("#total_params").fill("104");
+  await page.locator("#total-params").fill("104");
   await expect(page.locator('[data-out="total"]')).toHaveText("245.4 GB");
 });
 
@@ -34,21 +34,21 @@ test("rejects negatives, exponents, and unbounded numbers", async ({
 }) => {
   await page.goto("/");
 
-  await page.locator("#context_tokens").fill("-9e5");
-  await expect(page.locator("#context_tokens")).toHaveValue("95");
+  await page.locator("#context-tokens").fill("-9e5");
+  await expect(page.locator("#context-tokens")).toHaveValue("95");
 
-  await page.locator("#context_tokens").fill("1000000");
-  await expect(page.locator("#context_tokens")).toHaveValue("999999");
+  await page.locator("#context-tokens").fill("1000000");
+  await expect(page.locator("#context-tokens")).toHaveValue("999999");
 });
 
 test("reset zeroes inputs and outputs", async ({ page }) => {
   await page.goto("/");
 
-  await page.locator("#total_params").fill("104");
+  await page.locator("#total-params").fill("104");
   await expect(page.locator('[data-out="total"]')).not.toHaveText("0.0 GB");
 
   await page.getByRole("button", { name: "Reset assumptions" }).click();
-  await expect(page.locator("#total_params")).toHaveValue("0");
+  await expect(page.locator("#total-params")).toHaveValue("0");
   await expect(page.locator('[data-out="total"]')).toHaveText("0.0 GB");
 });
 
@@ -68,7 +68,7 @@ test("ignores reflected query values without injecting markup", async ({
   page,
 }) => {
   await page.goto(
-    "/?total_params=%22%3E%3Cimg%20src=x%20onerror=%22window.injected=true%22%3E",
+    "/?total-params=%22%3E%3Cimg%20src=x%20onerror=%22window.injected=true%22%3E",
   );
 
   await expect(page.locator("img")).toHaveCount(0);
@@ -80,11 +80,11 @@ test("swaps adaptive inputs and hides MoE per workload family", async ({
 }) => {
   await page.goto("/");
 
-  await expect(page.locator("#context_tokens")).toBeVisible();
-  await page.locator("#workload_family").selectOption("vision");
-  await expect(page.locator("#context_tokens")).toBeHidden();
-  await expect(page.locator("#image_width")).toBeVisible();
-  await expect(page.locator("#moe_enabled")).toBeHidden();
+  await expect(page.locator("#context-tokens")).toBeVisible();
+  await page.locator("#workload-family").selectOption("vision");
+  await expect(page.locator("#context-tokens")).toBeHidden();
+  await expect(page.locator("#image-width")).toBeVisible();
+  await expect(page.locator("#moe-enabled")).toBeHidden();
 });
 
 test("switches the workload size label and never shows generic Batch Size", async ({
@@ -95,7 +95,7 @@ test("switches the workload size label and never shows generic Batch Size", asyn
   await expect(page.locator("[data-workload-label]")).toHaveText(
     "Concurrent Requests",
   );
-  await page.locator("#execution_mode").selectOption("Full training");
+  await page.locator("#execution-mode").selectOption("Full training");
   await expect(page.locator("[data-workload-label]")).toHaveText(
     "Micro Batch Size",
   );
@@ -105,7 +105,7 @@ test("switches the workload size label and never shows generic Batch Size", asyn
 test("reveals active parameters only when MoE is enabled", async ({ page }) => {
   await page.goto("/");
 
-  await expect(page.locator("#active_params")).toBeHidden();
-  await page.locator("#moe_enabled").check();
-  await expect(page.locator("#active_params")).toBeVisible();
+  await expect(page.locator("#active-params")).toBeHidden();
+  await page.locator("#moe-enabled").check();
+  await expect(page.locator("#active-params")).toBeVisible();
 });

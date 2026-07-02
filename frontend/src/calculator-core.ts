@@ -12,7 +12,7 @@ const BYTES_PER_GB = 1_000_000_000;
 
 export const PRECISION_MAP: Record<
   Precision,
-  { weightBytes: number; weightOverhead: number }
+  { readonly weightBytes: number; readonly weightOverhead: number }
 > = {
   "4-bit": { weightBytes: 0.5, weightOverhead: 1.15 },
   "5-bit GGUF": { weightBytes: 0.625, weightOverhead: 1.12 },
@@ -34,81 +34,109 @@ const KV_BYTES: Record<KvPrecision, number> = {
 };
 
 export interface RuntimeAssumptions {
-  overheadGb: number;
-  buffer: number;
-  utilization: number;
+  readonly overheadGb: number;
+  readonly buffer: number;
+  readonly utilization: number;
 }
 
 export interface TransformerArchitecture {
-  layers: number;
-  hidden: number;
-  attentionHeads: number;
-  kvHeads: number;
-  headDim: number;
+  readonly layers: number;
+  readonly hidden: number;
+  readonly attentionHeads: number;
+  readonly kvHeads: number;
+  readonly headDim: number;
 }
 
 interface VisionArchitecture {
-  layers: number;
-  hidden: number;
+  readonly layers: number;
+  readonly hidden: number;
 }
 
 export interface CalculationSpec {
-  family: WorkloadFamily;
-  totalParamsB: number;
-  residentParamsB: number;
-  activeParamsB: number;
-  precision: Precision;
-  executionMode: ExecutionMode;
-  runtimeProfile: RuntimeProfile;
-  runtime: RuntimeAssumptions;
-  workloadSize: number;
-  kvBytes: number;
-  architecture: TransformerArchitecture;
-  visionArchitecture: VisionArchitecture | null;
-  knownModelFileSizeGb: number | null;
-  gpuResidentFraction: number;
-  loraTrainablePercent: number;
-  optimizerBytes: number;
-  gradientCheckpointing: boolean;
-  state: FormState;
+  readonly family: WorkloadFamily;
+  readonly totalParamsB: number;
+  readonly residentParamsB: number;
+  readonly activeParamsB: number;
+  readonly precision: Precision;
+  readonly executionMode: ExecutionMode;
+  readonly runtimeProfile: RuntimeProfile;
+  readonly runtime: RuntimeAssumptions;
+  readonly workloadSize: number;
+  readonly kvBytes: number;
+  readonly architecture: TransformerArchitecture;
+  readonly visionArchitecture: VisionArchitecture | null;
+  readonly knownModelFileSizeGb: number | null;
+  readonly gpuResidentFraction: number;
+  readonly loraTrainablePercent: number;
+  readonly optimizerBytes: number;
+  readonly gradientCheckpointing: boolean;
+  readonly state: FormState;
 }
 
 export interface MemoryBreakdown {
-  weightsGb: number;
-  kvCacheGb: number;
-  inputActivationGb: number;
-  trainingStateGb: number;
-  runtimeOverheadGb: number;
-  safetyBufferGb: number;
-  requiredGb: number;
+  readonly weightsGb: number;
+  readonly kvCacheGb: number;
+  readonly inputActivationGb: number;
+  readonly trainingStateGb: number;
+  readonly runtimeOverheadGb: number;
+  readonly safetyBufferGb: number;
+  readonly requiredGb: number;
 }
 
+/**
+ 
+@param value
+@param fallback
+*/
 function decimal(value: string, fallback: number): number {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
+/**
+ 
+@param value
+@param fallback
+*/
 function positive(value: string, fallback: number): number {
   const parsed = decimal(value, fallback);
   return parsed > 0 ? parsed : fallback;
 }
 
+/**
+ 
+@param value
+@param fallback
+*/
 function nonNegative(value: string, fallback: number): number {
   const parsed = decimal(value, fallback);
   return parsed >= 0 ? parsed : fallback;
 }
 
-function totalParametersB(state: FormState): number {
+/**
+ 
+@param state
+*/
+function totalParametersB(state: Readonly<FormState>): number {
   return (
-    nonNegative(state.total_params, 7) * UNIT_MULTIPLIERS[state.parameter_unit]
+    nonNegative(state.totalParams, 7) * UNIT_MULTIPLIERS[state.parameterUnit]
   );
 }
 
+/**
+ 
+@param value
+@param digits
+*/
 export function roundTo(value: number, digits: number): number {
   const factor = 10 ** digits;
   return Math.round((value + Number.EPSILON) * factor) / factor;
 }
 
+/**
+ 
+@param parametersB
+*/
 export function architectureFor(parametersB: number): TransformerArchitecture {
   if (parametersB <= 1) {
     return {
@@ -182,6 +210,11 @@ export function architectureFor(parametersB: number): TransformerArchitecture {
   };
 }
 
+/**
+ 
+@param mode
+@param runtimeProfile
+*/
 export function runtimeAssumptions(
   mode: ExecutionMode,
   runtimeProfile: RuntimeProfile,
@@ -195,6 +228,10 @@ export function runtimeAssumptions(
   return { overheadGb: 1.5, buffer: 1.1, utilization: 0.85 };
 }
 
+/**
+ 
+@param name
+*/
 function optimizerBytes(name: FormState["optimizer"]): number {
   if (name === "8-bit Adam") {
     return 2;
@@ -205,36 +242,44 @@ function optimizerBytes(name: FormState["optimizer"]): number {
   return 8;
 }
 
-export function specFromState(state: FormState): CalculationSpec {
+/**
+ 
+@param state
+*/
+export function specFromState(state: Readonly<FormState>): CalculationSpec {
   const total = totalParametersB(state);
-  const knownFile = state.known_model_file_size_gb.trim()
-    ? positive(state.known_model_file_size_gb, 0)
+  const knownFile = state.knownModelFileSizeGb.trim()
+    ? positive(state.knownModelFileSizeGb, 0)
     : null;
   return {
-    family: state.workload_family,
+    family: state.workloadFamily,
     totalParamsB: total,
     residentParamsB: total,
-    activeParamsB: state.moe_enabled
-      ? positive(state.active_params, total)
+    activeParamsB: state.moeEnabled
+      ? positive(state.activeParams, total)
       : total,
     precision: state.precision,
-    executionMode: state.execution_mode,
-    runtimeProfile: state.runtime_profile,
-    runtime: runtimeAssumptions(state.execution_mode, state.runtime_profile),
-    workloadSize: nonNegative(state.workload_size, 1),
-    kvBytes: KV_BYTES[state.kv_cache_precision],
+    executionMode: state.executionMode,
+    runtimeProfile: state.runtimeProfile,
+    runtime: runtimeAssumptions(state.executionMode, state.runtimeProfile),
+    workloadSize: nonNegative(state.workloadSize, 1),
+    kvBytes: KV_BYTES[state.kvCachePrecision],
     architecture: architectureFor(total),
     visionArchitecture: null,
     knownModelFileSizeGb: knownFile,
-    gpuResidentFraction: nonNegative(state.gpu_resident_fraction, 1),
-    loraTrainablePercent: nonNegative(state.lora_trainable_percent, 0.5),
+    gpuResidentFraction: nonNegative(state.gpuResidentFraction, 1),
+    loraTrainablePercent: nonNegative(state.loraTrainablePercent, 0.5),
     optimizerBytes: optimizerBytes(state.optimizer),
-    gradientCheckpointing: state.gradient_checkpointing,
+    gradientCheckpointing: state.gradientCheckpointing,
     state,
   };
 }
 
-export function weightsGb(spec: CalculationSpec): number {
+/**
+ 
+@param spec
+*/
+export function weightsGb(spec: Readonly<CalculationSpec>): number {
   if (spec.executionMode === "QLoRA fine-tuning") {
     return (
       spec.residentParamsB *
@@ -254,21 +299,29 @@ export function weightsGb(spec: CalculationSpec): number {
   );
 }
 
-function sequenceForTraining(spec: CalculationSpec): number {
+/**
+ 
+@param spec
+*/
+function sequenceForTraining(spec: Readonly<CalculationSpec>): number {
   const { state } = spec;
   if (spec.family === "encoder_decoder") {
     return (
-      nonNegative(state.input_tokens, 1024) +
-      nonNegative(state.output_tokens, 256)
+      nonNegative(state.inputTokens, 1024) +
+      nonNegative(state.outputTokens, 256)
     );
   }
   if (spec.family === "text_encoder") {
-    return nonNegative(state.sequence_tokens, 512);
+    return nonNegative(state.sequenceTokens, 512);
   }
-  return nonNegative(state.context_tokens, 8000);
+  return nonNegative(state.contextTokens, 8000);
 }
 
-export function trainingActivationGb(spec: CalculationSpec): number {
+/**
+ 
+@param spec
+*/
+export function trainingActivationGb(spec: Readonly<CalculationSpec>): number {
   const factor = spec.gradientCheckpointing ? 3 : 8;
   return (
     (factor *
@@ -281,7 +334,11 @@ export function trainingActivationGb(spec: CalculationSpec): number {
   );
 }
 
-export function trainingStateGb(spec: CalculationSpec): number {
+/**
+ 
+@param spec
+*/
+export function trainingStateGb(spec: Readonly<CalculationSpec>): number {
   if (spec.executionMode === "Inference") {
     return 0;
   }

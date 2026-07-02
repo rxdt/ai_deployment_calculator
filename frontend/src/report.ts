@@ -12,31 +12,50 @@ import { memoryBreakdown, speedEstimate } from "./workload-memory";
 
 export { specFromState } from "./calculator-core";
 
+/**
+ 
+@param label
+@param value
+*/
 function row(label: string, value: number): DisplayRow | null {
   const formatted = formatGb(value);
   return formatted === "0.0 GB" ? null : { label, value: formatted };
 }
 
-function compactRows(rows: readonly (DisplayRow | null)[]): DisplayRow[] {
+/**
+ 
+@param rows
+*/
+function compactRows(
+  rows: readonly (Readonly<DisplayRow> | null)[],
+): DisplayRow[] {
   return rows.filter(
     (candidate): candidate is DisplayRow => candidate !== null,
   );
 }
 
-function trainingWarning(state: FormState): string | null {
-  if (state.execution_mode !== "Inference") {
+/**
+ 
+@param state
+*/
+function trainingWarning(state: Readonly<FormState>): string | null {
+  if (state.executionMode !== "Inference") {
     return "Training estimates include parameter state and checkpointed activations, but real runs vary by optimizer, sequence packing, and framework.";
   }
   return null;
 }
 
-function warningsFor(state: FormState): string[] {
+/**
+ 
+@param state
+*/
+function warningsFor(state: Readonly<FormState>): string[] {
   const warnings: string[] = [];
   const conditional = trainingWarning(state);
   if (conditional !== null) {
     warnings.push(conditional);
   }
-  if (state.moe_enabled) {
+  if (state.moeEnabled) {
     warnings.push(
       "MoE active parameters affect speed, not resident weight memory, unless expert offload or sharding is enabled.",
     );
@@ -44,13 +63,17 @@ function warningsFor(state: FormState): string[] {
   return warnings;
 }
 
-function assumptionRows(state: FormState): DisplayRow[] {
+/**
+ 
+@param state
+*/
+function assumptionRows(state: Readonly<FormState>): DisplayRow[] {
   const spec = specFromState(state);
   return [
     { label: "Precision", value: state.precision },
-    { label: "Runtime profile", value: state.runtime_profile },
-    { label: "Execution mode", value: state.execution_mode },
-    { label: "KV Cache precision", value: state.kv_cache_precision },
+    { label: "Runtime profile", value: state.runtimeProfile },
+    { label: "Execution mode", value: state.executionMode },
+    { label: "KV Cache precision", value: state.kvCachePrecision },
     { label: "KV heads used", value: spec.architecture.kvHeads.toString() },
     {
       label: "Conservative KV heads",
@@ -59,19 +82,27 @@ function assumptionRows(state: FormState): DisplayRow[] {
   ];
 }
 
-function weightsLabel(state: FormState): string {
-  return state.execution_mode === "QLoRA fine-tuning"
+/**
+ 
+@param state
+*/
+function weightsLabel(state: Readonly<FormState>): string {
+  return state.executionMode === "QLoRA fine-tuning"
     ? "QLoRA base model memory"
     : "Model memory";
 }
 
-export function buildReport(state: FormState): ReportPayload {
+/**
+ 
+@param state
+*/
+export function buildReport(state: Readonly<FormState>): ReportPayload {
   const spec = specFromState(state);
   const breakdown = memoryBreakdown(spec);
   const weights = weightsGb(spec);
   const { requiredGb: required } = breakdown;
   const { utilization } = spec.runtime;
-  const canShard = state.memory_sharding_enabled;
+  const canShard = state.memoryShardingEnabled;
   const recommendation = hardwareRecommendation(required, utilization, {
     allowSharding: canShard,
   });

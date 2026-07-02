@@ -31,8 +31,8 @@
             <legend>Model</legend>
 
             <p class="field field--wide">
-              <label for="workload_family">Workload Family</label>
-              <select id="workload_family" name="workload_family">
+              <label for="workload-family">Workload Family</label>
+              <select id="workload-family" name="workload-family">
                 <option value="text_generation">Text generation / chat</option>
                 <option value="text_encoder">
                   Text embeddings / reranking / classification
@@ -55,10 +55,10 @@
             </p>
 
             <p class="field">
-              <label for="total_params">Total Model Parameters</label>
+              <label for="total-params">Total Model Parameters</label>
               <input
-                id="total_params"
-                name="total_params"
+                id="total-params"
+                name="total-params"
                 type="text"
                 inputmode="numeric"
                 value="7"
@@ -66,8 +66,8 @@
             </p>
 
             <p class="field">
-              <label for="parameter_unit">Parameter Unit</label>
-              <select id="parameter_unit" name="parameter_unit">
+              <label for="parameter-unit">Parameter Unit</label>
+              <select id="parameter-unit" name="parameter-unit">
                 <option value="B">Billions</option>
                 <option value="M">Millions</option>
               </select>
@@ -90,8 +90,8 @@
             <legend>Deployment</legend>
 
             <p class="field">
-              <label for="execution_mode">Execution Mode</label>
-              <select id="execution_mode" name="execution_mode">
+              <label for="execution-mode">Execution Mode</label>
+              <select id="execution-mode" name="execution-mode">
                 <option value="Inference">Inference</option>
                 <option value="LoRA fine-tuning">LoRA fine-tuning</option>
                 <option value="QLoRA fine-tuning">QLoRA fine-tuning</option>
@@ -100,8 +100,8 @@
             </p>
 
             <p class="field">
-              <label for="runtime_profile">Runtime Profile</label>
-              <select id="runtime_profile" name="runtime_profile">
+              <label for="runtime-profile">Runtime Profile</label>
+              <select id="runtime-profile" name="runtime-profile">
                 <option value="Local / Edge">Local / Edge</option>
                 <option value="Server / Cloud" selected>Server / Cloud</option>
               </select>
@@ -109,50 +109,50 @@
 
             <!-- Adaptive, per-family input controls -->
             <p class="field" data-families="text_generation">
-              <label for="context_tokens">Context Window</label>
+              <label for="context-tokens">Context Window</label>
               <input
-                id="context_tokens"
-                name="context_tokens"
+                id="context-tokens"
+                name="context-tokens"
                 type="text"
                 inputmode="numeric"
                 value="8000"
               />
             </p>
             <p class="field" data-families="text_encoder">
-              <label for="sequence_tokens">Sequence Length</label>
+              <label for="sequence-tokens">Sequence Length</label>
               <input
-                id="sequence_tokens"
-                name="sequence_tokens"
+                id="sequence-tokens"
+                name="sequence-tokens"
                 type="text"
                 inputmode="numeric"
                 value="512"
               />
             </p>
             <p class="field" data-families="encoder_decoder">
-              <label for="input_tokens">Input Tokens</label>
+              <label for="input-tokens">Input Tokens</label>
               <input
-                id="input_tokens"
-                name="input_tokens"
+                id="input-tokens"
+                name="input-tokens"
                 type="text"
                 inputmode="numeric"
                 value="1024"
               />
             </p>
             <p class="field" data-families="encoder_decoder">
-              <label for="output_tokens">Output Tokens</label>
+              <label for="output-tokens">Output Tokens</label>
               <input
-                id="output_tokens"
-                name="output_tokens"
+                id="output-tokens"
+                name="output-tokens"
                 type="text"
                 inputmode="numeric"
                 value="256"
               />
             </p>
             <p class="field" data-families="vision_language">
-              <label for="text_context_tokens">Text Context Tokens</label>
+              <label for="text-context-tokens">Text Context Tokens</label>
               <input
-                id="text_context_tokens"
-                name="text_context_tokens"
+                id="text-context-tokens"
+                name="text-context-tokens"
                 type="text"
                 inputmode="numeric"
                 value="4000"
@@ -162,10 +162,10 @@
               class="field"
               data-families="vision vision_language image_diffusion"
             >
-              <label for="image_width">Image Width (px)</label>
+              <label for="image-width">Image Width (px)</label>
               <input
-                id="image_width"
-                name="image_width"
+                id="image-width"
+                name="image-width"
                 type="text"
                 inputmode="numeric"
                 value="1024"
@@ -175,57 +175,57 @@
               class="field"
               data-families="vision vision_language image_diffusion"
             >
-              <label for="image_height">Image Height (px)</label>
+              <label for="image-height">Image Height (px)</label>
               <input
-                id="image_height"
-                name="image_height"
+                id="image-height"
+                name="image-height"
                 type="text"
                 inputmode="numeric"
                 value="1024"
               />
             </p>
             <p class="field" data-families="vision_language">
-              <label for="image_count">Image Count</label>
+              <label for="image-count">Image Count</label>
               <input
-                id="image_count"
-                name="image_count"
+                id="image-count"
+                name="image-count"
                 type="text"
                 inputmode="numeric"
                 value="1"
               />
             </p>
             <p class="field" data-families="video_generation">
-              <label for="video_resolution">Output Resolution</label>
-              <select id="video_resolution" name="video_resolution">
+              <label for="video-resolution">Output Resolution</label>
+              <select id="video-resolution" name="video-resolution">
                 <option value="720p">720p</option>
                 <option value="1080p">1080p</option>
               </select>
             </p>
             <p class="field" data-families="video_generation">
-              <label for="video_frames">Frames</label>
+              <label for="video-frames">Frames</label>
               <input
-                id="video_frames"
-                name="video_frames"
+                id="video-frames"
+                name="video-frames"
                 type="text"
                 inputmode="numeric"
                 value="81"
               />
             </p>
             <p class="field" data-families="audio">
-              <label for="audio_seconds">Audio Length</label>
+              <label for="audio-seconds">Audio Length</label>
               <input
-                id="audio_seconds"
-                name="audio_seconds"
+                id="audio-seconds"
+                name="audio-seconds"
                 type="text"
                 inputmode="numeric"
                 value="30"
               />
             </p>
             <p class="field" data-families="tabular">
-              <label for="rows_per_batch">Rows per Batch</label>
+              <label for="rows-per-batch">Rows per Batch</label>
               <input
-                id="rows_per_batch"
-                name="rows_per_batch"
+                id="rows-per-batch"
+                name="rows-per-batch"
                 type="text"
                 inputmode="numeric"
                 value="10000"
@@ -242,10 +242,10 @@
               />
             </p>
             <p class="field" data-families="custom">
-              <label for="input_size_multiplier">Input Size Preset</label>
+              <label for="input-size-multiplier">Input Size Preset</label>
               <input
-                id="input_size_multiplier"
-                name="input_size_multiplier"
+                id="input-size-multiplier"
+                name="input-size-multiplier"
                 type="text"
                 inputmode="decimal"
                 value="1"
@@ -253,12 +253,12 @@
             </p>
 
             <p class="field">
-              <label for="workload_size"
+              <label for="workload-size"
                 ><span data-workload-label>Concurrent Requests</span></label
               >
               <input
-                id="workload_size"
-                name="workload_size"
+                id="workload-size"
+                name="workload-size"
                 type="text"
                 inputmode="numeric"
                 value="1"
@@ -270,15 +270,15 @@
               data-moe-families="text_generation text_encoder encoder_decoder vision_language custom"
             >
               <label>
-                <input id="moe_enabled" name="moe_enabled" type="checkbox" />
+                <input id="moe-enabled" name="moe-enabled" type="checkbox" />
                 MoE Model
               </label>
             </p>
             <p class="field" data-active>
-              <label for="active_params">Active Parameters</label>
+              <label for="active-params">Active Parameters</label>
               <input
-                id="active_params"
-                name="active_params"
+                id="active-params"
+                name="active-params"
                 type="text"
                 inputmode="decimal"
                 value="1.3"
@@ -290,39 +290,39 @@
             <summary>Advanced assumptions</summary>
             <div class="group">
               <p class="field">
-                <label for="kv_cache_precision">KV Cache Precision</label>
-                <select id="kv_cache_precision" name="kv_cache_precision">
+                <label for="kv-cache-precision">KV Cache Precision</label>
+                <select id="kv-cache-precision" name="kv-cache-precision">
                   <!-- show only for text-gen/Encoder-decoder/VLM -->
                   <option value="8-bit / FP8">8-bit / FP8</option>
                   <option value="16-bit" selected>16-bit</option>
                 </select>
               </p>
               <p class="field">
-                <label for="known_model_file_size_gb"
+                <label for="known-model-file-size-gb"
                   >Known Model File Size</label
                 >
                 <input
-                  id="known_model_file_size_gb"
-                  name="known_model_file_size_gb"
+                  id="known-model-file-size-gb"
+                  name="known-model-file-size-gb"
                   type="text"
                   inputmode="decimal"
                 />
               </p>
               <p class="field">
-                <label for="gpu_resident_fraction">GPU Resident Fraction</label>
+                <label for="gpu-resident-fraction">GPU Resident Fraction</label>
                 <input
-                  id="gpu_resident_fraction"
-                  name="gpu_resident_fraction"
+                  id="gpu-resident-fraction"
+                  name="gpu-resident-fraction"
                   type="text"
                   inputmode="decimal"
                   value="1"
                 />
               </p>
               <p class="field">
-                <label for="lora_trainable_percent">LoRA Trainable %</label>
+                <label for="lora-trainable-percent">LoRA Trainable %</label>
                 <input
-                  id="lora_trainable_percent"
-                  name="lora_trainable_percent"
+                  id="lora-trainable-percent"
+                  name="lora-trainable-percent"
                   type="text"
                   inputmode="decimal"
                   value="0.5"
@@ -339,8 +339,8 @@
               <p class="field field--check">
                 <label>
                   <input
-                    id="gradient_checkpointing"
-                    name="gradient_checkpointing"
+                    id="gradient-checkpointing"
+                    name="gradient-checkpointing"
                     type="checkbox"
                     checked
                   />
@@ -350,8 +350,8 @@
               <p class="field field--check">
                 <label>
                   <input
-                    id="memory_sharding_enabled"
-                    name="memory_sharding_enabled"
+                    id="memory-sharding-enabled"
+                    name="memory-sharding-enabled"
                     type="checkbox"
                   />
                   Memory Sharding

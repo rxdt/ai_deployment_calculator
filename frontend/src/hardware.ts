@@ -1,13 +1,13 @@
 import type { HardwareRecommendation } from "./types";
 
 export interface HardwareTier {
-  vramGb: number;
-  label: string;
-  examples: string;
-  bandwidthGbps: number;
-  kind: "single_gpu" | "aggregate_sharded";
-  gpuCount: number;
-  requiresSharding: boolean;
+  readonly vramGb: number;
+  readonly label: string;
+  readonly examples: string;
+  readonly bandwidthGbps: number;
+  readonly kind: "single_gpu" | "aggregate_sharded";
+  readonly gpuCount: number;
+  readonly requiresSharding: boolean;
 }
 
 // Largest tier; the speed-bandwidth basis when a workload overflows the table.
@@ -106,14 +106,27 @@ export const HARDWARE_TIERS: readonly HardwareTier[] = [
   TOP_TIER,
 ];
 
+/**
+ 
+@param value
+*/
 export function formatGb(value: number): string {
   return `${value.toFixed(1)} GB`;
 }
 
+/**
+ 
+@param value
+*/
 function formatPercent(value: number): string {
   return `${value.toString()}%`;
 }
 
+/**
+ 
+@param requiredGb
+@param utilization
+*/
 export function minimumRawVramGb(
   requiredGb: number,
   utilization: number,
@@ -121,9 +134,15 @@ export function minimumRawVramGb(
   return requiredGb / utilization;
 }
 
+/**
+ 
+@param rawVramGb
+@param options
+@param options.allowSharding
+*/
 export function hardware(
   rawVramGb: number,
-  options: { allowSharding: boolean },
+  options: Readonly<{ allowSharding: boolean }>,
 ): HardwareTier | "overflow" {
   const eligible = HARDWARE_TIERS.filter(
     (tier) => options.allowSharding || !tier.requiresSharding,
@@ -131,6 +150,10 @@ export function hardware(
   return eligible.find((tier) => tier.vramGb >= rawVramGb) ?? "overflow";
 }
 
+/**
+ 
+@param rawVramGb
+*/
 export function describeOverflow(rawVramGb: number): string {
   if (rawVramGb > 320) {
     return "> 320 GB: distributed multi-node, larger GPU pool, or heavy offload";
@@ -138,34 +161,57 @@ export function describeOverflow(rawVramGb: number): string {
   return "No single-GPU fit. Enable memory sharding or use offload.";
 }
 
+/**
+ 
+@param root0
+@param root0.computeWeightGb
+@param root0.recommendedTier
+*/
 export function estimateSpeed({
   computeWeightGb,
   recommendedTier,
-}: {
+}: Readonly<{
   computeWeightGb: number;
   recommendedTier: HardwareTier;
-}): number {
+}>): number {
   if (computeWeightGb <= 0) {
     return 0;
   }
   return recommendedTier.bandwidthGbps / computeWeightGb;
 }
 
-export function speedLabel(tier: HardwareTier): string {
+/**
+ 
+@param tier
+*/
+export function speedLabel(tier: Readonly<HardwareTier>): string {
   if (tier.requiresSharding) {
     return "Rough sharded-tier speed estimate. Assumes memory sharding / model parallelism works.";
   }
   return "Rough speed estimate from the recommended GPU memory class. Real speed depends on the exact GPU and runtime.";
 }
 
-export function speedTierFor(tier: HardwareTier | "overflow"): HardwareTier {
+/**
+ 
+@param tier
+*/
+export function speedTierFor(
+  tier: Readonly<HardwareTier> | "overflow",
+): HardwareTier {
   return tier === "overflow" ? TOP_TIER : tier;
 }
 
+/**
+ 
+@param requiredGb
+@param utilization
+@param options
+@param options.allowSharding
+*/
 export function hardwareRecommendation(
   requiredGb: number,
   utilization: number,
-  options: { allowSharding: boolean },
+  options: Readonly<{ allowSharding: boolean }>,
 ): HardwareRecommendation {
   const usablePercent = Math.round(utilization * 100);
   const usableTarget = formatPercent(usablePercent);

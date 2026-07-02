@@ -3,29 +3,50 @@ import { afterEach, describe, expect, test } from "vitest";
 import indexHtml from "../index.html?raw";
 import { CalculatorApp, mountCalculator, sanitizeNumberInput } from "./app";
 
+/**
+ Render the real index.html into the jsdom document body.
+*/
 function loadDom(): void {
   document.body.replaceChildren();
   const parsed = new DOMParser().parseFromString(indexHtml, "text/html");
   document.body.append(...parsed.body.childNodes);
 }
 
+/**
+ Build an empty inputs form element.
+@returns a detached form.inputs element
+*/
 function makeForm(): HTMLFormElement {
   const form = document.createElement("form");
   form.classList.add("inputs");
   return form;
 }
 
+/**
+ Build the row template element the app clones for output rows.
+@returns a detached #row-template element
+*/
 function makeTemplate(): HTMLTemplateElement {
   const template = document.createElement("template");
   template.id = "row-template";
   return template;
 }
 
+/**
+ Read the text of an output slot by its data-out name.
+@param name - the data-out slot name
+@returns the slot's text content, or "" when absent
+*/
 function out(name: string): string {
   const nodes = [...document.querySelectorAll<HTMLElement>("[data-out]")];
   return nodes.find((node) => node.dataset["out"] === name)?.textContent ?? "";
 }
 
+/**
+ Look up a form control by its kebab-case wire name.
+@param name - the control's name attribute
+@returns the matching input or select element
+*/
 function field(name: string): HTMLInputElement | HTMLSelectElement {
   const node = document.querySelector("form")?.elements.namedItem(name);
   if (!(
@@ -36,18 +57,33 @@ function field(name: string): HTMLInputElement | HTMLSelectElement {
   return node;
 }
 
+/**
+ Set a control's value and dispatch an input event.
+@param name - the control's name attribute
+@param value - the value to set
+*/
 function fireInput(name: string, value: string): void {
   const node = field(name);
   node.value = value;
   node.dispatchEvent(new Event("input", { bubbles: true }));
 }
 
+/**
+ Set a control's value and dispatch a change event.
+@param name - the control's name attribute
+@param value - the value to set
+*/
 function fireChange(name: string, value: string): void {
   const node = field(name);
   node.value = value;
   node.dispatchEvent(new Event("change", { bubbles: true }));
 }
 
+/**
+ Report whether the row containing a control is hidden.
+@param name - the control's name attribute
+@returns true when the enclosing row is hidden
+*/
 function isRowHidden(name: string): boolean {
   const row = field(name).closest("p");
   return row instanceof HTMLElement && row.hidden === true;
@@ -113,7 +149,7 @@ describe("mounted calculator", () => {
   test("recomputes when a numeric input changes", () => {
     loadDom();
     mountCalculator(document);
-    fireInput("total_params", "104");
+    fireInput("total-params", "104");
     expect(out("total")).toBe("245.4 GB");
   });
 
@@ -130,18 +166,18 @@ describe("mounted calculator", () => {
   test("sanitizes negatives, exponents, and clamps the maximum", () => {
     loadDom();
     mountCalculator(document);
-    fireInput("context_tokens", "-9e5");
-    expect(field("context_tokens").value).toBe("95");
-    fireInput("context_tokens", "1000000");
-    expect(field("context_tokens").value).toBe("999999");
+    fireInput("context-tokens", "-9e5");
+    expect(field("context-tokens").value).toBe("95");
+    fireInput("context-tokens", "1000000");
+    expect(field("context-tokens").value).toBe("999999");
   });
 
   test("reset zeroes inputs and outputs and explains the empty estimate", () => {
     loadDom();
     mountCalculator(document);
-    fireInput("total_params", "104");
+    fireInput("total-params", "104");
     requireButton().click();
-    expect(field("total_params").value).toBe("0");
+    expect(field("total-params").value).toBe("0");
     expect(out("total")).toBe("0.0 GB");
     expect(out("gpu-class")).toBe("No model loaded");
     expect(out("why")).toContain("Enter model and workload inputs");
@@ -159,7 +195,7 @@ describe("mounted calculator", () => {
   test("serializes a checked MoE box into the estimate", () => {
     loadDom();
     mountCalculator(document);
-    const moe = field("moe_enabled");
+    const moe = field("moe-enabled");
     if (moe instanceof HTMLInputElement) {
       moe.checked = true;
     }
@@ -170,7 +206,7 @@ describe("mounted calculator", () => {
   test("renders training warnings and drops the standard disclaimer", () => {
     loadDom();
     mountCalculator(document);
-    fireChange("execution_mode", "Full training");
+    fireChange("execution-mode", "Full training");
     const warnings =
       document.querySelector('[data-out="warnings"]')?.textContent ?? "";
     expect(warnings).toContain("Training estimates include parameter state");
@@ -190,24 +226,24 @@ describe("adaptive controls", () => {
   test("shows family-specific inputs and hides MoE for vision", () => {
     loadDom();
     mountCalculator(document);
-    expect(isRowHidden("context_tokens")).toBe(false);
-    fireChange("workload_family", "vision");
-    expect(isRowHidden("context_tokens")).toBe(true);
-    expect(isRowHidden("image_width")).toBe(false);
-    expect(isRowHidden("moe_enabled")).toBe(true);
+    expect(isRowHidden("context-tokens")).toBe(false);
+    fireChange("workload-family", "vision");
+    expect(isRowHidden("context-tokens")).toBe(true);
+    expect(isRowHidden("image-width")).toBe(false);
+    expect(isRowHidden("moe-enabled")).toBe(true);
   });
 
   test("reveals active parameters only when MoE is checked", () => {
     loadDom();
     mountCalculator(document);
-    expect(isRowHidden("moe_enabled")).toBe(false);
-    expect(isRowHidden("active_params")).toBe(true);
-    const moe = field("moe_enabled");
+    expect(isRowHidden("moe-enabled")).toBe(false);
+    expect(isRowHidden("active-params")).toBe(true);
+    const moe = field("moe-enabled");
     if (moe instanceof HTMLInputElement) {
       moe.checked = true;
     }
     moe.dispatchEvent(new Event("change", { bubbles: true }));
-    expect(isRowHidden("active_params")).toBe(false);
+    expect(isRowHidden("active-params")).toBe(false);
   });
 
   test("switches the workload size label for training", () => {
@@ -215,7 +251,7 @@ describe("adaptive controls", () => {
     mountCalculator(document);
     const label = document.querySelector("[data-workload-label]");
     expect(label?.textContent).toBe("Concurrent Requests");
-    fireChange("execution_mode", "Full training");
+    fireChange("execution-mode", "Full training");
     expect(label?.textContent).toBe("Micro Batch Size");
   });
 });
@@ -246,6 +282,10 @@ describe("main entrypoint", () => {
   });
 });
 
+/**
+ Return the reset button, throwing if it is missing.
+@returns the reset button element
+*/
 function requireButton(): HTMLButtonElement {
   const button = document.querySelector<HTMLButtonElement>(
     '[data-action="reset"]',

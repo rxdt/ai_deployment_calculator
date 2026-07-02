@@ -34,12 +34,6 @@ flowchart LR
 First time, run harness setup from the repository root:
 
 ```sh
-node harness/harness.mjs setup
-```
-
-or, after root scripts are present:
-
-```sh
 npm run setup
 ```
 
@@ -56,7 +50,7 @@ It deliberately does not run `npm setup` at the repository root. Root
 To set or update the project name at the same time:
 
 ```sh
-node harness/harness.mjs install my-project-name
+npm run harness -- install my-project-name
 ```
 
 ## Run
@@ -85,16 +79,16 @@ npm run preview
 ## Quick checks
 
 ```sh
-harness preflight
+npm run preflight
 ```
 
 ## Full checks (lint, tests, security, type-checking, etc.)
 
 ```sh
-harness gate
+npm run gate
 ```
 
-For the full repository gate, run `.venv/bin/harness gate` from the repo root.
+For any other harness command, use `npm run harness -- <command>`.
 
 > do NOT DELETE!:
 

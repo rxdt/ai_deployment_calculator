@@ -31,12 +31,21 @@ import {
 import { gitSafeEnvironment } from "./gate.js";
 
 const FIXED_NOW = 1_782_475_200_000;
-const ANSI_PATTERN = /\u001B\[[0-?]*[ -/]*[@-~]/gu;
+const ANSI_PATTERN = /\u{1B}\[[0-?]*[ -/]*[@-~]/gu;
 
+/**
+
+* @param value
+*/
 function withoutAnsi(value: string): string {
   return value.replaceAll(ANSI_PATTERN, "");
 }
 
+/**
+
+* @param argv
+* @param cwd
+*/
 function runCommand(argv: string[], cwd: string): string {
   const [command, ...arguments_] = argv;
   if (command === undefined) {
@@ -53,6 +62,9 @@ function runCommand(argv: string[], cwd: string): string {
   return result.stdout;
 }
 
+/**
+
+*/
 function makeRepo(): string {
   const repo = mkdtempSync(path.join(tmpdir(), "harness-"));
   runCommand(["git", "init", "-q"], repo);
@@ -189,7 +201,7 @@ describe("run helpers", () => {
 
   test("the harness package exposes a harness executable", () => {
     const packagePath = fileURLToPath(
-      new URL("./package.json", import.meta.url),
+      new URL("package.json", import.meta.url),
     );
     const packageRoot = path.dirname(packagePath);
     const packageJson = JSON.parse(readFileSync(packagePath, "utf8")) as {
@@ -228,7 +240,7 @@ describe("runLoop", () => {
         ralphPath: () => "/repo/harness/ralph.sh",
         listSequences: () => [],
         ensureDirectory: (directory) => directory.length,
-        worker: () => Promise.resolve(0),
+        worker: async () => 0,
       }),
     ).resolves.toEqual({
       code: 2,
@@ -244,7 +256,7 @@ describe("runLoop", () => {
         ralphPath: () => "/repo/harness/ralph.sh",
         listSequences: () => [],
         ensureDirectory: (directory) => directory.length,
-        worker: () => Promise.resolve(0),
+        worker: async () => 0,
       }),
     ).resolves.toEqual({
       code: 2,
@@ -269,9 +281,9 @@ describe("runLoop", () => {
       ensureDirectory: (directory) => {
         ensured = directory;
       },
-      worker: (command, cwd, log, isVerbose) => {
+      worker: async (command, cwd, log, isVerbose) => {
         launched = { command, cwd, log, isVerbose };
-        return Promise.resolve(7);
+        return 7;
       },
     });
 
@@ -321,8 +333,8 @@ describe("harness command", () => {
       path.join(bin, "claude"),
       [
         "#!/bin/sh",
-        'printf \'%s\\n\' \'{"stream":"stdout","message":"saved"}\'',
-        'printf \'%s\\n\' \'{"stream":"stderr","message":"saved"}\' >&2',
+        String.raw`printf '%s\n' '{"stream":"stdout","message":"saved"}'`,
+        String.raw`printf '%s\n' '{"stream":"stderr","message":"saved"}' >&2`,
         "",
       ].join("\n"),
       { mode: 0o755 },

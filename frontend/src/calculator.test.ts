@@ -10,7 +10,7 @@ import {
   trainingStateGb,
   weightsGb,
 } from "./calculator-core";
-import { HARDWARE_TIERS } from "./hardware";
+import { HARDWARE_TIERS, type HardwareTier } from "./hardware";
 import { defaultState } from "./state";
 import type { FormState, WorkloadFamily } from "./types";
 import {
@@ -19,7 +19,11 @@ import {
   speedEstimate,
 } from "./workload-memory";
 
-function speedTierForTest() {
+/**
+ Return the 24 GB hardware tier used as a fixed basis for speed assertions.
+@returns the 24 GB HardwareTier
+*/
+function speedTierForTest(): HardwareTier {
   const match = HARDWARE_TIERS.find((row) => row.vramGb === 24);
   if (match === undefined) {
     throw new Error("Missing 24 GB test tier");
@@ -36,10 +40,18 @@ const NO_KV_FAMILIES = new Set<WorkloadFamily>([
   "image_diffusion",
 ]);
 
+/**
+ 
+@param overrides
+*/
 function state(overrides: Partial<FormState> = {}): FormState {
   return { ...defaultState(), ...overrides };
 }
 
+/**
+ 
+@param overrides
+*/
 function required(overrides: Partial<FormState>): number {
   return memoryBreakdown(specFromState(state(overrides))).requiredGb;
 }
@@ -47,11 +59,11 @@ function required(overrides: Partial<FormState>): number {
 describe("parameter conversion and precision maps", () => {
   test("converts B and M units into billions of parameters", () => {
     expect(
-      specFromState(state({ total_params: "7", parameter_unit: "B" }))
+      specFromState(state({ totalParams: "7", parameterUnit: "B" }))
         .totalParamsB,
     ).toBe(7);
     expect(
-      specFromState(state({ total_params: "7000", parameter_unit: "M" }))
+      specFromState(state({ totalParams: "7000", parameterUnit: "M" }))
         .totalParamsB,
     ).toBe(7);
   });
@@ -73,66 +85,66 @@ describe("corrected text-generation totals", () => {
     [
       "47B MoE server inference keeps resident weight memory dense",
       {
-        total_params: "47",
-        moe_enabled: true,
-        active_params: "1.3",
+        totalParams: "47",
+        moeEnabled: true,
+        activeParams: "1.3",
         precision: "16-bit",
       },
       113.1,
     ],
-    ["8B server inference defaults to 21.3 GB", { total_params: "8" }, 21.3],
+    ["8B server inference defaults to 21.3 GB", { totalParams: "8" }, 21.3],
     [
       "104B local exact GGUF file uses local overhead and no server buffer",
       {
-        total_params: "104",
-        context_tokens: "32000",
+        totalParams: "104",
+        contextTokens: "32000",
         precision: "4-bit",
-        kv_cache_precision: "32-bit",
-        runtime_profile: "Local / Edge",
-        known_model_file_size_gb: "52",
+        kvCachePrecision: "32-bit",
+        runtimeProfile: "Local / Edge",
+        knownModelFileSizeGb: "52",
       },
       79.2,
     ],
     [
       "47B local 4-bit MoE applies quantized weight overhead",
       {
-        total_params: "47",
+        totalParams: "47",
         precision: "4-bit",
-        runtime_profile: "Local / Edge",
-        moe_enabled: true,
-        active_params: "1.3",
+        runtimeProfile: "Local / Edge",
+        moeEnabled: true,
+        activeParams: "1.3",
       },
       31,
     ],
     [
       "70B long-context 4-bit FP8 KV uses estimated GQA KV heads",
       {
-        total_params: "70",
-        context_tokens: "128000",
+        totalParams: "70",
+        contextTokens: "128000",
         precision: "4-bit",
-        kv_cache_precision: "8-bit / FP8",
+        kvCachePrecision: "8-bit / FP8",
       },
       71.2,
     ],
     [
       "70B exact file long-context case preserves architecture KV",
       {
-        total_params: "70",
-        context_tokens: "128000",
+        totalParams: "70",
+        contextTokens: "128000",
         precision: "4-bit",
-        kv_cache_precision: "8-bit / FP8",
-        known_model_file_size_gb: "35",
+        kvCachePrecision: "8-bit / FP8",
+        knownModelFileSizeGb: "35",
       },
       65.1,
     ],
     [
       "104B 8-bit 16-bit KV uses weight overhead",
-      { total_params: "104", context_tokens: "32000", precision: "8-bit" },
+      { totalParams: "104", contextTokens: "32000", precision: "8-bit" },
       141.6,
     ],
     [
       "7B million-token context uses estimated GQA",
-      { context_tokens: "1000000", precision: "8-bit" },
+      { contextTokens: "1000000", precision: "8-bit" },
       154.3,
     ],
   ])("%s", (_name, overrides, expected) => {
@@ -143,7 +155,7 @@ describe("corrected text-generation totals", () => {
     expect(
       ["32-bit", "16-bit", "8-bit", "4-bit"].map((precision) =>
         required({
-          total_params: "8",
+          totalParams: "8",
           precision: precision as FormState["precision"],
         }),
       ),
@@ -154,10 +166,10 @@ describe("corrected text-generation totals", () => {
     expect(
       ["32-bit", "16-bit", "8-bit", "4-bit"].map((precision) =>
         required({
-          total_params: "104",
-          context_tokens: "32000",
-          kv_cache_precision: "32-bit",
-          runtime_profile: "Local / Edge",
+          totalParams: "104",
+          contextTokens: "32000",
+          kvCachePrecision: "32-bit",
+          runtimeProfile: "Local / Edge",
           precision: precision as FormState["precision"],
         }),
       ),
@@ -167,9 +179,9 @@ describe("corrected text-generation totals", () => {
   test("local 4-bit weights apply quantized overhead", () => {
     const spec = specFromState(
       state({
-        total_params: "47",
+        totalParams: "47",
         precision: "4-bit",
-        runtime_profile: "Local / Edge",
+        runtimeProfile: "Local / Edge",
       }),
     );
 
@@ -182,61 +194,61 @@ describe("training estimates", () => {
     [
       "8B QLoRA with 2% trainable adapters",
       {
-        total_params: "8",
-        execution_mode: "QLoRA fine-tuning",
-        lora_trainable_percent: "2",
+        totalParams: "8",
+        executionMode: "QLoRA fine-tuning",
+        loraTrainablePercent: "2",
       },
       21,
     ],
     [
       "7B full training includes weights, states, activations, overhead, and buffer",
-      { execution_mode: "Full training" },
+      { executionMode: "Full training" },
       152.9,
     ],
     [
       "tiny FP8 full training uses checkpointed activations without a special case",
       {
-        total_params: "0.0004",
+        totalParams: "0.0004",
         precision: "8-bit",
-        kv_cache_precision: "8-bit / FP8",
-        execution_mode: "Full training",
+        kvCachePrecision: "8-bit / FP8",
+        executionMode: "Full training",
       },
       7,
     ],
     [
       "8B default QLoRA uses 0.5% trainable adapters",
       {
-        total_params: "8",
+        totalParams: "8",
         precision: "4-bit",
-        execution_mode: "QLoRA fine-tuning",
+        executionMode: "QLoRA fine-tuning",
       },
       19.2,
     ],
     [
       "70B default QLoRA scales adapter state and activations",
       {
-        total_params: "70",
+        totalParams: "70",
         precision: "4-bit",
-        execution_mode: "QLoRA fine-tuning",
+        executionMode: "QLoRA fine-tuning",
       },
       99.9,
     ],
     [
       "3.8B default QLoRA uses the <=4B architecture bucket",
       {
-        total_params: "3.8",
+        totalParams: "3.8",
         precision: "4-bit",
-        execution_mode: "QLoRA fine-tuning",
+        executionMode: "QLoRA fine-tuning",
       },
       13.2,
     ],
     [
       "70B 2% QLoRA replaces legacy trained/use_adapter query flags",
       {
-        total_params: "70",
+        totalParams: "70",
         precision: "4-bit",
-        execution_mode: "QLoRA fine-tuning",
-        lora_trainable_percent: "2",
+        executionMode: "QLoRA fine-tuning",
+        loraTrainablePercent: "2",
       },
       115.6,
     ],
@@ -247,9 +259,9 @@ describe("training estimates", () => {
   test("LoRA and optimizer options affect only adapter training state", () => {
     const lora = specFromState(
       state({
-        execution_mode: "LoRA fine-tuning",
+        executionMode: "LoRA fine-tuning",
         optimizer: "8-bit Adam",
-        lora_trainable_percent: "1",
+        loraTrainablePercent: "1",
       }),
     );
     expect(trainingStateGb(lora)).toBeCloseTo(0.42);
@@ -260,17 +272,17 @@ describe("training estimates", () => {
   test("training activation uses encoder and encoder-decoder token shapes", () => {
     const encoder = specFromState(
       state({
-        workload_family: "text_encoder",
-        execution_mode: "LoRA fine-tuning",
-        sequence_tokens: "256",
+        workloadFamily: "text_encoder",
+        executionMode: "LoRA fine-tuning",
+        sequenceTokens: "256",
       }),
     );
     const encoderDecoder = specFromState(
       state({
-        workload_family: "encoder_decoder",
-        execution_mode: "LoRA fine-tuning",
-        input_tokens: "512",
-        output_tokens: "128",
+        workloadFamily: "encoder_decoder",
+        executionMode: "LoRA fine-tuning",
+        inputTokens: "512",
+        outputTokens: "128",
       }),
     );
 
@@ -283,12 +295,12 @@ describe("training estimates", () => {
   test("calculator parsing falls back for invalid direct state values", () => {
     const spec = specFromState(
       state({
-        total_params: "bad",
-        workload_size: "bad",
-        active_params: "bad",
-        moe_enabled: true,
-        gpu_resident_fraction: "bad",
-        lora_trainable_percent: "bad",
+        totalParams: "bad",
+        workloadSize: "bad",
+        activeParams: "bad",
+        moeEnabled: true,
+        gpuResidentFraction: "bad",
+        loraTrainablePercent: "bad",
       }),
     );
 
@@ -299,7 +311,7 @@ describe("training estimates", () => {
     expect(spec.loraTrainablePercent).toBe(0.5);
 
     expect(
-      specFromState(state({ total_params: "-1", workload_size: "-2" }))
+      specFromState(state({ totalParams: "-1", workloadSize: "-2" }))
         .totalParamsB,
     ).toBe(7);
   });
@@ -307,9 +319,9 @@ describe("training estimates", () => {
   test("zero baseline produces zero output memory and speed", () => {
     const spec = specFromState(
       state({
-        total_params: "0",
-        workload_size: "0",
-        context_tokens: "0",
+        totalParams: "0",
+        workloadSize: "0",
+        contextTokens: "0",
       }),
     );
 
@@ -321,12 +333,12 @@ describe("training estimates", () => {
 
   test("checkpointing changes activation scale and SGD-like state is valid", () => {
     const checkpointed = specFromState(
-      state({ execution_mode: "Full training" }),
+      state({ executionMode: "Full training" }),
     );
     const uncheckpointed = specFromState(
       state({
-        execution_mode: "Full training",
-        gradient_checkpointing: false,
+        executionMode: "Full training",
+        gradientCheckpointing: false,
         optimizer: "SGD-like",
       }),
     );
@@ -340,7 +352,7 @@ describe("training estimates", () => {
 describe("workload-family working memory", () => {
   test("text generation includes decoder scratch by runtime profile", () => {
     const server = specFromState(state());
-    const local = specFromState(state({ runtime_profile: "Local / Edge" }));
+    const local = specFromState(state({ runtimeProfile: "Local / Edge" }));
 
     expect(
       inferenceWorkingMemoryGb(server, weightsGb(server)).inputActivationGb,
@@ -361,7 +373,7 @@ describe("workload-family working memory", () => {
     "tabular",
     "custom",
   ])("%s produces a positive non-legacy working-memory estimate", (family) => {
-    const spec = specFromState(state({ workload_family: family }));
+    const spec = specFromState(state({ workloadFamily: family }));
     const weights = weightsGb(spec);
     const working = inferenceWorkingMemoryGb(spec, weights);
     expect(working.inputActivationGb + working.kvCacheGb).toBeGreaterThan(0);
@@ -372,13 +384,13 @@ describe("workload-family working memory", () => {
 
   test("video 1080p branch and image pixel proxy branch are reachable", () => {
     const video = specFromState(
-      state({ workload_family: "video_generation", video_resolution: "1080p" }),
+      state({ workloadFamily: "video_generation", videoResolution: "1080p" }),
     );
     const vision = specFromState(
       state({
-        workload_family: "vision",
-        image_width: "32",
-        image_height: "32",
+        workloadFamily: "vision",
+        imageWidth: "32",
+        imageHeight: "32",
       }),
     );
     expect(
@@ -390,7 +402,7 @@ describe("workload-family working memory", () => {
   });
 
   test("vision-language falls back to pixel proxy when vision architecture is missing", () => {
-    const spec = specFromState(state({ workload_family: "vision_language" }));
+    const spec = specFromState(state({ workloadFamily: "vision_language" }));
     const working = inferenceWorkingMemoryGb(spec, weightsGb(spec));
 
     expect(spec.visionArchitecture).toBeNull();
@@ -400,7 +412,7 @@ describe("workload-family working memory", () => {
   });
 
   test("vision-language uses explicit vision architecture for image tokens", () => {
-    const base = specFromState(state({ workload_family: "vision_language" }));
+    const base = specFromState(state({ workloadFamily: "vision_language" }));
     const spec: CalculationSpec = {
       ...base,
       visionArchitecture: { layers: 24, hidden: 1024 },
@@ -412,19 +424,19 @@ describe("workload-family working memory", () => {
   });
 
   test("working-memory helpers fall back for invalid raw workload fields", () => {
-    const text = specFromState(state({ context_tokens: "bad" }));
+    const text = specFromState(state({ contextTokens: "bad" }));
     const custom = specFromState(
       state({
-        workload_family: "custom",
-        input_size_multiplier: "-1",
+        workloadFamily: "custom",
+        inputSizeMultiplier: "-1",
       }),
     );
-    const malformed = specFromState(state({ workload_family: "text_encoder" }));
+    const malformed = specFromState(state({ workloadFamily: "text_encoder" }));
     Object.defineProperty(malformed, "family", { value: "unknown" });
 
     expect(inferenceWorkingMemoryGb(text, weightsGb(text)).kvCacheGb).toBe(
       inferenceWorkingMemoryGb(
-        specFromState(state({ context_tokens: "8000" })),
+        specFromState(state({ contextTokens: "8000" })),
         weightsGb(text),
       ).kvCacheGb,
     );
@@ -471,8 +483,8 @@ describe("architecture, runtime, accuracy, and speed helpers", () => {
     ] as const) {
       const spec = specFromState(
         state({
-          workload_family: family,
-          moe_enabled: family === "text_generation",
+          workloadFamily: family,
+          moeEnabled: family === "text_generation",
         }),
       );
       expect(speedEstimate(spec, weightsGb(spec), SPEED_TIER)).toMatch(
@@ -483,23 +495,21 @@ describe("architecture, runtime, accuracy, and speed helpers", () => {
 
   test("MoE never reduces resident weight memory", () => {
     const dense = specFromState(
-      state({ total_params: "47", precision: "16-bit" }),
+      state({ totalParams: "47", precision: "16-bit" }),
     );
     const moe = specFromState(
       state({
-        total_params: "47",
+        totalParams: "47",
         precision: "16-bit",
-        moe_enabled: true,
-        active_params: "3",
+        moeEnabled: true,
+        activeParams: "3",
       }),
     );
     expect(weightsGb(moe)).toBe(weightsGb(dense));
   });
 
   test("zero active params falls back to the total for MoE compute", () => {
-    const spec = specFromState(
-      state({ moe_enabled: true, active_params: "0" }),
-    );
+    const spec = specFromState(state({ moeEnabled: true, activeParams: "0" }));
     expect(spec.activeParamsB).toBe(spec.totalParamsB);
   });
 

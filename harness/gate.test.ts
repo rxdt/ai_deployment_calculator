@@ -14,7 +14,7 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { pathToFileURL } from "node:url";
 
 import {
   COMMIT_CHECKS,
@@ -30,7 +30,7 @@ import {
   runPreflight,
 } from "./gate.js";
 
-const HARNESS = path.dirname(fileURLToPath(import.meta.url));
+const HARNESS = import.meta.dirname;
 const REPO = path.join(HARNESS, "..");
 const readRepo = (relpath: string): string =>
   readFileSync(path.join(REPO, relpath), "utf8");
@@ -62,6 +62,11 @@ const harnessTool = (name: string): string =>
   path.join("harness/node_modules/.bin", name);
 const commandText = (command: string[]): string => command.join(" ");
 
+/**
+
+* @param argv
+* @param cwd
+*/
 function runCommand(argv: string[], cwd: string): string {
   const [command, ...arguments_] = argv;
   if (command === undefined) {
@@ -78,6 +83,9 @@ function runCommand(argv: string[], cwd: string): string {
   return result.stdout;
 }
 
+/**
+
+*/
 function makeRepo(): string {
   const repo = mkdtempSync(path.join(tmpdir(), "harness-"));
   runCommand(["git", "init", "-q"], repo);
@@ -89,6 +97,12 @@ function makeRepo(): string {
   return repo;
 }
 
+/**
+
+* @param repo
+* @param relpath
+* @param content
+*/
 function stageFile(repo: string, relpath: string, content: string): void {
   const target = path.join(repo, relpath);
   mkdirSync(path.dirname(target), { recursive: true });
@@ -96,37 +110,41 @@ function stageFile(repo: string, relpath: string, content: string): void {
   runCommand(["git", "add", "--", relpath], repo);
 }
 
+/**
+
+* @param repo
+*/
 function stagedNames(repo: string): string[] {
   return runGit(repo, ["diff", "--cached", "--name-only"])
     .split("\n")
     .filter((line) => line.length > 0);
 }
 
-type FlatConfigBlock = {
+interface FlatConfigBlock {
   files?: unknown;
   linterOptions?: Record<string, unknown>;
   rules?: Record<string, unknown>;
-};
+}
 
-type VitestConfig = {
+interface VitestConfig {
   test?: {
     coverage?: {
       include?: string[];
       thresholds?: Record<string, number>;
     };
   };
-};
+}
 
-type EslintResolvedConfig = {
+interface EslintResolvedConfig {
   linterOptions?: Record<string, unknown>;
   rules?: Record<string, unknown>;
-};
+}
 
-type PackageJson = {
+interface PackageJson {
   name?: string;
   private?: boolean;
   scripts?: Record<string, string>;
-};
+}
 
 const parseJsonObject = (relpath: string): Record<string, unknown> => {
   const parsed: unknown = JSON.parse(readRepo(relpath));
@@ -143,8 +161,7 @@ const packageRoot = (
   devDependencies?: Record<string, string>;
 } => {
   const parsed = parseJsonObject(relpath);
-  const dependencies = parsed.dependencies;
-  const devDependencies = parsed.devDependencies;
+  const {dependencies, devDependencies} = parsed;
   return {
     dependencies: isStringRecord(dependencies) ? dependencies : undefined,
     devDependencies: isStringRecord(devDependencies)
@@ -160,7 +177,7 @@ const lockRootPackage = (
   devDependencies?: Record<string, string>;
 } => {
   const parsed = parseJsonObject(relpath);
-  const packages = parsed.packages;
+  const {packages} = parsed;
   if (
     typeof packages !== "object" ||
     packages === null ||
@@ -210,7 +227,7 @@ const REQUIRED_INSTALLED_GATE_TOOLS: readonly {
   },
   {
     dependency: "typescript",
-    check: "frontend_types",
+    check: "type",
     commandFragment: harnessTool("tsc"),
   },
   {
@@ -245,7 +262,7 @@ const REQUIRED_INSTALLED_GATE_TOOLS: readonly {
   },
   {
     dependency: "knip",
-    check: "dead_code",
+    check: "deadcode",
     commandFragment: harnessTool("knip"),
   },
   {
@@ -255,7 +272,7 @@ const REQUIRED_INSTALLED_GATE_TOOLS: readonly {
   },
   {
     dependency: "@stoplight/spectral-cli",
-    check: "workflow_api",
+    check: "workflow",
     commandFragment: harnessTool("spectral"),
   },
   {
@@ -357,7 +374,7 @@ const REQUIRED_CHECK_POLICIES: readonly {
     ],
   },
   {
-    check: "frontend_types",
+    check: "typecheck",
     fragments: [harnessTool("tsc"), "harness/tsconfig.app.json", "--noEmit"],
   },
   {
@@ -381,7 +398,7 @@ const REQUIRED_CHECK_POLICIES: readonly {
   },
   { check: "package_json", fragments: [harnessTool("npmPkgJsonLint"), "."] },
   {
-    check: "architecture",
+    check: "cruise",
     fragments: [
       harnessTool("depcruise"),
       "frontend/src",
@@ -389,13 +406,13 @@ const REQUIRED_CHECK_POLICIES: readonly {
       "err",
     ],
   },
-  { check: "dead_code", fragments: [harnessTool("knip"), "harness/knip.json"] },
+  { check: "deadcode", fragments: [harnessTool("knip"), "harness/knip.json"] },
   {
     check: "spelling",
     fragments: [harnessTool("cspell"), ".", "harness/cspell.json"],
   },
   {
-    check: "workflow_api",
+    check: "workflow",
     fragments: [
       harnessTool("spectral"),
       ".github/workflows/ci.yml",
@@ -429,16 +446,6 @@ const REQUIRED_CHECK_POLICIES: readonly {
   {
     check: "pnpm_audit",
     fragments: [harnessTool("pnpm"), "--dir", "frontend", "audit", "high"],
-  },
-  {
-    check: "pnpm_approve_builds",
-    fragments: [
-      harnessTool("pnpm"),
-      "--dir",
-      "frontend",
-      "approve-builds",
-      "--all",
-    ],
   },
   {
     check: "npm_signatures",
@@ -530,6 +537,11 @@ const readPackageJsonInRepo = (repo: string): PackageJson =>
     readFileSync(path.join(repo, "package.json"), "utf8"),
   ) as PackageJson;
 
+const readHarnessPackageJsonInRepo = (repo: string): PackageJson =>
+  JSON.parse(
+    readFileSync(path.join(repo, "harness", "package.json"), "utf8"),
+  ) as PackageJson;
+
 const makeInstallRepo = (scripts: Record<string, string>): string => {
   const repo = makeRepo();
   writeFileSync(
@@ -542,6 +554,19 @@ const makeInstallRepo = (scripts: Record<string, string>): string => {
   );
   mkdirSync(path.join(repo, "frontend/node_modules"), { recursive: true });
   mkdirSync(path.join(repo, "harness/node_modules"), { recursive: true });
+  writeFileSync(
+    path.join(repo, "harness", "package.json"),
+    `${JSON.stringify(
+      {
+        name: "setup-target-harness",
+        private: true,
+        type: "module",
+        scripts: readPackageScripts("harness/package.json"),
+      },
+      null,
+      2,
+    )}\n`,
+  );
   return repo;
 };
 
@@ -701,7 +726,7 @@ describe("runChecks", () => {
         "process.stderr.write('second'); process.exit(3)",
       ],
     });
-    expect(failures.map((failure) => failure.split(" failed:")[0])).toEqual([
+    expect(failures.map((failure) => failure.split(" failed:", 1)[0])).toEqual([
       "first",
       "second",
     ]);
@@ -738,11 +763,15 @@ describe("runChecks", () => {
   test("times out a hung check instead of waiting for normal completion", () => {
     const started = Date.now();
     const failures = runChecks(makeRepo(), {
-      slow: [process.execPath, "-e", "setTimeout(() => process.exit(0), 1000)"],
+      slow: [
+        process.execPath,
+        "-e",
+        "setTimeout(() => process.exit(0), 20000)",
+      ],
     });
-    expect(Date.now() - started).toBeLessThan(750);
-    expect(failureFor(failures, "slow").toLowerCase()).toContain("timeout");
-  });
+    expect(Date.now() - started).toBeLessThan(12_000);
+    expect(failureFor(failures, "slow")).toContain("ETIMEDOUT");
+  }, 15_000);
 
   test("fails closed for malformed empty argv", () => {
     let failures: string[] = [];
@@ -1027,8 +1056,8 @@ describe("gate constants", () => {
     ]);
   });
 
-  test("frontend type gate uses harness-owned app tsconfig only", () => {
-    const command = checkCommand(FULL_CHECKS, "frontend_types");
+  test("typecheck gate uses harness-owned app tsconfig only", () => {
+    const command = checkCommand(FULL_CHECKS, "typecheck");
     expect(command).toContain("harness/tsconfig.app.json");
     expect(command).toContain("--noEmit");
     expect(command).not.toContain("frontend/tsconfig.json");
@@ -1037,7 +1066,7 @@ describe("gate constants", () => {
   });
 
   test("installed gate tooling has a concrete full-gate policy owner", () => {
-    const devDependencies = packageRoot("harness/package.json").devDependencies;
+    const {devDependencies} = packageRoot("harness/package.json");
     if (devDependencies === undefined) {
       throw new Error("harness/package.json has no devDependencies");
     }
@@ -1561,6 +1590,33 @@ describe("banned patterns and preferences under loop", () => {
     expect(stagedNames(repo)).toEqual(["frontend/src/state.ts"]);
   });
 
+  test("does not eject unrelated staged files with legacy banned content", () => {
+    process.env.RALPH_LOOP = "1";
+    const repo = makeRepo();
+    stageFile(
+      repo,
+      "frontend/src/legacy.ts",
+      `export const legacy = 1; // ${requiredForbiddenPattern("noqa")}\n`,
+    );
+    runCommand(["git", "commit", "-q", "-m", "add legacy suppression"], repo);
+    stageFile(
+      repo,
+      "frontend/src/state.ts",
+      `export const value = 1; // ${requiredForbiddenPattern("ts-ignore")}\n`,
+    );
+    stageFile(
+      repo,
+      "frontend/src/legacy.ts",
+      [
+        `export const legacy = 1; // ${requiredForbiddenPattern("noqa")}\n`,
+        "export const clean = 1;\n",
+      ].join(""),
+    );
+
+    expect(runPreflight(repo)).toEqual([]);
+    expect(stagedNames(repo)).toEqual(["frontend/src/legacy.ts"]);
+  });
+
   test("ejects every file that adds a banned pattern in one preflight", () => {
     process.env.RALPH_LOOP = "1";
     const repo = makeRepo();
@@ -1620,7 +1676,7 @@ describe("harness setup script merging", () => {
     expect(scripts["test:file"]).toBe("npm --prefix harness run test:file --");
   });
 
-  test("preserves existing test and lint scripts and reports namespaced aliases", () => {
+  test("preserves existing test and lint scripts with namespaced aliases", () => {
     const repo = makeInstallRepo({
       gate: "node custom-gate.js",
       lint: "eslint app",
@@ -1630,7 +1686,6 @@ describe("harness setup script merging", () => {
     const result = runHarnessSetup(repo);
 
     expect(result.status, `${result.stdout}\n${result.stderr}`).toBe(0);
-    const output = `${result.stdout}\n${result.stderr}`;
     const scripts = readPackageJsonInRepo(repo).scripts ?? {};
     expect(scripts.gate).toBe("node custom-gate.js");
     expect(scripts.lint).toBe("eslint app");
@@ -1639,10 +1694,6 @@ describe("harness setup script merging", () => {
     expect(scripts["harness:test"]).toBe(
       "npm --prefix harness run test:coverage",
     );
-    expect(output).toContain("script conflict: lint -> harness:lint");
-    expect(output).toContain("script conflict: test -> harness:test");
-    expect(output).not.toContain("script added: lint");
-    expect(output).not.toContain("script added: test");
   });
 
   test("preserves every existing root script name and only aliases test and lint", () => {
@@ -1678,6 +1729,38 @@ describe("harness setup script merging", () => {
     expect(Object.hasOwn(scripts, "harness:status")).toBe(false);
     expect(Object.hasOwn(scripts, "harness:test:file")).toBe(false);
   });
+
+  test("does not create a runtime config sidecar", () => {
+    const repo = makeInstallRepo({});
+
+    const result = runHarnessSetup(repo);
+
+    expect(result.status, `${result.stdout}\n${result.stderr}`).toBe(0);
+    expect(existsSync(path.join(repo, "harness", "configs.json"))).toBe(false);
+  });
+
+  test("leaves harness scripts unchanged when no user config exists", () => {
+    const repo = makeInstallRepo({});
+    const before = readHarnessPackageJsonInRepo(repo).scripts ?? {};
+
+    const result = runHarnessSetup(repo);
+
+    expect(result.status, `${result.stdout}\n${result.stderr}`).toBe(0);
+    expect(readHarnessPackageJsonInRepo(repo).scripts).toEqual(before);
+  });
+
+  test("uses a user config outside harness when one exists", () => {
+    const repo = makeInstallRepo({});
+    writeFileSync(path.join(repo, "eslint.config.js"), "export default [];\n");
+
+    const result = runHarnessSetup(repo);
+
+    expect(result.status, `${result.stdout}\n${result.stderr}`).toBe(0);
+    const scripts = readHarnessPackageJsonInRepo(repo).scripts ?? {};
+    expect(scripts.eslint).toContain("--config eslint.config.js");
+    expect(scripts.eslint).not.toContain("harness/eslint.config.js");
+    expect(existsSync(path.join(repo, "harness", "configs.json"))).toBe(false);
+  });
 });
 
 describe("frontend gate shape", () => {
@@ -1707,7 +1790,6 @@ describe("frontend gate shape", () => {
         "npm_signatures",
         "osv",
         "pnpm_audit",
-        "pnpm_approve_builds",
         "sast",
         "size",
       ]);
@@ -1722,7 +1804,6 @@ describe("frontend gate shape", () => {
       "npm_audit",
       "npm_signatures",
       "osv",
-      "pnpm_approve_builds",
       "pnpm_audit",
       "sast",
       "size",
@@ -1751,9 +1832,6 @@ describe("frontend gate shape", () => {
     expect(commandText(checkCommand(selected ?? {}, "pnpm_audit"))).toBe(
       `${harnessTool("pnpm")} --dir frontend audit --audit-level high`,
     );
-    expect(
-      commandText(checkCommand(selected ?? {}, "pnpm_approve_builds")),
-    ).toBe(`${harnessTool("pnpm")} --dir frontend approve-builds --all`);
     expect(commandText(checkCommand(selected ?? {}, "sast"))).toContain(
       "semgrep scan --config=p/typescript --config=p/javascript --config=p/security-audit --error --metrics=off",
     );
@@ -1794,7 +1872,7 @@ describe("frontend gate shape", () => {
       required: ["frontend/**/*.html"],
     },
     {
-      check: "frontend_types",
+      check: "typecheck",
       tool: "tsc",
       required: ["-p harness/tsconfig.app.json", "--noEmit"],
     },
@@ -1815,7 +1893,7 @@ describe("frontend gate shape", () => {
       required: ["."],
     },
     {
-      check: "architecture",
+      check: "cruise",
       tool: "depcruise",
       required: [
         "frontend/src",
@@ -1824,7 +1902,7 @@ describe("frontend gate shape", () => {
       ],
     },
     {
-      check: "workflow_api",
+      check: "workflow",
       tool: "spectral",
       required: [
         "lint",

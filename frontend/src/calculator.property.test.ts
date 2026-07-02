@@ -10,6 +10,10 @@ const finiteParameterCount = fc
   .float({ min: 0, max: 500, noNaN: true, noDefaultInfinity: true })
   .map((value) => value.toString());
 
+/**
+ 
+@param overrides
+*/
 function requiredGb(overrides: Partial<FormState>): number {
   return memoryBreakdown(specFromState({ ...defaultState(), ...overrides }))
     .requiredGb;
@@ -24,13 +28,13 @@ describe("calculator properties", () => {
 
         expect(
           requiredGb({
-            workload_family: "text_generation",
-            total_params: high,
+            workloadFamily: "text_generation",
+            totalParams: high,
           }),
         ).toBeGreaterThanOrEqual(
           requiredGb({
-            workload_family: "text_generation",
-            total_params: low,
+            workloadFamily: "text_generation",
+            totalParams: low,
           }),
         );
       }),

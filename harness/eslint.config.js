@@ -22,6 +22,9 @@ const securityErrors = Object.fromEntries(
   ]),
 );
 const repoRoot = fileURLToPath(new URL("..", import.meta.url));
+const typeScriptFiles = ["**/*.ts"];
+const testTypeScriptFiles = ["**/*.test.ts", "**/*.spec.ts"];
+const configTypeScriptFiles = ["**/*.config.ts", "**/vite.config.ts"];
 
 export default defineConfig([
   globalIgnores([
@@ -37,8 +40,9 @@ export default defineConfig([
     "scratchpad/",
     "**/package-lock.json",
   ]),
+  // Production TypeScript files. Test-specific relaxations live in the next block.
   {
-    files: ["**/*.ts"], // Rules on all TS files (no JSX in this project)
+    files: typeScriptFiles,
     extends: [
       js.configs.recommended,
       ...tseslint.configs.strictTypeChecked,
@@ -51,6 +55,7 @@ export default defineConfig([
       promise.configs["flat/recommended"],
       regexp.configs["flat/recommended"],
       n.configs["flat/recommended-module"],
+      eslintConfigPrettier,
     ],
     languageOptions: {
       globals: { ...globals.browser, ...globals.node },
@@ -69,6 +74,36 @@ export default defineConfig([
       reportUnusedDisableDirectives: "error", // Clean up lazy comments
     },
     rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["*.test", "*.test.*", "*.spec", "*.spec.*"],
+              message: "Production source cannot import test modules.",
+            },
+          ],
+        },
+      ],
+      "@typescript-eslint/naming-convention": [
+        "error",
+        {
+          selector: ["variable", "function", "objectLiteralProperty"],
+          format: ["camelCase", "UPPER_CASE", "PascalCase"],
+        },
+        {
+          selector: ["typeLike", "class"],
+          format: ["PascalCase"],
+        },
+        {
+          selector: "objectLiteralProperty",
+          modifiers: ["requiresQuotes"],
+          format: null,
+        },
+      ],
+      // Owner decision: no-magic-numbers is impractical for this codebase (it fires 220+
+      // times in src/ on ordinary numeric/index math). Disabled for TypeScript; revisit later.
+      "@typescript-eslint/no-magic-numbers": "off",
       // TYPE SAFETY Stop lazily skipping types
       "@typescript-eslint/no-explicit-any": "error", // Outlaws 'any' completely
       "@typescript-eslint/no-unsafe-assignment": "error",
@@ -94,7 +129,7 @@ export default defineConfig([
       "@typescript-eslint/restrict-template-expressions": "error",
       "@typescript-eslint/strict-boolean-expressions": "error",
       "@typescript-eslint/switch-exhaustiveness-check": "error",
-      "@typescript-eslint/explicit-function-return-type": "off",
+      "@typescript-eslint/explicit-function-return-type": "error",
       "@typescript-eslint/no-unused-vars": [
         "error",
         { argsIgnorePattern: "^_" },
@@ -201,37 +236,59 @@ export default defineConfig([
       // TypeScript typecheck owns missing-import resolution across TS/ESM layouts.
       "import-x/no-unresolved": "off",
       "n/no-missing-import": "off",
+
+      "@typescript-eslint/prefer-readonly-parameter-types": "off",
+
+      "unicorn/no-unsafe-dom-html": "error",
+      "unicorn/no-null": "off",
+      "unicorn/no-array-sort": "off",
+      "unicorn/no-unreadable-new-expression": "off",
+      "unicorn/prefer-dom-node-html-methods": "off",
+      "unicorn/prefer-iterator-concat": "off",
+      "unicorn/require-array-sort-compare": "off",
+      "unicorn/consistent-class-member-order": "off",
+
+      // Turn ON rules that actually prevent broken code documentation
+      "jsdoc/check-param-names": "error", // Comment names match actual code variables
+      "jsdoc/check-tag-names": "error", // No typos in tags like writing @paramm
+      // NOISY
+      "jsdoc/require-returns": "off",
+      "jsdoc/require-param-description": "off",
+      "jsdoc/check-alignment": "off",
     },
   },
-  // SOURCE ARCHITECTURE: production code cannot import test modules.
+  // TypeScript test files.
   {
-    files: ["**/*.ts"],
-    ignores: ["**/*.test.ts", "**/*.spec.ts"],
-    rules: {
-      "no-restricted-imports": [
-        "error",
-        {
-          patterns: [
-            {
-              group: ["*.test", "*.test.*", "*.spec", "*.spec.*"],
-              message: "Production source cannot import test modules.",
-            },
-          ],
-        },
-      ],
-    },
-  },
-  {
-    files: ["**/*.test.ts"],
+    files: testTypeScriptFiles,
     plugins: { "no-only-tests": noOnlyTests },
     rules: {
+      "@typescript-eslint/max-params": "off",
+      "@typescript-eslint/no-unsafe-argument": "off",
+      "@typescript-eslint/no-unsafe-assignment": "off",
+      "@typescript-eslint/no-unsafe-call": "off",
+      "@typescript-eslint/no-unsafe-member-access": "off",
+      "@typescript-eslint/no-unsafe-return": "off",
+      "@typescript-eslint/no-unsafe-type-assertion": "off",
+      "@typescript-eslint/no-use-before-define": "off",
+      "@typescript-eslint/prefer-nullish-coalescing": "off",
+      "@typescript-eslint/restrict-plus-operands": "off",
+      "@typescript-eslint/strict-boolean-expressions": "off",
+      "@typescript-eslint/strict-void-return": "off",
+      "import-x/no-named-as-default": "off",
       "max-lines": "off",
       // describe/it callbacks group many cases; line caps target production spaghetti, not test suites.
       "max-lines-per-function": "off",
       "no-only-tests/no-only-tests": "error",
+      "sonarjs/no-alphabetical-sort": "off",
+      "sonarjs/no-floating-point-equality": "off",
+      "sonarjs/prefer-specific-assertions": "off",
+
+      "unicorn/max-nested-calls": "off",
+      "unicorn/no-unsafe-dom-html": "off",
+      "unicorn/prefer-dom-node-html-methods": "off",
     },
   },
-  // HARNESS: Node tooling must read git-provided paths and spawn portable tools by name.
+  // Harness TypeScript files: Node tooling must read git-provided paths and spawn portable tools by name.
   {
     files: ["harness/**/*.ts"],
     rules: {
@@ -239,14 +296,14 @@ export default defineConfig([
       "security/detect-non-literal-fs-filename": "off",
     },
   },
-  // SEPARATION FOR ROOT CONFIGURATIONS
+  // TypeScript config files.
   {
-    files: ["**/*.config.ts", "**/vite.config.ts"],
+    files: configTypeScriptFiles,
     rules: {
       "no-console": "off",
     },
   },
-  // JSON FAMILY (linted via `npm run json:lint`)
+  // JSON family files, linted via `npm run json:lint`.
   {
     files: ["**/*.json"],
     ignores: ["tsconfig*.json"],
@@ -266,47 +323,7 @@ export default defineConfig([
     language: "json/json5",
     extends: ["json/recommended"],
   },
-  // Prettier owns formatting; disable stylistic rules that would conflict.
+  // Final global overrides.
+  // Formatting compatibility. Keep last so Prettier wins over stylistic rules.
   eslintConfigPrettier,
-  // Owner decision: no-magic-numbers is impractical for this codebase (it fires 220+ times in
-  // src/ on ordinary numeric/index math). Disabled globally; revisit later. Last block wins.
-  {
-    rules: {
-      "@typescript-eslint/no-magic-numbers": "off",
-    },
-  },
-  // Test files exercise edge cases and build hostile fixtures; rules that guard production code
-  // are noise against mocks, exact-value float assertions, null checks, and DOM fixtures.
-  {
-    files: ["**/*.test.ts", "**/*.spec.ts"],
-    rules: {
-      "@typescript-eslint/no-unsafe-type-assertion": "off",
-      "@typescript-eslint/no-unsafe-assignment": "off",
-      "@typescript-eslint/no-unsafe-member-access": "off",
-      "@typescript-eslint/no-unsafe-call": "off",
-      "@typescript-eslint/no-unsafe-argument": "off",
-      "@typescript-eslint/no-unsafe-return": "off",
-      "@typescript-eslint/no-use-before-define": "off",
-      "@typescript-eslint/max-params": "off",
-      "@typescript-eslint/prefer-nullish-coalescing": "off",
-      "@typescript-eslint/restrict-plus-operands": "off",
-      "@typescript-eslint/strict-boolean-expressions": "off",
-      "@typescript-eslint/strict-void-return": "off",
-      // Tests assert exact computed numbers and null returns, and sort small string arrays.
-      "sonarjs/no-floating-point-equality": "off",
-      "unicorn/no-null": "off",
-      "unicorn/no-array-sort": "off",
-      "unicorn/require-array-sort-compare": "off",
-      "sonarjs/no-alphabetical-sort": "off",
-      "unicorn/prefer-iterator-concat": "off",
-      "unicorn/max-nested-calls": "off",
-      "sonarjs/prefer-specific-assertions": "off",
-      // Tests build DOM fixtures and chained matchers (new AxeBuilder({ page }).analyze()).
-      "unicorn/no-unsafe-dom-html": "off",
-      "unicorn/prefer-dom-node-html-methods": "off",
-      "unicorn/no-unreadable-new-expression": "off",
-      // @axe-core/playwright exports AxeBuilder as its default; the default import is correct usage.
-      "import-x/no-named-as-default": "off",
-    },
-  },
 ]);

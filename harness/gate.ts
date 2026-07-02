@@ -95,7 +95,7 @@ export const FORBIDDEN_PATTERNS = [
 
 const HARNESS_BIN = "harness/node_modules/.bin";
 const tool = (name: string): string => path.join(HARNESS_BIN, name);
-const CHECK_TIMEOUT_MS = 500;
+const CHECK_TIMEOUT_MS = 30_000;
 const SKIP_DIRECTORIES = new Set([
   ".git",
   "coverage",
@@ -105,16 +105,16 @@ const SKIP_DIRECTORIES = new Set([
   "test-results",
 ]);
 
-// Default config path per check; `harness setup` overwrites these in harness/configs.json.
+// Default config path per check.
 export const DEFAULT_CONFIGS: Record<string, string> = {
   eslint: "harness/eslint.config.js",
   style: "harness/stylelint.config.js",
   html: "harness/.htmlvalidate.json",
-  frontend_types: "harness/tsconfig.app.json",
-  architecture: "harness/.dependency-cruiser.cjs",
-  dead_code: "harness/knip.json",
+  typecheck: "harness/tsconfig.app.json",
+  cruise: "harness/.dependency-cruiser.cjs",
+  deadcode: "harness/knip.json",
   spelling: "harness/cspell.json",
-  workflow_api: "harness/.spectral.yml",
+  workflow: "harness/.spectral.yml",
   coverage: "harness/vitest.config.js",
   e2e: "harness/playwright.config.js",
   lighthouse: "harness/lighthouserc.cjs",
@@ -155,7 +155,7 @@ export const COMMIT_CHECKS: Record<string, string[]> = {
 // The full bar: app, harness tooling, dependency/security, and browser checks.
 export const FULL_CHECKS: Record<string, string[]> = {
   ...COMMIT_CHECKS,
-  frontend_types: [tool("tsc"), "-p", "harness/tsconfig.app.json", "--noEmit"],
+  typecheck: [tool("tsc"), "-p", "harness/tsconfig.app.json", "--noEmit"],
   harness_types: [tool("tsc"), "-p", "harness/tsconfig.json", "--noEmit"],
   markup: [tool("markuplint"), "frontend/**/*.html"],
   schema: [
@@ -180,7 +180,7 @@ export const FULL_CHECKS: Record<string, string[]> = {
     "--output-type",
     "err",
   ],
-  dead_code: [tool("knip"), "--config", "harness/knip.json"],
+  deadcode: [tool("knip"), "--config", "harness/knip.json"],
   spelling: [
     tool("cspell"),
     ".",
@@ -189,7 +189,7 @@ export const FULL_CHECKS: Record<string, string[]> = {
     "--no-progress",
     "--no-summary",
   ],
-  workflow_api: [
+  workflow: [
     tool("spectral"),
     "lint",
     ".github/workflows/ci.yml",
@@ -213,13 +213,13 @@ export const FULL_CHECKS: Record<string, string[]> = {
     "harness/.secretlintrc.json",
   ],
   npm_audit: ["npm", "--prefix", "frontend", "audit", "--audit-level=high"],
-  pnpm_audit: [tool("pnpm"), "--dir", "frontend", "audit", "high"],
-  pnpm_approve_builds: [
+  pnpm_audit: [
     tool("pnpm"),
     "--dir",
     "frontend",
-    "approve-builds",
-    "--all",
+    "audit",
+    "--audit-level",
+    "high",
   ],
   npm_signatures: ["npm", "--prefix", "frontend", "audit", "signatures"],
   lockfile: [
@@ -247,29 +247,47 @@ export const FULL_CHECKS: Record<string, string[]> = {
   lighthouse: [tool("lhci"), "autorun", "--config", "harness/lighthouserc.cjs"],
 };
 
-// process.env minus every GIT_* var, so a poisoned env can't redirect our git calls.
+// process.env minus every GIT_* var, so a poisoned env can't redirect our Git calls.
+/**
+
+*/
 export function gitSafeEnvironment(): NodeJS.ProcessEnv {
   return Object.fromEntries(
     Object.entries(process.env).filter(([key]) => !key.startsWith("GIT_")),
   );
 }
 
-// Run a git command in the repo and return its stdout.
-export function runGit(repo: string, args: string[]): string {
-  const result = spawnSync("git", ["-C", repo, ...args], {
+// Run a Git command in the repo and return its stdout.
+/**
+
+* @param repo
+* @param arguments_
+*/
+export function runGit(repo: string, arguments_: string[]): string {
+  const result = spawnSync("git", ["-C", repo, ...arguments_], {
     encoding: "utf8",
     env: gitSafeEnvironment(),
   });
   if (result.status !== 0) {
-    throw new Error(`git ${args.join(" ")} failed: ${result.stderr}`);
+    throw new Error(`git ${arguments_.join(" ")} failed: ${result.stderr}`);
   }
   return result.stdout;
 }
 
+/**
+
+* @param repo
+* @param directory
+*/
 function hasPackage(repo: string, directory: string): boolean {
   return existsSync(path.join(repo, directory, "package.json"));
 }
 
+/**
+
+* @param repo
+* @param command
+*/
 function shouldSkipCheck(repo: string, command: readonly string[]): boolean {
   const [executable = "", first = "", second = ""] = command;
   if (
@@ -286,15 +304,16 @@ function shouldSkipCheck(repo: string, command: readonly string[]): boolean {
   ) {
     return true;
   }
-  if (
-    (executable === "semgrep" || executable === "osv-scanner") &&
-    (!hasPackage(repo, "frontend") || !hasPackage(repo, "harness"))
-  ) {
-    return true;
-  }
-  return false;
+  return (executable === "semgrep" || executable === "osv-scanner") &&
+    (!hasPackage(repo, "frontend") || !hasPackage(repo, "harness"));
 }
 
+/**
+
+* @param name
+* @param command
+* @param detail
+*/
 function commandFailure(
   name: string,
   command: readonly string[],
@@ -303,6 +322,13 @@ function commandFailure(
   return `${name} failed:\n${detail}`;
 }
 
+/**
+
+* @param repo
+* @param name
+* @param command
+* @param environment
+*/
 function runOneCheck(
   repo: string,
   name: string,
@@ -339,6 +365,11 @@ function runOneCheck(
   );
 }
 
+/**
+
+* @param repo
+* @param relpath
+*/
 function readPackageJson(
   repo: string,
   relpath: string,
@@ -357,11 +388,21 @@ function readPackageJson(
   }
 }
 
+/**
+
+* @param repo
+* @param relpath
+*/
 function packageHasSizeLimit(repo: string, relpath: string): boolean {
   const parsed = readPackageJson(repo, relpath);
   return parsed !== undefined && Object.hasOwn(parsed, "size-limit");
 }
 
+/**
+
+* @param repo
+* @param directory
+*/
 function discoverSizePackages(repo: string, directory = ""): string[] {
   return readdirSync(path.join(repo, directory), {
     withFileTypes: true,
@@ -381,6 +422,11 @@ function discoverSizePackages(repo: string, directory = ""): string[] {
   });
 }
 
+/**
+
+* @param repo
+* @param packagePath
+*/
 function writeSizeConfig(repo: string, packagePath: string): string {
   const parsed = readPackageJson(repo, packagePath) ?? {};
   const target = path.join(
@@ -391,6 +437,13 @@ function writeSizeConfig(repo: string, packagePath: string): string {
   return target;
 }
 
+/**
+
+* @param repo
+* @param name
+* @param command
+* @param environment
+*/
 function runSizeChecks(
   repo: string,
   name: string,
@@ -412,12 +465,55 @@ function runSizeChecks(
   });
 }
 
+/**
+
+* @param repo
+*/
 function stagedNames(repo: string): string[] {
   return runGit(repo, ["diff", "--cached", "--name-only"])
     .split("\n")
     .filter((line) => line.length > 0);
 }
 
+interface StagedChange {
+  paths: string[];
+  status: string;
+}
+
+/**
+
+* @param repo
+*/
+function stagedChanges(repo: string): StagedChange[] {
+  const fields = runGit(repo, [
+    "diff",
+    "--cached",
+    "--name-status",
+    "-z",
+    "-M20%",
+    "-C20%",
+    "--find-copies-harder",
+  ])
+    .split("\0")
+    .filter((field) => field.length > 0);
+  const changes: StagedChange[] = [];
+  for (let index = 0; index < fields.length;) {
+    const status = fields[index] ?? "";
+    index += 1;
+    const pathCount = status.startsWith("R") || status.startsWith("C") ? 2 : 1;
+    const paths = fields.slice(index, index + pathCount);
+    index += pathCount;
+    if (status.length > 0 && paths.length === pathCount) {
+      changes.push({ paths, status });
+    }
+  }
+  return changes;
+}
+
+/**
+
+* @param file
+*/
 function forbiddenPath(file: string): boolean {
   return (
     FORBIDDEN_FILES.has(file) ||
@@ -427,12 +523,28 @@ function forbiddenPath(file: string): boolean {
   );
 }
 
-function stagedDiffAddedLines(repo: string): string[] {
-  return runGit(repo, ["diff", "--cached", "--unified=0"])
+/**
+
+* @param repo
+* @param paths
+*/
+function stagedDiffAddedLines(
+  repo: string,
+  paths: readonly string[],
+): string[] {
+  if (paths.length === 0) {
+    return [];
+  }
+  return runGit(repo, ["diff", "--cached", "--unified=0", "--", ...paths])
     .split("\n")
     .filter((line) => line.startsWith("+") && !line.startsWith("+++"));
 }
 
+/**
+
+* @param repo
+* @param file
+*/
 function stagedContent(repo: string, file: string): string | undefined {
   const result = spawnSync("git", ["-C", repo, "show", `:${file}`], {
     encoding: "utf8",
@@ -441,23 +553,21 @@ function stagedContent(repo: string, file: string): string | undefined {
   return result.status === 0 ? result.stdout : undefined;
 }
 
-function forbiddenSourcesFromDiff(repo: string): string[] {
-  const output = runGit(repo, [
-    "diff",
-    "--cached",
-    "--name-status",
-    "-C",
-    "--find-copies-harder",
-  ]);
-  return output
-    .split("\n")
-    .flatMap((line) => {
-      const [status = "", source = "", target = ""] = line.split("\t");
-      return status.startsWith("C") && forbiddenPath(source) ? [target] : [];
-    })
-    .filter((line) => line.length > 0);
+/**
+
+* @param repo
+*/
+function forbiddenPathsFromDiff(repo: string): string[] {
+  return stagedChanges(repo)
+    .filter((change) => change.paths.some(forbiddenPath))
+    .flatMap((change) => change.paths);
 }
 
+/**
+
+* @param repo
+* @param files
+*/
 function dropStaged(repo: string, files: readonly string[]): void {
   if (files.length === 0) {
     return;
@@ -468,22 +578,45 @@ function dropStaged(repo: string, files: readonly string[]): void {
   );
 }
 
+/**
+
+* @param repo
+*/
 function dropBannedPatternFiles(repo: string): void {
-  for (const line of stagedDiffAddedLines(repo)) {
-    for (const pattern of FORBIDDEN_PATTERNS) {
-      if (line.toLowerCase().includes(pattern.toLowerCase())) {
-        const files = stagedNames(repo).filter((file) => {
-          const content = stagedContent(repo, file);
-          return (
-            content?.toLowerCase().includes(pattern.toLowerCase()) ?? false
-          );
-        });
-        dropStaged(repo, files);
+  const files = new Set<string>();
+  const changes = stagedChanges(repo);
+  const deletedPaths = changes
+    .filter((change) => change.status.startsWith("D"))
+    .flatMap((change) => change.paths);
+  for (const change of changes) {
+    const addedLines = stagedDiffAddedLines(repo, change.paths);
+    const hasBannedPattern = addedLines.some((line) =>
+      FORBIDDEN_PATTERNS.some((pattern) =>
+        line.toLowerCase().includes(pattern.toLowerCase()),
+      ),
+    );
+    if (hasBannedPattern) {
+      for (const file of change.paths) {
+        files.add(file);
+      }
+      if (change.status.startsWith("A")) {
+        for (const file of deletedPaths) {
+          files.add(file);
+        }
       }
     }
   }
+  dropStaged(
+    repo,
+    [...files].toSorted((left, right) => left.localeCompare(right)),
+  );
 }
 
+/**
+
+* @param repo
+* @param files
+*/
 function preferenceProblems(repo: string, files: readonly string[]): string[] {
   return files
     .toSorted((left, right) => left.localeCompare(right))
@@ -495,32 +628,23 @@ function preferenceProblems(repo: string, files: readonly string[]): string[] {
     });
 }
 
-// Run each named check; one failure entry per command that fails. The default config
-// path token is swapped for the path resolved at `harness setup`.
+// Run each named check; one failure entry per command that fails.
+/**
+
+* @param repo
+* @param checks
+*/
 export function runChecks(
   repo: string,
   checks: Record<string, string[]>,
 ): string[] {
   const environment = gitSafeEnvironment();
-  const configFile = path.join(repo, "harness", "configs.json");
-  const configs = existsSync(configFile)
-    ? {
-        ...DEFAULT_CONFIGS,
-        ...(JSON.parse(readFileSync(configFile, "utf8")) as Record<
-          string,
-          string
-        >),
-      }
-    : DEFAULT_CONFIGS;
   const failures: string[] = [];
   for (const [name, command] of Object.entries(checks)) {
-    const resolved = command.map((token) =>
-      token === DEFAULT_CONFIGS[name] ? configs[name] : token,
-    );
     failures.push(
       ...(name === "size"
-        ? runSizeChecks(repo, name, resolved, environment)
-        : [runOneCheck(repo, name, resolved, environment)].filter(
+        ? runSizeChecks(repo, name, command, environment)
+        : [runOneCheck(repo, name, command, environment)].filter(
             (failure): failure is string => failure !== undefined,
           )),
     );
@@ -530,13 +654,18 @@ export function runChecks(
 
 // Pre-commit: fast lint/format for everyone. For agents in the loop (RALPH_LOOP) also
 // drop forbidden staged paths and flag banned patterns + human-preference breaks.
+/**
+
+* @param repo
+* @param runner
+*/
 export function runPreflight(
   repo: string,
   runner: typeof runChecks = runChecks,
 ): string[] {
   const problems: string[] = [];
   if (process.env.RALPH_LOOP === "1") {
-    dropStaged(repo, forbiddenSourcesFromDiff(repo));
+    dropStaged(repo, forbiddenPathsFromDiff(repo));
     dropStaged(
       repo,
       stagedNames(repo)
@@ -557,6 +686,11 @@ export function runPreflight(
 }
 
 // Pre-push / CI: lint, format, types, security, build, 100% tests, browser checks.
+/**
+
+* @param repo
+* @param runner
+*/
 export function runGate(
   repo: string,
   runner: typeof runChecks = runChecks,

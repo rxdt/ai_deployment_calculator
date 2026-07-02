@@ -4,6 +4,20 @@ import type { DisplayRow, FormState, ReportPayload } from "./types";
 
 const NUMBER_MAX = 999_999;
 
+/**
+ Convert a kebab-case wire name (HTML `name` attribute) to the camelCase
+ FormState key used internally.
+@param name - kebab-case wire name
+@returns the camelCase state key
+*/
+function toStateKey(name: string): string {
+  return name.replaceAll(/-([a-z])/gu, (_, c: string) => c.toUpperCase());
+}
+
+/**
+
+@param element
+*/
 function controlEntry(element: Element): [string, string] | null {
   if (element instanceof HTMLSelectElement) {
     return [element.name, element.value];
@@ -17,6 +31,10 @@ function controlEntry(element: Element): [string, string] | null {
   return null;
 }
 
+/**
+ 
+@param form
+*/
 function searchFromForm(form: HTMLFormElement): URLSearchParams {
   const search = new URLSearchParams();
   for (const element of form.elements) {
@@ -28,6 +46,10 @@ function searchFromForm(form: HTMLFormElement): URLSearchParams {
   return search;
 }
 
+/**
+ 
+@param input
+*/
 export function sanitizeNumberInput(input: HTMLInputElement): void {
   const digitsOnly = input.value.replaceAll(/[^\d.]/gu, "");
   const [integer = "", ...fractions] = digitsOnly.split(".");
@@ -43,6 +65,10 @@ export function sanitizeNumberInput(input: HTMLInputElement): void {
   }
 }
 
+/**
+ 
+@param value
+*/
 function shortHardwareClass(value: string): string {
   const index = value.indexOf(", e.g.");
   return index === -1 ? value : value.slice(0, index);
@@ -50,18 +76,30 @@ function shortHardwareClass(value: string): string {
 
 // "24 GB high-end consumer class" -> "24 GB"; "" when there is no GB capacity
 // prefix (e.g. "No model loaded", overflow guidance).
+/**
+ 
+@param value
+*/
 function leadingCapacity(value: string): string {
   const index = value.indexOf(" GB");
   return index === -1 ? "" : `${value.slice(0, index)} GB`;
 }
 
+/**
+ 
+@param tier
+*/
 function recommendedGpuClass(tier: string): string {
   const short = shortHardwareClass(tier);
   const capacity = leadingCapacity(short);
   return capacity === "" ? short : `${capacity} GPU hardware tier`;
 }
 
-function whyText(report: ReportPayload): string {
+/**
+ 
+@param report
+*/
+function whyText(report: Readonly<ReportPayload>): string {
   const fit = report.recommendedHardware;
   const capacity = leadingCapacity(shortHardwareClass(fit.recommendedTier));
   if (capacity === "") {
@@ -70,6 +108,10 @@ function whyText(report: ReportPayload): string {
   return `At an ${fit.usableVramTarget} usable VRAM target, ${report.totalRequiredMemory} requires a GPU with at least ${report.minimumRawVramNeeded} advertised VRAM. The next common class is ${capacity}.`;
 }
 
+/**
+ 
+@param speed
+*/
 function formatSpeed(speed: string): string {
   return speed.replaceAll("/second", "/sec");
 }
@@ -135,12 +177,12 @@ export class CalculatorApp {
     );
     for (const element of this.form.elements) {
       if (element instanceof HTMLInputElement && element.type === "checkbox") {
-        element.checked = values.get(element.name) === true;
+        element.checked = values.get(toStateKey(element.name)) === true;
       } else if (
         element instanceof HTMLInputElement ||
         element instanceof HTMLSelectElement
       ) {
-        element.value = String(values.get(element.name));
+        element.value = String(values.get(toStateKey(element.name)));
       }
     }
     this.update();
@@ -159,7 +201,7 @@ export class CalculatorApp {
     this.slot(name).textContent = value;
   }
 
-  private fillRows(name: string, rows: DisplayRow[]): void {
+  private fillRows(name: string, rows: readonly DisplayRow[]): void {
     const list = this.slot(name);
     list.replaceChildren();
     for (const { label, value } of rows) {
@@ -175,7 +217,7 @@ export class CalculatorApp {
     }
   }
 
-  private render(report: ReportPayload): void {
+  private render(report: Readonly<ReportPayload>): void {
     const fit = report.recommendedHardware;
     this.setText("total", report.totalRequiredMemory);
     this.setText(
@@ -198,8 +240,8 @@ export class CalculatorApp {
     );
   }
 
-  private syncControls(state: FormState): void {
-    const family = state.workload_family;
+  private syncControls(state: Readonly<FormState>): void {
+    const family = state.workloadFamily;
     for (const node of this.root.querySelectorAll<HTMLElement>(
       "[data-families]",
     )) {
@@ -216,14 +258,14 @@ export class CalculatorApp {
         .includes(family);
       node.hidden = !isMoeApplicable;
     }
-    const isActiveVisible = isMoeApplicable && state.moe_enabled;
+    const isActiveVisible = isMoeApplicable && state.moeEnabled;
     for (const node of this.root.querySelectorAll<HTMLElement>(
       "[data-active]",
     )) {
       node.hidden = !isActiveVisible;
     }
     const label =
-      state.execution_mode === "Inference"
+      state.executionMode === "Inference"
         ? "Concurrent Requests"
         : "Micro Batch Size";
     for (const node of this.root.querySelectorAll<HTMLElement>(
@@ -234,6 +276,10 @@ export class CalculatorApp {
   }
 }
 
+/**
+ 
+@param root
+*/
 export function mountCalculator(root: ParentNode = document): CalculatorApp {
   const calculator = new CalculatorApp(root);
   calculator.mount();

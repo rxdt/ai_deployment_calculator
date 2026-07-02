@@ -10,7 +10,6 @@ import {
   writeFileSync,
 } from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 
 import { DEFAULT_CONFIGS, runGate, runGit, runPreflight } from "./gate.js";
 
@@ -62,7 +61,7 @@ const ROOT_HARNESS_SCRIPTS: Record<string, string> = {
   "test:file": "npm --prefix harness run test:file --",
 };
 
-// Candidate user config filenames per check; if none exist, the harness default is used.
+// Candidate user config filenames per check; harness-owned configs are already defaults.
 const CONFIG_CANDIDATES: Record<string, readonly string[]> = {
   eslint: [
     "eslint.config.js",
@@ -72,15 +71,15 @@ const CONFIG_CANDIDATES: Record<string, readonly string[]> = {
   ],
   style: ["stylelint.config.js", "stylelint.config.cjs", ".stylelintrc.json"],
   html: [".htmlvalidate.json", ".htmlvalidate.js"],
-  frontend_types: ["frontend/tsconfig.json", "tsconfig.json"],
-  architecture: [
+  typecheck: ["frontend/tsconfig.json", "tsconfig.json"],
+  cruise: [
     ".dependency-cruiser.cjs",
     ".dependency-cruiser.js",
     ".dependency-cruiser.json",
   ],
-  dead_code: ["knip.json", "knip.jsonc", "knip.config.ts"],
+  deadcode: ["knip.json", "knip.jsonc", "knip.config.ts"],
   spelling: ["cspell.json", "cspell.config.js", ".cspell.json"],
-  workflow_api: [".spectral.yml", ".spectral.yaml", ".spectral.json"],
+  workflow: [".spectral.yml", ".spectral.yaml", ".spectral.json"],
   coverage: [
     "vitest.config.ts",
     "vitest.config.js",
@@ -107,17 +106,25 @@ const IGNORED_INSTALL_DIRECTORIES = new Set([
 ]);
 
 // jq path, resolved once for live JSONL coloring (undefined if not installed).
-const JQ = (process.env["PATH"] ?? "")
+const JQ = (process.env.PATH ?? "")
   .split(path.delimiter)
   .map((dir) => path.join(dir, "jq"))
   .find((candidate) => existsSync(candidate));
 
 // Repo root from any directory inside the checkout.
+/**
+
+* @param from
+*/
 export function repoRoot(from: string): string {
   return runGit(from, ["rev-parse", "--show-toplevel"]).trim();
 }
 
 // Lowercase and keep only npm-name characters; strip leading dots; cap length. No regex.
+/**
+
+* @param raw
+*/
 function sanitizeName(raw: string): string {
   const allowed = "abcdefghijklmnopqrstuvwxyz0123456789-._/@";
   let name = [...raw.toLowerCase()]
@@ -130,7 +137,11 @@ function sanitizeName(raw: string): string {
 }
 
 // Every directory below root (except ignored ones) that holds its own package.json.
-function discoverPackageDirs(repo: string): string[] {
+/**
+
+* @param repo
+*/
+function discoverPackageDirectories(repo: string): string[] {
   const found: string[] = [];
   const visit = (dir: string): void => {
     for (const entry of readdirSync(path.join(repo, dir), {
@@ -155,6 +166,10 @@ function discoverPackageDirs(repo: string): string[] {
 }
 
 // Compact valid JSONL for terminal output; preserve invalid lines exactly.
+/**
+
+* @param line
+*/
 function renderLine(line: string): string {
   if (JQ !== undefined) {
     const rendered = spawnSync(JQ, ["-C", "-c", "."], {
@@ -174,15 +189,22 @@ function renderLine(line: string): string {
 
 // Run the worker, saving stdout to the log and optionally streaming it live. stderr
 // inherits the terminal; the worker reads its prompt from PROMPT.md inside ralph.sh.
-function runWorker(
+/**
+
+* @param command
+* @param cwd
+* @param log
+* @param verbose
+*/
+async function runWorker(
   command: string[],
   cwd: string,
   log: string,
   verbose: boolean,
 ): Promise<number> {
-  const [executable = "", ...args] = command;
+  const [executable = "", ...arguments_] = command;
   const logStream = createWriteStream(log, { encoding: "utf8" });
-  const child = spawn(executable, args, {
+  const child = spawn(executable, arguments_, {
     cwd,
     stdio: ["ignore", "pipe", "inherit"],
   });
@@ -206,12 +228,16 @@ function runWorker(
       if (verbose && buffer.length > 0) {
         process.stdout.write(renderLine(buffer));
       }
-      logStream.end(() => resolve(code ?? 1));
+      logStream.end(() => { resolve(code ?? 1); });
     });
   });
 }
 
 // preflight or gate: print one line per problem, then a verdict, and return the exit code.
+/**
+
+* @param kind
+*/
 function runGateCommand(kind: "preflight" | "gate"): number {
   const repo = repoRoot(process.cwd());
   const problems = kind === "preflight" ? runPreflight(repo) : runGate(repo);
@@ -225,6 +251,9 @@ function runGateCommand(kind: "preflight" | "gate"): number {
 }
 
 // Count run logs under scratchpad/runs and point at the newest.
+/**
+
+*/
 function runStatus(): number {
   const runs = path.join(repoRoot(process.cwd()), "scratchpad", "runs");
   const logs = existsSync(runs)
@@ -235,35 +264,39 @@ function runStatus(): number {
   process.stdout.write(`${logs.length} run log(s) in ${runs}\n`);
   if (logs.length > 0) {
     process.stdout.write(
-      `newest: ${path.join(runs, logs[logs.length - 1] ?? "")}\n`,
+      `newest: ${path.join(runs, logs.at(-1) ?? "")}\n`,
     );
   }
   return 0;
 }
 
-// Set the project name, install deps, resolve check configs, and point git at the hooks.
-function runSetup(args: string[]): number {
+// Set the project name, install deps, apply user config overrides, and point Git at the hooks.
+/**
+
+* @param arguments_
+*/
+function runSetup(arguments_: string[]): number {
   const repo = repoRoot(process.cwd());
   const packagePath = path.join(repo, "package.json");
-  const pkg = JSON.parse(readFileSync(packagePath, "utf8")) as {
+  const package_ = JSON.parse(readFileSync(packagePath, "utf8")) as {
     name?: string;
     scripts?: Record<string, string>;
   };
 
   // explicit name, else derive from the repo folder when package.json has none
-  const requested = args[0] ?? (pkg.name ? undefined : path.basename(repo));
+  const requested = arguments_[0] ?? (package_.name ? undefined : path.basename(repo));
   if (requested !== undefined) {
     const name = sanitizeName(requested);
     if (name.length === 0) {
-      process.stderr.write(`invalid package name: ${args[0]}\n`);
+      process.stderr.write(`invalid package name: ${arguments_[0]}\n`);
       return 2;
     }
-    pkg.name = name;
+    package_.name = name;
     process.stderr.write(`project name set: ${name}\n`);
   }
 
   // add harness scripts without overwriting the project's own (lint/test get an alias)
-  const scripts = pkg.scripts ?? {};
+  const scripts = package_.scripts ?? {};
   for (const [name, command] of Object.entries(ROOT_HARNESS_SCRIPTS)) {
     if (!Object.hasOwn(scripts, name)) {
       scripts[name] = command;
@@ -274,11 +307,11 @@ function runSetup(args: string[]): number {
       scripts[`harness:${name}`] = command;
     }
   }
-  pkg.scripts = scripts;
-  writeFileSync(packagePath, `${JSON.stringify(pkg, null, 2)}\n`);
+  package_.scripts = scripts;
+  writeFileSync(packagePath, `${JSON.stringify(package_, null, 2)}\n`);
 
   // install harness + every package dir below root (root is skipped to avoid lifecycle recursion)
-  for (const dir of ["harness", ...discoverPackageDirs(repo)]) {
+  for (const dir of ["harness", ...discoverPackageDirectories(repo)]) {
     const result = spawnSync("npm", ["install"], {
       cwd: path.join(repo, dir),
       stdio: "inherit",
@@ -289,22 +322,37 @@ function runSetup(args: string[]): number {
     }
   }
 
-  // resolve each check's config path (the user's if present, else the harness default)
-  const configs: Record<string, string> = {};
+  const harnessPackagePath = path.join(repo, "harness", "package.json");
+  const harnessPackage = JSON.parse(readFileSync(harnessPackagePath, "utf8")) as {
+    scripts?: Record<string, string>;
+  };
+  const harnessScripts = harnessPackage.scripts ?? {};
+  let configOverrides = 0;
   for (const [check, candidates] of Object.entries(CONFIG_CANDIDATES)) {
-    const value =
-      candidates.find((file) => existsSync(path.join(repo, file))) ??
-      DEFAULT_CONFIGS[check];
-    if (value !== undefined) {
-      configs[check] = value;
+    const defaultConfig = DEFAULT_CONFIGS[check];
+    const userConfig = candidates.find((file) =>
+      existsSync(path.join(repo, file)),
+    );
+    if (defaultConfig === undefined || userConfig === undefined) {
+      continue;
+    }
+    for (const [script, command] of Object.entries(harnessScripts)) {
+      const next = command.replaceAll(defaultConfig, userConfig);
+      if (next !== command) {
+        harnessScripts[script] = next;
+        configOverrides += 1;
+      }
     }
   }
-  writeFileSync(
-    path.join(repo, "harness", "configs.json"),
-    `${JSON.stringify(configs, null, 2)}\n`,
-  );
+  if (configOverrides > 0) {
+    harnessPackage.scripts = harnessScripts;
+    writeFileSync(
+      harnessPackagePath,
+      `${JSON.stringify(harnessPackage, null, 2)}\n`,
+    );
+  }
 
-  // point git at the shipped hooks, unless the project already set its own hooksPath
+  // point Git at the shipped hooks, unless the project already set its own hooksPath
   const existing = runGit(repo, [
     "config",
     "--default",
@@ -317,14 +365,18 @@ function runSetup(args: string[]): number {
   }
   const hooksPath = runGit(repo, ["config", "core.hooksPath"]).trim();
   process.stderr.write(
-    `dependencies installed; configs -> harness/configs.json; git hooks path: ${hooksPath}\n`,
+    `dependencies installed; config overrides: ${configOverrides}; git hooks path: ${hooksPath}\n`,
   );
   return 0;
 }
 
 // Run one harnessed ralph loop: harness run <agent> [iterations] [minutes] [verbose].
-export async function runLoop(args: string[]): Promise<number> {
-  const agent = (args[0] ?? "").toLowerCase();
+/**
+
+* @param arguments_
+*/
+export async function runLoop(arguments_: string[]): Promise<number> {
+  const agent = (arguments_[0] ?? "").toLowerCase();
   const agentCommand = AGENTS[agent];
   if (agentCommand === undefined) {
     process.stderr.write(
@@ -332,8 +384,8 @@ export async function runLoop(args: string[]): Promise<number> {
     );
     return 2;
   }
-  const iterations = args[1] === undefined ? 2 : Number(args[1]);
-  const minutes = args[2] === undefined ? 20 : Number(args[2]);
+  const iterations = arguments_[1] === undefined ? 2 : Number(arguments_[1]);
+  const minutes = arguments_[2] === undefined ? 20 : Number(arguments_[2]);
   if (
     !Number.isInteger(iterations) ||
     iterations < 1 ||
@@ -343,7 +395,7 @@ export async function runLoop(args: string[]): Promise<number> {
     process.stderr.write("num_iterations and max_minutes must be >= 1\n");
     return 2;
   }
-  const verbose = args[3] !== "false";
+  const isVerbose = arguments_[3] !== "false";
   const repo = repoRoot(process.cwd());
   const runs = path.join(repo, "scratchpad", "runs");
   mkdirSync(runs, { recursive: true });
@@ -360,33 +412,52 @@ export async function runLoop(args: string[]): Promise<number> {
   );
 
   const ralph = path.join(
-    path.dirname(fileURLToPath(import.meta.url)),
+    import.meta.dirname,
     "ralph.sh",
   );
   const command = [ralph, String(iterations), String(minutes), ...agentCommand];
   process.stderr.write(`harness: ${command.join(" ")} -> ${log}\n`);
-  return runWorker(command, repo, log, verbose);
+  return runWorker(command, repo, log, isVerbose);
 }
 
 // Dispatch argv to a command and set the process exit code.
+/**
+
+* @param argv
+*/
 export async function main(argv: string[]): Promise<void> {
   const [command, ...rest] = argv;
   let code: number;
-  if (command === "preflight" || command === "gate") {
+  switch (command) {
+  case "preflight": 
+  case "gate": {
     code = runGateCommand(command);
-  } else if (command === "status") {
+  
+  break;
+  }
+  case "status": {
     code = runStatus();
-  } else if (command === "setup") {
+  
+  break;
+  }
+  case "setup": {
     code = runSetup(rest);
-  } else if (command === "run") {
+  
+  break;
+  }
+  case "run": {
     code = await runLoop(rest);
-  } else {
+  
+  break;
+  }
+  default: {
     process.stderr.write("usage: harness <preflight|gate|run|status|setup>\n");
     code = 2;
+  }
   }
   process.exitCode = code;
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+if (process.argv[1] === import.meta.filename) {
   await main(process.argv.slice(2));
 }

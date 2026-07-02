@@ -45,7 +45,7 @@ export default {
     "no-descending-specificity": true,
     "property-no-vendor-prefix": true,
     "property-disallowed-list": ["float", "clear"],
-    "selector-max-specificity": "0,3,0",
+    "selector-max-specificity": "0,3,1",
     "selector-max-compound-selectors": 3,
     "selector-max-class": 3,
     "selector-max-combinators": 2,
@@ -56,7 +56,7 @@ export default {
     "selector-max-type": 1,
     "selector-no-qualifying-type": true,
     "shorthand-property-no-redundant-values": true,
-    "stylelint-declaration-strict-value/stylelint-declaration-strict-value": [
+    "scale-unlimited/declaration-strict-value": [
       [
         "/color$/",
         "background-color",

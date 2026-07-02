@@ -1,6 +1,6 @@
 // Ports the CLI pass-through behaviour from harness/tests/test_cli.py (preflight/gate dispatch).
 
-import { spawnSync } from "node:child_process";
+import { spawnSync, type SpawnSyncReturns } from "node:child_process";
 import {
   existsSync,
   mkdirSync,
@@ -80,7 +80,7 @@ function makeRepo(): string {
 const harnessCli = (
   args: string[],
   options: { cwd: string; env?: NodeJS.ProcessEnv },
-): ReturnType<typeof spawnSync> =>
+): SpawnSyncReturns<string> =>
   spawnSync(
     process.execPath,
     [path.join(repoRoot(process.cwd()), "harness", "harness.mjs"), ...args],

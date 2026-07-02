@@ -11,7 +11,16 @@ import {
 } from "node:fs";
 import path from "node:path";
 
-import { DEFAULT_CONFIGS, runGate, runGit, runPreflight } from "./gate.js";
+import {
+  CONFIG_CANDIDATES,
+  DEFAULT_CONFIGS,
+  runGate,
+  runGit,
+  runPreflight,
+} from "./gate.js";
+
+// Re-exported for callers/tests that treat config-candidate discovery as a CLI concern.
+export { CONFIG_CANDIDATES };
 
 export const AGENTS: Record<string, string[]> = {
   claude: [
@@ -60,35 +69,6 @@ const ROOT_HARNESS_SCRIPTS: Record<string, string> = {
   status: "node harness/harness.mjs status",
   test: "npm --prefix harness run test:coverage",
   "test:file": "npm --prefix harness run test:file --",
-};
-
-// Candidate user config filenames per check; harness-owned configs are already defaults.
-export const CONFIG_CANDIDATES: Record<string, readonly string[]> = {
-  eslint: [
-    "eslint.config.js",
-    "eslint.config.mjs",
-    "eslint.config.cjs",
-    "eslint.config.ts",
-  ],
-  style: ["stylelint.config.js", "stylelint.config.cjs", ".stylelintrc.json"],
-  html: [".htmlvalidate.json", ".htmlvalidate.js"],
-  typecheck: ["frontend/tsconfig.json", "tsconfig.json"],
-  cruise: [
-    ".dependency-cruiser.cjs",
-    ".dependency-cruiser.js",
-    ".dependency-cruiser.json",
-  ],
-  deadcode: ["knip.json", "knip.jsonc", "knip.config.ts"],
-  spelling: ["cspell.json", "cspell.config.js", ".cspell.json"],
-  workflow: [".spectral.yml", ".spectral.yaml", ".spectral.json"],
-  coverage: [
-    "vitest.config.ts",
-    "vitest.config.js",
-    "vite.config.ts",
-    "vite.config.js",
-  ],
-  e2e: ["playwright.config.ts", "playwright.config.js"],
-  lighthouse: ["lighthouserc.cjs", "lighthouserc.js", "lighthouserc.json"],
 };
 
 // Dirs we never recurse into when discovering package.json files to install.
@@ -343,6 +323,12 @@ function runStatus(): number {
 function runSetup(arguments_: string[]): number {
   if (arguments_.length > 0) {
     process.stderr.write("usage: harness setup\n");
+    return 2;
+  }
+  // setup is a one-time human bootstrap; it adopts on-disk user configs and rewrites gate
+  // scripts, so an agent must never run it (it could repoint the gate at a toothless config).
+  if (process.env.RALPH_LOOP === "1") {
+    process.stderr.write("harness setup must not run inside the agent loop\n");
     return 2;
   }
 

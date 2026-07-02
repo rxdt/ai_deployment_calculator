@@ -1,4 +1,14 @@
 {
-  "elements": ["html5"],
-  "extends": ["html-validate:recommended", "html-validate:prettier"]
+  "elements": [
+    "html5"
+  ],
+  "extends": [
+    "html-validate:recommended",
+    "html-validate:prettier"
+  ],
+  "rules": {
+    "deprecated-rule": "error",
+    "svg-focusable": "error",
+    "no-inline-style": "error"
+  }
 }

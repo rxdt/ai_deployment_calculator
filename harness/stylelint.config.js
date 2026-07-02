@@ -18,10 +18,16 @@ export default {
     "block-no-empty": true,
     "custom-property-pattern":
       "^(color|space|font|radius|shadow|z|breakpoint)-[a-z0-9-]+$",
+    "color-no-hex": true,
     "declaration-no-important": true, // Banned: Block using lazy '!important' overrides
     "declaration-property-value-disallowed-list": {
       "/^font-size$/": ["/^[0-9.]+px$/"],
       "/^z-index$/": ["/^[0-9]+$/"],
+      "/^outline$/": ["none", "0"],
+      "/^overflow$/": ["hidden"],
+      "/^position$/": ["fixed"],
+      "/^transition$/": ["/\\ball\\b/"],
+      "/^transition-property$/": ["all"],
     },
     "import-notation": null,
     "max-nesting-depth": 3, // Stop messy CSS nesting chains
@@ -39,9 +45,16 @@ export default {
     "media-feature-range-notation": "context",
     "no-descending-specificity": true,
     "property-no-vendor-prefix": true,
+    "property-disallowed-list": ["float", "clear"],
     "selector-max-compound-selectors": 4,
     "selector-max-specificity": "0,4,0",
     "shorthand-property-no-redundant-values": true,
+    "selector-max-class": 3,
+    "selector-max-combinators": 3,
+    "selector-max-pseudo-class": 2,
+    "selector-max-type": 1,
+    "selector-max-universal": 0,
+    "selector-no-qualifying-type": true,
     "scale-unlimited/declaration-strict-value": [
       [
         "/color$/",
@@ -50,6 +63,12 @@ export default {
         "font-size",
         "line-height",
         "border-radius",
+        "margin",
+        "padding",
+        "gap",
+        "row-gap",
+        "column-gap",
+        "z-index",
       ],
       {
         ignoreValues: [

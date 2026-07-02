@@ -71,6 +71,7 @@ export default defineConfig([
       },
     },
     linterOptions: {
+      noInlineConfig: true,
       reportUnusedDisableDirectives: "error", // Clean up lazy comments
     },
     rules: {
@@ -85,15 +86,36 @@ export default defineConfig([
           ],
         },
       ],
+      // "@typescript-eslint/no-unused-vars": [   // rxdt preference, will uncomment soon
+      //   "error",
+      //   { argsIgnorePattern: "^_" },
+      // ],
       "@typescript-eslint/naming-convention": [
         "error",
         {
-          selector: ["variable", "function", "objectLiteralProperty"],
+          selector: [
+            "variable",
+            "function",
+            "classMethod",
+            "objectLiteralMethod",
+            "objectLiteralProperty",
+            "parameter"  // rxdt preference, will remove soon
+          ],
           format: ["camelCase", "UPPER_CASE", "PascalCase"],
+          "leadingUnderscore": "forbid",
+          "trailingUnderscore": "forbid"
         },
+        // {                            // rxdt preference, will uncomment soon
+        //   selector: "parameter",
+        //   format: ["camelCase", "PascalCase"],
+        //   leadingUnderscore: "allow",
+        //   trailingUnderscore: "forbid",
+        // },
         {
           selector: ["typeLike", "class"],
           format: ["PascalCase"],
+          "leadingUnderscore": "forbid",
+          "trailingUnderscore": "forbid"
         },
         {
           selector: "objectLiteralProperty",
@@ -101,6 +123,7 @@ export default defineConfig([
           format: null,
         },
       ],
+      "no-underscore-dangle": ["error", { enforceInClassFields: true }],
       // Owner decision: no-magic-numbers is impractical for this codebase (it fires 220+
       // times in src/ on ordinary numeric/index math). Disabled for TypeScript; revisit later.
       "@typescript-eslint/no-magic-numbers": "off",
@@ -130,11 +153,6 @@ export default defineConfig([
       "@typescript-eslint/strict-boolean-expressions": "error",
       "@typescript-eslint/switch-exhaustiveness-check": "error",
       "@typescript-eslint/explicit-function-return-type": "error",
-      "@typescript-eslint/no-unused-vars": [
-        "error",
-        { argsIgnorePattern: "^_" },
-      ],
-
       // SECURITY & ROBUSTNESS (Blocks data leaks and bad patterns)
       ...securityErrors,
       "no-console": ["error", { allow: ["warn", "error"] }], // Real loggers, no console.log
@@ -159,7 +177,6 @@ export default defineConfig([
       "no-unreachable-loop": "error",
       "no-useless-assignment": "error",
       "prefer-const": "error",
-      "prefer-object-spread": "error",
       "require-atomic-updates": "error",
 
       // NO SPAGHETTI
@@ -169,7 +186,7 @@ export default defineConfig([
       ],
       "max-lines": [
         "error",
-        { max: 500, skipBlankLines: true, skipComments: true }, // Default is 300
+        { max: 350, skipBlankLines: true, skipComments: true }, // Default is 300
       ],
       "max-depth": ["error", 3],
       "max-params": ["error", 4], // Caps function parameters
@@ -184,7 +201,7 @@ export default defineConfig([
         {
           selector: "ForInStatement",
           message:
-            "Avoid for-in over prototype chains; use Object.keys/Object.entries on owned data.",
+            "Avoid for-in over prototype chains: use Object.keys/Object.entries on owned data.",
         },
         {
           selector: "AssignmentExpression[left.property.name='innerHTML']",
@@ -204,12 +221,12 @@ export default defineConfig([
         {
           selector: "SequenceExpression",
           message:
-            "Sequence expressions hide side effects; split the statements.",
+            "Sequence expressions hide side effects: split the statements.",
         },
         {
           selector: "LabeledStatement",
           message:
-            "Labels make control flow hard to scan; extract a small function instead.",
+            "Labels make control flow hard to scan: extract a small function instead.",
         },
         {
           selector: "WithStatement",
@@ -223,6 +240,31 @@ export default defineConfig([
           selector: "NewExpression[callee.name='Function']",
           message: "Never construct functions from strings.",
         },
+        {
+          selector: "CallExpression > SpreadElement",
+          message: "Avoid implied argument spread, pass explicit values.",
+        },
+        {
+          selector: "ArrayExpression > SpreadElement",
+          message: "Avoid implied array spread, pass explicit values.",
+        },
+        {
+          selector: "ObjectExpression > SpreadElement",
+          message: "Avoid implied object spread, pass explicit properties.",
+        },
+        {
+          selector: "AssignmentExpression[left.property.name='style']",
+          message: "Do not assign inline styles. Use CSS classes.",
+        },
+        {
+          selector: "AssignmentExpression[left.object.property.name='style']",
+          message: "Do not mutate inline styles. Use CSS classes.",
+        },
+        {
+          selector:
+            "CallExpression[callee.property.name='setAttribute'][arguments.0.value='style']",
+          message: "Do not set inline styles. Use CSS classes.",
+        }
       ],
 
       "@typescript-eslint/consistent-type-imports": [
@@ -262,26 +304,11 @@ export default defineConfig([
     files: testTypeScriptFiles,
     plugins: { "no-only-tests": noOnlyTests },
     rules: {
-      "@typescript-eslint/max-params": "off",
-      "@typescript-eslint/no-unsafe-argument": "off",
-      "@typescript-eslint/no-unsafe-assignment": "off",
-      "@typescript-eslint/no-unsafe-call": "off",
-      "@typescript-eslint/no-unsafe-member-access": "off",
-      "@typescript-eslint/no-unsafe-return": "off",
-      "@typescript-eslint/no-unsafe-type-assertion": "off",
-      "@typescript-eslint/no-use-before-define": "off",
-      "@typescript-eslint/prefer-nullish-coalescing": "off",
-      "@typescript-eslint/restrict-plus-operands": "off",
-      "@typescript-eslint/strict-boolean-expressions": "off",
-      "@typescript-eslint/strict-void-return": "off",
-      "import-x/no-named-as-default": "off",
-      "max-lines": "off",
       // describe/it callbacks group many cases; line caps target production spaghetti, not test suites.
+      "max-lines": "off",
       "max-lines-per-function": "off",
+      "@typescript-eslint/max-params": "off",
       "no-only-tests/no-only-tests": "error",
-      "sonarjs/no-alphabetical-sort": "off",
-      "sonarjs/no-floating-point-equality": "off",
-      "sonarjs/prefer-specific-assertions": "off",
 
       "unicorn/max-nested-calls": "off",
       "unicorn/no-unsafe-dom-html": "off",

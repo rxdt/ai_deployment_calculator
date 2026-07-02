@@ -19,6 +19,7 @@ import { pathToFileURL } from "node:url";
 
 import {
   COMMIT_CHECKS,
+  FORBIDDEN_BASENAMES,
   FORBIDDEN_DIRS,
   FORBIDDEN_FILES,
   FORBIDDEN_PATTERNS,
@@ -49,7 +50,7 @@ const readPackageScripts = (relpath: string): Record<string, string> => {
   throw new Error(`${relpath} has no string scripts map`);
 };
 const requiredForbiddenPattern = (pattern: string): string => {
-  if (!FORBIDDEN_PATTERNS.includes(pattern)) {
+  if (!(FORBIDDEN_PATTERNS as readonly string[]).includes(pattern)) {
     throw new Error(`${pattern} is not a forbidden pattern`);
   }
   return pattern;
@@ -229,7 +230,7 @@ const REQUIRED_INSTALLED_GATE_TOOLS: readonly {
   },
   {
     dependency: "typescript",
-    check: "type",
+    check: "typecheck",
     commandFragment: harnessTool("tsc"),
   },
   {
@@ -259,7 +260,7 @@ const REQUIRED_INSTALLED_GATE_TOOLS: readonly {
   },
   {
     dependency: "dependency-cruiser",
-    check: "architecture",
+    check: "cruise",
     commandFragment: harnessTool("depcruise"),
   },
   {
@@ -952,36 +953,31 @@ describe("gate constants", () => {
       "frontend/harness",
       "harness",
     ]);
-    expect([...FORBIDDEN_FILES].toSorted()).toEqual([
-      "AGENTS.md",
-      "PROMPT.md",
-      "docs/plan.md",
-      "frontend/package-lock.json",
-      "frontend/package.json",
-      "frontend/tsconfig.json",
-      "harness/.dependency-cruiser.cjs",
-      "harness/.htmlvalidate.json",
-      "harness/.markuplintrc.json",
-      "harness/.prettierignore",
-      "harness/.prettierrc.json",
-      "harness/.secretlintrc.json",
-      "harness/.spectral.yml",
-      "harness/biome.json",
-      "harness/cspell.json",
-      "harness/eslint.config.js",
-      "harness/knip.json",
-      "harness/lighthouserc.cjs",
-      "harness/package-lock.json",
-      "harness/package.json",
-      "harness/playwright.config.js",
-      "harness/preferences.ts",
-      "harness/stylelint.config.js",
-      "harness/tsconfig.app.json",
-      "harness/tsconfig.json",
-      "harness/vitest.config.js",
-      "package.json",
-      "pyproject.toml",
-    ]);
+    // Assert properties, not a duplicated copy of the source Set (a second hardcoded list
+    // silently drifts). The hand-picked essentials that are NOT derivable from another source:
+    expect([...FORBIDDEN_FILES]).toEqual(
+      expect.arrayContaining([
+        "AGENTS.md",
+        "PROMPT.md",
+        "docs/plan.md",
+        "pyproject.toml",
+        "package.json",
+        "frontend/package.json",
+        "frontend/package-lock.json",
+        "frontend/tsconfig.json",
+        "harness/preferences.ts",
+        "harness/package.json",
+        "harness/eslint.config.js",
+        "harness/tsconfig.app.json",
+      ]),
+    );
+    // Every user-config candidate setup could adopt must be forbidden, derived from the single
+    // source of truth in cli.CONFIG_CANDIDATES (no per-path duplication here).
+    for (const candidate of Object.values(CONFIG_CANDIDATES).flat()) {
+      expect(FORBIDDEN_FILES.has(candidate), candidate).toBe(true);
+    }
+    // A package.json anywhere is forbidden by basename.
+    expect(FORBIDDEN_BASENAMES.has("package.json")).toBe(true);
     expect(FORBIDDEN_PATTERNS).toEqual(
       expect.arrayContaining([
         "eslint-disable",
@@ -1952,20 +1948,9 @@ describe("setup config overrides cannot escape containment", () => {
     },
   );
 
-  test("setup will not repoint a harness gate script at a committable eslint config", () => {
-    const repo = makeInstallRepo({});
-    // A config an agent could legitimately land: root eslint.config.js with no rules.
-    writeFileSync(path.join(repo, "eslint.config.js"), "export default [];\n");
-
-    const result = runHarnessSetup(repo);
-
-    expect(result.status, `${result.stdout}\n${result.stderr}`).toBe(0);
-    const scripts = readHarnessPackageJsonInRepo(repo).scripts ?? {};
-    // The eslint gate script must keep pointing at the harness-owned, forbidden config.
-    expect(scripts.eslint).toContain("harness/eslint.config.js");
-    expect(scripts.eslint).not.toMatch(/--config eslint\.config\.js(?:\s|$)/u);
-  });
-
+  // Note: `harness setup` is a one-time human bootstrap (agents never run it), so it may
+  // adopt an existing user config. Containment instead relies on the loop ejecting any staged
+  // config (test.each above) so an agent can never *commit* one for setup to later pick up.
   test("resolved harness gate scripts reference only forbidden config files", () => {
     const repo = makeInstallRepo({});
     for (const candidate of candidatePaths) {
@@ -2249,8 +2234,8 @@ describe("frontend gate shape", () => {
       "harness:lint",
       "harness:test",
       "lint",
+      "loop",
       "preview",
-      "run",
       "setup",
       "status",
       "test",

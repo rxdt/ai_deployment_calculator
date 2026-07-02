@@ -2,7 +2,7 @@
 // "gate shape" assertions that pin the frontend app bar (the role of test_gate's config checks).
 
 import { spawnSync, type SpawnSyncReturns } from "node:child_process";
-import { afterEach, describe, expect, test } from "vitest";
+import { afterEach, describe, expect, test, vi } from "vitest";
 import {
   copyFileSync,
   existsSync,
@@ -637,6 +637,7 @@ const resolvedEslintConfig = (): EslintResolvedConfig => {
 };
 
 afterEach(() => {
+  vi.restoreAllMocks();
   delete process.env.RALPH_LOOP;
   delete process.env.GIT_DIR;
 });
@@ -1141,6 +1142,31 @@ describe("runGate / runPreflight wiring", () => {
     expect(result.length).toBeGreaterThan(0);
     expect(result[0]).toMatch(/ failed:\n/u);
   });
+
+  test("preflight runs commit checks while gate runs full checks", () => {
+    let preflightChecks: Record<string, string[]> | undefined;
+    let gateChecks: Record<string, string[]> | undefined;
+
+    expect(
+      runPreflight(makeRepo(), (_repo, checks) => {
+        preflightChecks = checks;
+        return [];
+      }),
+    ).toEqual([]);
+    expect(
+      runGate(makeRepo(), (_repo, checks) => {
+        gateChecks = checks;
+        return [];
+      }),
+    ).toEqual([]);
+
+    expect(preflightChecks).toBe(COMMIT_CHECKS);
+    expect(gateChecks).toBe(FULL_CHECKS);
+    for (const check of ["typecheck", "coverage", "e2e", "sast"]) {
+      expect(preflightChecks?.[check]).toBeUndefined();
+      expect(gateChecks?.[check]).toBe(FULL_CHECKS[check]);
+    }
+  });
 });
 
 describe("loop containment", () => {
@@ -1230,11 +1256,14 @@ describe("loop containment", () => {
     const directories = [...FORBIDDEN_DIRS].toSorted();
     const files = [...FORBIDDEN_FILES].toSorted();
     const generated = [
-      ...files.map((target, index) => ({ target, content: `file-${index}\n` })),
+      ...files.map((target, index) => ({
+        target,
+        content: `file-${String(index)}\n`,
+      })),
       ...Array.from({ length: 40 }, (_, index) => {
         const directory = directories[(index * 7) % directories.length];
         return {
-          target: `${directory}/generated-${index}/config-${index % 5}.json`,
+          target: `${directory}/generated-${String(index)}/config-${String(index % 5)}.json`,
           content: JSON.stringify({ strict: false, index }),
         };
       }),
@@ -1322,6 +1351,41 @@ describe("loop containment", () => {
     expect(stagedNames(repo)).toContain("frontend/src/report.ts");
   });
 
+  test("only loop preflight unstages forbidden paths", () => {
+    const stderr: string[] = [];
+    vi.spyOn(process.stderr, "write").mockImplementation((chunk) => {
+      stderr.push(String(chunk));
+      return true;
+    });
+
+    process.env.RALPH_LOOP = "1";
+    const gateRepo = makeRepo();
+    stageFile(gateRepo, "harness/gate.ts", "export const value = 1;\n");
+    stageFile(gateRepo, "frontend/src/report.ts", "export const keep = 1;\n");
+    expect(runGate(gateRepo, () => [])).toEqual([]);
+    expect(stagedNames(gateRepo)).toContain("harness/gate.ts");
+    expect(stagedNames(gateRepo)).toContain("frontend/src/report.ts");
+
+    delete process.env.RALPH_LOOP;
+    const humanRepo = makeRepo();
+    stageFile(humanRepo, "harness/gate.ts", "export const value = 1;\n");
+    stageFile(humanRepo, "frontend/src/report.ts", "export const keep = 1;\n");
+    expect(runPreflight(humanRepo, () => [])).toEqual([]);
+    expect(stagedNames(humanRepo)).toContain("harness/gate.ts");
+    expect(stagedNames(humanRepo)).toContain("frontend/src/report.ts");
+
+    process.env.RALPH_LOOP = "1";
+    const loopRepo = makeRepo();
+    stageFile(loopRepo, "harness/gate.ts", "export const value = 1;\n");
+    stageFile(loopRepo, "frontend/src/report.ts", "export const keep = 1;\n");
+    expect(runPreflight(loopRepo, () => [])).toEqual([]);
+    expect(stagedNames(loopRepo)).not.toContain("harness/gate.ts");
+    expect(stagedNames(loopRepo)).toContain("frontend/src/report.ts");
+    expect(stderr).toEqual([
+      "harness kept forbidden paths out of the commit: harness/gate.ts\n",
+    ]);
+  });
+
   test("an empty RALPH_LOOP value is treated as loop-off", () => {
     process.env.RALPH_LOOP = "";
     const repo = makeRepo();
@@ -1344,6 +1408,46 @@ describe("loop containment", () => {
       expect(stagedNames(repo)).toContain("frontend/src/report.ts");
     },
   );
+
+  test("loop preflight unstages a whole non-forbidden file when one added line has a forbidden pattern", () => {
+    const stderr: string[] = [];
+    vi.spyOn(process.stderr, "write").mockImplementation((chunk) => {
+      stderr.push(String(chunk));
+      return true;
+    });
+    const target = "frontend/src/report.ts";
+    const content = [
+      ...Array.from(
+        { length: 100 },
+        (_, index) => `export const value${String(index)} = ${String(index)};\n`,
+      ),
+      `export const blocked = 1; // ${requiredForbiddenPattern("ts-ignore")}\n`,
+    ].join("");
+
+    process.env.RALPH_LOOP = "1";
+    const gateRepo = makeRepo();
+    stageFile(gateRepo, target, content);
+    expect(runGate(gateRepo, () => [])).toEqual([]);
+    expect(stagedNames(gateRepo)).toEqual([target]);
+
+    delete process.env.RALPH_LOOP;
+    const humanRepo = makeRepo();
+    stageFile(humanRepo, target, content);
+    expect(runPreflight(humanRepo, () => [])).toEqual([]);
+    expect(stagedNames(humanRepo)).toEqual([target]);
+
+    process.env.RALPH_LOOP = "1";
+    const loopRepo = makeRepo();
+    stageFile(loopRepo, target, content);
+    expect(runPreflight(loopRepo, () => [])).toContain(
+      "Empty commits are rejected. Stage real work.",
+    );
+    expect(stagedNames(loopRepo)).toEqual([]);
+    expect(readFileSync(path.join(loopRepo, target), "utf8")).toBe(content);
+    expect(stderr).toEqual([
+      `harness kept forbidden paths out of the commit: ${target}\n`,
+    ]);
+  });
 
   test.each(["harness/preferences.ts", "PROMPT.md"])(
     "ejects exact protected file %s under the loop",
@@ -1670,10 +1774,11 @@ describe("harness setup script merging", () => {
     expect(scripts.gate).toBe("node harness/harness.mjs gate");
     expect(scripts.setup).toBe("node harness/harness.mjs setup");
     expect(scripts.lint).toBe("npm --prefix harness run lint");
-    expect(scripts.run).toBe("node harness/harness.mjs run");
+    expect(scripts.loop).toBe("node harness/harness.mjs loop");
     expect(scripts.status).toBe("node harness/harness.mjs status");
     expect(scripts.test).toBe("npm --prefix harness run test:coverage");
     expect(scripts["test:file"]).toBe("npm --prefix harness run test:file --");
+    expect(Object.hasOwn(scripts, "run")).toBe(false);
   });
 
   test("preserves existing test and lint scripts with namespaced aliases", () => {
@@ -1701,6 +1806,7 @@ describe("harness setup script merging", () => {
       gate: "node project-gate.js",
       install: "node project-install.js",
       lint: "eslint src",
+      loop: "node project-loop.js",
       run: "node project-run.js",
       status: "node project-status.js",
       test: "node project-test.js",
@@ -1715,6 +1821,7 @@ describe("harness setup script merging", () => {
     expect(scripts.install).toBe("node project-install.js");
     expect(scripts.setup).toBe("node harness/harness.mjs setup");
     expect(scripts.lint).toBe("eslint src");
+    expect(scripts.loop).toBe("node project-loop.js");
     expect(scripts.run).toBe("node project-run.js");
     expect(scripts.status).toBe("node project-status.js");
     expect(scripts.test).toBe("node project-test.js");
@@ -1725,6 +1832,7 @@ describe("harness setup script merging", () => {
     );
     expect(Object.hasOwn(scripts, "harness:gate")).toBe(false);
     expect(Object.hasOwn(scripts, "harness:setup")).toBe(false);
+    expect(Object.hasOwn(scripts, "harness:loop")).toBe(false);
     expect(Object.hasOwn(scripts, "harness:run")).toBe(false);
     expect(Object.hasOwn(scripts, "harness:status")).toBe(false);
     expect(Object.hasOwn(scripts, "harness:test:file")).toBe(false);
@@ -1760,6 +1868,52 @@ describe("harness setup script merging", () => {
     expect(scripts.eslint).toContain("--config eslint.config.js");
     expect(scripts.eslint).not.toContain("harness/eslint.config.js");
     expect(existsSync(path.join(repo, "harness", "configs.json"))).toBe(false);
+  });
+
+  test("uses an empty user config when one exists", () => {
+    const repo = makeInstallRepo({});
+    writeFileSync(path.join(repo, "eslint.config.js"), "");
+
+    const result = runHarnessSetup(repo);
+
+    expect(result.status, `${result.stdout}\n${result.stderr}`).toBe(0);
+    const scripts = readHarnessPackageJsonInRepo(repo).scripts ?? {};
+    expect(scripts.eslint).toContain("--config eslint.config.js");
+    expect(scripts.eslint).not.toContain("harness/eslint.config.js");
+  });
+
+  test("rewrites an existing harness lint script to a complex user config path", () => {
+    const repo = makeInstallRepo({});
+    writeFileSync(path.join(repo, "frontend", "tsconfig.json"), "{}\n");
+    const harnessPackage = readHarnessPackageJsonInRepo(repo);
+    harnessPackage.scripts = {
+      ...harnessPackage.scripts,
+      lint: [
+        "node tools/lint-entry.js --project harness/tsconfig.app.json",
+        "node tools/lint-extra.js --project=harness/tsconfig.app.json",
+        "node tools/lint-literal.js harness/tsconfig.app.json",
+      ].join(" && "),
+      "lint:shadow": "node tools/keep.js --project harness/tsconfig.app.json",
+    };
+    writeFileSync(
+      path.join(repo, "harness", "package.json"),
+      `${JSON.stringify(harnessPackage, null, 2)}\n`,
+    );
+
+    const result = runHarnessSetup(repo);
+
+    expect(result.status, `${result.stdout}\n${result.stderr}`).toBe(0);
+    const scripts = readHarnessPackageJsonInRepo(repo).scripts ?? {};
+    expect(scripts.lint).toBe(
+      [
+        "node tools/lint-entry.js --project frontend/tsconfig.json",
+        "node tools/lint-extra.js --project=frontend/tsconfig.json",
+        "node tools/lint-literal.js frontend/tsconfig.json",
+      ].join(" && "),
+    );
+    expect(scripts["lint:shadow"]).toBe(
+      "node tools/keep.js --project frontend/tsconfig.json",
+    );
   });
 });
 

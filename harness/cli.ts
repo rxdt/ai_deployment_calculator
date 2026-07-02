@@ -55,7 +55,7 @@ const ROOT_HARNESS_SCRIPTS: Record<string, string> = {
   gate: "node harness/harness.mjs gate",
   setup: "node harness/harness.mjs setup",
   lint: "npm --prefix harness run lint",
-  run: "node harness/harness.mjs run",
+  loop: "node harness/harness.mjs loop",
   status: "node harness/harness.mjs status",
   test: "npm --prefix harness run test:coverage",
   "test:file": "npm --prefix harness run test:file --",
@@ -108,7 +108,7 @@ const IGNORED_INSTALL_DIRECTORIES = new Set([
 // jq path, resolved once for live JSONL coloring (undefined if not installed).
 const JQ = (process.env.PATH ?? "")
   .split(path.delimiter)
-  .map((dir) => path.join(dir, "jq"))
+  .map((directory) => path.join(directory, "jq"))
   .find((candidate) => existsSync(candidate));
 
 // Repo root from any directory inside the checkout.
@@ -120,22 +120,6 @@ export function repoRoot(from: string): string {
   return runGit(from, ["rev-parse", "--show-toplevel"]).trim();
 }
 
-// Lowercase and keep only npm-name characters; strip leading dots; cap length. No regex.
-/**
-
-* @param raw
-*/
-function sanitizeName(raw: string): string {
-  const allowed = "abcdefghijklmnopqrstuvwxyz0123456789-._/@";
-  let name = [...raw.toLowerCase()]
-    .filter((char) => allowed.includes(char))
-    .join("");
-  while (name.startsWith(".")) {
-    name = name.slice(1);
-  }
-  return name.slice(0, 214);
-}
-
 // Every directory below root (except ignored ones) that holds its own package.json.
 /**
 
@@ -143,11 +127,12 @@ function sanitizeName(raw: string): string {
 */
 function discoverPackageDirectories(repo: string): string[] {
   const found: string[] = [];
-  const visit = (dir: string): void => {
-    for (const entry of readdirSync(path.join(repo, dir), {
+  const visit = (directory: string): void => {
+    const entries = readdirSync(path.join(repo, directory), {
       withFileTypes: true,
-    })) {
-      const relative = path.join(dir, entry.name);
+    });
+    for (const entry of entries) {
+      const relative = path.join(directory, entry.name);
       if (entry.isDirectory()) {
         if (!IGNORED_INSTALL_DIRECTORIES.has(entry.name)) {
           visit(relative);
@@ -155,9 +140,9 @@ function discoverPackageDirectories(repo: string): string[] {
       } else if (
         entry.isFile() &&
         entry.name === "package.json" &&
-        dir !== ""
+        directory !== ""
       ) {
-        found.push(dir);
+        found.push(directory);
       }
     }
   };
@@ -194,13 +179,13 @@ function renderLine(line: string): string {
 * @param command
 * @param cwd
 * @param log
-* @param verbose
+* @param isVerbose
 */
 async function runWorker(
   command: string[],
   cwd: string,
   log: string,
-  verbose: boolean,
+  isVerbose: boolean,
 ): Promise<number> {
   const [executable = "", ...arguments_] = command;
   const logStream = createWriteStream(log, { encoding: "utf8" });
@@ -212,7 +197,7 @@ async function runWorker(
   let buffer = "";
   child.stdout.on("data", (chunk: string) => {
     logStream.write(chunk);
-    if (!verbose) {
+    if (!isVerbose) {
       return;
     }
     buffer += chunk;
@@ -225,7 +210,7 @@ async function runWorker(
   return new Promise<number>((resolve, reject) => {
     child.on("error", reject);
     child.on("close", (code) => {
-      if (verbose && buffer.length > 0) {
+      if (isVerbose && buffer.length > 0) {
         process.stdout.write(renderLine(buffer));
       }
       logStream.end(() => { resolve(code ?? 1); });
@@ -244,9 +229,9 @@ function runGateCommand(kind: "preflight" | "gate"): number {
   for (const problem of problems) {
     process.stderr.write(`gate: ${problem}\n`);
   }
-  process.stderr.write(
-    `${problems.length > 0 ? "rejected by harness" : `ok: ${kind} passed`}\n`,
-  );
+  const verdict =
+    problems.length > 0 ? "rejected by harness" : `ok: ${kind} passed`;
+  process.stderr.write(`${verdict}\n`);
   return problems.length > 0 ? 1 : 0;
 }
 
@@ -261,7 +246,7 @@ function runStatus(): number {
         .filter((name) => name.endsWith(".jsonl"))
         .toSorted((left, right) => left.localeCompare(right))
     : [];
-  process.stdout.write(`${logs.length} run log(s) in ${runs}\n`);
+  process.stdout.write(`${String(logs.length)} run log(s) in ${runs}\n`);
   if (logs.length > 0) {
     process.stdout.write(
       `newest: ${path.join(runs, logs.at(-1) ?? "")}\n`,
@@ -270,30 +255,22 @@ function runStatus(): number {
   return 0;
 }
 
-// Set the project name, install deps, apply user config overrides, and point Git at the hooks.
+// Install deps, apply user config overrides, and point Git at the hooks.
 /**
 
 * @param arguments_
 */
 function runSetup(arguments_: string[]): number {
+  if (arguments_.length > 0) {
+    process.stderr.write("usage: harness setup\n");
+    return 2;
+  }
+
   const repo = repoRoot(process.cwd());
   const packagePath = path.join(repo, "package.json");
   const package_ = JSON.parse(readFileSync(packagePath, "utf8")) as {
-    name?: string;
     scripts?: Record<string, string>;
   };
-
-  // explicit name, else derive from the repo folder when package.json has none
-  const requested = arguments_[0] ?? (package_.name ? undefined : path.basename(repo));
-  if (requested !== undefined) {
-    const name = sanitizeName(requested);
-    if (name.length === 0) {
-      process.stderr.write(`invalid package name: ${arguments_[0]}\n`);
-      return 2;
-    }
-    package_.name = name;
-    process.stderr.write(`project name set: ${name}\n`);
-  }
 
   // add harness scripts without overwriting the project's own (lint/test get an alias)
   const scripts = package_.scripts ?? {};
@@ -311,9 +288,9 @@ function runSetup(arguments_: string[]): number {
   writeFileSync(packagePath, `${JSON.stringify(package_, null, 2)}\n`);
 
   // install harness + every package dir below root (root is skipped to avoid lifecycle recursion)
-  for (const dir of ["harness", ...discoverPackageDirectories(repo)]) {
+  for (const directory of ["harness", ...discoverPackageDirectories(repo)]) {
     const result = spawnSync("npm", ["install"], {
-      cwd: path.join(repo, dir),
+      cwd: path.join(repo, directory),
       stdio: "inherit",
     });
     if (result.status !== 0) {
@@ -337,7 +314,7 @@ function runSetup(arguments_: string[]): number {
       continue;
     }
     for (const [script, command] of Object.entries(harnessScripts)) {
-      const next = command.replaceAll(defaultConfig, userConfig);
+      const next = command.replaceAll(defaultConfig, () => userConfig);
       if (next !== command) {
         harnessScripts[script] = next;
         configOverrides += 1;
@@ -365,12 +342,12 @@ function runSetup(arguments_: string[]): number {
   }
   const hooksPath = runGit(repo, ["config", "core.hooksPath"]).trim();
   process.stderr.write(
-    `dependencies installed; config overrides: ${configOverrides}; git hooks path: ${hooksPath}\n`,
+    `dependencies installed; config overrides: ${String(configOverrides)}; git hooks path: ${hooksPath}\n`,
   );
   return 0;
 }
 
-// Run one harnessed ralph loop: harness run <agent> [iterations] [minutes] [verbose].
+// Run one harnessed ralph loop: harness loop <agent> [iterations] [minutes] [verbose].
 /**
 
 * @param arguments_
@@ -387,9 +364,9 @@ export async function runLoop(arguments_: string[]): Promise<number> {
   const iterations = arguments_[1] === undefined ? 2 : Number(arguments_[1]);
   const minutes = arguments_[2] === undefined ? 20 : Number(arguments_[2]);
   if (
-    !Number.isInteger(iterations) ||
+    !Number.isSafeInteger(iterations) ||
     iterations < 1 ||
-    !Number.isInteger(minutes) ||
+    !Number.isSafeInteger(minutes) ||
     minutes < 1
   ) {
     process.stderr.write("num_iterations and max_minutes must be >= 1\n");
@@ -404,7 +381,7 @@ export async function runLoop(arguments_: string[]): Promise<number> {
   const sequences = readdirSync(runs)
     .filter((name) => name.endsWith(".jsonl") && name.includes("-"))
     .map((name) => Number(name.slice(0, name.indexOf("-"))))
-    .filter((value) => Number.isInteger(value));
+    .filter((value) => Number.isSafeInteger(value));
   const sequence = 1 + Math.max(0, ...sequences);
   const log = path.join(
     runs,
@@ -445,13 +422,13 @@ export async function main(argv: string[]): Promise<void> {
   
   break;
   }
-  case "run": {
+  case "loop": {
     code = await runLoop(rest);
   
   break;
   }
   default: {
-    process.stderr.write("usage: harness <preflight|gate|run|status|setup>\n");
+    process.stderr.write("usage: harness <preflight|gate|loop|status|setup>\n");
     code = 2;
   }
   }

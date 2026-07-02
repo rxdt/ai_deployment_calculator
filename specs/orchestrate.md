@@ -12,7 +12,7 @@ Act as the project orchestrator as mandated by the human. Help coding agents com
 > LOOP begins
 
 - Inspect `git fetch origin`
-- Start a Claude agent with `harness run claude 1 10`. Claude will iterate once for 10 minutes with its prompt.
+- Start a Claude agent with `harness loop claude 1 10`. Claude will iterate once for 10 minutes with its prompt.
 - Claude will edit its chose `specs` once it is complete. Claude will attempt to commit and push before exiting.
 - Dispatch a code review agent with `env -u CODEX_THREAD_ID -u CODEX_CONVERSATION_ID -u CODEX_SESSION_ID codex exec --json --sandbox "Act as a Code Reviewer for the code from teh last commit in this repo. Leave your notes appended to specs/orchestrate.md"`
 - As it reviews code, you will ensure:

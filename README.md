@@ -31,61 +31,60 @@ flowchart LR
 
 ## Install
 
-First time, run harness setup from the repository root:
-
 ```sh
 npm run setup
 ```
-
-`harness setup` does three things:
-
-- setup the harness dependencies;
-- discovers repository packages below the root and setups each package that has
-  a `package.json`;
-- setups the Git hooks used by the harness.
+`setup` installs harness dependencies, installs discovered package directories,
+adds missing root harness scripts, sets Git hooks, and rewrites harness commands
+to use any existing user config file, even if that file is empty. Setup checks
+for config file presence only; the check command validates the config later
+([harness/cli.ts](harness/cli.ts#L263)).
 
 It deliberately does not run `npm setup` at the repository root. Root
 `package.json` has an `setup` script that launches harness setup.
 
-To set or update the project name at the same time:
-
-```sh
-npm run harness -- install my-project-name
-```
-
 ## Run
-
 ```sh
-cd frontend
-npm run dev -- --port 5173
+cd frontend && npm run dev -- --port 5173
 ```
-
-Open `http://127.0.0.1:5173`.
+`http://127.0.0.1:5173`.
 
 Build:
-
 ```sh
-cd frontend
-npm run build
+cd frontend && npm run build
 ```
-
 Preview:
-
 ```sh
-cd frontend
-npm run preview
+cd frontend && npm run preview
 ```
 
-## Quick checks
-
+## Faster checks
 ```sh
 npm run preflight
 ```
 
 ## Full checks (lint, tests, security, type-checking, etc.)
-
 ```sh
 npm run gate
+```
+
+## Harness behavior
+
+`preflight` runs only the fast commit checks in `COMMIT_CHECKS`
+([harness/gate.ts](harness/gate.ts#L124),
+[harness/gate.ts](harness/gate.ts#L660)). `gate` runs `FULL_CHECKS`, which
+adds typecheck, security, build, coverage, browser, size, and Lighthouse checks
+([harness/gate.ts](harness/gate.ts#L156),
+[harness/gate.ts](harness/gate.ts#L692)).
+
+Only loop preflight (`RALPH_LOOP=1`) unstages forbidden paths or files that add
+forbidden patterns. It warns on stderr when it unstages files
+([harness/gate.ts](harness/gate.ts#L569)). Normal preflight and gate leave
+staged files alone.
+
+## Loop
+```sh
+npm run harness loop <agent> <#> <$>
 ```
 
 For any other harness command, use `npm run harness -- <command>`.
@@ -94,13 +93,13 @@ For any other harness command, use `npm run harness -- <command>`.
 
 ## Owner notes. DO NOT DELETE!!
 
-- Semgrep CA trust-store issue triggered from sandbox. `env -u SEMGREP_SEND_METRICS harness run...` with agent launch bypasses,
+- Semgrep CA trust-store issue triggered from sandbox. `env -u SEMGREP_SEND_METRICS harness loop...` with agent launch bypasses,
 - Except for `plan.md`, all `.md` documents should stay < 100 lines.
 - prompt precedence/context leakage into the worker when orchestrator launches headless agent even when prompt says _'do NOT orchestrate, do THIS.'_
-- when running an orchestrator, `harness run codex` is giving the child enough context that it follows specs/orchestrate.md
+- when running an orchestrator, `harness loop codex` is giving the child enough context that it follows specs/orchestrate.md
 - using the old harness Python ralph.sh NOT the new (supposted to be identical Js ralph.sh)
 - `Claude flags --bare --no-session-persistence --fork-session`
-- npm exec --package . -- harness run codex 1 20
+- npm exec --package . -- harness loop codex 1 20
 - `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1 claude -p --permission-mode acceptEdits --output-format stream-json "Act as the team lead. Create an agent team, split this repo work into frontend verification, backend/docs verification, and review teammates. Coordinate through the shared task list. Do not run nested harness commands."` <- orchestrater prompt
 - `codex exec --json "Spawn explorer and worker subagents..."`, Codex spawns flat, parallel worker threads (explorer, reviewer, worker) in a managed cloud environment or local worktree to split up tasks simultaneously. Sub-types: default, worker, explorer (read-heavy). ORCHESTRATE: Spawn two Codex subagents:
   - explorer: read-only, map the relevant files and risks.

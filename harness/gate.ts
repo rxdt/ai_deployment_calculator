@@ -356,7 +356,7 @@ function runOneCheck(
     return undefined;
   }
   const error = result.error === undefined ? "" : String(result.error);
-  const signal = result.signal === null ? "" : result.signal;
+  const signal = result.signal ?? "";
   const output = `${result.stdout ?? ""}${result.stderr ?? ""}${error}${signal}`;
   return commandFailure(
     name,
@@ -429,10 +429,8 @@ function discoverSizePackages(repo: string, directory = ""): string[] {
 */
 function writeSizeConfig(repo: string, packagePath: string): string {
   const parsed = readPackageJson(repo, packagePath) ?? {};
-  const target = path.join(
-    mkdtempSync(path.join(tmpdir(), "harness-size-")),
-    "package.json",
-  );
+  const temporaryDirectory = mkdtempSync(path.join(tmpdir(), "harness-size-"));
+  const target = path.join(temporaryDirectory, "package.json");
   writeFileSync(target, `${JSON.stringify(parsed)}\n`);
   return target;
 }
@@ -498,7 +496,7 @@ function stagedChanges(repo: string): StagedChange[] {
     .filter((field) => field.length > 0);
   const changes: StagedChange[] = [];
   for (let index = 0; index < fields.length;) {
-    const status = fields[index] ?? "";
+    const status = fields.at(index) ?? "";
     index += 1;
     const pathCount = status.startsWith("R") || status.startsWith("C") ? 2 : 1;
     const paths = fields.slice(index, index + pathCount);
@@ -518,7 +516,7 @@ function forbiddenPath(file: string): boolean {
   return (
     FORBIDDEN_FILES.has(file) ||
     [...FORBIDDEN_DIRS].some(
-      (dir) => file === dir || file.startsWith(`${dir}/`),
+      (directory) => file === directory || file.startsWith(`${directory}/`),
     )
   );
 }
@@ -558,9 +556,9 @@ function stagedContent(repo: string, file: string): string | undefined {
 * @param repo
 */
 function forbiddenPathsFromDiff(repo: string): string[] {
-  return stagedChanges(repo)
-    .filter((change) => change.paths.some(forbiddenPath))
-    .flatMap((change) => change.paths);
+  return stagedChanges(repo).flatMap((change) =>
+    change.paths.some((file) => forbiddenPath(file)) ? change.paths : [],
+  );
 }
 
 /**
@@ -585,9 +583,9 @@ function dropStaged(repo: string, files: readonly string[]): void {
 function dropBannedPatternFiles(repo: string): void {
   const files = new Set<string>();
   const changes = stagedChanges(repo);
-  const deletedPaths = changes
-    .filter((change) => change.status.startsWith("D"))
-    .flatMap((change) => change.paths);
+  const deletedPaths = changes.flatMap((change) =>
+    change.status.startsWith("D") ? change.paths : [],
+  );
   for (const change of changes) {
     const addedLines = stagedDiffAddedLines(repo, change.paths);
     const hasBannedPattern = addedLines.some((line) =>
@@ -669,7 +667,7 @@ export function runPreflight(
     dropStaged(
       repo,
       stagedNames(repo)
-        .filter(forbiddenPath)
+        .filter((file) => forbiddenPath(file))
         .toSorted((left, right) => left.localeCompare(right)),
     );
     dropBannedPatternFiles(repo);

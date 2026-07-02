@@ -31,7 +31,8 @@ import {
 import { gitSafeEnvironment } from "./gate.js";
 
 const FIXED_NOW = 1_782_475_200_000;
-const ANSI_PATTERN = /\u{1B}\[[0-?]*[ -/]*[@-~]/gu;
+const ANSI_PATTERN =
+  /\u{1B}\[[\u{30}-\u{3F}]*[\u{20}-\u{2F}]*[\u{40}-\u{7E}]/gu;
 
 /**
 
@@ -115,7 +116,7 @@ describe("run", () => {
       }),
     ).toEqual({
       code: 2,
-      lines: ["usage: harness <preflight|gate|run|status|setup>"],
+      lines: ["usage: harness <preflight|gate|loop|status|setup>"],
     });
   });
 
@@ -316,8 +317,8 @@ describe("harness command", () => {
     expect(result.status).toBe(0);
   });
 
-  test("run", () => {
-    const result = spawnSync("harness", ["run", "agy", "1", "1"], {
+  test("loop", () => {
+    const result = spawnSync("harness", ["loop", "agy", "1", "1"], {
       cwd: makeRepo(),
       encoding: "utf8",
     });
@@ -325,7 +326,7 @@ describe("harness command", () => {
     expect(result.status).toBe(0);
   });
 
-  test("run streams and logs agent JSON from stdout and stderr", () => {
+  test("loop streams and logs agent JSON from stdout and stderr", () => {
     const repo = makeRepo();
     const bin = path.join(repo, "bin");
     mkdirSync(bin);
@@ -340,7 +341,7 @@ describe("harness command", () => {
       { mode: 0o755 },
     );
 
-    const result = spawnSync("harness", ["run", "claude", "1", "1"], {
+    const result = spawnSync("harness", ["loop", "claude", "1", "1"], {
       cwd: repo,
       encoding: "utf8",
       env: {
@@ -383,21 +384,28 @@ describe("harness command", () => {
     expect(result.status).toBe(0);
   });
 
-  test("setup lowercases the project name", () => {
+  test("setup rejects project name arguments", () => {
     const repo = makeRepo();
     writeFileSync(
       path.join(repo, "package.json"),
       '{ "name": "old-project", "private": true }\n',
     );
-    spawnSync("harness", ["setup", "VRAM-calculator"], {
-      cwd: repo,
-      encoding: "utf8",
-    });
+    const result = spawnSync(
+      process.execPath,
+      [
+        path.join(repoRoot(process.cwd()), "harness", "harness.mjs"),
+        "setup",
+        "new-project",
+      ],
+      { cwd: repo, encoding: "utf8" },
+    );
     const packageJson = JSON.parse(
       readFileSync(path.join(repo, "package.json"), "utf8"),
     ) as { name?: string };
 
-    expect(packageJson.name).toBe("vram-calculator");
+    expect(result.status).toBe(2);
+    expect(result.stderr).toBe("usage: harness setup\n");
+    expect(packageJson.name).toBe("old-project");
   });
 
   test("setup twice does not error on the second run", () => {
@@ -411,60 +419,6 @@ describe("harness command", () => {
     expect(result.status).toBe(0);
   });
 
-  test.each([
-    ["my-project!", "myproject"],
-    [".hidden-package", "hiddenpackage"],
-    ["_private", "private"],
-    ["name/hooks", "name.hooks"],
-  ])("setup rewrites %s to the URL-safe name %s", (input, expected) => {
-    const repo = makeRepo();
-    writeFileSync(
-      path.join(repo, "package.json"),
-      '{ "name": "old-project", "private": true }\n',
-    );
-    spawnSync("harness", ["setup", input], { cwd: repo, encoding: "utf8" });
-    const packageJson = JSON.parse(
-      readFileSync(path.join(repo, "package.json"), "utf8"),
-    ) as { name?: string };
-
-    expect(packageJson.name).toBe(expected);
-  });
-
-  test("setup rejects a reserved Node core module name", () => {
-    const repo = makeRepo();
-    writeFileSync(
-      path.join(repo, "package.json"),
-      '{ "name": "old-project", "private": true }\n',
-    );
-    const result = spawnSync("harness", ["setup", "http"], {
-      cwd: repo,
-      encoding: "utf8",
-    });
-    const packageJson = JSON.parse(
-      readFileSync(path.join(repo, "package.json"), "utf8"),
-    ) as { name?: string };
-
-    expect(result.status).not.toBe(0);
-    expect(packageJson.name).toBe("old-project");
-  });
-
-  test("setup caps the project name at 214 characters", () => {
-    const repo = makeRepo();
-    writeFileSync(
-      path.join(repo, "package.json"),
-      '{ "name": "old-project", "private": true }\n',
-    );
-    spawnSync("harness", ["setup", "a".repeat(300)], {
-      cwd: repo,
-      encoding: "utf8",
-    });
-    const packageJson = JSON.parse(
-      readFileSync(path.join(repo, "package.json"), "utf8"),
-    ) as { name?: string };
-
-    expect(packageJson.name?.length).toBeLessThanOrEqual(214);
-  });
-
   test("main writes status lines to stderr and sets the exit code", async () => {
     const chunks: string[] = [];
     vi.spyOn(process.stderr, "write").mockImplementation((chunk) => {
@@ -476,7 +430,7 @@ describe("harness command", () => {
 
     expect(process.exitCode).toBe(2);
     expect(chunks).toEqual([
-      "usage: harness <preflight|gate|run|status|setup>\n",
+      "usage: harness <preflight|gate|loop|status|setup>\n",
     ]);
   });
 });

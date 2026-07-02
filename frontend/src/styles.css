@@ -1,6 +1,10 @@
 /* Base reset only. Visual design is intentionally deferred. */
+html {
+  box-sizing: border-box;
+}
+
 *,
 *::before,
 *::after {
-  box-sizing: border-box;
+  box-sizing: inherit;
 }

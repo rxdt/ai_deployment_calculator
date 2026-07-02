@@ -164,7 +164,7 @@ const packageRoot = (
   devDependencies?: Record<string, string>;
 } => {
   const parsed = parseJsonObject(relpath);
-  const {dependencies, devDependencies} = parsed;
+  const { dependencies, devDependencies } = parsed;
   return {
     dependencies: isStringRecord(dependencies) ? dependencies : undefined,
     devDependencies: isStringRecord(devDependencies)
@@ -180,7 +180,7 @@ const lockRootPackage = (
   devDependencies?: Record<string, string>;
 } => {
   const parsed = parseJsonObject(relpath);
-  const {packages} = parsed;
+  const { packages } = parsed;
   if (
     typeof packages !== "object" ||
     packages === null ||
@@ -1065,7 +1065,7 @@ describe("gate constants", () => {
   });
 
   test("installed gate tooling has a concrete full-gate policy owner", () => {
-    const {devDependencies} = packageRoot("harness/package.json");
+    const { devDependencies } = packageRoot("harness/package.json");
     if (devDependencies === undefined) {
       throw new Error("harness/package.json has no devDependencies");
     }
@@ -1417,7 +1417,8 @@ describe("loop containment", () => {
     const content = [
       ...Array.from(
         { length: 100 },
-        (_, index) => `export const value${String(index)} = ${String(index)};\n`,
+        (_, index) =>
+          `export const value${String(index)} = ${String(index)};\n`,
       ),
       `export const blocked = 1; // ${requiredForbiddenPattern("ts-ignore")}\n`,
     ].join("");
@@ -1979,7 +1980,10 @@ describe("setup config overrides cannot escape containment", () => {
 // source-looking file can point at a protected file (harness/gate.ts) or escape the repo
 // entirely (/etc/passwd). The loop must resolve or reject symlinks, not treat them as source.
 describe("symlink and path-traversal containment", () => {
-  const linkRepo = (target: string, linkPath = "frontend/src/evil.ts"): string => {
+  const linkRepo = (
+    target: string,
+    linkPath = "frontend/src/evil.ts",
+  ): string => {
     process.env.RALPH_LOOP = "1";
     const repo = makeRepo();
     const absoluteLink = path.join(repo, linkPath);
@@ -1994,9 +1998,15 @@ describe("symlink and path-traversal containment", () => {
     const repo = makeRepo();
     process.env.RALPH_LOOP = "1";
     mkdirSync(path.join(repo, "harness"), { recursive: true });
-    writeFileSync(path.join(repo, "harness/gate.ts"), "export const locked = 1;\n");
+    writeFileSync(
+      path.join(repo, "harness/gate.ts"),
+      "export const locked = 1;\n",
+    );
     mkdirSync(path.join(repo, "frontend/src"), { recursive: true });
-    symlinkSync("../../harness/gate.ts", path.join(repo, "frontend/src/evil.ts"));
+    symlinkSync(
+      "../../harness/gate.ts",
+      path.join(repo, "frontend/src/evil.ts"),
+    );
     runCommand(["git", "add", "--", "frontend/src/evil.ts"], repo);
     stageFile(repo, "frontend/src/report.ts", "export const keep = 1;\n");
 
@@ -2454,7 +2464,9 @@ describe("frontend gate shape", () => {
   test("pre-push and GitHub CI use the JavaScript gate", () => {
     const prePush = readRepo(".githooks/pre-push");
     const githubCi = readRepo(".github/workflows/ci.yml");
-    expect(prePush).toBe("#!/bin/sh\nset -eu\n\nnode harness/harness.mjs gate\n");
+    expect(prePush).toBe(
+      "#!/bin/sh\nset -eu\n\nnode harness/harness.mjs gate\n",
+    );
     expect(githubCi).toContain("node harness/harness.mjs gate");
     expect(githubCi).not.toContain("npm run gate");
   });

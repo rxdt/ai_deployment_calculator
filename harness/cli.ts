@@ -21,7 +21,6 @@ import {
 
 // Re-exported for callers/tests that treat config-candidate discovery as a CLI concern.
 
-
 export const AGENTS: Record<string, string[]> = {
   claude: [
     "claude",
@@ -536,4 +535,4 @@ if (process.argv[1] === import.meta.filename) {
   await main(process.argv.slice(2));
 }
 
-export {CONFIG_CANDIDATES} from "./gate.js";
+export { CONFIG_CANDIDATES } from "./gate.js";

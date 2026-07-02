@@ -7,6 +7,7 @@ export default {
     "build/**",
     ".next/**",
     "node_modules/**",
+    "scratchpad/**"
   ],
   rules: {
     "at-rule-no-unknown": [

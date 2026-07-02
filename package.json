@@ -14,6 +14,7 @@
     "build": "npm --prefix frontend run build",
     "dev": "npm --prefix frontend run dev",
     "preview": "npm --prefix frontend run preview",
+    "preflight": "node harness/harness.mjs preflight",
     "gate": "node harness/harness.mjs gate",
     "loop": "node harness/harness.mjs loop",
     "status": "node harness/harness.mjs status",

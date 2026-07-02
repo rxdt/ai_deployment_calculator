@@ -83,7 +83,10 @@ const harnessCli = (
 ): SpawnSyncReturns<string> =>
   spawnSync(
     process.execPath,
-    [path.join(repoRoot(process.cwd()), "harness", "harness.mjs"), ...arguments_],
+    [
+      path.join(repoRoot(process.cwd()), "harness", "harness.mjs"),
+      ...arguments_,
+    ],
     {
       cwd: options.cwd,
       encoding: "utf8",

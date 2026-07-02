@@ -34,6 +34,7 @@ flowchart LR
 ```sh
 npm run setup
 ```
+
 `setup` installs harness dependencies, installs discovered package directories,
 adds missing root harness scripts, sets Git hooks, and rewrites harness commands
 to use any existing user config file, even if that file is empty. Setup checks
@@ -44,26 +45,33 @@ It deliberately does not run `npm setup` at the repository root. Root
 `package.json` has an `setup` script that launches harness setup.
 
 ## Run
+
 ```sh
 cd frontend && npm run dev -- --port 5173
 ```
+
 `http://127.0.0.1:5173`.
 
 Build:
+
 ```sh
 cd frontend && npm run build
 ```
+
 Preview:
+
 ```sh
 cd frontend && npm run preview
 ```
 
 ## Faster checks
+
 ```sh
 npm run preflight
 ```
 
 ## Full checks (lint, tests, security, type-checking, etc.)
+
 ```sh
 npm run gate
 ```
@@ -83,6 +91,7 @@ forbidden patterns. It warns on stderr when it unstages files
 staged files alone.
 
 ## Loop
+
 ```sh
 npm run harness loop <agent> <#> <$>
 ```

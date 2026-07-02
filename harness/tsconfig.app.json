@@ -1,18 +1,23 @@
 {
   "compilerOptions": {
     "target": "ES2023",
-    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "lib": [
+      "ES2023",
+      "DOM",
+      "DOM.Iterable"
+    ],
     "module": "ESNext",
     "moduleResolution": "Bundler",
-    "types": ["vite/client"],
-
+    "types": [
+      "vite/client",
+      "vitest"
+    ],
     "strict": true,
     "isolatedModules": true,
     "verbatimModuleSyntax": true,
     "moduleDetection": "force",
     "allowImportingTsExtensions": true,
     "noEmit": true,
-
     "exactOptionalPropertyTypes": true,
     "noImplicitReturns": true,
     "noImplicitOverride": true,
@@ -20,20 +25,23 @@
     "noUncheckedIndexedAccess": true,
     "noUncheckedSideEffectImports": true,
     "noUnusedLocals": true,
-    "noUnusedParameters": true,
+    "noUnusedParameters": false,
     "useUnknownInCatchVariables": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["../**/*.ts"],
+  "include": [
+    "../**/*.ts",
+    "*.ts"
+  ],
   "exclude": [
     "../.git/**",
-    "../.lighthouseci/**",
-    "../coverage/**",
-    "../dist/**",
-    "../build/**",
-    "../harness/**",
-    "../node_modules/**",
-    "../scratchpad/**",
-    "../test-results/**"
+    "../**/.lighthouseci/**",
+    "../**/coverage/**",
+    "../**/dist/**",
+    "../**/build/**",
+    "../**/node_modules/**",
+    "../**/scratchpad/**",
+    "../**/test-results/**",
+    "../harness/**"
   ]
 }

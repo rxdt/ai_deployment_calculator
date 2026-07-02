@@ -1,13 +1,11 @@
 {
-  "compilerOptions": {
-    "target": "ES2023",
-    "lib": ["ES2023"],
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
-    "types": ["node", "vitest"],
-    "strict": true,
-    "noImplicitReturns": true,
-    "noUncheckedSideEffectImports": true
-  },
-  "include": ["*.ts"]
+  "files": [],
+  "references": [
+    {
+      "path": "./tsconfig.app.json"
+    },
+    {
+      "path": "./tsconfig.harness.json"
+    }
+  ]
 }

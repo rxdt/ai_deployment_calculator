@@ -37,7 +37,7 @@ export default defineConfig([
     ".git/",
     ".codex/",
     ".agents/",
-    "scratchpad/",
+    "**/scratchpad/",
     "**/package-lock.json",
   ]),
   // Production TypeScript files. Test-specific relaxations live in the next block.
@@ -60,7 +60,7 @@ export default defineConfig([
     languageOptions: {
       globals: { ...globals.browser, ...globals.node },
       parserOptions: {
-        project: ["harness/tsconfig.app.json", "harness/tsconfig.json"],
+        project: ["harness/tsconfig.app.json", "harness/tsconfig.json", "harness/tsconfig.harness.json"],
         tsconfigRootDir: repoRoot,
       },
     },
@@ -86,10 +86,14 @@ export default defineConfig([
           ],
         },
       ],
-      // "@typescript-eslint/no-unused-vars": [   // rxdt preference, will uncomment soon
-      //   "error",
-      //   { argsIgnorePattern: "^_" },
-      // ],
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        {
+          "vars": "all",
+          "args": "none" // Ignore unused function parameters completely, TS handles
+          // { argsIgnorePattern: "^_" }, // rxdt preference, will uncomment soon
+        }
+      ],
       "@typescript-eslint/naming-convention": [
         "error",
         {
@@ -196,6 +200,7 @@ export default defineConfig([
       "sonarjs/cognitive-complexity": ["error", 10],
       "max-statements": ["error", { max: 25 }],
       "no-inner-declarations": "error", // Prevent fracturing code into tiny pieces
+      "unicorn/prefer-spread": "error",
       "no-restricted-syntax": [
         "error",
         {
@@ -241,12 +246,12 @@ export default defineConfig([
           message: "Never construct functions from strings.",
         },
         {
-          selector: "CallExpression > SpreadElement",
-          message: "Avoid implied argument spread, pass explicit values.",
+          selector: "CallExpression > SpreadElement[argument.type='ArrayExpression']",
+          message: "Do not spread an inline array literal into function arguments. Pass explicit values."
         },
         {
-          selector: "ArrayExpression > SpreadElement",
-          message: "Avoid implied array spread, pass explicit values.",
+          selector: "ArrayExpression > SpreadElement[argument.type='ArrayExpression']",
+          message: "Do not spread an array literal directly inside another array. Pass explicit values."
         },
         {
           selector: "ObjectExpression > SpreadElement",

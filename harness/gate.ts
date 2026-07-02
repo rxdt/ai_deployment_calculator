@@ -197,12 +197,12 @@ export const FULL_CHECKS: Record<string, string[]> = {
   ...COMMIT_CHECKS,
   typecheck: [tool("tsc"), "-p", "harness/tsconfig.app.json", "--noEmit"],
   harness_types: [tool("tsc"), "-p", "harness/tsconfig.json", "--noEmit"],
-  markup: [tool("markuplint"), "**/*.html", "--max-warnings", "0"],
+  markup: [tool("markuplint"), "frontend/**/*.html", "--max-warnings", "0"],
   schema: [
     tool("ajv"),
     "compile",
     "-s",
-    "**/*.schema.json",
+    "frontend/schemas/**/*.schema.json",
     "--spec=draft2020",
     "--strict=true",
     "--all-errors",
@@ -344,8 +344,10 @@ function shouldSkipCheck(repo: string, command: readonly string[]): boolean {
   ) {
     return true;
   }
-  return (executable === "semgrep" || executable === "osv-scanner") &&
-    (!hasPackage(repo, "frontend") || !hasPackage(repo, "harness"));
+  return (
+    (executable === "semgrep" || executable === "osv-scanner") &&
+    (!hasPackage(repo, "frontend") || !hasPackage(repo, "harness"))
+  );
 }
 
 /**
@@ -362,34 +364,37 @@ function commandFailure(
   return `${name} failed:\n${detail}`;
 }
 
+// Per-run invariants shared by every check in a runChecks pass.
+interface CheckContext {
+  repo: string;
+  environment: NodeJS.ProcessEnv;
+  timeoutMs: number;
+}
+
 /**
 
-* @param repo
+* @param context
 * @param name
 * @param command
-* @param environment
-* @param timeoutMs
 */
 function runOneCheck(
-  repo: string,
+  context: CheckContext,
   name: string,
   command: readonly string[],
-  environment: NodeJS.ProcessEnv,
-  timeoutMs: number,
 ): string | undefined {
   const [executable, ...rest] = command;
   if (executable === undefined || executable.length === 0) {
     return commandFailure(name, command, "empty command");
   }
-  if (shouldSkipCheck(repo, command)) {
+  if (shouldSkipCheck(context.repo, command)) {
     return undefined;
   }
   const result = spawnSync(executable, rest, {
-    cwd: repo,
+    cwd: context.repo,
     encoding: "utf8",
-    env: environment,
-    // 0 means no timeout: the full gate must be free to run long browser/build checks.
-    ...((timeoutMs > 0) && { timeout: timeoutMs }),
+    env: context.environment,
+    // 0 => undefined => no timeout: the full gate must run long browser/build checks.
+    timeout: context.timeoutMs > 0 ? context.timeoutMs : undefined,
   });
   if (
     result.status === 0 &&
@@ -436,7 +441,7 @@ function readPackageJson(
 * @param repo
 * @param relpath
 */
-function packageHasSizeLimit(repo: string, relpath: string): boolean {
+function isSizeLimited(repo: string, relpath: string): boolean {
   const parsed = readPackageJson(repo, relpath);
   return parsed !== undefined && Object.hasOwn(parsed, "size-limit");
 }
@@ -459,7 +464,7 @@ function discoverSizePackages(repo: string, directory = ""): string[] {
     return entry.isFile() &&
       entry.name === "package.json" &&
       relative !== "frontend/package.json" &&
-      packageHasSizeLimit(repo, relative)
+      isSizeLimited(repo, relative)
       ? [relative]
       : [];
   });
@@ -480,31 +485,25 @@ function writeSizeConfig(repo: string, packagePath: string): string {
 
 /**
 
-* @param repo
+* @param context
 * @param name
 * @param command
-* @param environment
-* @param timeoutMs
 */
 function runSizeChecks(
-  repo: string,
+  context: CheckContext,
   name: string,
   command: readonly string[],
-  environment: NodeJS.ProcessEnv,
-  timeoutMs: number,
 ): string[] {
-  const packages = discoverSizePackages(repo).toSorted((left, right) =>
+  const packages = discoverSizePackages(context.repo).toSorted((left, right) =>
     left.localeCompare(right),
   );
   return packages.flatMap((packagePath) => {
-    const config = writeSizeConfig(repo, packagePath);
-    const failure = runOneCheck(
-      repo,
-      name,
-      [...command, "--config", config],
-      environment,
-      timeoutMs,
-    );
+    const config = writeSizeConfig(context.repo, packagePath);
+    const failure = runOneCheck(context, name, [
+      ...command,
+      "--config",
+      config,
+    ]);
     return failure === undefined ? [] : [`${failure}\n${packagePath}`];
   });
 }
@@ -574,7 +573,7 @@ function stagedChanges(repo: string): StagedChange[] {
 
 * @param file
 */
-function forbiddenPath(file: string): boolean {
+function isForbiddenPath(file: string): boolean {
   return (
     FORBIDDEN_FILES.has(file) ||
     FORBIDDEN_BASENAMES.has(path.posix.basename(file)) ||
@@ -620,7 +619,7 @@ function stagedContent(repo: string, file: string): string | undefined {
 */
 function forbiddenPathsFromDiff(repo: string): string[] {
   return stagedChanges(repo).flatMap((change) =>
-    change.paths.some((file) => forbiddenPath(file)) ? change.paths : [],
+    change.paths.some((file) => isForbiddenPath(file)) ? change.paths : [],
   );
 }
 
@@ -704,16 +703,20 @@ export function runChecks(
   checks: Record<string, string[]>,
   timeoutMs: number = PREFLIGHT_TIMEOUT_MS,
 ): string[] {
-  const environment = gitSafeEnvironment();
+  const context: CheckContext = {
+    repo,
+    environment: gitSafeEnvironment(),
+    timeoutMs,
+  };
   const failures: string[] = [];
   for (const [name, command] of Object.entries(checks)) {
-    failures.push(
-      ...(name === "size"
-        ? runSizeChecks(repo, name, command, environment, timeoutMs)
-        : [runOneCheck(repo, name, command, environment, timeoutMs)].filter(
+    const checkFailures =
+      name === "size"
+        ? runSizeChecks(context, name, command)
+        : [runOneCheck(context, name, command)].filter(
             (failure): failure is string => failure !== undefined,
-          )),
-    );
+          );
+    failures.push(...checkFailures);
   }
   return failures;
 }
@@ -735,7 +738,7 @@ export function runPreflight(
     unStageFiles(
       repo,
       stagedNames(repo)
-        .filter((file) => forbiddenPath(file))
+        .filter((file) => isForbiddenPath(file))
         .toSorted((left, right) => left.localeCompare(right)),
     );
     unStageFiles(

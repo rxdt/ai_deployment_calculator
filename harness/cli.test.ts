@@ -78,16 +78,16 @@ function makeRepo(): string {
 
 // Invoke the harness CLI by path (no global `harness` symlink; template must be self-contained).
 const harnessCli = (
-  args: string[],
+  arguments_: string[],
   options: { cwd: string; env?: NodeJS.ProcessEnv },
 ): SpawnSyncReturns<string> =>
   spawnSync(
     process.execPath,
-    [path.join(repoRoot(process.cwd()), "harness", "harness.mjs"), ...args],
+    [path.join(repoRoot(process.cwd()), "harness", "harness.mjs"), ...arguments_],
     {
       cwd: options.cwd,
       encoding: "utf8",
-      ...(options.env === undefined ? {} : { env: options.env }),
+      ...(options.env !== undefined && { env: options.env }),
     },
   );
 

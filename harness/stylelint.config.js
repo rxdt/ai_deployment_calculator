@@ -18,19 +18,18 @@ export default {
     "block-no-empty": true,
     "custom-property-pattern":
       "^(color|space|font|radius|shadow|z|breakpoint)-[a-z0-9-]+$",
-    "color-no-hex": true,
     "declaration-no-important": true, // Banned: Block using lazy '!important' overrides
     "declaration-property-value-disallowed-list": {
-      "/^font-size$/": ["/^[0-9.]+px$/"],
-      "/^z-index$/": ["/^[0-9]+$/"],
-      "/^outline$/": ["none", "0"],
-      "/^overflow$/": ["hidden"],
-      "/^position$/": ["fixed"],
-      "/^transition$/": ["/\\ball\\b/"],
-      "/^transition-property$/": ["all"],
+      "font-size": ["/^[0-9.]+px$/"],
+      "z-index": ["/^[0-9]+$/"],
+      "outline": ["none", "0"],
+      "overflow": ["hidden"],
+      "position": ["fixed"],
+      "transition": ["/\\ball\\b/"],
+      "transition-property": ["all"]
     },
     "import-notation": null,
-    "max-nesting-depth": 3, // Stop messy CSS nesting chains
+    "max-nesting-depth": 2, // Stop messy CSS nesting chains
     "nesting-selector-no-missing-scoping-root": null,
     "color-named": "never", // Force hex or rgb colors, lazy words like "red"
     "selector-max-id": 0, // Force clean selectors over high-pri ID e.g. #my-header
@@ -46,16 +45,18 @@ export default {
     "no-descending-specificity": true,
     "property-no-vendor-prefix": true,
     "property-disallowed-list": ["float", "clear"],
-    "selector-max-compound-selectors": 4,
-    "selector-max-specificity": "0,4,0",
-    "shorthand-property-no-redundant-values": true,
+    "selector-max-specificity": "0,3,0",
+    "selector-max-compound-selectors": 3,
     "selector-max-class": 3,
-    "selector-max-combinators": 3,
+    "selector-max-combinators": 2,
+    "selector-max-universal": [1, {
+      "ignoreAfterCombinators": [">", "+", "~"]
+    }],
     "selector-max-pseudo-class": 2,
     "selector-max-type": 1,
-    "selector-max-universal": 0,
     "selector-no-qualifying-type": true,
-    "scale-unlimited/declaration-strict-value": [
+    "shorthand-property-no-redundant-values": true,
+    "stylelint-declaration-strict-value/stylelint-declaration-strict-value": [
       [
         "/color$/",
         "background-color",
@@ -68,7 +69,7 @@ export default {
         "gap",
         "row-gap",
         "column-gap",
-        "z-index",
+        "z-index"
       ],
       {
         ignoreValues: [

@@ -29,7 +29,7 @@ export const FORBIDDEN_DIRS = new Set([
 export const FORBIDDEN_BASENAMES = new Set(["package.json"]);
 
 // User-config filenames `harness setup` could adopt to repoint a gate check. This is the single
-// source of truth: cli re-exports it, and every path here is folded into FORBIDDEN_FILES below so
+// source of truth: CLI re-exports it, and every path here is folded into FORBIDDEN_FILES below so
 // an agent can never commit one (setup would otherwise point the gate at a toothless config).
 export const CONFIG_CANDIDATES: Record<string, readonly string[]> = {
   eslint: [
@@ -368,6 +368,7 @@ function commandFailure(
 * @param name
 * @param command
 * @param environment
+* @param timeoutMs
 */
 function runOneCheck(
   repo: string,
@@ -388,7 +389,7 @@ function runOneCheck(
     encoding: "utf8",
     env: environment,
     // 0 means no timeout: the full gate must be free to run long browser/build checks.
-    ...(timeoutMs > 0 ? { timeout: timeoutMs } : {}),
+    ...((timeoutMs > 0) && { timeout: timeoutMs }),
   });
   if (
     result.status === 0 &&
@@ -483,6 +484,7 @@ function writeSizeConfig(repo: string, packagePath: string): string {
 * @param name
 * @param command
 * @param environment
+* @param timeoutMs
 */
 function runSizeChecks(
   repo: string,
@@ -517,7 +519,7 @@ function stagedNames(repo: string): string[] {
     .filter((line) => line.length > 0);
 }
 
-// Staged symlinks (git mode 120000). A symlink's path may look like ordinary source while it
+// Staged symlinks (Git mode 120000). A symlink's path may look like ordinary source while it
 // points at a protected file or outside the repo, so the loop must eject it, not read it as text.
 /**
 
@@ -695,6 +697,7 @@ export function preferenceProblems(
 
 * @param repo
 * @param checks
+* @param timeoutMs
 */
 export function runChecks(
   repo: string,

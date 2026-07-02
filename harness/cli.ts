@@ -20,7 +20,7 @@ import {
 } from "./gate.js";
 
 // Re-exported for callers/tests that treat config-candidate discovery as a CLI concern.
-export { CONFIG_CANDIDATES };
+
 
 export const AGENTS: Record<string, string[]> = {
   claude: [
@@ -274,6 +274,9 @@ async function runWorker(
 
 * @param command
 * @param deps
+* @param deps.preflight
+* @param deps.gate
+* @param deps.repoRoot
 */
 export function run(
   command: string,
@@ -304,7 +307,7 @@ function runStatus(): number {
   const runs = path.join(repoRoot(process.cwd()), "scratchpad", "runs");
   const logs = existsSync(runs)
     ? readdirSync(runs, { recursive: true })
-        .map((entry) => String(entry))
+        .map(String)
         .filter((name) => name.endsWith(".jsonl"))
         .toSorted((left, right) => left.localeCompare(right))
     : [];
@@ -532,3 +535,5 @@ export async function main(argv: string[]): Promise<void> {
 if (process.argv[1] === import.meta.filename) {
   await main(process.argv.slice(2));
 }
+
+export {CONFIG_CANDIDATES} from "./gate.js";

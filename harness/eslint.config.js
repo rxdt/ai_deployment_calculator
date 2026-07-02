@@ -99,11 +99,11 @@ export default defineConfig([
             "classMethod",
             "objectLiteralMethod",
             "objectLiteralProperty",
-            "parameter"  // rxdt preference, will remove soon
+            "parameter", // rxdt preference, will remove soon
           ],
           format: ["camelCase", "UPPER_CASE", "PascalCase"],
-          "leadingUnderscore": "forbid",
-          "trailingUnderscore": "forbid"
+          leadingUnderscore: "forbid",
+          trailingUnderscore: "forbid",
         },
         // {                            // rxdt preference, will uncomment soon
         //   selector: "parameter",
@@ -114,8 +114,8 @@ export default defineConfig([
         {
           selector: ["typeLike", "class"],
           format: ["PascalCase"],
-          "leadingUnderscore": "forbid",
-          "trailingUnderscore": "forbid"
+          leadingUnderscore: "forbid",
+          trailingUnderscore: "forbid",
         },
         {
           selector: "objectLiteralProperty",
@@ -264,7 +264,7 @@ export default defineConfig([
           selector:
             "CallExpression[callee.property.name='setAttribute'][arguments.0.value='style']",
           message: "Do not set inline styles. Use CSS classes.",
-        }
+        },
       ],
 
       "@typescript-eslint/consistent-type-imports": [

@@ -69,6 +69,20 @@ function fireInput(name: string, value: string): void {
 }
 
 /**
+ Return the reset button, throwing if it is missing.
+@returns the reset button element
+*/
+function requireButton(): HTMLButtonElement {
+  const button = document.querySelector<HTMLButtonElement>(
+    '[data-action="reset"]',
+  );
+  if (button === null) {
+    throw new Error("Missing reset button");
+  }
+  return button;
+}
+
+/**
  Set a control's value and dispatch a change event.
 @param name - the control's name attribute
 @param value - the value to set
@@ -141,7 +155,7 @@ describe("mounted calculator", () => {
     expect(out("gpu-class")).toBe("24 GB GPU hardware tier");
     expect(out("min-cap")).toBe("22.4 GB");
     expect(out("speed")).toMatch(/tokens\/sec$/u);
-    expect(document.querySelectorAll('[data-out="breakdown"] li').length).toBe(
+    expect(document.querySelectorAll('[data-out="breakdown"] li')).toHaveLength(
       5,
     );
   });
@@ -281,17 +295,3 @@ describe("main entrypoint", () => {
     expect(out("total")).toBe("19.0 GB");
   });
 });
-
-/**
- Return the reset button, throwing if it is missing.
-@returns the reset button element
-*/
-function requireButton(): HTMLButtonElement {
-  const button = document.querySelector<HTMLButtonElement>(
-    '[data-action="reset"]',
-  );
-  if (button === null) {
-    throw new Error("Missing reset button");
-  }
-  return button;
-}

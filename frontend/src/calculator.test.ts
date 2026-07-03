@@ -41,7 +41,7 @@ const NO_KV_FAMILIES = new Set<WorkloadFamily>([
 ]);
 
 /**
- 
+
 @param overrides
 */
 function state(overrides: Partial<FormState> = {}): FormState {
@@ -49,7 +49,7 @@ function state(overrides: Partial<FormState> = {}): FormState {
 }
 
 /**
- 
+
 @param overrides
 */
 function required(overrides: Partial<FormState>): number {
@@ -147,7 +147,7 @@ describe("corrected text-generation totals", () => {
       { contextTokens: "1000000", precision: "8-bit" },
       154.3,
     ],
-  ])("%s", (_name, overrides, expected) => {
+  ])("%s", (name, overrides, expected) => {
     expect(required(overrides)).toBe(expected);
   });
 

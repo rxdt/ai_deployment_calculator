@@ -253,7 +253,10 @@ describe("runLoop", () => {
         ralphPath: () => "/repo/harness/ralph.sh",
         listSequences: () => [],
         ensureDirectory: (directory) => directory.length,
-        worker: async () => 0,
+        worker: async () => {
+          const code = await Promise.resolve(0);
+          return code;
+        },
       }),
     ).resolves.toEqual({
       code: 2,
@@ -269,7 +272,10 @@ describe("runLoop", () => {
         ralphPath: () => "/repo/harness/ralph.sh",
         listSequences: () => [],
         ensureDirectory: (directory) => directory.length,
-        worker: async () => 0,
+        worker: async () => {
+          const code = await Promise.resolve(0);
+          return code;
+        },
       }),
     ).resolves.toEqual({
       code: 2,
@@ -296,7 +302,8 @@ describe("runLoop", () => {
       },
       worker: async (command, cwd, log, isVerbose) => {
         launched = { command, cwd, log, isVerbose };
-        return 7;
+        const code = await Promise.resolve(7);
+        return code;
       },
     });
 

@@ -238,7 +238,10 @@ async function runWorker(
     buffer += chunk;
     const { output, rest } = drainLines(buffer);
     buffer = rest;
-    for (const line of output.split("\n").filter((entry) => entry.length > 0)) {
+    for (const line of output.split("\n")) {
+      if (line.length === 0) {
+        continue;
+      }
       process.stdout.write(formatLiveLine(line));
     }
   };
@@ -272,14 +275,14 @@ async function runWorker(
 /**
 
 * @param command
-* @param deps
-* @param deps.preflight
-* @param deps.gate
-* @param deps.repoRoot
+* @param dependencies
+* @param dependencies.preflight
+* @param dependencies.gate
+* @param dependencies.repoRoot
 */
 export function run(
   command: string,
-  deps: {
+  dependencies: {
     preflight: (repo: string) => string[];
     gate: (repo: string) => string[];
     repoRoot: (from: string) => string;
@@ -288,9 +291,9 @@ export function run(
   if (command !== "preflight" && command !== "gate") {
     return { code: 2, lines: [USAGE] };
   }
-  const repo = deps.repoRoot(process.cwd());
+  const repo = dependencies.repoRoot(process.cwd());
   const problems =
-    command === "preflight" ? deps.preflight(repo) : deps.gate(repo);
+    command === "preflight" ? dependencies.preflight(repo) : dependencies.gate(repo);
   const lines = problems.map((problem) => `gate: ${problem}`);
   lines.push(
     problems.length > 0 ? "rejected by harness" : `ok: ${command} passed`,
@@ -421,11 +424,11 @@ function runSetup(arguments_: string[]): number {
 /**
 
 * @param arguments_
-* @param deps
+* @param dependencies
 */
 export async function runLoop(
   arguments_: string[],
-  deps: LoopDependencies,
+  dependencies: LoopDependencies,
 ): Promise<CommandResult> {
   const agent = (arguments_[0] ?? "").toLowerCase();
   const agentCommand = AGENTS[agent];
@@ -443,24 +446,24 @@ export async function runLoop(
     return { code: 2, lines: ["num_iterations and max_minutes must be >= 1"] };
   }
   const isVerbose = arguments_[3] !== "false";
-  const cwd = deps.cwd();
+  const cwd = dependencies.cwd();
   const day = path.join(
     cwd,
     "scratchpad",
     "runs",
     agent,
-    formatDate(deps.now()),
+    formatDate(dependencies.now()),
   );
-  deps.ensureDirectory(day);
-  const sequence = nextSequence(deps.listSequences(day));
+  dependencies.ensureDirectory(day);
+  const sequence = nextSequence(dependencies.listSequences(day));
   const log = path.join(day, `${String(sequence).padStart(4, "0")}.jsonl`);
   const command = [
-    deps.ralphPath(),
+    dependencies.ralphPath(),
     String(iterations),
     String(minutes),
     ...agentCommand,
   ];
-  const code = await deps.worker(command, cwd, log, isVerbose);
+  const code = await dependencies.worker(command, cwd, log, isVerbose);
   return { code, lines: [`harness: ${command.join(" ")} -> ${log}`] };
 }
 
@@ -478,7 +481,7 @@ function loopDependencies(): LoopDependencies {
         .filter((name) => name.endsWith(".jsonl"))
         .map((name) => Number(name.slice(0, name.indexOf(".jsonl"))))
         .filter((value) => Number.isSafeInteger(value)),
-    ensureDirectory: (directory) => {
+    ensureDirectory: (directory): void => {
       mkdirSync(directory, { recursive: true });
     },
     worker: runWorker,
@@ -504,7 +507,7 @@ export async function main(argv: string[]): Promise<void> {
       for (const line of result.lines) {
         process.stderr.write(`${line}\n`);
       }
-      code = result.code;
+      ({ code } = result);
       break;
     }
     case "status": {
@@ -520,7 +523,7 @@ export async function main(argv: string[]): Promise<void> {
       for (const line of result.lines) {
         process.stderr.write(`${line}\n`);
       }
-      code = result.code;
+      ({ code } = result);
       break;
     }
     default: {

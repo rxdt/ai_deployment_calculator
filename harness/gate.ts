@@ -196,7 +196,7 @@ export const COMMIT_CHECKS: Record<string, string[]> = {
 export const FULL_CHECKS: Record<string, string[]> = {
   ...COMMIT_CHECKS,
   typecheck: [tool("tsc"), "-p", "harness/tsconfig.app.json", "--noEmit"],
-  harness_types: [tool("tsc"), "-p", "harness/tsconfig.json", "--noEmit"],
+  harness_types: [tool("tsc"), "-p", "harness/tsconfig.harness.json", "--noEmit"],
   markup: [tool("markuplint"), "frontend/**/*.html", "--max-warnings", "0"],
   schema: [
     tool("ajv"),

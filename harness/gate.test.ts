@@ -37,6 +37,10 @@ const HARNESS = import.meta.dirname;
 const REPO = path.join(HARNESS, "..");
 const readRepo = (relpath: string): string =>
   readFileSync(path.join(REPO, relpath), "utf8");
+const isStringRecord = (value: unknown): value is Record<string, string> =>
+  typeof value === "object" &&
+  value !== null &&
+  Object.values(value).every((entry) => typeof entry === "string");
 const readPackageScripts = (relpath: string): Record<string, string> => {
   const parsed: unknown = JSON.parse(readRepo(relpath));
   if (
@@ -55,11 +59,6 @@ const requiredForbiddenPattern = (pattern: string): string => {
   }
   return pattern;
 };
-
-const isStringRecord = (value: unknown): value is Record<string, string> =>
-  typeof value === "object" &&
-  value !== null &&
-  Object.values(value).every((entry) => typeof entry === "string");
 
 const harnessTool = (name: string): string =>
   path.join("harness/node_modules/.bin", name);
@@ -947,7 +946,7 @@ describe("runChecks", () => {
 
 describe("gate constants", () => {
   test("forbidden collections pin the containment essentials", () => {
-    expect([...FORBIDDEN_DIRS].toSorted()).toEqual([
+    expect([...FORBIDDEN_DIRS].toSorted((a, b) => a.localeCompare(b))).toEqual([
       ".githooks",
       ".github",
       "frontend/harness",
@@ -1251,8 +1250,8 @@ describe("loop containment", () => {
   test("ejects a generated mix of forbidden files and nested forbidden-dir paths", () => {
     process.env.RALPH_LOOP = "1";
     const repo = makeRepo();
-    const directories = [...FORBIDDEN_DIRS].toSorted();
-    const files = [...FORBIDDEN_FILES].toSorted();
+    const directories = [...FORBIDDEN_DIRS].toSorted((a, b) => a.localeCompare(b));
+    const files = [...FORBIDDEN_FILES].toSorted((a, b) => a.localeCompare(b));
     const generated = [
       ...files.map((target, index) => ({
         target,
@@ -1476,11 +1475,11 @@ describe("loop containment", () => {
   test("checks staged .ts content when the worktree file is gone", () => {
     process.env.RALPH_LOOP = "1";
     const repo = makeRepo();
-    stageFile(repo, "frontend/src/state.ts", "const _bad = 3;\n");
+    stageFile(repo, "frontend/src/state.ts", 'document.querySelector(".x");\n');
     runCommand(["rm", path.join(repo, "frontend/src/state.ts")], repo);
     expect(preferenceProblems(repo, ["frontend/src/state.ts"])).not.toEqual([]);
     const isFlagged = runPreflight(repo).some((problem) =>
-      problem.includes("'_bad'"),
+      problem.includes("class selector"),
     );
     expect(isFlagged).toBe(true);
   });
@@ -1750,12 +1749,12 @@ describe("banned patterns and preferences under loop", () => {
     );
   });
 
-  test("flags a staged preference break (underscore name)", () => {
+  test("flags a staged preference break (disallowed DOM selector)", () => {
     process.env.RALPH_LOOP = "1";
     const repo = makeRepo();
-    stageFile(repo, "frontend/src/state.ts", "const _bad = 1;\n");
+    stageFile(repo, "frontend/src/state.ts", 'document.querySelector(".x");\n');
     const isFlagged = runPreflight(repo).some((problem) =>
-      problem.includes("'_bad'"),
+      problem.includes("class selector"),
     );
     expect(isFlagged).toBe(true);
   });
@@ -1922,14 +1921,14 @@ describe("harness setup script merging", () => {
 // setup, and the gate's own tooling repoints checks at the toothless file.
 describe("setup config overrides cannot escape containment", () => {
   const candidatePaths = Object.values(CONFIG_CANDIDATES).flat();
-  const forbiddenPath = (file: string): boolean =>
+  const isForbiddenPath = (file: string): boolean =>
     FORBIDDEN_FILES.has(file) ||
     [...FORBIDDEN_DIRS].some(
       (directory) => file === directory || file.startsWith(`${directory}/`),
     );
 
   test("every user-config candidate setup can swap in is a forbidden path", () => {
-    const unguarded = candidatePaths.filter((file) => !forbiddenPath(file));
+    const unguarded = candidatePaths.filter((file) => !isForbiddenPath(file));
     expect(
       unguarded,
       `setup would repoint gate checks at these committable configs: ${unguarded.join(", ")}`,
@@ -1967,7 +1966,7 @@ describe("setup config overrides cannot escape containment", () => {
     const referenced = candidatePaths.filter((candidate) =>
       Object.values(scripts).some((command) => command.includes(candidate)),
     );
-    const escaped = referenced.filter((candidate) => !forbiddenPath(candidate));
+    const escaped = referenced.filter((candidate) => !isForbiddenPath(candidate));
     expect(
       escaped,
       `harness gate scripts now point at committable configs: ${escaped.join(", ")}`,
@@ -2057,7 +2056,7 @@ describe("frontend gate shape", () => {
       return [];
     });
     expect(failures).toEqual([]);
-    expect(Object.keys(selected ?? {}).toSorted()).toEqual([
+    expect(Object.keys(selected ?? {}).toSorted((a, b) => a.localeCompare(b))).toEqual([
       "build",
       "coverage",
       "e2e",
@@ -2237,7 +2236,7 @@ describe("frontend gate shape", () => {
 
   test("root script menu is the stable command surface", () => {
     const scripts = readPackageScripts("package.json");
-    expect(Object.keys(scripts).toSorted()).toEqual([
+    expect(Object.keys(scripts).toSorted((a, b) => a.localeCompare(b))).toEqual([
       "build",
       "dev",
       "gate",
@@ -2245,6 +2244,7 @@ describe("frontend gate shape", () => {
       "harness:test",
       "lint",
       "loop",
+      "preflight",
       "preview",
       "setup",
       "status",
@@ -2255,6 +2255,7 @@ describe("frontend gate shape", () => {
     expect(scripts["test:file"]).toBe("npm --prefix harness run test:file --");
     expect(scripts.lint).toBe("npm --prefix harness run lint");
     expect(scripts.gate).toBe("node harness/harness.mjs gate");
+    expect(scripts.preflight).toBe("node harness/harness.mjs preflight");
   });
 
   test("harness package scripts use generic repo-wide file targets", () => {
@@ -2291,7 +2292,7 @@ describe("frontend gate shape", () => {
     };
     expect(config.include).toEqual(["../**/*.ts"]);
     expect(config.exclude).toEqual(
-      expect.arrayContaining(["../harness/**", "../node_modules/**"]),
+      expect.arrayContaining(["../harness/**", "../**/node_modules/**"]),
     );
     expect(config.compilerOptions).toEqual(
       expect.objectContaining({
@@ -2323,7 +2324,7 @@ describe("frontend gate shape", () => {
 
   test("frontend keeps app scripts and delegates checks to harness", () => {
     const scripts = readPackageScripts("frontend/package.json");
-    expect(Object.keys(scripts).toSorted()).toEqual([
+    expect(Object.keys(scripts).toSorted((a, b) => a.localeCompare(b))).toEqual([
       "build",
       "dev",
       "lint",
@@ -2451,7 +2452,7 @@ describe("frontend gate shape", () => {
   });
 
   test("git hooks are two simple entrypoints", () => {
-    const hooks = readdirSync(path.join(REPO, ".githooks")).toSorted();
+    const hooks = readdirSync(path.join(REPO, ".githooks")).toSorted((a, b) => a.localeCompare(b));
     expect(hooks).toEqual(["pre-commit", "pre-push"]);
     expect(readRepo(".githooks/pre-commit")).toBe(
       "#!/bin/sh\nset -eu\n\nnode harness/harness.mjs preflight\n",

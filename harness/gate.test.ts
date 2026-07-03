@@ -71,11 +71,11 @@ const commandText = (command: string[]): string => command.join(" ");
 * @param cwd
 */
 function runCommand(argv: string[], cwd: string): string {
-  const [command, ...arguments_] = argv;
+  const [command, ...args] = argv;
   if (command === undefined) {
     throw new Error("missing command");
   }
-  const result = spawnSync(command, arguments_, {
+  const result = spawnSync(command, args, {
     cwd,
     encoding: "utf8",
     env: gitSafeEnvironment(),
@@ -149,10 +149,13 @@ interface PackageJson {
   scripts?: Record<string, string>;
 }
 
+const isPlainObject = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
 const parseJsonObject = (relpath: string): Record<string, unknown> => {
   const parsed: unknown = JSON.parse(readRepo(relpath));
-  if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
-    return parsed as Record<string, unknown>;
+  if (isPlainObject(parsed)) {
+    return parsed;
   }
   throw new Error(`${relpath} is not a JSON object`);
 };
@@ -160,8 +163,8 @@ const parseJsonObject = (relpath: string): Record<string, unknown> => {
 const packageRoot = (
   relpath: string,
 ): {
-  dependencies?: Record<string, string>;
-  devDependencies?: Record<string, string>;
+  dependencies: Record<string, string> | undefined;
+  devDependencies: Record<string, string> | undefined;
 } => {
   const parsed = parseJsonObject(relpath);
   const { dependencies, devDependencies } = parsed;
@@ -176,8 +179,8 @@ const packageRoot = (
 const lockRootPackage = (
   relpath: string,
 ): {
-  dependencies?: Record<string, string>;
-  devDependencies?: Record<string, string>;
+  dependencies: Record<string, string> | undefined;
+  devDependencies: Record<string, string> | undefined;
 } => {
   const parsed = parseJsonObject(relpath);
   const { packages } = parsed;
@@ -194,11 +197,11 @@ const lockRootPackage = (
   }
   const rootPackage = root as Record<string, unknown>;
   return {
-    dependencies: isStringRecord(rootPackage.dependencies)
-      ? rootPackage.dependencies
+    dependencies: isStringRecord(rootPackage["dependencies"])
+      ? rootPackage["dependencies"]
       : undefined,
-    devDependencies: isStringRecord(rootPackage.devDependencies)
-      ? rootPackage.devDependencies
+    devDependencies: isStringRecord(rootPackage["devDependencies"])
+      ? rootPackage["devDependencies"]
       : undefined,
   };
 };
@@ -255,7 +258,7 @@ const REQUIRED_INSTALLED_GATE_TOOLS: readonly {
   },
   {
     dependency: "npm-package-json-lint",
-    check: "package_json",
+    check: "packageJson",
     commandFragment: harnessTool("npmPkgJsonLint"),
   },
   {
@@ -285,7 +288,7 @@ const REQUIRED_INSTALLED_GATE_TOOLS: readonly {
   },
   {
     dependency: "pnpm",
-    check: "pnpm_audit",
+    check: "pnpmAudit",
     commandFragment: harnessTool("pnpm"),
   },
   {
@@ -381,8 +384,12 @@ const REQUIRED_CHECK_POLICIES: readonly {
     fragments: [harnessTool("tsc"), "harness/tsconfig.app.json", "--noEmit"],
   },
   {
-    check: "harness_types",
-    fragments: [harnessTool("tsc"), "harness/tsconfig.json", "--noEmit"],
+    check: "harnessTypes",
+    fragments: [
+      harnessTool("tsc"),
+      "harness/tsconfig.harness.json",
+      "--noEmit",
+    ],
   },
   {
     check: "markup",
@@ -399,7 +406,7 @@ const REQUIRED_CHECK_POLICIES: readonly {
       "ajv-keywords",
     ],
   },
-  { check: "package_json", fragments: [harnessTool("npmPkgJsonLint"), "."] },
+  { check: "packageJson", fragments: [harnessTool("npmPkgJsonLint"), "."] },
   {
     check: "cruise",
     fragments: [
@@ -443,15 +450,15 @@ const REQUIRED_CHECK_POLICIES: readonly {
     ],
   },
   {
-    check: "npm_audit",
+    check: "npmAudit",
     fragments: ["npm", "--prefix", "frontend", "audit", "--audit-level=high"],
   },
   {
-    check: "pnpm_audit",
+    check: "pnpmAudit",
     fragments: [harnessTool("pnpm"), "--dir", "frontend", "audit", "high"],
   },
   {
-    check: "npm_signatures",
+    check: "npmSignatures",
     fragments: ["npm", "--prefix", "frontend", "audit", "signatures"],
   },
   {
@@ -641,8 +648,8 @@ const resolvedEslintConfig = (): EslintResolvedConfig => {
 
 afterEach(() => {
   vi.restoreAllMocks();
-  delete process.env.RALPH_LOOP;
-  delete process.env.GIT_DIR;
+  delete process.env["RALPH_LOOP"];
+  delete process.env["GIT_DIR"];
 });
 
 describe("runGit", () => {
@@ -657,7 +664,7 @@ describe("runGit", () => {
 
   test("ignores a poisoned GIT_DIR exported by a hook", () => {
     const repo = makeRepo();
-    process.env.GIT_DIR = path.join(repo, "does-not-exist", ".git");
+    process.env["GIT_DIR"] = path.join(repo, "does-not-exist", ".git");
     stageFile(repo, "pkg/a.ts", "export const x = 1;\n");
     expect(stagedNames(repo)).toEqual(["pkg/a.ts"]);
   });
@@ -673,7 +680,7 @@ describe("runChecks", () => {
   test("reports only failing commands, named", () => {
     const failures = runChecks(makeRepo(), { boom: ["false"], fine: ["true"] });
     expect(failures).toHaveLength(1);
-    expect(failures[0].startsWith("boom failed:")).toBe(true);
+    expect(failures[0]).toMatch(/^boom failed:/u);
   });
 
   test("returns an empty list when everything passes", () => {
@@ -694,7 +701,7 @@ describe("runChecks", () => {
   });
 
   test("strips GIT variables from spawned checks", () => {
-    process.env.GIT_DIR = path.join(makeRepo(), "poisoned.git");
+    process.env["GIT_DIR"] = path.join(makeRepo(), "poisoned.git");
     const failures = runChecks(makeRepo(), {
       env: [
         process.execPath,
@@ -706,18 +713,18 @@ describe("runChecks", () => {
   });
 
   test("strips NODE_OPTIONS code-injection from spawned checks (F3)", () => {
-    process.env.NODE_OPTIONS = "--require ./evil.js";
+    process.env["NODE_OPTIONS"] = "--require ./evil.js";
     try {
       const failures = runChecks(makeRepo(), {
         env: [
           process.execPath,
           "-e",
-          "if (process.env.NODE_OPTIONS !== undefined) process.exit(8)",
+          "if (process.env['NODE_OPTIONS'] !== undefined) process.exit(8)",
         ],
       });
       expect(failures).toEqual([]);
     } finally {
-      delete process.env.NODE_OPTIONS;
+      delete process.env["NODE_OPTIONS"];
     }
   });
 
@@ -815,7 +822,7 @@ describe("runChecks", () => {
   test("skips harness tools only when the harness package is absent", () => {
     const repo = makeRepo();
     const failures = runChecks(repo, {
-      harness_tool: [harnessTool("definitely-missing")],
+      harnessToolCheck: [harnessTool("definitely-missing")],
     });
     expect(failures).toEqual([]);
   });
@@ -824,7 +831,7 @@ describe("runChecks", () => {
     const repo = makeRepo();
     stageFile(repo, "harness/package.json", '{"private":true}\n');
     const failures = runChecks(repo, {
-      harness_tool: [harnessTool("definitely-missing")],
+      harnessToolCheck: [harnessTool("definitely-missing")],
     });
     expect(failures).toHaveLength(1);
   });
@@ -847,7 +854,7 @@ describe("runChecks", () => {
 
   test("skips frontend npm commands only when frontend package is absent", () => {
     const failures = runChecks(makeRepo(), {
-      frontend_script: ["npm", "--prefix", "frontend", "run", "missing"],
+      frontendScriptCheck: ["npm", "--prefix", "frontend", "run", "missing"],
     });
     expect(failures).toEqual([]);
   });
@@ -856,7 +863,7 @@ describe("runChecks", () => {
     const repo = makeRepo();
     stageFile(repo, "frontend/package.json", '{"scripts":{}}\n');
     const failures = runChecks(repo, {
-      frontend_script: ["npm", "--prefix", "frontend", "run", "missing"],
+      frontendScriptCheck: ["npm", "--prefix", "frontend", "run", "missing"],
     });
     expect(failures).toHaveLength(1);
   });
@@ -867,7 +874,7 @@ describe("runChecks", () => {
     runCommand(["git", "commit", "-q", "-m", "add frontend pkg"], repo);
     runCommand(["git", "rm", "-q", "frontend/package.json"], repo);
     const failures = runChecks(repo, {
-      frontend_script: ["npm", "--prefix", "frontend", "run", "missing"],
+      frontendScriptCheck: ["npm", "--prefix", "frontend", "run", "missing"],
     });
     expect(failures).toHaveLength(1);
   });
@@ -878,7 +885,7 @@ describe("runChecks", () => {
     runCommand(["git", "commit", "-q", "-m", "add harness pkg"], repo);
     runCommand(["git", "rm", "-q", "harness/package.json"], repo);
     const failures = runChecks(repo, {
-      harness_tool: [harnessTool("definitely-missing")],
+      harnessToolCheck: [harnessTool("definitely-missing")],
     });
     expect(failures).toHaveLength(1);
   });
@@ -1102,8 +1109,18 @@ describe("gate constants", () => {
     ).toBe(true);
   });
 
+  test("stylelint ignores generated css at any repo depth", () => {
+    const configText = readRepo("harness/stylelint.config.js");
+    expect(configText).toContain('"../**/coverage/**"');
+    expect(configText).toContain('"../**/dist/**"');
+    expect(configText).toContain('"../**/build/**"');
+    expect(configText).toContain('"../**/.next/**"');
+    expect(configText).toContain('"../**/node_modules/**"');
+    expect(configText).toContain('"../**/scratchpad/**"');
+  });
+
   test("package-json lint is pinned to the repo root", () => {
-    expect(checkCommand(FULL_CHECKS, "package_json")).toEqual([
+    expect(checkCommand(FULL_CHECKS, "packageJson")).toEqual([
       harnessTool("npmPkgJsonLint"),
       ".",
     ]);
@@ -1146,7 +1163,7 @@ describe("gate constants", () => {
 describe("runGate / runPreflight wiring", () => {
   test("runGate forwards FULL_CHECKS to the runner", () => {
     let seen: Record<string, string[]> | undefined;
-    const failures = runGate(makeRepo(), (_repo, checks) => {
+    const failures = runGate(makeRepo(), (tinyFakeTemporaryRepo, checks) => {
       seen = checks;
       return ["gate failed"];
     });
@@ -1167,7 +1184,7 @@ describe("runGate / runPreflight wiring", () => {
     let seen: Record<string, string[]> | undefined;
     const repo = makeRepo();
     stageFile(repo, "frontend/src/report.ts", "export const y = 2;\n");
-    const result = runPreflight(repo, (_repo, checks) => {
+    const result = runPreflight(repo, (tinyFakeTemporaryRepo, checks) => {
       seen = checks;
       return [];
     });
@@ -1200,13 +1217,13 @@ describe("runGate / runPreflight wiring", () => {
     let gateChecks: Record<string, string[]> | undefined;
 
     expect(
-      runPreflight(makeRepo(), (_repo, checks) => {
+      runPreflight(makeRepo(), (tinyFakeTemporaryRepo, checks) => {
         preflightChecks = checks;
         return [];
       }),
     ).toEqual([]);
     expect(
-      runGate(makeRepo(), (_repo, checks) => {
+      runGate(makeRepo(), (tinyFakeTemporaryRepo, checks) => {
         gateChecks = checks;
         return [];
       }),
@@ -1223,13 +1240,13 @@ describe("runGate / runPreflight wiring", () => {
 
 describe("loop containment", () => {
   test("rejects an empty commit", () => {
-    process.env.RALPH_LOOP = "1";
+    process.env["RALPH_LOOP"] = "1";
     const problems = runPreflight(makeRepo());
     expect(problems).toContain("Empty commits are rejected. Stage real work.");
   });
 
   test("rejects a commit emptied by containment", () => {
-    process.env.RALPH_LOOP = "1";
+    process.env["RALPH_LOOP"] = "1";
     const repo = makeRepo();
     stageFile(repo, "pyproject.toml", "x = 1\n");
     const problems = runPreflight(repo);
@@ -1238,7 +1255,7 @@ describe("loop containment", () => {
   });
 
   test("ejects a staged forbidden file but keeps legit work", () => {
-    process.env.RALPH_LOOP = "1";
+    process.env["RALPH_LOOP"] = "1";
     const repo = makeRepo();
     stageFile(
       repo,
@@ -1282,7 +1299,7 @@ describe("loop containment", () => {
     "harness/harness.mjs",
     "harness/vitest.config.js",
   ])("ejects a staged file under forbidden dir %s", (target) => {
-    process.env.RALPH_LOOP = "1";
+    process.env["RALPH_LOOP"] = "1";
     const repo = makeRepo();
     stageFile(repo, target, "value = 1\n");
     stageFile(repo, "frontend/src/report.ts", "export const y = 2;\n");
@@ -1294,7 +1311,7 @@ describe("loop containment", () => {
   test.each([...FORBIDDEN_DIRS])(
     "ejects any staged file inside forbidden directory %s",
     (directory) => {
-      process.env.RALPH_LOOP = "1";
+      process.env["RALPH_LOOP"] = "1";
       const repo = makeRepo();
       const target = `${directory}/agent-owned-change.txt`;
       stageFile(repo, target, "agent edit\n");
@@ -1308,7 +1325,7 @@ describe("loop containment", () => {
   test.each([...FORBIDDEN_DIRS])(
     "ejects config-like files under forbidden directory %s by directory rule",
     (directory) => {
-      process.env.RALPH_LOOP = "1";
+      process.env["RALPH_LOOP"] = "1";
       const repo = makeRepo();
       const targets = [
         `${directory}/config.py`,
@@ -1323,7 +1340,7 @@ describe("loop containment", () => {
   );
 
   test("ejects a generated mix of forbidden files and nested forbidden-dir paths", () => {
-    process.env.RALPH_LOOP = "1";
+    process.env["RALPH_LOOP"] = "1";
     const repo = makeRepo();
     const directories = [...FORBIDDEN_DIRS].toSorted((a, b) =>
       a.localeCompare(b),
@@ -1334,8 +1351,8 @@ describe("loop containment", () => {
         target,
         content: `file-${String(index)}\n`,
       })),
-      ...Array.from({ length: 40 }, (_, index) => {
-        const directory = directories[(index * 7) % directories.length];
+      ...Array.from({ length: 40 }, (value, index) => {
+        const directory = directories[(index * 7) % directories.length] ?? "";
         return {
           target: `${directory}/generated-${String(index)}/config-${String(index % 5)}.json`,
           content: JSON.stringify({ strict: false, index }),
@@ -1350,7 +1367,7 @@ describe("loop containment", () => {
   });
 
   test("ejects both sides of a copied change when the source is forbidden", () => {
-    process.env.RALPH_LOOP = "1";
+    process.env["RALPH_LOOP"] = "1";
     const repo = makeRepo();
     stageFile(repo, "harness/gate.ts", "export const locked = 1;\n");
     runCommand(["git", "commit", "-q", "-m", "add locked harness file"], repo);
@@ -1368,7 +1385,7 @@ describe("loop containment", () => {
   test.each([...FORBIDDEN_FILES])(
     "ejects exact forbidden file %s",
     (target) => {
-      process.env.RALPH_LOOP = "1";
+      process.env["RALPH_LOOP"] = "1";
       const repo = makeRepo();
       stageFile(repo, target, "agent edit\n");
       stageFile(repo, "frontend/src/report.ts", "export const keep = 1;\n");
@@ -1379,7 +1396,7 @@ describe("loop containment", () => {
   );
 
   test("ejects a reintroduced frontend tsconfig override", () => {
-    process.env.RALPH_LOOP = "1";
+    process.env["RALPH_LOOP"] = "1";
     const repo = makeRepo();
     stageFile(
       repo,
@@ -1397,14 +1414,14 @@ describe("loop containment", () => {
     runCommand(["git", "commit", "-q", "-m", "add pyproject"], repo);
     runCommand(["git", "rm", "-q", "pyproject.toml"], repo);
     stageFile(repo, "frontend/src/report.ts", "export const y = 2;\n");
-    process.env.RALPH_LOOP = "1";
+    process.env["RALPH_LOOP"] = "1";
     expect(runPreflight(repo)).toEqual([]);
     expect(stagedNames(repo)).not.toContain("pyproject.toml");
     expect(stagedNames(repo)).toContain("frontend/src/report.ts");
   });
 
   test("ejects multiple forbidden paths in one commit", () => {
-    process.env.RALPH_LOOP = "1";
+    process.env["RALPH_LOOP"] = "1";
     const repo = makeRepo();
     stageFile(repo, "pyproject.toml", "x = 1\n");
     stageFile(repo, "harness/gate.ts", "export const value = 1;\n");
@@ -1432,7 +1449,7 @@ describe("loop containment", () => {
       return true;
     });
 
-    process.env.RALPH_LOOP = "1";
+    process.env["RALPH_LOOP"] = "1";
     const gateRepo = makeRepo();
     stageFile(gateRepo, "harness/gate.ts", "export const value = 1;\n");
     stageFile(gateRepo, "frontend/src/report.ts", "export const keep = 1;\n");
@@ -1440,7 +1457,7 @@ describe("loop containment", () => {
     expect(stagedNames(gateRepo)).toContain("harness/gate.ts");
     expect(stagedNames(gateRepo)).toContain("frontend/src/report.ts");
 
-    delete process.env.RALPH_LOOP;
+    delete process.env["RALPH_LOOP"];
     const humanRepo = makeRepo();
     stageFile(humanRepo, "harness/gate.ts", "export const value = 1;\n");
     stageFile(humanRepo, "frontend/src/report.ts", "export const keep = 1;\n");
@@ -1448,7 +1465,7 @@ describe("loop containment", () => {
     expect(stagedNames(humanRepo)).toContain("harness/gate.ts");
     expect(stagedNames(humanRepo)).toContain("frontend/src/report.ts");
 
-    process.env.RALPH_LOOP = "1";
+    process.env["RALPH_LOOP"] = "1";
     const loopRepo = makeRepo();
     stageFile(loopRepo, "harness/gate.ts", "export const value = 1;\n");
     stageFile(loopRepo, "frontend/src/report.ts", "export const keep = 1;\n");
@@ -1461,7 +1478,7 @@ describe("loop containment", () => {
   });
 
   test("an empty RALPH_LOOP value is treated as loop-off", () => {
-    process.env.RALPH_LOOP = "";
+    process.env["RALPH_LOOP"] = "";
     const repo = makeRepo();
     stageFile(repo, "harness/gate.ts", "export const value = 1;\n");
     stageFile(repo, "frontend/src/report.ts", "export const y = 2;\n");
@@ -1473,7 +1490,7 @@ describe("loop containment", () => {
   test.each(["0", "true", " 1 "])(
     "RALPH_LOOP=%s is treated as loop-off",
     (value) => {
-      process.env.RALPH_LOOP = value;
+      process.env["RALPH_LOOP"] = value;
       const repo = makeRepo();
       stageFile(repo, "harness/gate.ts", "export const value = 1;\n");
       stageFile(repo, "frontend/src/report.ts", "export const y = 2;\n");
@@ -1493,25 +1510,25 @@ describe("loop containment", () => {
     const content = [
       ...Array.from(
         { length: 100 },
-        (_, index) =>
+        (value, index) =>
           `export const value${String(index)} = ${String(index)};\n`,
       ),
       `export const blocked = 1; // ${requiredForbiddenPattern("ts-ignore")}\n`,
     ].join("");
 
-    process.env.RALPH_LOOP = "1";
+    process.env["RALPH_LOOP"] = "1";
     const gateRepo = makeRepo();
     stageFile(gateRepo, target, content);
     expect(runGate(gateRepo, () => [])).toEqual([]);
     expect(stagedNames(gateRepo)).toEqual([target]);
 
-    delete process.env.RALPH_LOOP;
+    delete process.env["RALPH_LOOP"];
     const humanRepo = makeRepo();
     stageFile(humanRepo, target, content);
     expect(runPreflight(humanRepo, () => [])).toEqual([]);
     expect(stagedNames(humanRepo)).toEqual([target]);
 
-    process.env.RALPH_LOOP = "1";
+    process.env["RALPH_LOOP"] = "1";
     const loopRepo = makeRepo();
     stageFile(loopRepo, target, content);
     expect(runPreflight(loopRepo, () => [])).toContain(
@@ -1527,7 +1544,7 @@ describe("loop containment", () => {
   test.each(["harness/preferences.ts", "PROMPT.md"])(
     "ejects exact protected file %s under the loop",
     (target) => {
-      process.env.RALPH_LOOP = "1";
+      process.env["RALPH_LOOP"] = "1";
       const repo = makeRepo();
       stageFile(repo, target, "updated\n");
       stageFile(repo, "frontend/src/report.ts", "export const keep = 1;\n");
@@ -1543,14 +1560,14 @@ describe("loop containment", () => {
     runCommand(["git", "commit", "-q", "-m", "add html config"], repo);
     runCommand(["git", "rm", "-q", "harness/.htmlvalidate.json"], repo);
     stageFile(repo, "frontend/src/report.ts", "export const keep = 1;\n");
-    process.env.RALPH_LOOP = "1";
+    process.env["RALPH_LOOP"] = "1";
     expect(runPreflight(repo)).toEqual([]);
     expect(stagedNames(repo)).not.toContain("harness/.htmlvalidate.json");
     expect(stagedNames(repo)).toContain("frontend/src/report.ts");
   });
 
   test("checks staged .ts content when the worktree file is gone", () => {
-    process.env.RALPH_LOOP = "1";
+    process.env["RALPH_LOOP"] = "1";
     const repo = makeRepo();
     stageFile(repo, "frontend/src/state.ts", 'document.querySelector(".x");\n');
     runCommand(["rm", path.join(repo, "frontend/src/state.ts")], repo);
@@ -1574,7 +1591,7 @@ describe("loop containment", () => {
   });
 
   test("checks clean staged content instead of dirty worktree content", () => {
-    process.env.RALPH_LOOP = "1";
+    process.env["RALPH_LOOP"] = "1";
     const repo = makeRepo();
     stageFile(repo, "frontend/src/state.ts", "const good = 1;\n");
     writeFileSync(
@@ -1585,7 +1602,7 @@ describe("loop containment", () => {
   });
 
   test("ejects both sides of a rename when the destination is forbidden", () => {
-    process.env.RALPH_LOOP = "1";
+    process.env["RALPH_LOOP"] = "1";
     const repo = makeRepo();
     stageFile(repo, "frontend/src/report.ts", "export const y = 2;\n");
     runCommand(["git", "commit", "-q", "-m", "add feature"], repo);
@@ -1603,7 +1620,7 @@ describe("loop containment", () => {
   });
 
   test("ejects both sides of a rename when the source is forbidden", () => {
-    process.env.RALPH_LOOP = "1";
+    process.env["RALPH_LOOP"] = "1";
     const repo = makeRepo();
     stageFile(repo, "harness/gate.ts", "export const locked = 1;\n");
     runCommand(["git", "commit", "-q", "-m", "add locked harness file"], repo);
@@ -1622,7 +1639,7 @@ describe("loop containment", () => {
   });
 
   test("does not run preferences on forbidden paths after dropping them", () => {
-    process.env.RALPH_LOOP = "1";
+    process.env["RALPH_LOOP"] = "1";
     const repo = makeRepo();
     stageFile(repo, "harness/gate.ts", "const _bad = 1;\n");
     stageFile(repo, "frontend/src/report.ts", "export const keep = 1;\n");
@@ -1631,7 +1648,7 @@ describe("loop containment", () => {
   });
 
   test("drops a banned add without leaving an orphan staged deletion", () => {
-    process.env.RALPH_LOOP = "1";
+    process.env["RALPH_LOOP"] = "1";
     const repo = makeRepo();
     stageFile(repo, "frontend/src/old.ts", "export const oldValue = 1;\n");
     runCommand(["git", "commit", "-q", "-m", "add old source"], repo);
@@ -1647,7 +1664,7 @@ describe("loop containment", () => {
   });
 
   test("drops a rewritten rename with a banned added line as one change", () => {
-    process.env.RALPH_LOOP = "1";
+    process.env["RALPH_LOOP"] = "1";
     const repo = makeRepo();
     stageFile(repo, "frontend/src/old.ts", "export const oldValue = 1;\n");
     runCommand(["git", "commit", "-q", "-m", "add old source"], repo);
@@ -1666,7 +1683,7 @@ describe("loop containment", () => {
   });
 
   test("unstaging a banned file preserves later dirty worktree edits", () => {
-    process.env.RALPH_LOOP = "1";
+    process.env["RALPH_LOOP"] = "1";
     const repo = makeRepo();
     const target = "frontend/src/state.ts";
     stageFile(
@@ -1688,7 +1705,7 @@ describe("banned patterns and preferences under loop", () => {
   test.each(FORBIDDEN_PATTERNS)(
     "ejects a staged file that adds banned pattern %s",
     (pattern) => {
-      process.env.RALPH_LOOP = "1";
+      process.env["RALPH_LOOP"] = "1";
       const repo = makeRepo();
       stageFile(
         repo,
@@ -1703,7 +1720,7 @@ describe("banned patterns and preferences under loop", () => {
   );
 
   test("rejects a commit emptied by a banned TypeScript suppression", () => {
-    process.env.RALPH_LOOP = "1";
+    process.env["RALPH_LOOP"] = "1";
     const repo = makeRepo();
     stageFile(
       repo,
@@ -1716,7 +1733,7 @@ describe("banned patterns and preferences under loop", () => {
   });
 
   test("matches banned patterns case-insensitively", () => {
-    process.env.RALPH_LOOP = "1";
+    process.env["RALPH_LOOP"] = "1";
     const repo = makeRepo();
     stageFile(
       repo,
@@ -1730,7 +1747,7 @@ describe("banned patterns and preferences under loop", () => {
   });
 
   test("ignores banned patterns that appear only in removed lines", () => {
-    process.env.RALPH_LOOP = "1";
+    process.env["RALPH_LOOP"] = "1";
     const repo = makeRepo();
     stageFile(
       repo,
@@ -1744,7 +1761,7 @@ describe("banned patterns and preferences under loop", () => {
   });
 
   test("ignores banned patterns that appear only in diff context", () => {
-    process.env.RALPH_LOOP = "1";
+    process.env["RALPH_LOOP"] = "1";
     const repo = makeRepo();
     stageFile(
       repo,
@@ -1770,7 +1787,7 @@ describe("banned patterns and preferences under loop", () => {
   });
 
   test("does not eject unrelated staged files with legacy banned content", () => {
-    process.env.RALPH_LOOP = "1";
+    process.env["RALPH_LOOP"] = "1";
     const repo = makeRepo();
     stageFile(
       repo,
@@ -1797,7 +1814,7 @@ describe("banned patterns and preferences under loop", () => {
   });
 
   test("ejects every file that adds a banned pattern in one preflight", () => {
-    process.env.RALPH_LOOP = "1";
+    process.env["RALPH_LOOP"] = "1";
     const repo = makeRepo();
     stageFile(
       repo,
@@ -1815,7 +1832,7 @@ describe("banned patterns and preferences under loop", () => {
   });
 
   test("does not flag banned words that appear only in a filename", () => {
-    process.env.RALPH_LOOP = "1";
+    process.env["RALPH_LOOP"] = "1";
     const repo = makeRepo();
     stageFile(repo, "frontend/src/noqa.ts", "export const clean = 1;\n");
 
@@ -1827,7 +1844,7 @@ describe("banned patterns and preferences under loop", () => {
   });
 
   test("flags a staged preference break (disallowed DOM selector)", () => {
-    process.env.RALPH_LOOP = "1";
+    process.env["RALPH_LOOP"] = "1";
     const repo = makeRepo();
     stageFile(repo, "frontend/src/state.ts", 'document.querySelector(".x");\n');
     const isFlagged = runPreflight(repo).some((problem) =>
@@ -1845,13 +1862,13 @@ describe("harness setup script merging", () => {
 
     expect(result.status, `${result.stdout}\n${result.stderr}`).toBe(0);
     const scripts = readPackageJsonInRepo(repo).scripts ?? {};
-    expect(scripts.build).toBe("vite build");
-    expect(scripts.gate).toBe("node harness/harness.mjs gate");
-    expect(scripts.setup).toBe("node harness/harness.mjs setup");
-    expect(scripts.lint).toBe("npm --prefix harness run lint");
-    expect(scripts.loop).toBe("node harness/harness.mjs loop");
-    expect(scripts.status).toBe("node harness/harness.mjs status");
-    expect(scripts.test).toBe("npm --prefix harness run test:coverage");
+    expect(scripts["build"]).toBe("vite build");
+    expect(scripts["gate"]).toBe("node harness/harness.mjs gate");
+    expect(scripts["setup"]).toBe("node harness/harness.mjs setup");
+    expect(scripts["lint"]).toBe("npm --prefix harness run lint");
+    expect(scripts["loop"]).toBe("node harness/harness.mjs loop");
+    expect(scripts["status"]).toBe("node harness/harness.mjs status");
+    expect(scripts["test"]).toBe("npm --prefix harness run test:coverage");
     expect(scripts["test:file"]).toBe("npm --prefix harness run test:file --");
     expect(Object.hasOwn(scripts, "run")).toBe(false);
   });
@@ -1867,9 +1884,9 @@ describe("harness setup script merging", () => {
 
     expect(result.status, `${result.stdout}\n${result.stderr}`).toBe(0);
     const scripts = readPackageJsonInRepo(repo).scripts ?? {};
-    expect(scripts.gate).toBe("node custom-gate.js");
-    expect(scripts.lint).toBe("eslint app");
-    expect(scripts.test).toBe("node custom-test.js");
+    expect(scripts["gate"]).toBe("node custom-gate.js");
+    expect(scripts["lint"]).toBe("eslint app");
+    expect(scripts["test"]).toBe("node custom-test.js");
     expect(scripts["harness:lint"]).toBe("npm --prefix harness run lint");
     expect(scripts["harness:test"]).toBe(
       "npm --prefix harness run test:coverage",
@@ -1892,14 +1909,14 @@ describe("harness setup script merging", () => {
 
     expect(result.status, `${result.stdout}\n${result.stderr}`).toBe(0);
     const scripts = readPackageJsonInRepo(repo).scripts ?? {};
-    expect(scripts.gate).toBe("node project-gate.js");
-    expect(scripts.install).toBe("node project-install.js");
-    expect(scripts.setup).toBe("node harness/harness.mjs setup");
-    expect(scripts.lint).toBe("eslint src");
-    expect(scripts.loop).toBe("node project-loop.js");
-    expect(scripts.run).toBe("node project-run.js");
-    expect(scripts.status).toBe("node project-status.js");
-    expect(scripts.test).toBe("node project-test.js");
+    expect(scripts["gate"]).toBe("node project-gate.js");
+    expect(scripts["install"]).toBe("node project-install.js");
+    expect(scripts["setup"]).toBe("node harness/harness.mjs setup");
+    expect(scripts["lint"]).toBe("eslint src");
+    expect(scripts["loop"]).toBe("node project-loop.js");
+    expect(scripts["run"]).toBe("node project-run.js");
+    expect(scripts["status"]).toBe("node project-status.js");
+    expect(scripts["test"]).toBe("node project-test.js");
     expect(scripts["test:file"]).toBe("node project-test-file.js");
     expect(scripts["harness:lint"]).toBe("npm --prefix harness run lint");
     expect(scripts["harness:test"]).toBe(
@@ -1940,8 +1957,8 @@ describe("harness setup script merging", () => {
 
     expect(result.status, `${result.stdout}\n${result.stderr}`).toBe(0);
     const scripts = readHarnessPackageJsonInRepo(repo).scripts ?? {};
-    expect(scripts.eslint).toContain("--config eslint.config.js");
-    expect(scripts.eslint).not.toContain("harness/eslint.config.js");
+    expect(scripts["eslint"]).toContain("--config eslint.config.js");
+    expect(scripts["eslint"]).not.toContain("harness/eslint.config.js");
     expect(existsSync(path.join(repo, "harness", "configs.json"))).toBe(false);
   });
 
@@ -1953,8 +1970,8 @@ describe("harness setup script merging", () => {
 
     expect(result.status, `${result.stdout}\n${result.stderr}`).toBe(0);
     const scripts = readHarnessPackageJsonInRepo(repo).scripts ?? {};
-    expect(scripts.eslint).toContain("--config eslint.config.js");
-    expect(scripts.eslint).not.toContain("harness/eslint.config.js");
+    expect(scripts["eslint"]).toContain("--config eslint.config.js");
+    expect(scripts["eslint"]).not.toContain("harness/eslint.config.js");
   });
 
   test("rewrites an existing harness lint script to a complex user config path", () => {
@@ -1979,7 +1996,7 @@ describe("harness setup script merging", () => {
 
     expect(result.status, `${result.stdout}\n${result.stderr}`).toBe(0);
     const scripts = readHarnessPackageJsonInRepo(repo).scripts ?? {};
-    expect(scripts.lint).toBe(
+    expect(scripts["lint"]).toBe(
       [
         "node tools/lint-entry.js --project frontend/tsconfig.json",
         "node tools/lint-extra.js --project=frontend/tsconfig.json",
@@ -1998,11 +2015,6 @@ describe("harness setup script merging", () => {
 // setup, and the gate's own tooling repoints checks at the toothless file.
 describe("setup config overrides cannot escape containment", () => {
   const candidatePaths = Object.values(CONFIG_CANDIDATES).flat();
-  const isForbiddenPath = (file: string): boolean =>
-    FORBIDDEN_FILES.has(file) ||
-    [...FORBIDDEN_DIRS].some(
-      (directory) => file === directory || file.startsWith(`${directory}/`),
-    );
 
   test("every user-config candidate setup can swap in is a forbidden path", () => {
     const unguarded = candidatePaths.filter((file) => !isForbiddenPath(file));
@@ -2015,7 +2027,7 @@ describe("setup config overrides cannot escape containment", () => {
   test.each(candidatePaths)(
     "the loop ejects a staged %s so it can never reach setup",
     (candidate) => {
-      process.env.RALPH_LOOP = "1";
+      process.env["RALPH_LOOP"] = "1";
       const repo = makeRepo();
       stageFile(repo, candidate, "export default [];\n");
       stageFile(repo, "frontend/src/report.ts", "export const keep = 1;\n");
@@ -2062,7 +2074,7 @@ describe("symlink and path-traversal containment", () => {
     target: string,
     linkPath = "frontend/src/evil.ts",
   ): string => {
-    process.env.RALPH_LOOP = "1";
+    process.env["RALPH_LOOP"] = "1";
     const repo = makeRepo();
     const absoluteLink = path.join(repo, linkPath);
     mkdirSync(path.dirname(absoluteLink), { recursive: true });
@@ -2074,7 +2086,7 @@ describe("symlink and path-traversal containment", () => {
 
   test("ejects a source-looking symlink that points at a forbidden file", () => {
     const repo = makeRepo();
-    process.env.RALPH_LOOP = "1";
+    process.env["RALPH_LOOP"] = "1";
     mkdirSync(path.join(repo, "harness"), { recursive: true });
     writeFileSync(
       path.join(repo, "harness/gate.ts"),
@@ -2119,16 +2131,16 @@ describe("frontend gate shape", () => {
   test("full gate selects heavy, networked, and browser checks for package repos", () => {
     const repo = makePackageRootsRepo();
     let selected: Record<string, string[]> | undefined;
-    const failures = runGate(repo, (_gateRepo, checks) => {
+    const failures = runGate(repo, (gateRepo, checks) => {
       selected = pickChecks(checks, [
         "build",
         "coverage",
         "e2e",
         "lighthouse",
-        "npm_audit",
-        "npm_signatures",
+        "npmAudit",
+        "npmSignatures",
         "osv",
-        "pnpm_audit",
+        "pnpmAudit",
         "sast",
         "size",
       ]);
@@ -2142,10 +2154,10 @@ describe("frontend gate shape", () => {
       "coverage",
       "e2e",
       "lighthouse",
-      "npm_audit",
-      "npm_signatures",
+      "npmAudit",
+      "npmSignatures",
       "osv",
-      "pnpm_audit",
+      "pnpmAudit",
       "sast",
       "size",
     ]);
@@ -2164,13 +2176,13 @@ describe("frontend gate shape", () => {
     expect(commandText(checkCommand(selected ?? {}, "lighthouse"))).toContain(
       "harness/lighthouserc.cjs",
     );
-    expect(commandText(checkCommand(selected ?? {}, "npm_audit"))).toBe(
+    expect(commandText(checkCommand(selected ?? {}, "npmAudit"))).toBe(
       "npm --prefix frontend audit --audit-level=high",
     );
-    expect(commandText(checkCommand(selected ?? {}, "npm_signatures"))).toBe(
+    expect(commandText(checkCommand(selected ?? {}, "npmSignatures"))).toBe(
       "npm --prefix frontend audit signatures",
     );
-    expect(commandText(checkCommand(selected ?? {}, "pnpm_audit"))).toBe(
+    expect(commandText(checkCommand(selected ?? {}, "pnpmAudit"))).toBe(
       `${harnessTool("pnpm")} --dir frontend audit --audit-level high`,
     );
     expect(commandText(checkCommand(selected ?? {}, "sast"))).toContain(
@@ -2229,7 +2241,7 @@ describe("frontend gate shape", () => {
       ],
     },
     {
-      check: "package_json",
+      check: "packageJson",
       tool: "npmPkgJsonLint",
       required: ["."],
     },
@@ -2334,25 +2346,25 @@ describe("frontend gate shape", () => {
         "test:file",
       ],
     );
-    expect(scripts.test).toBe("npm --prefix harness run test:coverage");
+    expect(scripts["test"]).toBe("npm --prefix harness run test:coverage");
     expect(scripts["test:file"]).toBe("npm --prefix harness run test:file --");
-    expect(scripts.lint).toBe("npm --prefix harness run lint");
-    expect(scripts.gate).toBe("node harness/harness.mjs gate");
-    expect(scripts.preflight).toBe("node harness/harness.mjs preflight");
+    expect(scripts["lint"]).toBe("npm --prefix harness run lint");
+    expect(scripts["gate"]).toBe("node harness/harness.mjs gate");
+    expect(scripts["preflight"]).toBe("node harness/harness.mjs preflight");
   });
 
   test("harness package scripts use generic repo-wide file targets", () => {
     const scripts = readPackageScripts("harness/package.json");
-    expect(scripts.eslint).toBe(
+    expect(scripts["eslint"]).toBe(
       "cd .. && harness/node_modules/.bin/eslint . --config harness/eslint.config.js --max-warnings=0",
     );
-    expect(scripts.style).toBe(
+    expect(scripts["style"]).toBe(
       'cd .. && harness/node_modules/.bin/stylelint "**/*.css" --config harness/stylelint.config.js --max-warnings=0 --allow-empty-input',
     );
-    expect(scripts.html).toBe(
+    expect(scripts["html"]).toBe(
       'cd .. && harness/node_modules/.bin/html-validate --config harness/.htmlvalidate.json "**/*.html"',
     );
-    expect(scripts.typecheck).toBe(
+    expect(scripts["typecheck"]).toBe(
       "npm run typecheck:harness && npm run typecheck:project",
     );
     expect(scripts["typecheck:project"]).toBe(
@@ -2373,7 +2385,7 @@ describe("frontend gate shape", () => {
       exclude?: unknown;
       include?: unknown;
     };
-    expect(config.include).toEqual(["../**/*.ts"]);
+    expect(config.include).toEqual(["../**/*.ts", "*.ts"]);
     expect(config.exclude).toEqual(
       expect.arrayContaining(["../harness/**", "../**/node_modules/**"]),
     );
@@ -2389,8 +2401,8 @@ describe("frontend gate shape", () => {
     );
   });
 
-  test("harness tsconfig keeps the required harness compiler flags", () => {
-    const harnessConfig = parseJsonObject("harness/tsconfig.json") as {
+  test("harness leaf tsconfig keeps the required harness compiler flags", () => {
+    const harnessConfig = parseJsonObject("harness/tsconfig.harness.json") as {
       compilerOptions?: Record<string, unknown>;
       include?: unknown;
     };
@@ -2402,6 +2414,21 @@ describe("frontend gate shape", () => {
         noImplicitReturns: true,
         noUncheckedSideEffectImports: true,
       }),
+    );
+  });
+
+  test("harness solution tsconfig references the app and harness leaves", () => {
+    const solution = parseJsonObject("harness/tsconfig.json") as {
+      files?: unknown;
+      references?: { path?: unknown }[];
+    };
+    expect(solution.files).toEqual([]);
+    const referenced = (solution.references ?? []).map((entry) => entry.path);
+    expect(referenced).toEqual(
+      expect.arrayContaining([
+        "./tsconfig.app.json",
+        "./tsconfig.harness.json",
+      ]),
     );
   });
 
@@ -2421,10 +2448,10 @@ describe("frontend gate shape", () => {
         "typecheck",
       ],
     );
-    expect(scripts.build).toBe("vite build");
-    expect(scripts.dev).toContain("vite");
-    expect(scripts.test).toContain("../harness");
-    expect(scripts.lint).toContain("../harness");
+    expect(scripts["build"]).toBe("vite build");
+    expect(scripts["dev"]).toContain("vite");
+    expect(scripts["test"]).toContain("../harness");
+    expect(scripts["lint"]).toContain("../harness");
     for (const hidden of [
       "gate:checks",
       "gate:python-harness",
@@ -2489,7 +2516,7 @@ describe("frontend gate shape", () => {
     ]) {
       expectRuleError(rule);
     }
-    expect(config.linterOptions?.reportUnusedDisableDirectives).toBe(2);
+    expect(config.linterOptions?.["reportUnusedDisableDirectives"]).toBe(2);
   });
 
   test("eslint config limits directory-specific weakening to harness tooling", async () => {
@@ -2514,7 +2541,7 @@ describe("frontend gate shape", () => {
   test("eslint exported config rejects unused disable comments", async () => {
     const config = await importedEslintConfig();
     const hasPolicy = config.some(
-      (block) => block.linterOptions?.reportUnusedDisableDirectives === "error",
+      (block) => block.linterOptions?.["reportUnusedDisableDirectives"] === "error",
     );
     expect(hasPolicy).toBe(true);
   });

@@ -11,7 +11,7 @@ const NUMBER_MAX = 999_999;
 @returns the camelCase state key
 */
 function toStateKey(name: string): string {
-  return name.replaceAll(/-([a-z])/gu, (_, c: string) => c.toUpperCase());
+  return name.replaceAll(/-([a-z])/gu, (match, c: string) => c.toUpperCase());
 }
 
 /**

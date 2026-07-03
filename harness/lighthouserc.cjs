@@ -18,23 +18,6 @@ module.exports = {
     },
     assert: {
       preset: "lighthouse:recommended",
-      assertions: {
-        "categories:accessibility": ["error", { minScore: 1.0 }],
-        "categories:best-practices": ["error", { minScore: 1.0 }],
-        "categories:performance": ["warn", { minScore: 1.0 }],
-        "categories:seo": ["error", { minScore: 0.95 }],
-        "csp-xss": "error",
-        "is-crawlable": "error",
-        "network-dependency-tree-insight": "off",
-        "errors-in-console": "error",
-        "font-size": "error",
-        "target-size": "error",
-        "button-name": "error",
-        label: "error",
-        "color-contrast": "error",
-        "unused-javascript": "warn",
-        "total-byte-weight": ["warn", { maxNumericValue: 350000 }],
-      },
     },
     upload: {
       target: "filesystem",

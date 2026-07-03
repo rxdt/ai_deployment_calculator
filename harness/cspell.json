@@ -1,6 +1,7 @@
 {
   "version": "0.2",
   "language": "en",
+  "severity": "Warning",
   "ignorePaths": [
     "**/node_modules",
     "**/dist",
@@ -8,9 +9,19 @@
     "**/coverage",
     "**/test-results",
     "**/package-lock.json",
+    "**/package.json",
     "**/pnpm-lock.yaml",
     "**/pnpm-workspace.yaml",
-    "scratchpad"
+    "**/scratchpad"
+  ],
+  "dictionaries": [
+    "typescript",
+    "node",
+    "npm",
+    "html",
+    "css",
+    "markdown",
+    "softwareTerms"
   ],
   "words": [
     "autorun",

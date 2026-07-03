@@ -31,18 +31,22 @@ flowchart LR
 
 ## Install
 
+On a fresh drop-in, bootstrap by invoking the harness directly (the `npm run
+setup` script does not exist yet — `setup` is what creates it):
+
 ```sh
-npm run setup
+node harness/harness.mjs setup
 ```
 
 `setup` installs harness dependencies, installs discovered package directories,
-adds missing root harness scripts, sets Git hooks, and rewrites harness commands
-to use any existing user config file, even if that file is empty. Setup checks
-for config file presence only; the check command validates the config later
-([harness/cli.ts](harness/cli.ts#L263)).
+adds missing root harness scripts (`gate`, `loop`, `status`, `setup`, ...), sets
+Git hooks, and rewrites harness commands to use any existing user config file,
+even if that file is empty. Setup checks for config file presence only; the
+check command validates the config later ([harness/cli.ts](harness/cli.ts#L263)).
 
-It deliberately does not run `npm setup` at the repository root. Root
-`package.json` has an `setup` script that launches harness setup.
+After setup, the added root scripts work from the repository root: `npm run
+gate`, `npm run loop`, `npm run status`, and re-running setup via `npm run
+setup`.
 
 ## Run
 
@@ -84,6 +88,29 @@ npm run gate
 adds typecheck, security, build, coverage, browser, size, and Lighthouse checks
 ([harness/gate.ts](harness/gate.ts#L156),
 [harness/gate.ts](harness/gate.ts#L692)).
+
+Gate-only security policy:
+
+- Semgrep should run as diff-aware SAST only on `gate`.
+- OSV should run as a PR scan for newly introduced dependency vulnerabilities
+  only on `gate`.
+- Keep slow/noisy checks out of `preflight`; the full `gate` remains strict:
+  - Lighthouse runs only in `gate`; scheduled/release perf runs can add coverage.
+  - Full Playwright runs only in `gate`; a PR smoke subset may be added without
+    replacing the gate suite.
+  - Full Semgrep/SCA and full OSV run only in `gate`; scheduled runs should add
+    post-merge advisory coverage.
+  - Dependency audit/signature network checks run only in `gate`; scheduled or
+    release runs can add coverage without making local preflight slow.
+- Cache aggressively in CI:
+  - npm cache keyed by lockfiles.
+  - Playwright browser cache keyed by the Playwright package/lockfile version.
+  - Vitest/Vite cache if the harness persists their cache directories.
+  - TypeScript incremental cache if the harness permits `.tsbuildinfo` reuse.
+- TODO: Schedule full OSV and full Semgrep/SCA daily or weekly, because new
+  advisories appear after merges.
+- TODO: Add a release gate that blocks critical/high dependency or SAST findings
+  unless there is an expiring documented exception.
 
 Only loop preflight (`RALPH_LOOP=1`) unstages forbidden paths or files that add
 forbidden patterns. It warns on stderr when it unstages files

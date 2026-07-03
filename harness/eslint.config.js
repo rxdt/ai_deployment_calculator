@@ -35,6 +35,7 @@ export default defineConfig([
     "**/test-results/",
     "**/.lighthouseci/",
     ".git/",
+    ".claude/",
     ".codex/",
     ".agents/",
     "**/scratchpad/",
@@ -60,11 +61,7 @@ export default defineConfig([
     languageOptions: {
       globals: { ...globals.browser, ...globals.node },
       parserOptions: {
-        project: [
-          "harness/tsconfig.app.json",
-          "harness/tsconfig.json",
-          "harness/tsconfig.harness.json",
-        ],
+        project: ["harness/tsconfig.app.json", "harness/tsconfig.harness.json"],
         tsconfigRootDir: repoRoot,
       },
     },
@@ -94,7 +91,9 @@ export default defineConfig([
         "error",
         {
           vars: "all",
-          args: "none", // Ignore unused function parameters completely, TS handles
+          args: "all",
+          caughtErrors: "all",
+          ignoreRestSiblings: true,
           // { argsIgnorePattern: "^_" }, // rxdt preference, will uncomment soon
         },
       ],
@@ -194,7 +193,7 @@ export default defineConfig([
       ],
       "max-lines": [
         "error",
-        { max: 350, skipBlankLines: true, skipComments: true }, // Default is 300
+        { max: 300, skipBlankLines: true, skipComments: true }, // Default is 300
       ],
       "max-depth": ["error", 3],
       "max-params": ["error", 4], // Caps function parameters
@@ -202,6 +201,7 @@ export default defineConfig([
 
       complexity: ["error", 10], // Low carb
       "sonarjs/cognitive-complexity": ["error", 10],
+      "security/detect-object-injection": "off",
       "max-statements": ["error", { max: 25 }],
       "no-inner-declarations": "error", // Prevent fracturing code into tiny pieces
       "unicorn/prefer-spread": "error",
@@ -262,7 +262,8 @@ export default defineConfig([
             "Do not spread an array literal directly inside another array. Pass explicit values.",
         },
         {
-          selector: "ObjectExpression > SpreadElement",
+          selector:
+            "ObjectExpression > SpreadElement[argument.type='ObjectExpression']",
           message: "Avoid implied object spread, pass explicit properties.",
         },
         {
@@ -302,6 +303,16 @@ export default defineConfig([
       "unicorn/prefer-iterator-concat": "off",
       "unicorn/require-array-sort-compare": "off",
       "unicorn/consistent-class-member-order": "off",
+      // `args`/`pkg` are the standard abbreviations; unicorn's replacements (`arguments`/`package`)
+      // are reserved words, and the trailing-underscore alternatives are forbidden by our
+      // naming-convention rule. The rule still catches every other unclear abbreviation.
+      "unicorn/name-replacements": [
+        "error",
+        { replacements: { args: false, pkg: false } },
+      ],
+      // Temporal is not available on our ES2023 target (no polyfill shipped); re-enable when the
+      // runtime/lib provides it.
+      "unicorn/prefer-temporal": "off",
 
       // Turn ON rules that actually prevent broken code documentation
       "jsdoc/check-param-names": "error", // Comment names match actual code variables
@@ -326,6 +337,9 @@ export default defineConfig([
       "unicorn/max-nested-calls": "off",
       "unicorn/no-unsafe-dom-html": "off",
       "unicorn/prefer-dom-node-html-methods": "off",
+      "sonarjs/no-floating-point-equality": "error",
+      "no-control-regex": "error",
+      "security/detect-unsafe-regex": "error",
     },
   },
   // Harness TypeScript files: Node tooling must read git-provided paths and spawn portable tools by name.

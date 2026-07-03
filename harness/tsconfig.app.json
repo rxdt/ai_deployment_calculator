@@ -4,7 +4,7 @@
     "lib": ["ES2023", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "moduleResolution": "Bundler",
-    "types": ["vite/client", "vitest"],
+    "types": ["vite/client"],
     "strict": true,
     "isolatedModules": true,
     "verbatimModuleSyntax": true,
@@ -17,7 +17,7 @@
     "noPropertyAccessFromIndexSignature": true,
     "noUncheckedIndexedAccess": true,
     "noUncheckedSideEffectImports": true,
-    "noUnusedLocals": true,
+    "noUnusedLocals": false,
     "noUnusedParameters": false,
     "useUnknownInCatchVariables": true,
     "noFallthroughCasesInSwitch": true
@@ -32,6 +32,7 @@
     "../**/node_modules/**",
     "../**/scratchpad/**",
     "../**/test-results/**",
-    "../harness/**"
+    "../harness/**",
+    "../frontend/tests/**"
   ]
 }

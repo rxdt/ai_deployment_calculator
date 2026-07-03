@@ -47,11 +47,11 @@ function withoutAnsi(value: string): string {
 * @param cwd
 */
 function runCommand(argv: string[], cwd: string): string {
-  const [command, ...arguments_] = argv;
+  const [command, ...args] = argv;
   if (command === undefined) {
     throw new Error("missing command");
   }
-  const result = spawnSync(command, arguments_, {
+  const result = spawnSync(command, args, {
     cwd,
     encoding: "utf8",
     env: gitSafeEnvironment(),
@@ -78,15 +78,12 @@ function makeRepo(): string {
 
 // Invoke the harness CLI by path (no global `harness` symlink; template must be self-contained).
 const harnessCli = (
-  arguments_: string[],
+  args: string[],
   options: { cwd: string; env?: NodeJS.ProcessEnv },
 ): SpawnSyncReturns<string> =>
   spawnSync(
     process.execPath,
-    [
-      path.join(repoRoot(process.cwd()), "harness", "harness.mjs"),
-      ...arguments_,
-    ],
+    [path.join(repoRoot(process.cwd()), "harness", "harness.mjs"), ...args],
     {
       cwd: options.cwd,
       encoding: "utf8",
@@ -153,7 +150,7 @@ describe("run", () => {
 
 describe("run helpers", () => {
   test("pins agent presets", () => {
-    expect(AGENTS.claude).toEqual([
+    expect(AGENTS["claude"]).toEqual([
       "claude",
       "-p",
       "--permission-mode",
@@ -164,7 +161,7 @@ describe("run helpers", () => {
       "stream-json",
       "--verbose",
     ]);
-    expect(AGENTS.codex).toEqual([
+    expect(AGENTS["codex"]).toEqual([
       "env",
       "-u",
       "CODEX_THREAD_ID",
@@ -224,10 +221,10 @@ describe("run helpers", () => {
       bin?: Record<string, string>;
       devDependencies?: Record<string, string>;
     };
-    const binPath = packageJson.bin?.harness;
+    const binPath = packageJson.bin?.["harness"];
 
     expect(binPath).toBe("./harness.mjs");
-    expect(packageJson.devDependencies?.tsx).toBe("latest");
+    expect(packageJson.devDependencies?.["tsx"]).toBe("latest");
     expect(existsSync(path.join(packageRoot, binPath ?? ""))).toBe(true);
   });
 
@@ -237,7 +234,7 @@ describe("run helpers", () => {
     const packageJson = JSON.parse(readFileSync(packagePath, "utf8")) as {
       bin?: Record<string, string>;
     };
-    const binPath = packageJson.bin?.harness;
+    const binPath = packageJson.bin?.["harness"];
 
     expect(binPath).toBe("./harness/harness.mjs");
     expect(existsSync(path.join(packageRoot, binPath ?? ""))).toBe(true);
@@ -309,10 +306,14 @@ describe("runLoop", () => {
 
     const day = "/repo/scratchpad/runs/codex/2026-06-26";
     const log = `${day}/0003.jsonl`;
+    const codexAgent = AGENTS["codex"];
+    if (codexAgent === undefined) {
+      throw new Error("codex agent preset missing");
+    }
     expect(ensured).toBe(day);
     expect(listed).toBe(day);
     expect(launched).toEqual({
-      command: ["/repo/harness/ralph.sh", "3", "10", ...AGENTS.codex],
+      command: ["/repo/harness/ralph.sh", "3", "10", ...codexAgent],
       cwd: "/repo",
       log,
       isVerbose: false,
@@ -320,7 +321,7 @@ describe("runLoop", () => {
     expect(result).toEqual({
       code: 7,
       lines: [
-        `harness: /repo/harness/ralph.sh 3 10 ${AGENTS.codex.join(" ")} -> ${log}`,
+        `harness: /repo/harness/ralph.sh 3 10 ${codexAgent.join(" ")} -> ${log}`,
       ],
     });
   });
@@ -358,7 +359,7 @@ describe("harness command", () => {
       cwd: repo,
       env: {
         ...process.env,
-        PATH: `${bin}${path.delimiter}${process.env.PATH ?? ""}`,
+        PATH: `${bin}${path.delimiter}${process.env["PATH"] ?? ""}`,
       },
     });
     const runRoot = path.join(repo, "scratchpad", "runs", "claude");

@@ -4,4 +4,5 @@
 **/playwright-report/
 **/node_modules/
 **/.lighthouseci/
-scratchpad/
+**/scratchpad/
+**/.lighthouseci/

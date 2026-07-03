@@ -2,12 +2,12 @@ export default {
   extends: ["stylelint-config-standard"],
   plugins: ["stylelint-declaration-strict-value"],
   ignoreFiles: [
-    "coverage/**",
-    "dist/**",
-    "build/**",
-    ".next/**",
-    "node_modules/**",
-    "scratchpad/**",
+    "../**/coverage/**",
+    "../**/dist/**",
+    "../**/build/**",
+    "../**/.next/**",
+    "../**/node_modules/**",
+    "../**/scratchpad/**",
   ],
   rules: {
     "at-rule-no-unknown": [

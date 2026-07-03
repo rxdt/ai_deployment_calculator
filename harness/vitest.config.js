@@ -10,10 +10,28 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     include: ["**/*.test.ts"],
+    exclude: [
+      "**/.git/**",
+      "**/.lighthouseci/**",
+      "**/coverage/**",
+      "**/dist/**",
+      "**/node_modules/**",
+      "**/scratchpad/**",
+      "**/test-results/**",
+    ],
     coverage: {
       provider: "v8",
       reporter: ["text"],
       include: ["**/*.ts"],
+      exclude: [
+        "**/.git/**",
+        "**/.lighthouseci/**",
+        "**/coverage/**",
+        "**/dist/**",
+        "**/node_modules/**",
+        "**/scratchpad/**",
+        "**/test-results/**",
+      ],
       thresholds: {
         branches: 100,
         functions: 100,

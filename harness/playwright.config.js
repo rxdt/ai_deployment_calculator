@@ -4,7 +4,7 @@ import { defineConfig, devices } from "@playwright/test";
 export default defineConfig({
   testDir: "../frontend/tests",
   webServer: {
-    command: "npm --prefix frontend run dev -- --port 5173",
+    command: "npm --prefix ../frontend run dev -- --port 5173",
     url: "http://127.0.0.1:5173",
     reuseExistingServer: !process.env.CI,
   },

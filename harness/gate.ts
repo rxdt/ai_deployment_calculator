@@ -197,7 +197,7 @@ export const COMMIT_CHECKS: Record<string, string[]> = {
 export const FULL_CHECKS: Record<string, string[]> = {
   ...COMMIT_CHECKS,
   typecheck: [tool("tsc"), "-p", "harness/tsconfig.app.json", "--noEmit"],
-  harness_types: [
+  harnessTypes: [
     tool("tsc"),
     "-p",
     "harness/tsconfig.harness.json",
@@ -217,7 +217,7 @@ export const FULL_CHECKS: Record<string, string[]> = {
     "-c",
     "ajv-keywords",
   ],
-  package_json: [tool("npmPkgJsonLint"), "."],
+  packageJson: [tool("npmPkgJsonLint"), "."],
   cruise: [
     tool("depcruise"),
     "frontend/src",
@@ -258,8 +258,8 @@ export const FULL_CHECKS: Record<string, string[]> = {
     "--secretlintrc",
     "harness/.secretlintrc.json",
   ],
-  npm_audit: ["npm", "--prefix", "frontend", "audit", "--audit-level=high"],
-  pnpm_audit: [
+  npmAudit: ["npm", "--prefix", "frontend", "audit", "--audit-level=high"],
+  pnpmAudit: [
     tool("pnpm"),
     "--dir",
     "frontend",
@@ -267,7 +267,7 @@ export const FULL_CHECKS: Record<string, string[]> = {
     "--audit-level",
     "high",
   ],
-  npm_signatures: ["npm", "--prefix", "frontend", "audit", "signatures"],
+  npmSignatures: ["npm", "--prefix", "frontend", "audit", "signatures"],
   lockfile: [
     tool("lockfile-lint"),
     "--path",
@@ -322,15 +322,15 @@ export function gitSafeEnvironment(): NodeJS.ProcessEnv {
 /**
 
 * @param repo
-* @param arguments_
+* @param args
 */
-export function runGit(repo: string, arguments_: string[]): string {
-  const result = spawnSync("git", ["-C", repo, ...arguments_], {
+export function runGit(repo: string, args: string[]): string {
+  const result = spawnSync("git", ["-C", repo, ...args], {
     encoding: "utf8",
     env: gitSafeEnvironment(),
   });
   if (result.status !== 0) {
-    throw new Error(`git ${arguments_.join(" ")} failed: ${result.stderr}`);
+    throw new Error(`git ${args.join(" ")} failed: ${result.stderr}`);
   }
   return result.stdout;
 }
@@ -349,9 +349,10 @@ function hasPackage(repo: string, directory: string): boolean {
 // exploits to disable whole check families (sast/osv/audit/build/coverage) by "cleaning up" a
 // file — `git rm` removes it from the index, so we must also consult HEAD. Deletion fails closed.
 /**
- * @param repo
- * @param directory
- */
+
+@param repo
+@param directory
+*/
 function isPackageDeleted(repo: string, directory: string): boolean {
   const relpath = path.posix.join(directory, "package.json");
   if (existsSync(path.join(repo, directory, "package.json"))) {
@@ -444,9 +445,10 @@ const CONFIG_FLAGS = new Set([
 // The referenced harness config file that is missing, if any. Only checks `harness/...` paths, so
 // a check's own repo-relative source targets (e.g. globs) are never mistaken for enforcement files.
 /**
- * @param repo
- * @param command
- */
+
+@param repo
+@param command
+*/
 function missingReferencedConfig(
   repo: string,
   command: readonly string[],
@@ -678,8 +680,9 @@ function stagedChanges(repo: string): StagedChange[] {
 // exact-string sets. The FORBIDDEN_* entries are already lowercase POSIX, so we match against the
 // canonical lowercase form. We match the ORIGINAL and the canonical form (belt and suspenders).
 /**
- * @param file
- */
+
+@param file
+*/
 function canonicalMatchPath(file: string): string {
   return path.posix
     .normalize(file.replaceAll("\\", "/"))
@@ -688,8 +691,9 @@ function canonicalMatchPath(file: string): string {
 }
 
 /**
- * @param file
- */
+
+@param file
+*/
 export function isForbiddenPath(file: string): boolean {
   const canonical = canonicalMatchPath(file);
   const forbiddenFiles = new Set(
@@ -863,7 +867,7 @@ export function runPreflight(
   runner: typeof runChecks = runChecks,
 ): string[] {
   const problems: string[] = [];
-  if (process.env.RALPH_LOOP === "1") {
+  if (process.env["RALPH_LOOP"] === "1") {
     unStageFiles(repo, forbiddenPathsFromDiff(repo));
     unStageFiles(
       repo,

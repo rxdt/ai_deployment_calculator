@@ -223,9 +223,9 @@ async function runWorker(
   log: string,
   isVerbose: boolean,
 ): Promise<number> {
-  const [executable = "", ...arguments_] = command;
+  const [executable = "", ...args] = command;
   const logStream = createWriteStream(log, { encoding: "utf8" });
-  const child = spawn(executable, arguments_, {
+  const child = spawn(executable, args, {
     cwd,
     stdio: ["ignore", "pipe", "pipe"],
   });
@@ -325,28 +325,28 @@ function runStatus(): number {
 // Install deps, apply user config overrides, and point Git at the hooks.
 /**
 
-* @param arguments_
+* @param args
 */
-function runSetup(arguments_: string[]): number {
-  if (arguments_.length > 0) {
+function runSetup(args: string[]): number {
+  if (args.length > 0) {
     process.stderr.write("usage: harness setup\n");
     return 2;
   }
   // setup is a one-time human bootstrap; it adopts on-disk user configs and rewrites gate
   // scripts, so an agent must never run it (it could repoint the gate at a toothless config).
-  if (process.env.RALPH_LOOP === "1") {
+  if (process.env["RALPH_LOOP"] === "1") {
     process.stderr.write("harness setup must not run inside the agent loop\n");
     return 2;
   }
 
   const repo = repoRoot(process.cwd());
   const packagePath = path.join(repo, "package.json");
-  const package_ = JSON.parse(readFileSync(packagePath, "utf8")) as {
+  const pkg = JSON.parse(readFileSync(packagePath, "utf8")) as {
     scripts?: Record<string, string>;
   };
 
   // add harness scripts without overwriting the project's own (lint/test get an alias)
-  const scripts = package_.scripts ?? {};
+  const scripts = pkg.scripts ?? {};
   for (const [name, command] of Object.entries(ROOT_HARNESS_SCRIPTS)) {
     if (!Object.hasOwn(scripts, name)) {
       scripts[name] = command;
@@ -357,8 +357,8 @@ function runSetup(arguments_: string[]): number {
       scripts[`harness:${name}`] = command;
     }
   }
-  package_.scripts = scripts;
-  writeFileSync(packagePath, `${JSON.stringify(package_, null, 2)}\n`);
+  pkg.scripts = scripts;
+  writeFileSync(packagePath, `${JSON.stringify(pkg, null, 2)}\n`);
 
   // install harness + every package dir below root (root is skipped to avoid lifecycle recursion)
   for (const directory of ["harness", ...discoverPackageDirectories(repo)]) {
@@ -425,14 +425,14 @@ function runSetup(arguments_: string[]): number {
 // Sequence one harnessed ralph loop; side effects are injected so the logic stays testable.
 /**
 
-* @param arguments_
+* @param args
 * @param dependencies
 */
 export async function runLoop(
-  arguments_: string[],
+  args: string[],
   dependencies: LoopDependencies,
 ): Promise<CommandResult> {
-  const agent = (arguments_[0] ?? "").toLowerCase();
+  const agent = (args[0] ?? "").toLowerCase();
   const agentCommand = AGENTS[agent];
   if (agentCommand === undefined) {
     return {
@@ -442,12 +442,12 @@ export async function runLoop(
       ],
     };
   }
-  const iterations = parseCount(arguments_[1], 2);
-  const minutes = parseCount(arguments_[2], 20);
+  const iterations = parseCount(args[1], 2);
+  const minutes = parseCount(args[2], 20);
   if (iterations === undefined || minutes === undefined) {
     return { code: 2, lines: ["num_iterations and max_minutes must be >= 1"] };
   }
-  const isVerbose = arguments_[3] !== "false";
+  const isVerbose = args[3] !== "false";
   const cwd = dependencies.cwd();
   const day = path.join(
     cwd,
@@ -496,7 +496,8 @@ function loopDependencies(): LoopDependencies {
 * @param argv
 */
 export async function main(argv: string[]): Promise<void> {
-  const [command, ...rest] = argv;
+  const [rawCommand, ...rest] = argv;
+  const command = rawCommand ?? "";
   let code: number;
   switch (command) {
     case "preflight":

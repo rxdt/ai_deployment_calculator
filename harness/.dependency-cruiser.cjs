@@ -34,7 +34,6 @@ module.exports = {
   ],
   options: {
     doNotFollow: { path: "node_modules" },
-    tsConfig: { fileName: "frontend/tsconfig.json" },
     tsPreCompilationDeps: true,
   },
 };

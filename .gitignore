@@ -1,4 +1,5 @@
 .coverage
+.cache_*
 coverage/
 dist/
 .DS_Store
@@ -8,6 +9,6 @@ dist/
 **/node_modules/
 **test-results/
 **/.lighthouseci/
+**/.playwright-*
 specs/fp_*
-
 scratchpad/

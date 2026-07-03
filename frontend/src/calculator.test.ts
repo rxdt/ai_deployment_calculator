@@ -147,8 +147,8 @@ describe("corrected text-generation totals", () => {
       { contextTokens: "1000000", precision: "8-bit" },
       154.3,
     ],
-  ])("%s", (name, overrides, expected) => {
-    expect(required(overrides)).toBe(expected);
+  ])("%s", (scenario, overrides, expected) => {
+    expect(required(overrides), scenario).toBe(expected);
   });
 
   test("compares precision totals with corrected defaults", () => {
@@ -266,8 +266,8 @@ describe("training estimates", () => {
       },
       115.6,
     ],
-  ])("%s", (_name, overrides, expected) => {
-    expect(required(overrides)).toBe(expected);
+  ])("%s", (scenario, overrides, expected) => {
+    expect(required(overrides), scenario).toBe(expected);
   });
 
   test("LoRA and optimizer options affect only adapter training state", () => {
@@ -422,7 +422,7 @@ describe("workload-family working memory", () => {
     expect(spec.visionArchitecture).toBeNull();
     expect(working.kvCacheGb).toBeCloseTo(1.061158912, 9);
     expect(working.inputActivationGb).toBeCloseTo(0.347108864, 9);
-    expect(memoryBreakdown(spec).requiredGb).toBe(18.6);
+    expect(memoryBreakdown(spec).requiredGb.toFixed(1)).toBe("18.6");
   });
 
   test("vision-language uses explicit vision architecture for image tokens", () => {
@@ -528,7 +528,7 @@ describe("architecture, runtime, accuracy, and speed helpers", () => {
   });
 
   test("roundTo produces fixed one-decimal contract values", () => {
-    expect(roundTo(20.44, 1)).toBe(20.4);
-    expect(roundTo(20.45, 1)).toBe(20.5);
+    expect(roundTo(20.44, 1).toFixed(1)).toBe("20.4");
+    expect(roundTo(20.45, 1).toFixed(1)).toBe("20.5");
   });
 });

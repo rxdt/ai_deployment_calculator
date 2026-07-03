@@ -1,17 +1,10 @@
 {
   "compilerOptions": {
     "target": "ES2023",
-    "lib": [
-      "ES2023",
-      "DOM",
-      "DOM.Iterable"
-    ],
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "moduleResolution": "Bundler",
-    "types": [
-      "vite/client",
-      "vitest"
-    ],
+    "types": ["vite/client", "vitest"],
     "strict": true,
     "isolatedModules": true,
     "verbatimModuleSyntax": true,
@@ -29,10 +22,7 @@
     "useUnknownInCatchVariables": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": [
-    "../**/*.ts",
-    "*.ts"
-  ],
+  "include": ["../**/*.ts", "*.ts"],
   "exclude": [
     "../.git/**",
     "../**/.lighthouseci/**",

@@ -60,7 +60,11 @@ export default defineConfig([
     languageOptions: {
       globals: { ...globals.browser, ...globals.node },
       parserOptions: {
-        project: ["harness/tsconfig.app.json", "harness/tsconfig.json", "harness/tsconfig.harness.json"],
+        project: [
+          "harness/tsconfig.app.json",
+          "harness/tsconfig.json",
+          "harness/tsconfig.harness.json",
+        ],
         tsconfigRootDir: repoRoot,
       },
     },
@@ -89,10 +93,10 @@ export default defineConfig([
       "@typescript-eslint/no-unused-vars": [
         "error",
         {
-          "vars": "all",
-          "args": "none" // Ignore unused function parameters completely, TS handles
+          vars: "all",
+          args: "none", // Ignore unused function parameters completely, TS handles
           // { argsIgnorePattern: "^_" }, // rxdt preference, will uncomment soon
-        }
+        },
       ],
       "@typescript-eslint/naming-convention": [
         "error",
@@ -246,12 +250,16 @@ export default defineConfig([
           message: "Never construct functions from strings.",
         },
         {
-          selector: "CallExpression > SpreadElement[argument.type='ArrayExpression']",
-          message: "Do not spread an inline array literal into function arguments. Pass explicit values."
+          selector:
+            "CallExpression > SpreadElement[argument.type='ArrayExpression']",
+          message:
+            "Do not spread an inline array literal into function arguments. Pass explicit values.",
         },
         {
-          selector: "ArrayExpression > SpreadElement[argument.type='ArrayExpression']",
-          message: "Do not spread an array literal directly inside another array. Pass explicit values."
+          selector:
+            "ArrayExpression > SpreadElement[argument.type='ArrayExpression']",
+          message:
+            "Do not spread an array literal directly inside another array. Pass explicit values.",
         },
         {
           selector: "ObjectExpression > SpreadElement",

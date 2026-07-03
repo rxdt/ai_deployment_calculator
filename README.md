@@ -90,6 +90,21 @@ forbidden patterns. It warns on stderr when it unstages files
 ([harness/gate.ts](harness/gate.ts#L569)). Normal preflight and gate leave
 staged files alone.
 
+## Known loopholes (not yet closed)
+
+Local hooks are advisory. A determined agent can still:
+
+- **Skip enforcement by not setting `RALPH_LOOP=1`** — all path/pattern/preference/empty-commit guards are opt-in.
+- **`--no-verify` / `core.hooksPath`** — bypasses local hooks entirely.
+- **Edit the gate and be judged by it** — hooks and CI run `harness/` from the working tree/PR, not a trusted copy.
+- **CI self-judges** — the workflow runs the PR's own `gate.ts`; no branch protection or CODEOWNERS on `harness/**`.
+- **`runGate` has no containment** — no forbidden-path/pattern/preference scan over the pushed diff.
+- **Fake work** — delete `expect()` assertions (only added lines are scanned) or call-everything/assert-nothing to keep 100% coverage green.
+- **Supply chain** — `harness/package.json` pins many deps to `latest`; CI installs and executes them as the judge.
+- **`.gitignore` a referenced-but-untracked payload** to hide it from review.
+
+Closed: skip-by-`package.json`-deletion, case-fold/normalized forbidden paths, missing referenced-config landmine, `NODE_OPTIONS` env injection. See `scratchpad/containment-hardening-plan.md` for the full catalog and fixes.
+
 ## Loop
 
 ```sh

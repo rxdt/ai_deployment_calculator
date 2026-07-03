@@ -74,6 +74,7 @@ export const FORBIDDEN_FILES = new Set([
   "harness/package-lock.json",
   "harness/tsconfig.json",
   "harness/tsconfig.app.json",
+  "harness/tsconfig.harness.json",
   "harness/vitest.config.js",
   "harness/eslint.config.js",
   "harness/stylelint.config.js",
@@ -196,7 +197,12 @@ export const COMMIT_CHECKS: Record<string, string[]> = {
 export const FULL_CHECKS: Record<string, string[]> = {
   ...COMMIT_CHECKS,
   typecheck: [tool("tsc"), "-p", "harness/tsconfig.app.json", "--noEmit"],
-  harness_types: [tool("tsc"), "-p", "harness/tsconfig.harness.json", "--noEmit"],
+  harness_types: [
+    tool("tsc"),
+    "-p",
+    "harness/tsconfig.harness.json",
+    "--noEmit",
+  ],
   markup: [tool("markuplint"), "frontend/**/*.html", "--max-warnings", "0"],
   schema: [
     tool("ajv"),
@@ -287,13 +293,28 @@ export const FULL_CHECKS: Record<string, string[]> = {
   lighthouse: [tool("lhci"), "autorun", "--config", "harness/lighthouserc.cjs"],
 };
 
-// process.env minus every GIT_* var, so a poisoned env can't redirect our Git calls.
+// Env vars that inject code into Node/npm subprocesses. `NODE_OPTIONS=--require ./evil.js` (and
+// the npm-prefixed variants) run attacker code inside the very tools that judge the diff, with no
+// trace in the repo. Stripped alongside GIT_* so neither Git calls nor checks can be redirected.
+const UNSAFE_ENV_KEYS = new Set([
+  "NODE_OPTIONS",
+  "NODE_REPL_EXTERNAL_MODULE",
+  "npm_config_node_options",
+]);
+const UNSAFE_ENV_PREFIXES = ["GIT_"];
+
+// process.env minus GIT_* and code-injection vars, so a poisoned env can't redirect our Git calls
+// or run arbitrary code inside the checks. PATH/HOME/NODE_* the toolchain needs are preserved.
 /**
 
 */
 export function gitSafeEnvironment(): NodeJS.ProcessEnv {
   return Object.fromEntries(
-    Object.entries(process.env).filter(([key]) => !key.startsWith("GIT_")),
+    Object.entries(process.env).filter(
+      ([key]) =>
+        !UNSAFE_ENV_KEYS.has(key) &&
+        UNSAFE_ENV_PREFIXES.every((prefix) => !key.startsWith(prefix)),
+    ),
   );
 }
 
@@ -323,6 +344,34 @@ function hasPackage(repo: string, directory: string): boolean {
   return existsSync(path.join(repo, directory, "package.json"));
 }
 
+// A package.json that Git knows (in the index OR committed in HEAD) but is missing on disk was
+// DELETED. Skipping checks because a known package.json vanished is the fail-open bug an agent
+// exploits to disable whole check families (sast/osv/audit/build/coverage) by "cleaning up" a
+// file — `git rm` removes it from the index, so we must also consult HEAD. Deletion fails closed.
+/**
+ * @param repo
+ * @param directory
+ */
+function isPackageDeleted(repo: string, directory: string): boolean {
+  const relpath = path.posix.join(directory, "package.json");
+  if (existsSync(path.join(repo, directory, "package.json"))) {
+    return false;
+  }
+  const isInIndex = runGit(repo, ["ls-files", "--", relpath]).trim().length > 0;
+  if (isInIndex) {
+    return true;
+  }
+  // ls-tree throws on a repo with no commits; a package.json cannot be "deleted from HEAD" there.
+  try {
+    return (
+      runGit(repo, ["ls-tree", "--name-only", "HEAD", "--", relpath]).trim()
+        .length > 0
+    );
+  } catch {
+    return false;
+  }
+}
+
 /**
 
 * @param repo
@@ -330,6 +379,11 @@ function hasPackage(repo: string, directory: string): boolean {
 */
 function shouldSkipCheck(repo: string, command: readonly string[]): boolean {
   const [executable = "", first = "", second = ""] = command;
+  // Fail closed: a DELETED (tracked-but-missing) package.json must never let a check skip. Only a
+  // never-scaffolded template (absent AND untracked) legitimately skips its package-scoped checks.
+  if (isPackageDeleted(repo, "harness") || isPackageDeleted(repo, "frontend")) {
+    return false;
+  }
   if (
     executable.startsWith(`${HARNESS_BIN}${path.sep}`) &&
     !hasPackage(repo, "harness")
@@ -371,6 +425,48 @@ interface CheckContext {
   timeoutMs: number;
 }
 
+// Flags whose FOLLOWING argument is a harness enforcement file the check reads. A missing such
+// file must fail with a clear message, not an obscure tool crash — otherwise an agent can neuter a
+// check by deleting/never-creating its config (the tsconfig.harness.json landmine) and the next
+// run inherits a cryptic red gate that masks the weakening as an environment error.
+const CONFIG_FLAGS = new Set([
+  "--config",
+  "-c",
+  "-p",
+  "--project",
+  "-s",
+  "--ruleset",
+  "--secretlintrc",
+  "--ignore-path",
+  "--secretlintignore",
+]);
+
+// The referenced harness config file that is missing, if any. Only checks `harness/...` paths, so
+// a check's own repo-relative source targets (e.g. globs) are never mistaken for enforcement files.
+/**
+ * @param repo
+ * @param command
+ */
+function missingReferencedConfig(
+  repo: string,
+  command: readonly string[],
+): string | undefined {
+  for (let index = 0; index + 1 < command.length; index += 1) {
+    const flag = command[index] ?? "";
+    if (!CONFIG_FLAGS.has(flag)) {
+      continue;
+    }
+    const reference = command[index + 1] ?? "";
+    if (!reference.startsWith("harness/")) {
+      continue;
+    }
+    if (!existsSync(path.join(repo, reference))) {
+      return reference;
+    }
+  }
+  return undefined;
+}
+
 /**
 
 * @param context
@@ -388,6 +484,14 @@ function runOneCheck(
   }
   if (shouldSkipCheck(context.repo, command)) {
     return undefined;
+  }
+  const missingConfig = missingReferencedConfig(context.repo, command);
+  if (missingConfig !== undefined) {
+    return commandFailure(
+      name,
+      command,
+      `enforcement config missing: ${missingConfig} (a referenced harness config file does not exist)`,
+    );
   }
   const result = spawnSync(executable, rest, {
     cwd: context.repo,
@@ -569,16 +673,42 @@ function stagedChanges(repo: string): StagedChange[] {
   return changes;
 }
 
+// Canonicalize a staged path so case-insensitive filesystems (macOS: `Harness/gate.ts`),
+// `./`-segments, backslashes, and NFC/NFD Unicode variants cannot slip a forbidden path past the
+// exact-string sets. The FORBIDDEN_* entries are already lowercase POSIX, so we match against the
+// canonical lowercase form. We match the ORIGINAL and the canonical form (belt and suspenders).
 /**
+ * @param file
+ */
+function canonicalMatchPath(file: string): string {
+  return path.posix
+    .normalize(file.replaceAll("\\", "/"))
+    .normalize("NFC")
+    .toLowerCase();
+}
 
-* @param file
-*/
-function isForbiddenPath(file: string): boolean {
+/**
+ * @param file
+ */
+export function isForbiddenPath(file: string): boolean {
+  const canonical = canonicalMatchPath(file);
+  const forbiddenFiles = new Set(
+    [...FORBIDDEN_FILES].map((entry) => canonicalMatchPath(entry)),
+  );
+  const forbiddenBasenames = new Set(
+    [...FORBIDDEN_BASENAMES].map((entry) => entry.toLowerCase()),
+  );
+  const forbiddenDirectories = [...FORBIDDEN_DIRS].map((entry) =>
+    canonicalMatchPath(entry),
+  );
   return (
     FORBIDDEN_FILES.has(file) ||
     FORBIDDEN_BASENAMES.has(path.posix.basename(file)) ||
-    [...FORBIDDEN_DIRS].some(
-      (directory) => file === directory || file.startsWith(`${directory}/`),
+    forbiddenFiles.has(canonical) ||
+    forbiddenBasenames.has(path.posix.basename(canonical)) ||
+    forbiddenDirectories.some(
+      (directory) =>
+        canonical === directory || canonical.startsWith(`${directory}/`),
     )
   );
 }

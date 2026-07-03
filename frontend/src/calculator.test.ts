@@ -153,10 +153,17 @@ describe("corrected text-generation totals", () => {
 
   test("compares precision totals with corrected defaults", () => {
     expect(
-      ["32-bit", "16-bit", "8-bit", "4-bit"].map((precision) =>
+      (
+        [
+          "32-bit",
+          "16-bit",
+          "8-bit",
+          "4-bit",
+        ] satisfies FormState["precision"][]
+      ).map((precision) =>
         required({
           totalParams: "8",
-          precision: precision as FormState["precision"],
+          precision,
         }),
       ),
     ).toEqual([39.8, 21.3, 12.5, 8.1]);
@@ -164,13 +171,20 @@ describe("corrected text-generation totals", () => {
 
   test("compares a 104B local precision sweep at 32k context with 32-bit KV", () => {
     expect(
-      ["32-bit", "16-bit", "8-bit", "4-bit"].map((precision) =>
+      (
+        [
+          "32-bit",
+          "16-bit",
+          "8-bit",
+          "4-bit",
+        ] satisfies FormState["precision"][]
+      ).map((precision) =>
         required({
           totalParams: "104",
           contextTokens: "32000",
           kvCachePrecision: "32-bit",
           runtimeProfile: "Local / Edge",
-          precision: precision as FormState["precision"],
+          precision,
         }),
       ),
     ).toEqual([454.1, 239.9, 138.1, 87.3]);

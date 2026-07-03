@@ -240,7 +240,9 @@ describe("buildReport", () => {
   });
 
   test("payload exposes only the frontend report contract keys", () => {
-    expect(Object.keys(buildReport(state())).sort((a, b) => a.localeCompare(b))).toEqual(
+    expect(
+      Object.keys(buildReport(state())).sort((a, b) => a.localeCompare(b)),
+    ).toEqual(
       [
         "assumptions",
         "breakdown",

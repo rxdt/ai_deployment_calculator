@@ -25,6 +25,7 @@ import {
   FORBIDDEN_PATTERNS,
   FULL_CHECKS,
   gitSafeEnvironment,
+  isForbiddenPath,
   preferenceProblems,
   runChecks,
   runGate,
@@ -704,6 +705,22 @@ describe("runChecks", () => {
     expect(failures).toEqual([]);
   });
 
+  test("strips NODE_OPTIONS code-injection from spawned checks (F3)", () => {
+    process.env.NODE_OPTIONS = "--require ./evil.js";
+    try {
+      const failures = runChecks(makeRepo(), {
+        env: [
+          process.execPath,
+          "-e",
+          "if (process.env.NODE_OPTIONS !== undefined) process.exit(8)",
+        ],
+      });
+      expect(failures).toEqual([]);
+    } finally {
+      delete process.env.NODE_OPTIONS;
+    }
+  });
+
   test("includes stdout and stderr from a failing check", () => {
     const failures = runChecks(makeRepo(), {
       noisy: [
@@ -812,6 +829,22 @@ describe("runChecks", () => {
     expect(failures).toHaveLength(1);
   });
 
+  test("fails clearly when a referenced harness config file is missing (E3 landmine)", () => {
+    const repo = makeRepo();
+    stageFile(repo, "harness/package.json", '{"private":true}\n');
+    const failures = runChecks(repo, {
+      typecheck: [
+        harnessTool("tsc"),
+        "-p",
+        "harness/tsconfig.does-not-exist.json",
+        "--noEmit",
+      ],
+    });
+    expect(failures).toHaveLength(1);
+    expect(failures[0]).toContain("enforcement config missing");
+    expect(failures[0]).toContain("harness/tsconfig.does-not-exist.json");
+  });
+
   test("skips frontend npm commands only when frontend package is absent", () => {
     const failures = runChecks(makeRepo(), {
       frontend_script: ["npm", "--prefix", "frontend", "run", "missing"],
@@ -824,6 +857,28 @@ describe("runChecks", () => {
     stageFile(repo, "frontend/package.json", '{"scripts":{}}\n');
     const failures = runChecks(repo, {
       frontend_script: ["npm", "--prefix", "frontend", "run", "missing"],
+    });
+    expect(failures).toHaveLength(1);
+  });
+
+  test("fails closed when a tracked frontend package.json is deleted (no skip-by-deletion)", () => {
+    const repo = makeRepo();
+    stageFile(repo, "frontend/package.json", '{"scripts":{}}\n');
+    runCommand(["git", "commit", "-q", "-m", "add frontend pkg"], repo);
+    runCommand(["git", "rm", "-q", "frontend/package.json"], repo);
+    const failures = runChecks(repo, {
+      frontend_script: ["npm", "--prefix", "frontend", "run", "missing"],
+    });
+    expect(failures).toHaveLength(1);
+  });
+
+  test("fails closed when a tracked harness package.json is deleted", () => {
+    const repo = makeRepo();
+    stageFile(repo, "harness/package.json", '{"private":true}\n');
+    runCommand(["git", "commit", "-q", "-m", "add harness pkg"], repo);
+    runCommand(["git", "rm", "-q", "harness/package.json"], repo);
+    const failures = runChecks(repo, {
+      harness_tool: [harnessTool("definitely-missing")],
     });
     expect(failures).toHaveLength(1);
   });
@@ -1202,6 +1257,26 @@ describe("loop containment", () => {
   });
 
   test.each([
+    "harness/gate.ts", // baseline, exact
+    "Harness/gate.ts", // macOS case-fold on the dir
+    "HARNESS/gate.ts",
+    "harness/Gate.ts", // case-fold on the file
+    "harness/./gate.ts", // redundant ./ segment
+    "harness/../harness/gate.ts", // normalizes back into harness/
+    "Harness/package.json", // case-folded forbidden basename
+  ])("isForbiddenPath resists case/normalization bypass: %s", (variant) => {
+    expect(isForbiddenPath(variant)).toBe(true);
+  });
+
+  test.each([
+    "frontend/src/report.ts",
+    "frontend/src/harnessed.ts", // 'harness' as a substring, not a dir
+    "docs/harness-notes.md",
+  ])("isForbiddenPath does not over-match legit path: %s", (allowed) => {
+    expect(isForbiddenPath(allowed)).toBe(false);
+  });
+
+  test.each([
     "harness/package.json",
     "harness/gate.ts",
     "harness/harness.mjs",
@@ -1250,7 +1325,9 @@ describe("loop containment", () => {
   test("ejects a generated mix of forbidden files and nested forbidden-dir paths", () => {
     process.env.RALPH_LOOP = "1";
     const repo = makeRepo();
-    const directories = [...FORBIDDEN_DIRS].toSorted((a, b) => a.localeCompare(b));
+    const directories = [...FORBIDDEN_DIRS].toSorted((a, b) =>
+      a.localeCompare(b),
+    );
     const files = [...FORBIDDEN_FILES].toSorted((a, b) => a.localeCompare(b));
     const generated = [
       ...files.map((target, index) => ({
@@ -1966,7 +2043,9 @@ describe("setup config overrides cannot escape containment", () => {
     const referenced = candidatePaths.filter((candidate) =>
       Object.values(scripts).some((command) => command.includes(candidate)),
     );
-    const escaped = referenced.filter((candidate) => !isForbiddenPath(candidate));
+    const escaped = referenced.filter(
+      (candidate) => !isForbiddenPath(candidate),
+    );
     expect(
       escaped,
       `harness gate scripts now point at committable configs: ${escaped.join(", ")}`,
@@ -2056,7 +2135,9 @@ describe("frontend gate shape", () => {
       return [];
     });
     expect(failures).toEqual([]);
-    expect(Object.keys(selected ?? {}).toSorted((a, b) => a.localeCompare(b))).toEqual([
+    expect(
+      Object.keys(selected ?? {}).toSorted((a, b) => a.localeCompare(b)),
+    ).toEqual([
       "build",
       "coverage",
       "e2e",
@@ -2236,21 +2317,23 @@ describe("frontend gate shape", () => {
 
   test("root script menu is the stable command surface", () => {
     const scripts = readPackageScripts("package.json");
-    expect(Object.keys(scripts).toSorted((a, b) => a.localeCompare(b))).toEqual([
-      "build",
-      "dev",
-      "gate",
-      "harness:lint",
-      "harness:test",
-      "lint",
-      "loop",
-      "preflight",
-      "preview",
-      "setup",
-      "status",
-      "test",
-      "test:file",
-    ]);
+    expect(Object.keys(scripts).toSorted((a, b) => a.localeCompare(b))).toEqual(
+      [
+        "build",
+        "dev",
+        "gate",
+        "harness:lint",
+        "harness:test",
+        "lint",
+        "loop",
+        "preflight",
+        "preview",
+        "setup",
+        "status",
+        "test",
+        "test:file",
+      ],
+    );
     expect(scripts.test).toBe("npm --prefix harness run test:coverage");
     expect(scripts["test:file"]).toBe("npm --prefix harness run test:file --");
     expect(scripts.lint).toBe("npm --prefix harness run lint");
@@ -2324,18 +2407,20 @@ describe("frontend gate shape", () => {
 
   test("frontend keeps app scripts and delegates checks to harness", () => {
     const scripts = readPackageScripts("frontend/package.json");
-    expect(Object.keys(scripts).toSorted((a, b) => a.localeCompare(b))).toEqual([
-      "build",
-      "dev",
-      "lint",
-      "preview",
-      "setup:e2e",
-      "test",
-      "test:coverage",
-      "test:e2e",
-      "test:file",
-      "typecheck",
-    ]);
+    expect(Object.keys(scripts).toSorted((a, b) => a.localeCompare(b))).toEqual(
+      [
+        "build",
+        "dev",
+        "lint",
+        "preview",
+        "setup:e2e",
+        "test",
+        "test:coverage",
+        "test:e2e",
+        "test:file",
+        "typecheck",
+      ],
+    );
     expect(scripts.build).toBe("vite build");
     expect(scripts.dev).toContain("vite");
     expect(scripts.test).toContain("../harness");
@@ -2452,7 +2537,9 @@ describe("frontend gate shape", () => {
   });
 
   test("git hooks are two simple entrypoints", () => {
-    const hooks = readdirSync(path.join(REPO, ".githooks")).toSorted((a, b) => a.localeCompare(b));
+    const hooks = readdirSync(path.join(REPO, ".githooks")).toSorted((a, b) =>
+      a.localeCompare(b),
+    );
     expect(hooks).toEqual(["pre-commit", "pre-push"]);
     expect(readRepo(".githooks/pre-commit")).toBe(
       "#!/bin/sh\nset -eu\n\nnode harness/harness.mjs preflight\n",

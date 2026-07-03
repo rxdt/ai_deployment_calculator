@@ -7,7 +7,7 @@ export default {
     "build/**",
     ".next/**",
     "node_modules/**",
-    "scratchpad/**"
+    "scratchpad/**",
   ],
   rules: {
     "at-rule-no-unknown": [
@@ -23,11 +23,11 @@ export default {
     "declaration-property-value-disallowed-list": {
       "font-size": ["/^[0-9.]+px$/"],
       "z-index": ["/^[0-9]+$/"],
-      "outline": ["none", "0"],
-      "overflow": ["hidden"],
-      "position": ["fixed"],
-      "transition": ["/\\ball\\b/"],
-      "transition-property": ["all"]
+      outline: ["none", "0"],
+      overflow: ["hidden"],
+      position: ["fixed"],
+      transition: ["/\\ball\\b/"],
+      "transition-property": ["all"],
     },
     "import-notation": null,
     "max-nesting-depth": 2, // Stop messy CSS nesting chains
@@ -50,9 +50,12 @@ export default {
     "selector-max-compound-selectors": 3,
     "selector-max-class": 3,
     "selector-max-combinators": 2,
-    "selector-max-universal": [1, {
-      "ignoreAfterCombinators": [">", "+", "~"]
-    }],
+    "selector-max-universal": [
+      1,
+      {
+        ignoreAfterCombinators: [">", "+", "~"],
+      },
+    ],
     "selector-max-pseudo-class": 2,
     "selector-max-type": 1,
     "selector-no-qualifying-type": true,
@@ -70,7 +73,7 @@ export default {
         "gap",
         "row-gap",
         "column-gap",
-        "z-index"
+        "z-index",
       ],
       {
         ignoreValues: [

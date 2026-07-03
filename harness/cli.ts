@@ -293,7 +293,9 @@ export function run(
   }
   const repo = dependencies.repoRoot(process.cwd());
   const problems =
-    command === "preflight" ? dependencies.preflight(repo) : dependencies.gate(repo);
+    command === "preflight"
+      ? dependencies.preflight(repo)
+      : dependencies.gate(repo);
   const lines = problems.map((problem) => `gate: ${problem}`);
   lines.push(
     problems.length > 0 ? "rejected by harness" : `ok: ${command} passed`,

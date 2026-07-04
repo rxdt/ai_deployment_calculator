@@ -189,7 +189,7 @@ export default defineConfig([
       // NO SPAGHETTI
       "max-lines-per-function": [
         "error",
-        { max: 150, skipBlankLines: true, skipComments: true },
+        { max: 50, skipBlankLines: true, skipComments: true }, // default is 50
       ],
       "max-lines": [
         "error",

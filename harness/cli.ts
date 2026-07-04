@@ -1,66 +1,12 @@
-// Command-line interface for the ralph harness. Plain pass-through commands, no objects.
-
 import { spawn, spawnSync } from "node:child_process";
-import {
-  createWriteStream,
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  readdirSync,
-  writeFileSync,
-} from "node:fs";
+import * as fs from "node:fs";
 import path from "node:path";
 
-import {
-  CONFIG_CANDIDATES,
-  DEFAULT_CONFIGS,
-  runGate,
-  runGit,
-  runPreflight,
-} from "./gate.js";
+import * as gate from "./gate.js";
 
-// Re-exported for callers/tests that treat config-candidate discovery as a CLI concern.
-
-export const AGENTS: Record<string, string[]> = {
-  claude: [
-    "claude",
-    "-p",
-    "--permission-mode",
-    "acceptEdits",
-    "--no-session-persistence", // disposable: don't save session state
-    "--output-format",
-    "stream-json",
-    "--verbose",
-  ],
-  codex: [
-    // strip the parent's codex session so the worker starts fresh
-    "env",
-    "-u",
-    "CODEX_THREAD_ID", // child does not bind to the parent thread/session state
-    "-u",
-    "CODEX_CONVERSATION_ID",
-    "-u",
-    "CODEX_SESSION_ID",
-    "codex",
-    "exec",
-    "-m",
-    "gpt-5.5",
-    "--json",
-    "--sandbox",
-    "danger-full-access",
-    "-",
-  ],
-  // -p reads the prompt from stdin (ralph pipes it); skip-permissions for non-interactive runs
-  agy: ["agy", "--log-file", "agy.log", "-p", "--dangerously-skip-permissions"],
-  copilot: [
-    "sh",
-    "-c",
-    'copilot --output-format json --stream on --allow-all-tools -p "$(cat)"',
-  ],
-};
-
-// Root scripts the harness adds (only if absent); lint/test fall back to a harness: alias.
-const ROOT_HARNESS_SCRIPTS: Record<string, string> = {
+const USAGE = "usage: harness <preflight|gate|loop|status|setup>";
+const LOOP_SETUP_ERROR = "harness setup must not run inside the agent loop\n";
+const ROOT_SCRIPTS: Record<string, string> = {
   gate: "node harness/harness.mjs gate",
   setup: "node harness/harness.mjs setup",
   lint: "npm --prefix harness run lint",
@@ -69,299 +15,173 @@ const ROOT_HARNESS_SCRIPTS: Record<string, string> = {
   test: "npm --prefix harness run test:coverage",
   "test:file": "npm --prefix harness run test:file --",
 };
+const CODEX_COMMAND = (
+  "env -u CODEX_THREAD_ID -u CODEX_CONVERSATION_ID -u CODEX_SESSION_ID " +
+  "codex exec -m gpt-5.5 --json --sandbox danger-full-access -"
+).split(" ");
 
-// Dirs we never recurse into when discovering package.json files to install.
-const IGNORED_INSTALL_DIRECTORIES = new Set([
-  ".agents",
-  ".codex",
-  ".git",
-  ".lighthouseci",
-  "build",
-  "coverage",
-  "dist",
-  "harness",
-  "node_modules",
-  "scratchpad",
-  "test-results",
-]);
+export const AGENTS: Record<string, string[]> = {
+  claude:
+    "claude -p --permission-mode acceptEdits --no-session-persistence --output-format stream-json --verbose".split(
+      " ",
+    ),
+  codex: CODEX_COMMAND,
+  agy: "agy --log-file agy.log -p --dangerously-skip-permissions".split(" "),
+  copilot: [
+    "sh",
+    "-c",
+    'copilot --output-format json --stream on --allow-all-tools -p "$(cat)"',
+  ],
+};
 
-const USAGE = "usage: harness <preflight|gate|loop|status|setup>";
-
-// Repo root from any directory inside the checkout.
-/**
-
-* @param from
-*/
-export function repoRoot(from: string): string {
-  return runGit(from, ["rev-parse", "--show-toplevel"]).trim();
-}
-
-// Every directory below root (except ignored ones) that holds its own package.json.
-/**
-
-* @param repo
-*/
-function discoverPackageDirectories(repo: string): string[] {
-  const found: string[] = [];
-  const visit = (directory: string): void => {
-    const entries = readdirSync(path.join(repo, directory), {
-      withFileTypes: true,
-    });
-    for (const entry of entries) {
-      const relative = path.join(directory, entry.name);
-      if (entry.isDirectory()) {
-        if (!IGNORED_INSTALL_DIRECTORIES.has(entry.name)) {
-          visit(relative);
-        }
-      } else if (
-        entry.isFile() &&
-        entry.name === "package.json" &&
-        directory !== ""
-      ) {
-        found.push(directory);
-      }
-    }
-  };
-  visit("");
-  return found.toSorted((left, right) => left.localeCompare(right));
-}
-
-// UTC calendar day for the run log directory (stable across time zones).
-/**
-
-* @param nowMs
-*/
-export function formatDate(nowMs: number): string {
-  return new Date(nowMs).toISOString().slice(0, 10);
-}
-
-// Next run sequence: one past the highest existing sequence (1 when there are none).
-/**
-
-* @param sequences
-*/
-export function nextSequence(sequences: readonly number[]): number {
-  return 1 + Math.max(0, ...sequences);
-}
-
-// Parse a positive-integer CLI count, falling back when omitted; undefined when invalid.
-/**
-
-* @param raw
-* @param fallback
-*/
-export function parseCount(
-  raw: string | undefined,
-  fallback: number,
-): number | undefined {
-  if (raw === undefined) {
-    return fallback;
-  }
-  const value = Number(raw);
-  return Number.isSafeInteger(value) && value >= 1 ? value : undefined;
-}
-
-// Compact one valid JSONL line for terminal output; preserve invalid lines exactly.
-/**
-
-* @param line
-*/
-export function formatLiveLine(line: string): string {
-  const content = line.endsWith("\n") ? line.slice(0, -1) : line;
-  try {
-    return `${JSON.stringify(JSON.parse(content))}\n`;
-  } catch {
-    return `${content}\n`;
-  }
-}
-
-// Split a stream buffer into complete lines to emit plus the trailing partial line to keep.
-/**
-
-* @param buffer
-*/
-export function drainLines(buffer: string): { output: string; rest: string } {
-  const lines = buffer.split("\n");
-  const rest = lines.pop() ?? "";
-  const output = lines.map((line) => `${line}\n`).join("");
-  return { output, rest };
-}
-
-// Injected side effects for runLoop, so the pure sequencing logic stays testable.
 interface LoopDependencies {
   now: () => number;
   cwd: () => string;
   ralphPath: () => string;
   listSequences: (directory: string) => number[];
   ensureDirectory: (directory: string) => unknown;
-  worker: (
-    command: string[],
-    cwd: string,
-    log: string,
-    isVerbose: boolean,
-  ) => Promise<number>;
+  worker: (...args: [string[], string, string, boolean]) => Promise<number>;
 }
 
-interface CommandResult {
-  code: number;
-  lines: string[];
-}
+export const repoRoot = (from: string): string =>
+  gate.runGit(from, ["rev-parse", "--show-toplevel"]).trim();
+export const formatDate = (nowMs: number): string =>
+  new Date(nowMs).toISOString().slice(0, 10);
+export const nextSequence = (sequences: readonly number[]): number =>
+  1 + Math.max(0, ...sequences);
+export const parseCount = (
+  raw: string | undefined,
+  fallback: number,
+): number | undefined => {
+  if (raw === undefined) return fallback;
+  const value = Number(raw);
+  return Number.isSafeInteger(value) && value >= 1 ? value : undefined;
+};
 
-// Run the worker, teeing stdout+stderr to the log and (when verbose) live to our stdout.
-// The worker reads its prompt from PROMPT.md inside ralph.sh. Orchestration is fire-and-log:
-// a missing (ENOENT) or failing agent is reported but never fails the harness itself.
-/**
+export const formatLiveLine = (line: string): string => {
+  const content = line.endsWith("\n") ? line.slice(0, -1) : line;
+  try {
+    return `${JSON.stringify(JSON.parse(content))}\n`;
+  } catch {
+    return `${content}\n`;
+  }
+};
 
-* @param command
-* @param cwd
-* @param log
-* @param isVerbose
-*/
-async function runWorker(
+export const drainLines = (
+  buffer: string,
+): { output: string; rest: string } => {
+  const lines = buffer.split("\n");
+  const rest = lines.pop() ?? "";
+  return { output: lines.map((line) => `${line}\n`).join(""), rest };
+};
+
+const runWorker = async (
   command: string[],
   cwd: string,
   log: string,
   isVerbose: boolean,
-): Promise<number> {
-  const [executable = "", ...args] = command;
-  const logStream = createWriteStream(log, { encoding: "utf8" });
-  const child = spawn(executable, args, {
+): Promise<number> => {
+  const [executable = "", ...agentArgs] = command;
+  const logStream = fs.createWriteStream(log, { encoding: "utf8" });
+  const child = spawn(executable, agentArgs, {
     cwd,
     stdio: ["ignore", "pipe", "pipe"],
   });
   let buffer = "";
   const consume = (chunk: string): void => {
     logStream.write(chunk);
-    if (!isVerbose) {
-      return;
-    }
+    if (!isVerbose) return;
     buffer += chunk;
     const { output, rest } = drainLines(buffer);
     buffer = rest;
-    for (const line of output.split("\n")) {
-      if (line.length === 0) {
-        continue;
-      }
-      process.stdout.write(formatLiveLine(line));
-    }
+    const liveLines = output.match(/[^\n]+/gu) ?? [];
+    for (const line of liveLines) process.stdout.write(formatLiveLine(line));
   };
   child.stdout.setEncoding("utf8");
   child.stderr.setEncoding("utf8");
   child.stdout.on("data", consume);
   child.stderr.on("data", consume);
-  return new Promise<number>((resolve) => {
-    // The agent binary may be uninstalled; report it, don't crash the loop.
-    child.on("error", (error) => {
-      process.stderr.write(`harness: agent did not run: ${error.message}\n`);
-      logStream.end(() => {
-        resolve(0);
-      });
+  let errorMessage = "";
+  const exitCode = await new Promise<number>((resolve) => {
+    child.once("error", (error) => {
+      errorMessage = error.message;
+      resolve(0);
     });
-    child.on("close", (code) => {
-      if (isVerbose && buffer.length > 0) {
-        process.stdout.write(formatLiveLine(buffer));
-      }
-      if (code !== null && code !== 0) {
-        process.stderr.write(`harness: agent exited ${String(code)}\n`);
-      }
-      logStream.end(() => {
-        resolve(0);
-      });
+    child.once("close", (code) => {
+      resolve(code ?? 0);
     });
   });
-}
+  if (errorMessage !== "")
+    process.stderr.write(`harness: agent did not run: ${errorMessage}\n`);
+  else if (exitCode !== 0)
+    process.stderr.write(`harness: agent exited ${String(exitCode)}\n`);
+  if (isVerbose && buffer.length > 0)
+    process.stdout.write(formatLiveLine(buffer));
+  logStream.end();
+  return 0;
+};
 
-// Pure dispatcher for the synchronous gate commands: returns the exit code and output lines.
-/**
-
-* @param command
-* @param dependencies
-* @param dependencies.preflight
-* @param dependencies.gate
-* @param dependencies.repoRoot
-*/
-export function run(
+export const run = (
   command: string,
   dependencies: {
     preflight: (repo: string) => string[];
     gate: (repo: string) => string[];
     repoRoot: (from: string) => string;
   },
-): CommandResult {
-  if (command !== "preflight" && command !== "gate") {
+): { code: number; lines: string[] } => {
+  if (command !== "preflight" && command !== "gate")
     return { code: 2, lines: [USAGE] };
-  }
   const repo = dependencies.repoRoot(process.cwd());
-  const problems =
-    command === "preflight"
-      ? dependencies.preflight(repo)
-      : dependencies.gate(repo);
+  const check =
+    command === "preflight" ? dependencies.preflight : dependencies.gate;
+  const problems = check(repo);
   const lines = problems.map((problem) => `gate: ${problem}`);
   lines.push(
     problems.length > 0 ? "rejected by harness" : `ok: ${command} passed`,
   );
   return { code: problems.length > 0 ? 1 : 0, lines };
-}
+};
 
-// Count run logs under scratchpad/runs and point at the newest.
-/**
-
-*/
-function runStatus(): number {
+const runStatus = (): number => {
   const runs = path.join(repoRoot(process.cwd()), "scratchpad", "runs");
-  const logs = existsSync(runs)
-    ? readdirSync(runs, { recursive: true })
-        .map(String)
-        .filter((name) => name.endsWith(".jsonl"))
-        .toSorted((left, right) => left.localeCompare(right))
-    : [];
+  const logs = (
+    fs.existsSync(runs) ? fs.readdirSync(runs, { recursive: true }) : []
+  )
+    .map(String)
+    .filter((name) => name.endsWith(".jsonl"))
+    .toSorted((left, right) => left.localeCompare(right));
   process.stdout.write(`${String(logs.length)} run log(s) in ${runs}\n`);
-  if (logs.length > 0) {
+  if (logs.length > 0)
     process.stdout.write(`newest: ${path.join(runs, logs.at(-1) ?? "")}\n`);
-  }
   return 0;
-}
+};
 
-// Install deps, apply user config overrides, and point Git at the hooks.
-/**
+const hasScript = (repo: string, name: string): boolean =>
+  spawnSync("npm", ["pkg", "get", `scripts.${name}`], {
+    cwd: repo,
+    encoding: "utf8",
+  }).stdout.trim() !== "{}";
 
-* @param args
-*/
-function runSetup(args: string[]): number {
-  if (args.length > 0) {
-    process.stderr.write("usage: harness setup\n");
-    return 2;
+const addRootScripts = (repo: string): number => {
+  const args = ["set"];
+  for (const [name, command] of Object.entries(ROOT_SCRIPTS)) {
+    const alias = `harness:${name}`;
+    if (!hasScript(repo, name)) args.push(`scripts.${name}=${command}`);
+    else if ((name === "lint" || name === "test") && !hasScript(repo, alias))
+      args.push(`scripts.${alias}=${command}`);
   }
-  // setup is a one-time human bootstrap; it adopts on-disk user configs and rewrites gate
-  // scripts, so an agent must never run it (it could repoint the gate at a toothless config).
-  if (process.env["RALPH_LOOP"] === "1") {
-    process.stderr.write("harness setup must not run inside the agent loop\n");
-    return 2;
-  }
+  if (args.length === 1) return 0;
+  const result = spawnSync("npm", ["pkg", ...args], {
+    cwd: repo,
+    encoding: "utf8",
+  });
+  if (result.status !== 0) process.stderr.write(result.stderr);
+  return result.status ?? 0;
+};
 
-  const repo = repoRoot(process.cwd());
-  const packagePath = path.join(repo, "package.json");
-  const pkg = JSON.parse(readFileSync(packagePath, "utf8")) as {
-    scripts?: Record<string, string>;
-  };
-
-  // add harness scripts without overwriting the project's own (lint/test get an alias)
-  const scripts = pkg.scripts ?? {};
-  for (const [name, command] of Object.entries(ROOT_HARNESS_SCRIPTS)) {
-    if (!Object.hasOwn(scripts, name)) {
-      scripts[name] = command;
-    } else if (
-      (name === "lint" || name === "test") &&
-      !Object.hasOwn(scripts, `harness:${name}`)
-    ) {
-      scripts[`harness:${name}`] = command;
-    }
-  }
-  pkg.scripts = scripts;
-  writeFileSync(packagePath, `${JSON.stringify(pkg, null, 2)}\n`);
-
-  // install harness + every package dir below root (root is skipped to avoid lifecycle recursion)
-  for (const directory of ["harness", ...discoverPackageDirectories(repo)]) {
+const installPackages = (repo: string): number => {
+  for (const directory of ["harness", "frontend"]) {
+    if (!fs.existsSync(path.join(repo, directory, "package.json"))) continue;
     const result = spawnSync("npm", ["install"], {
       cwd: path.join(repo, directory),
       stdio: "inherit",
@@ -371,91 +191,53 @@ function runSetup(args: string[]): number {
       return result.status ?? 1;
     }
   }
+  return 0;
+};
 
-  const harnessPackagePath = path.join(repo, "harness", "package.json");
-  const harnessPackage = JSON.parse(
-    readFileSync(harnessPackagePath, "utf8"),
-  ) as {
-    scripts?: Record<string, string>;
-  };
-  const harnessScripts = harnessPackage.scripts ?? {};
-  let configOverrides = 0;
-  for (const [check, candidates] of Object.entries(CONFIG_CANDIDATES)) {
-    const defaultConfig = DEFAULT_CONFIGS[check];
-    const userConfig = candidates.find((file) =>
-      existsSync(path.join(repo, file)),
+const runSetup = (cliArgs: string[]): number => {
+  if (cliArgs.length > 0 || process.env.RALPH_LOOP === "1") {
+    process.stderr.write(
+      cliArgs.length > 0 ? "usage: harness setup\n" : LOOP_SETUP_ERROR,
     );
-    if (defaultConfig === undefined || userConfig === undefined) {
-      continue;
-    }
-    for (const [script, command] of Object.entries(harnessScripts)) {
-      const next = command.replaceAll(defaultConfig, () => userConfig);
-      if (next !== command) {
-        harnessScripts[script] = next;
-        configOverrides += 1;
-      }
-    }
+    return 2;
   }
-  if (configOverrides > 0) {
-    harnessPackage.scripts = harnessScripts;
-    writeFileSync(
-      harnessPackagePath,
-      `${JSON.stringify(harnessPackage, null, 2)}\n`,
-    );
-  }
-
-  // point Git at the shipped hooks, unless the project already set its own hooksPath
-  const existing = runGit(repo, [
-    "config",
-    "--default",
-    "",
-    "--get",
-    "core.hooksPath",
-  ]).trim();
-  if (existing === "" || existing === ".githooks") {
-    runGit(repo, ["config", "core.hooksPath", ".githooks"]);
-  }
-  const hooksPath = runGit(repo, ["config", "core.hooksPath"]).trim();
+  const repo = repoRoot(process.cwd());
+  const scriptCode = addRootScripts(repo);
+  if (scriptCode !== 0) return scriptCode;
+  const installCode = installPackages(repo);
+  if (installCode !== 0) return installCode;
+  const existing = gate
+    .runGit(repo, ["config", "--default", "", "--get", "core.hooksPath"])
+    .trim();
+  if (existing === "" || existing === ".githooks")
+    gate.runGit(repo, ["config", "core.hooksPath", ".githooks"]);
+  const hooksPath = gate.runGit(repo, ["config", "core.hooksPath"]).trim();
   process.stderr.write(
-    `dependencies installed; config overrides: ${String(configOverrides)}; git hooks path: ${hooksPath}\n`,
+    `dependencies installed; git hooks path: ${hooksPath}\n`,
   );
   return 0;
-}
+};
 
-// Sequence one harnessed ralph loop; side effects are injected so the logic stays testable.
-/**
-
-* @param args
-* @param dependencies
-*/
-export async function runLoop(
-  args: string[],
+export const runLoop = async (
+  cliArgs: string[],
   dependencies: LoopDependencies,
-): Promise<CommandResult> {
-  const agent = (args[0] ?? "").toLowerCase();
+): Promise<{ code: number; lines: string[] }> => {
+  const agent = (cliArgs[0] ?? "").toLowerCase();
   const agentCommand = AGENTS[agent];
   if (agentCommand === undefined) {
+    const choices = Object.keys(AGENTS).join(", ");
     return {
       code: 2,
-      lines: [
-        `unknown agent '${agent}'; choose from ${Object.keys(AGENTS).join(", ")}`,
-      ],
+      lines: [`unknown agent '${agent}'; choose from ${choices}`],
     };
   }
-  const iterations = parseCount(args[1], 2);
-  const minutes = parseCount(args[2], 20);
-  if (iterations === undefined || minutes === undefined) {
+  const iterations = parseCount(cliArgs[1], 2);
+  const minutes = parseCount(cliArgs[2], 20);
+  if (iterations === undefined || minutes === undefined)
     return { code: 2, lines: ["num_iterations and max_minutes must be >= 1"] };
-  }
-  const isVerbose = args[3] !== "false";
   const cwd = dependencies.cwd();
-  const day = path.join(
-    cwd,
-    "scratchpad",
-    "runs",
-    agent,
-    formatDate(dependencies.now()),
-  );
+  const dayStamp = formatDate(dependencies.now());
+  const day = path.join(cwd, "scratchpad/runs", agent, dayStamp);
   dependencies.ensureDirectory(day);
   const sequence = nextSequence(dependencies.listSequences(day));
   const log = path.join(day, `${String(sequence).padStart(4, "0")}.jsonl`);
@@ -465,80 +247,53 @@ export async function runLoop(
     String(minutes),
     ...agentCommand,
   ];
+  const isVerbose = cliArgs[3] !== "false";
   const code = await dependencies.worker(command, cwd, log, isVerbose);
   return { code, lines: [`harness: ${command.join(" ")} -> ${log}`] };
-}
+};
 
-// Production dependencies for runLoop: real clock, cwd, filesystem, and worker.
-/**
+const loopDependencies = (): LoopDependencies => ({
+  now: () => Date.now(),
+  cwd: () => repoRoot(process.cwd()),
+  ralphPath: () => path.join(import.meta.dirname, "ralph.sh"),
+  listSequences: (directory) =>
+    (fs.existsSync(directory) ? fs.readdirSync(directory) : [])
+      .filter((name) => name.endsWith(".jsonl"))
+      .map((name) => Number(name.slice(0, name.indexOf(".jsonl"))))
+      .filter((value) => Number.isSafeInteger(value)),
+  ensureDirectory: (directory) => fs.mkdirSync(directory, { recursive: true }),
+  worker: runWorker,
+});
 
-*/
-function loopDependencies(): LoopDependencies {
-  return {
-    now: () => Date.now(),
-    cwd: () => repoRoot(process.cwd()),
-    ralphPath: () => path.join(import.meta.dirname, "ralph.sh"),
-    listSequences: (directory) =>
-      (existsSync(directory) ? readdirSync(directory) : [])
-        .filter((name) => name.endsWith(".jsonl"))
-        .map((name) => Number(name.slice(0, name.indexOf(".jsonl"))))
-        .filter((value) => Number.isSafeInteger(value)),
-    ensureDirectory: (directory): void => {
-      mkdirSync(directory, { recursive: true });
-    },
-    worker: runWorker,
-  };
-}
-
-// Dispatch argv to a command and set the process exit code.
-/**
-
-* @param argv
-*/
-export async function main(argv: string[]): Promise<void> {
-  const [rawCommand, ...rest] = argv;
-  const command = rawCommand ?? "";
-  let code: number;
-  switch (command) {
-    case "preflight":
-    case "gate": {
-      const result = run(command, {
-        preflight: runPreflight,
-        gate: runGate,
-        repoRoot,
-      });
-      for (const line of result.lines) {
-        process.stderr.write(`${line}\n`);
-      }
-      ({ code } = result);
-      break;
-    }
-    case "status": {
-      code = runStatus();
-      break;
-    }
-    case "setup": {
-      code = runSetup(rest);
-      break;
-    }
-    case "loop": {
-      const result = await runLoop(rest, loopDependencies());
-      for (const line of result.lines) {
-        process.stderr.write(`${line}\n`);
-      }
-      ({ code } = result);
-      break;
-    }
-    default: {
-      process.stderr.write(`${USAGE}\n`);
-      code = 2;
-    }
+export const main = async (argv: string[]): Promise<void> => {
+  const command = argv[0] ?? "";
+  if (command === "preflight" || command === "gate") {
+    const result = run(command, {
+      preflight: gate.runPreflight,
+      gate: gate.runGate,
+      repoRoot,
+    });
+    process.stderr.write(`${result.lines.join("\n")}\n`);
+    process.exitCode = result.code;
+    return;
   }
-  process.exitCode = code;
-}
+  const rest = argv.slice(1);
+  if (command === "loop") {
+    const result = await runLoop(rest, loopDependencies());
+    process.stderr.write(`${result.lines.join("\n")}\n`);
+    process.exitCode = result.code;
+    return;
+  }
+  if (command === "status") {
+    process.exitCode = runStatus();
+    return;
+  }
+  if (command === "setup") {
+    process.exitCode = runSetup(rest);
+    return;
+  }
+  process.stderr.write(`${USAGE}\n`);
+  process.exitCode = 2;
+};
 
-if (process.argv[1] === import.meta.filename) {
-  await main(process.argv.slice(2));
-}
-
-export { CONFIG_CANDIDATES } from "./gate.js";
+if (process.argv[1] === import.meta.filename) await main(process.argv.slice(2));

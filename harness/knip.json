@@ -2,13 +2,7 @@
   "$schema": "https://unpkg.com/knip@5/schema.json",
   "ignoreDependencies": ["@secretlint/secretlint-rule-preset-recommend"],
   "ignoreBinaries": ["semgrep"],
-  "include": [
-    "files",
-    "exports",
-    "nsExports",
-    "types",
-    "nsTypes"
-  ],
+  "include": ["files", "exports", "nsExports", "types", "nsTypes"],
   "entry": [
     "**/main.ts",
     "**/index.ts",

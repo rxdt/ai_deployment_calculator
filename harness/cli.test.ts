@@ -29,16 +29,71 @@ import {
 } from "./cli.js";
 import { gitSafeEnvironment } from "./gate.js";
 
+const isPlainObject = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
 const FIXED_NOW = 1_782_475_200_000;
-const ANSI_PATTERN =
-  /\u{1B}\[[\u{30}-\u{3F}]*[\u{20}-\u{2F}]*[\u{40}-\u{7E}]/gu;
+// ANSI stripping is done by scanning (see withoutAnsi below) rather than a
+// regex, to avoid a control-character regex literal in source.
+const ESCAPE = 27;
+const CSI_INTRODUCER = 0x5b;
+const csiRuns: readonly [number, number][] = [
+  [0x30, 0x3f],
+  [0x20, 0x2f],
+];
+const CSI_FINAL: readonly [number, number] = [0x40, 0x7e];
+
+const isWithin = (
+  code: number,
+  [min, max]: readonly [number, number],
+): boolean => code >= min && code <= max;
+
+// Return the index just past a CSI escape sequence starting at `start`, or the
+// same `start` if the bytes there are not a complete "ESC [ ... final" sequence.
+const csiSequenceEnd = (value: string, start: number): number => {
+  if (
+    value.codePointAt(start) !== ESCAPE ||
+    value.codePointAt(start + 1) !== CSI_INTRODUCER
+  ) {
+    return start;
+  }
+  let cursor = start + 2;
+  for (const range of csiRuns) {
+    while (
+      cursor < value.length &&
+      isWithin(value.codePointAt(cursor) ?? -1, range)
+    ) {
+      cursor += 1;
+    }
+  }
+  if (
+    cursor < value.length &&
+    isWithin(value.codePointAt(cursor) ?? -1, CSI_FINAL)
+  ) {
+    return cursor + 1;
+  }
+  return start;
+};
 
 /**
 
+* Strip ANSI CSI escape sequences without a control-character regex literal;
+* plain text passes through unchanged.
 * @param value
 */
 function withoutAnsi(value: string): string {
-  return value.replaceAll(ANSI_PATTERN, "");
+  let result = "";
+  let index = 0;
+  while (index < value.length) {
+    const end = csiSequenceEnd(value, index);
+    if (end > index) {
+      index = end;
+    } else {
+      result += value.charAt(index);
+      index += 1;
+    }
+  }
+  return result;
 }
 
 /**
@@ -150,7 +205,7 @@ describe("run", () => {
 
 describe("run helpers", () => {
   test("pins agent presets", () => {
-    expect(AGENTS["claude"]).toEqual([
+    expect(AGENTS.claude).toEqual([
       "claude",
       "-p",
       "--permission-mode",
@@ -161,7 +216,7 @@ describe("run helpers", () => {
       "stream-json",
       "--verbose",
     ]);
-    expect(AGENTS["codex"]).toEqual([
+    expect(AGENTS.codex).toEqual([
       "env",
       "-u",
       "CODEX_THREAD_ID",
@@ -217,27 +272,41 @@ describe("run helpers", () => {
   test("the harness package exposes a harness executable", () => {
     const packagePath = path.join(import.meta.dirname, "package.json");
     const packageRoot = path.dirname(packagePath);
-    const packageJson = JSON.parse(readFileSync(packagePath, "utf8")) as {
-      bin?: Record<string, string>;
-      devDependencies?: Record<string, string>;
-    };
-    const binPath = packageJson.bin?.["harness"];
+    const packageJson: unknown = JSON.parse(readFileSync(packagePath, "utf8"));
+    if (!isPlainObject(packageJson)) {
+      throw new Error("expected package.json to be an object");
+    }
+    const bin = isPlainObject(packageJson.bin) ? packageJson.bin : {};
+    const devDependencies = isPlainObject(packageJson.devDependencies)
+      ? packageJson.devDependencies
+      : {};
+    const binPath = bin.harness;
 
     expect(binPath).toBe("./harness.mjs");
-    expect(packageJson.devDependencies?.["tsx"]).toBe("latest");
-    expect(existsSync(path.join(packageRoot, binPath ?? ""))).toBe(true);
+    expect(devDependencies.tsx).toBe("latest");
+    expect(
+      existsSync(
+        path.join(packageRoot, typeof binPath === "string" ? binPath : ""),
+      ),
+    ).toBe(true);
   });
 
   test("the root workspace exposes the harness executable", () => {
     const packagePath = path.join(import.meta.dirname, "..", "package.json");
     const packageRoot = path.dirname(packagePath);
-    const packageJson = JSON.parse(readFileSync(packagePath, "utf8")) as {
-      bin?: Record<string, string>;
-    };
-    const binPath = packageJson.bin?.["harness"];
+    const packageJson: unknown = JSON.parse(readFileSync(packagePath, "utf8"));
+    if (!isPlainObject(packageJson)) {
+      throw new Error("expected package.json to be an object");
+    }
+    const bin = isPlainObject(packageJson.bin) ? packageJson.bin : {};
+    const binPath = bin.harness;
 
     expect(binPath).toBe("./harness/harness.mjs");
-    expect(existsSync(path.join(packageRoot, binPath ?? ""))).toBe(true);
+    expect(
+      existsSync(
+        path.join(packageRoot, typeof binPath === "string" ? binPath : ""),
+      ),
+    ).toBe(true);
   });
 });
 
@@ -306,7 +375,7 @@ describe("runLoop", () => {
 
     const day = "/repo/scratchpad/runs/codex/2026-06-26";
     const log = `${day}/0003.jsonl`;
-    const codexAgent = AGENTS["codex"];
+    const codexAgent = AGENTS.codex;
     if (codexAgent === undefined) {
       throw new Error("codex agent preset missing");
     }
@@ -334,11 +403,14 @@ describe("harness command", () => {
     expect(result.status).toBe(0);
   });
 
+  // Spawns a real agent subprocess; the default 5s timeout is too tight under the coverage run.
   test("loop", () => {
-    const result = harnessCli(["loop", "agy", "1", "1"], { cwd: makeRepo() });
+    const result = harnessCli(["loop", "agy", "1", "1"], {
+      cwd: makeRepo(),
+    });
 
     expect(result.status).toBe(0);
-  });
+  }, 60_000);
 
   test("loop streams and logs agent JSON from stdout and stderr", () => {
     const repo = makeRepo();
@@ -359,7 +431,7 @@ describe("harness command", () => {
       cwd: repo,
       env: {
         ...process.env,
-        PATH: `${bin}${path.delimiter}${process.env["PATH"] ?? ""}`,
+        PATH: `${bin}${path.delimiter}${process.env.PATH ?? ""}`,
       },
     });
     const runRoot = path.join(repo, "scratchpad", "runs", "claude");
@@ -384,12 +456,12 @@ describe("harness command", () => {
     expect(result.status).toBe(0);
   });
 
+  // Runs the real setup (reaches `npm install`); default 5s is too tight under coverage.
   test("setup", () => {
-    // Run the real setup so it reaches `npm install` in the actual harness package.
     const result = harnessCli(["setup"], { cwd: repoRoot(process.cwd()) });
 
     expect(result.status).toBe(0);
-  });
+  }, 60_000);
 
   test("setup rejects project name arguments", () => {
     const repo = makeRepo();
@@ -406,22 +478,27 @@ describe("harness command", () => {
       ],
       { cwd: repo, encoding: "utf8" },
     );
-    const packageJson = JSON.parse(
+    const packageJson: unknown = JSON.parse(
       readFileSync(path.join(repo, "package.json"), "utf8"),
-    ) as { name?: string };
+    );
+    if (!isPlainObject(packageJson)) {
+      throw new Error("expected package.json to be an object");
+    }
+    const { name } = packageJson;
 
     expect(result.status).toBe(2);
     expect(result.stderr).toBe("usage: harness setup\n");
-    expect(packageJson.name).toBe("old-project");
+    expect(name).toBe("old-project");
   });
 
+  // Runs `npm install` twice via real subprocesses; the default 5s timeout is too tight under coverage.
   test("setup twice does not error on the second run", () => {
     const repo = repoRoot(process.cwd());
     harnessCli(["setup"], { cwd: repo });
     const result = harnessCli(["setup"], { cwd: repo });
 
     expect(result.status).toBe(0);
-  });
+  }, 60_000);
 
   test("main writes status lines to stderr and sets the exit code", async () => {
     const chunks: string[] = [];

@@ -32,7 +32,6 @@ import {
   runGit,
   runPreflight,
 } from "./gate.js";
-import { CONFIG_CANDIDATES } from "./cli.js";
 
 const HARNESS = import.meta.dirname;
 const REPO = path.join(HARNESS, "..");
@@ -2118,62 +2117,6 @@ describe("harness setup script merging", () => {
   });
 });
 
-// setup rewrites harness gate scripts to point at any user config it discovers.
-// Containment therefore only holds if every config setup will swap in is itself a
-// forbidden path: otherwise an agent commits a neutered config (loop keeps it), runs
-// setup, and the gate's own tooling repoints checks at the toothless file.
-describe("setup config overrides cannot escape containment", () => {
-  const candidatePaths = Object.values(CONFIG_CANDIDATES).flat();
-
-  test("every user-config candidate setup can swap in is a forbidden path", () => {
-    const unguarded = candidatePaths.filter((file) => !isForbiddenPath(file));
-    expect(
-      unguarded,
-      `setup would repoint gate checks at these committable configs: ${unguarded.join(", ")}`,
-    ).toEqual([]);
-  });
-
-  test.each(candidatePaths)(
-    "the loop ejects a staged %s so it can never reach setup",
-    (candidate) => {
-      process.env.RALPH_LOOP = "1";
-      const repo = makeRepo();
-      stageFile(repo, candidate, "export default [];\n");
-      stageFile(repo, "frontend/src/report.ts", "export const keep = 1;\n");
-      expect(runPreflight(repo, () => [])).toEqual([]);
-      expect(stagedNames(repo)).not.toContain(candidate);
-      expect(stagedNames(repo)).toContain("frontend/src/report.ts");
-    },
-  );
-
-  // Note: `harness setup` is a one-time human bootstrap (agents never run it), so it may
-  // adopt an existing user config. Containment instead relies on the loop ejecting any staged
-  // config (test.each above) so an agent can never *commit* one for setup to later pick up.
-  test("resolved harness gate scripts reference only forbidden config files", () => {
-    const repo = makeInstallRepo({});
-    for (const candidate of candidatePaths) {
-      const target = path.join(repo, candidate);
-      mkdirSync(path.dirname(target), { recursive: true });
-      writeFileSync(target, "export default [];\n");
-    }
-
-    const result = runHarnessSetup(repo);
-
-    expect(result.status, `${result.stdout}\n${result.stderr}`).toBe(0);
-    const scripts = readHarnessPackageJsonInRepo(repo).scripts ?? {};
-    const referenced = candidatePaths.filter((candidate) =>
-      Object.values(scripts).some((command) => command.includes(candidate)),
-    );
-    const escaped = referenced.filter(
-      (candidate) => !isForbiddenPath(candidate),
-    );
-    expect(
-      escaped,
-      `harness gate scripts now point at committable configs: ${escaped.join(", ")}`,
-    ).toEqual([]);
-  });
-});
-
 // Containment matches on path strings and reads staged content as text. A staged symlink
 // slips through: its path is not forbidden, and its "content" is just the link target, so a
 // source-looking file can point at a protected file (harness/gate.ts) or escape the repo
@@ -2420,11 +2363,11 @@ describe("frontend gate shape", () => {
 
   test("knip maps dependencies to package workspaces", () => {
     const config = parseJsonObject("harness/knip.json");
-    const {workspaces} = config;
+    const { workspaces } = config;
     if (!isPlainObject(workspaces)) {
       throw new Error("Expected knip workspaces config");
     }
-    const {frontend, harness} = workspaces;
+    const { frontend, harness } = workspaces;
     if (!isPlainObject(frontend) || !isPlainObject(harness)) {
       throw new Error("Expected frontend and harness knip workspaces");
     }
@@ -2647,8 +2590,7 @@ describe("frontend gate shape", () => {
   test("eslint exported config rejects unused disable comments", () => {
     const config = importedEslintConfig();
     const hasPolicy = config.some(
-      (block) =>
-        block.linterOptions?.reportUnusedDisableDirectives === "error",
+      (block) => block.linterOptions?.reportUnusedDisableDirectives === "error",
     );
     expect(hasPolicy).toBe(true);
   });

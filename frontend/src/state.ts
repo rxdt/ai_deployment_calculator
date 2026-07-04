@@ -69,6 +69,55 @@ const DEFAULT_STATE: FormState = {
 const CHECKED_VALUES = new Set(["1", "true", "on", "yes"]);
 const MAX_NUMERIC_VALUE = 999_999;
 
+const NUMERIC_KEYS = [
+  "totalParams",
+  "workloadSize",
+  "contextTokens",
+  "sequenceTokens",
+  "inputTokens",
+  "outputTokens",
+  "imageWidth",
+  "imageHeight",
+  "textContextTokens",
+  "imageCount",
+  "videoFrames",
+  "audioSeconds",
+  "rowsPerBatch",
+  "features",
+  "inputSizeMultiplier",
+  "activeParams",
+  "knownModelFileSizeGb",
+  "gpuResidentFraction",
+  "loraTrainablePercent",
+] as const satisfies readonly (keyof FormState)[];
+
+type ChoiceState = Pick<
+  FormState,
+  | "workloadFamily"
+  | "parameterUnit"
+  | "precision"
+  | "executionMode"
+  | "runtimeProfile"
+  | "videoResolution"
+  | "kvCachePrecision"
+  | "optimizer"
+>;
+
+type NumericKey = (typeof NUMERIC_KEYS)[number];
+type NumericState = Pick<FormState, NumericKey>;
+
+type BooleanState = Pick<
+  FormState,
+  "moeEnabled" | "gradientCheckpointing" | "memoryShardingEnabled"
+>;
+
+/**
+@returns numeric zero overrides for the reset action
+*/
+function zeroNumericState(): Partial<NumericState> {
+  return Object.fromEntries(NUMERIC_KEYS.map((key) => [key, "0"]));
+}
+
 /**
  Convert a camelCase state key to the kebab-case name used on the wire
  (HTML `name` attributes and URL query parameters).
@@ -109,13 +158,17 @@ function isChecked(
  
 @param value
 */
-function isDigits(value: string): boolean {
-  if (value.length === 0) {
+function isPlainDecimal(value: string): boolean {
+  const parts = value.split(".");
+  if (parts.length > 2) {
     return false;
   }
-  for (let index = 0; index < value.length; index += 1) {
-    const code = Number(value.codePointAt(index));
-    if (code < 48 || code > 57) {
+  const digits = parts.join("");
+  if (digits.length === 0) {
+    return false;
+  }
+  for (const char of digits) {
+    if (char < "0" || char > "9") {
       return false;
     }
   }
@@ -125,41 +178,13 @@ function isDigits(value: string): boolean {
 /**
  
 @param value
-*/
-function isPlainDecimal(value: string): boolean {
-  const parts = value.split(".");
-  if (parts.length > 2) {
-    return false;
-  }
-  const [integer = "", fraction = ""] = parts;
-  if (parts.length === 1) {
-    return isDigits(integer);
-  }
-  return isDigits(`${integer}${fraction}`);
-}
-
-/**
- 
-@param value
 @param fallback
 */
 function decimal(value: string | null, fallback: string): string {
-  if (value === null || value.trim() === "") {
-    return fallback;
-  }
-  if (!isPlainDecimal(value)) {
+  if (value === null || value.trim() === "" || !isPlainDecimal(value)) {
     return fallback;
   }
   return Number(value) <= MAX_NUMERIC_VALUE ? value : String(MAX_NUMERIC_VALUE);
-}
-
-/**
- 
-@param value
-@param fallback
-*/
-function nonNegative(value: string | null, fallback: string): string {
-  return decimal(value, fallback);
 }
 
 /**
@@ -191,55 +216,27 @@ export function defaultState(): FormState {
 */
 export function zeroState(): FormState {
   return {
-    workloadFamily: "text_generation",
-    totalParams: "0",
-    parameterUnit: "B",
-    precision: "16-bit",
-    executionMode: "Inference",
-    runtimeProfile: "Server / Cloud",
-    workloadSize: "0",
-    contextTokens: "0",
-    sequenceTokens: "0",
-    inputTokens: "0",
-    outputTokens: "0",
-    imageWidth: "0",
-    imageHeight: "0",
-    textContextTokens: "0",
-    imageCount: "0",
-    videoResolution: "720p",
-    videoFrames: "0",
-    audioSeconds: "0",
-    rowsPerBatch: "0",
-    features: "0",
-    inputSizeMultiplier: "0",
-    moeEnabled: false,
-    activeParams: "0",
-    knownModelFileSizeGb: "0",
-    gpuResidentFraction: "0",
-    kvCachePrecision: "16-bit",
-    loraTrainablePercent: "0",
-    optimizer: "AdamW",
+    ...DEFAULT_STATE,
+    ...zeroNumericState(),
     gradientCheckpointing: false,
-    memoryShardingEnabled: false,
   };
 }
 
 /**
  
 @param search
+@param defaults
 */
-export function normalizedState(search: URLSearchParams): FormState {
-  const defaults = defaultState();
-  if (search.size === 0) {
-    return defaults;
-  }
-  const normalized: FormState = {
+function normalizedChoiceState(
+  search: URLSearchParams,
+  defaults: FormState,
+): ChoiceState {
+  return {
     workloadFamily: schemaValue(
       workloadSchema,
       last(search, "workloadFamily"),
       defaults.workloadFamily,
     ),
-    totalParams: nonNegative(last(search, "totalParams"), defaults.totalParams),
     parameterUnit: schemaValue(
       unitSchema,
       last(search, "parameterUnit"),
@@ -260,76 +257,35 @@ export function normalizedState(search: URLSearchParams): FormState {
       last(search, "runtimeProfile"),
       defaults.runtimeProfile,
     ),
-    workloadSize: nonNegative(
-      last(search, "workloadSize"),
-      defaults.workloadSize,
-    ),
-    contextTokens: nonNegative(
-      last(search, "contextTokens"),
-      defaults.contextTokens,
-    ),
-    sequenceTokens: nonNegative(
-      last(search, "sequenceTokens"),
-      defaults.sequenceTokens,
-    ),
-    inputTokens: nonNegative(last(search, "inputTokens"), defaults.inputTokens),
-    outputTokens: nonNegative(
-      last(search, "outputTokens"),
-      defaults.outputTokens,
-    ),
-    imageWidth: nonNegative(last(search, "imageWidth"), defaults.imageWidth),
-    imageHeight: nonNegative(last(search, "imageHeight"), defaults.imageHeight),
-    textContextTokens: nonNegative(
-      last(search, "textContextTokens"),
-      defaults.textContextTokens,
-    ),
-    imageCount: nonNegative(last(search, "imageCount"), defaults.imageCount),
     videoResolution: schemaValue(
       resolutionSchema,
       last(search, "videoResolution"),
       defaults.videoResolution,
-    ),
-    videoFrames: nonNegative(last(search, "videoFrames"), defaults.videoFrames),
-    audioSeconds: nonNegative(
-      last(search, "audioSeconds"),
-      defaults.audioSeconds,
-    ),
-    rowsPerBatch: nonNegative(
-      last(search, "rowsPerBatch"),
-      defaults.rowsPerBatch,
-    ),
-    features: nonNegative(last(search, "features"), defaults.features),
-    inputSizeMultiplier: nonNegative(
-      last(search, "inputSizeMultiplier"),
-      defaults.inputSizeMultiplier,
-    ),
-    moeEnabled: isChecked(search, "moeEnabled", defaults.moeEnabled),
-    activeParams: nonNegative(
-      last(search, "activeParams"),
-      defaults.activeParams,
-    ),
-    knownModelFileSizeGb: decimal(
-      last(search, "knownModelFileSizeGb"),
-      defaults.knownModelFileSizeGb,
-    ),
-    gpuResidentFraction: nonNegative(
-      last(search, "gpuResidentFraction"),
-      defaults.gpuResidentFraction,
     ),
     kvCachePrecision: schemaValue(
       kvPrecisionSchema,
       last(search, "kvCachePrecision"),
       defaults.kvCachePrecision,
     ),
-    loraTrainablePercent: nonNegative(
-      last(search, "loraTrainablePercent"),
-      defaults.loraTrainablePercent,
-    ),
     optimizer: schemaValue(
       optimizerSchema,
       last(search, "optimizer"),
       defaults.optimizer,
     ),
+  };
+}
+
+/**
+ 
+@param search
+@param defaults
+*/
+function normalizedAdvancedState(
+  search: URLSearchParams,
+  defaults: FormState,
+): BooleanState {
+  return {
+    moeEnabled: isChecked(search, "moeEnabled", defaults.moeEnabled),
     gradientCheckpointing: isChecked(
       search,
       "gradientCheckpointing",
@@ -341,14 +297,77 @@ export function normalizedState(search: URLSearchParams): FormState {
       defaults.memoryShardingEnabled,
     ),
   };
-  if (normalized.executionMode === "QLoRA fine-tuning") {
-    return {
-      ...normalized,
-      precision: "4-bit",
-      runtimeProfile: "Local / Edge",
-    };
+}
+
+/**
+ 
+@param search
+@param defaults
+*/
+function normalizedNumericState(
+  search: URLSearchParams,
+  defaults: FormState,
+): NumericState {
+  const normalized: Record<NumericKey, string> = {
+    totalParams: defaults.totalParams,
+    workloadSize: defaults.workloadSize,
+    contextTokens: defaults.contextTokens,
+    sequenceTokens: defaults.sequenceTokens,
+    inputTokens: defaults.inputTokens,
+    outputTokens: defaults.outputTokens,
+    imageWidth: defaults.imageWidth,
+    imageHeight: defaults.imageHeight,
+    textContextTokens: defaults.textContextTokens,
+    imageCount: defaults.imageCount,
+    videoFrames: defaults.videoFrames,
+    audioSeconds: defaults.audioSeconds,
+    rowsPerBatch: defaults.rowsPerBatch,
+    features: defaults.features,
+    inputSizeMultiplier: defaults.inputSizeMultiplier,
+    activeParams: defaults.activeParams,
+    knownModelFileSizeGb: defaults.knownModelFileSizeGb,
+    gpuResidentFraction: defaults.gpuResidentFraction,
+    loraTrainablePercent: defaults.loraTrainablePercent,
+  };
+  for (const key of NUMERIC_KEYS) {
+    normalized[key] = decimal(last(search, key), defaults[key]);
   }
+  normalized.knownModelFileSizeGb = decimal(
+    last(search, "knownModelFileSizeGb"),
+    defaults.knownModelFileSizeGb,
+  );
   return normalized;
+}
+
+/**
+ 
+@param state
+*/
+function withModeConstraints(state: FormState): FormState {
+  if (state.executionMode !== "QLoRA fine-tuning") {
+    return state;
+  }
+  return {
+    ...state,
+    precision: "4-bit",
+    runtimeProfile: "Local / Edge",
+  };
+}
+
+/**
+ 
+@param search
+*/
+export function normalizedState(search: URLSearchParams): FormState {
+  const defaults = defaultState();
+  if (search.size === 0) {
+    return defaults;
+  }
+  return withModeConstraints({
+    ...normalizedChoiceState(search, defaults),
+    ...normalizedNumericState(search, defaults),
+    ...normalizedAdvancedState(search, defaults),
+  });
 }
 
 /**

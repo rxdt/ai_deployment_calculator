@@ -1,12 +1,13 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
-    <meta charset="UTF-8">
+    <meta charset="UTF-8" />
     <meta
       name="description"
-      content="Estimate VRAM requirements and hardware fit for AI workloads.">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+      content="Estimate VRAM requirements and hardware fit for AI workloads."
+    />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <title>VRAM Deployment Calculator</title>
   </head>
   <body>
@@ -60,7 +61,8 @@
                 name="total-params"
                 type="text"
                 inputmode="numeric"
-                value="7">
+                value="7"
+              />
             </p>
 
             <p class="field">
@@ -113,7 +115,8 @@
                 name="context-tokens"
                 type="text"
                 inputmode="numeric"
-                value="8000">
+                value="8000"
+              />
             </p>
             <p class="field" data-families="text_encoder">
               <label for="sequence-tokens">Sequence Length</label>
@@ -122,7 +125,8 @@
                 name="sequence-tokens"
                 type="text"
                 inputmode="numeric"
-                value="512">
+                value="512"
+              />
             </p>
             <p class="field" data-families="encoder_decoder">
               <label for="input-tokens">Input Tokens</label>
@@ -131,7 +135,8 @@
                 name="input-tokens"
                 type="text"
                 inputmode="numeric"
-                value="1024">
+                value="1024"
+              />
             </p>
             <p class="field" data-families="encoder_decoder">
               <label for="output-tokens">Output Tokens</label>
@@ -140,7 +145,8 @@
                 name="output-tokens"
                 type="text"
                 inputmode="numeric"
-                value="256">
+                value="256"
+              />
             </p>
             <p class="field" data-families="vision_language">
               <label for="text-context-tokens">Text Context Tokens</label>
@@ -149,7 +155,8 @@
                 name="text-context-tokens"
                 type="text"
                 inputmode="numeric"
-                value="4000">
+                value="4000"
+              />
             </p>
             <p
               class="field"
@@ -161,7 +168,8 @@
                 name="image-width"
                 type="text"
                 inputmode="numeric"
-                value="1024">
+                value="1024"
+              />
             </p>
             <p
               class="field"
@@ -173,7 +181,8 @@
                 name="image-height"
                 type="text"
                 inputmode="numeric"
-                value="1024">
+                value="1024"
+              />
             </p>
             <p class="field" data-families="vision_language">
               <label for="image-count">Image Count</label>
@@ -182,7 +191,8 @@
                 name="image-count"
                 type="text"
                 inputmode="numeric"
-                value="1">
+                value="1"
+              />
             </p>
             <p class="field" data-families="video_generation">
               <label for="video-resolution">Output Resolution</label>
@@ -198,7 +208,8 @@
                 name="video-frames"
                 type="text"
                 inputmode="numeric"
-                value="81">
+                value="81"
+              />
             </p>
             <p class="field" data-families="audio">
               <label for="audio-seconds">Audio Length</label>
@@ -207,7 +218,8 @@
                 name="audio-seconds"
                 type="text"
                 inputmode="numeric"
-                value="30">
+                value="30"
+              />
             </p>
             <p class="field" data-families="tabular">
               <label for="rows-per-batch">Rows per Batch</label>
@@ -216,7 +228,8 @@
                 name="rows-per-batch"
                 type="text"
                 inputmode="numeric"
-                value="10000">
+                value="10000"
+              />
             </p>
             <p class="field" data-families="tabular">
               <label for="features">Features</label>
@@ -225,7 +238,8 @@
                 name="features"
                 type="text"
                 inputmode="numeric"
-                value="100">
+                value="100"
+              />
             </p>
             <p class="field" data-families="custom">
               <label for="input-size-multiplier">Input Size Preset</label>
@@ -234,7 +248,8 @@
                 name="input-size-multiplier"
                 type="text"
                 inputmode="decimal"
-                value="1">
+                value="1"
+              />
             </p>
 
             <p class="field">
@@ -246,7 +261,8 @@
                 name="workload-size"
                 type="text"
                 inputmode="numeric"
-                value="1">
+                value="1"
+              />
             </p>
 
             <p
@@ -254,7 +270,7 @@
               data-moe-families="text_generation text_encoder encoder_decoder vision_language custom"
             >
               <label>
-                <input id="moe-enabled" name="moe-enabled" type="checkbox">
+                <input id="moe-enabled" name="moe-enabled" type="checkbox" />
                 MoE Model
               </label>
             </p>
@@ -265,7 +281,8 @@
                 name="active-params"
                 type="text"
                 inputmode="decimal"
-                value="1.3">
+                value="1.3"
+              />
             </p>
           </fieldset>
 
@@ -288,7 +305,8 @@
                   id="known-model-file-size-gb"
                   name="known-model-file-size-gb"
                   type="text"
-                  inputmode="decimal">
+                  inputmode="decimal"
+                />
               </p>
               <p class="field">
                 <label for="gpu-resident-fraction">GPU Resident Fraction</label>
@@ -297,7 +315,8 @@
                   name="gpu-resident-fraction"
                   type="text"
                   inputmode="decimal"
-                  value="1">
+                  value="1"
+                />
               </p>
               <p class="field">
                 <label for="lora-trainable-percent">LoRA Trainable %</label>
@@ -306,7 +325,8 @@
                   name="lora-trainable-percent"
                   type="text"
                   inputmode="decimal"
-                  value="0.5">
+                  value="0.5"
+                />
               </p>
               <p class="field">
                 <label for="optimizer">Optimizer</label>
@@ -322,7 +342,8 @@
                     id="gradient-checkpointing"
                     name="gradient-checkpointing"
                     type="checkbox"
-                    checked>
+                    checked
+                  />
                   Gradient Checkpointing
                 </label>
               </p>
@@ -331,7 +352,8 @@
                   <input
                     id="memory-sharding-enabled"
                     name="memory-sharding-enabled"
-                    type="checkbox">
+                    type="checkbox"
+                  />
                   Memory Sharding
                 </label>
               </p>

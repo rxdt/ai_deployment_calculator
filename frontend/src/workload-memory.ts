@@ -18,10 +18,33 @@ const DEFAULT_TEMPORAL_DOWNSAMPLE = 4;
 const DEFAULT_AUDIO_TOKENS_PER_SECOND = 50;
 const DEFAULT_FEATURE_BYTES = 4;
 const DEFAULT_ACTIVATION_BYTES = 2;
+const ZERO_SPEED_ESTIMATES: ReadonlyMap<WorkloadFamily, string> = new Map([
+  ["audio", "0.0 audio tokens/second"],
+  ["image_diffusion", "0.0 images/minute"],
+  ["tabular", "0 rows/second"],
+  ["video_generation", "0.0 clips/minute"],
+]);
+const TOKEN_SPEED_STYLE: SpeedStyle = {
+  decimals: 1,
+  scale: 1,
+  unit: "tokens/second",
+};
+const SPEED_STYLES: ReadonlyMap<WorkloadFamily, SpeedStyle> = new Map([
+  ["audio", { decimals: 1, scale: 1, unit: "audio tokens/second" }],
+  ["image_diffusion", { decimals: 1, scale: 1 / 20, unit: "images/minute" }],
+  ["tabular", { decimals: 0, scale: 1000, unit: "rows/second" }],
+  ["video_generation", { decimals: 1, scale: 1 / 80, unit: "clips/minute" }],
+]);
 
 interface WorkingMemory {
   readonly kvCacheGb: number;
   readonly inputActivationGb: number;
+}
+
+interface SpeedStyle {
+  readonly decimals: number;
+  readonly scale: number;
+  readonly unit: string;
 }
 
 type WorkingMemoryBuilder = (
@@ -29,84 +52,53 @@ type WorkingMemoryBuilder = (
   weights: number,
 ) => WorkingMemory;
 
-/**
- 
-@param value
-@param fallback
-*/
-function nonNegative(value: string, fallback: number): number {
+const nonNegative = (value: string, fallback: number): number => {
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
-}
+};
 
-/**
- 
-@param spec
-@param tokens
-*/
-function decoderKvGb(spec: Readonly<CalculationSpec>, tokens: number): number {
+const decoderKvGb = (
+  spec: Readonly<CalculationSpec>,
+  tokens: number,
+): number => {
   const arch = spec.architecture;
   const elements =
     spec.workloadSize * tokens * 2 * arch.layers * arch.kvHeads * arch.headDim;
   return (elements * spec.kvBytes) / BYTES_PER_GB;
-}
+};
 
-/**
- 
-@param spec
-@param tokens
-@param layers
-@param hidden
-*/
-function activationGb(
+const activationGb = (
   spec: Readonly<CalculationSpec>,
   tokens: number,
   layers: number,
   hidden: number,
-): number {
+): number => {
   const elements = 2 * spec.workloadSize * tokens * layers * hidden;
   return (elements * DEFAULT_ACTIVATION_BYTES) / BYTES_PER_GB;
-}
+};
 
-/**
- 
-@param spec
-@param tokens
-*/
-function encoderActivationGb(
+const encoderActivationGb = (
   spec: Readonly<CalculationSpec>,
   tokens: number,
-): number {
+): number => {
   const arch = spec.architecture;
   return activationGb(spec, tokens, arch.layers, arch.hidden);
-}
+};
 
-/**
- 
-@param spec
-@param width
-@param height
-@param imageCount
-*/
-function pixelProxyGb(
+const pixelProxyGb = (
   spec: Readonly<CalculationSpec>,
   width: number,
   height: number,
   imageCount: number,
-): number {
+): number => {
   const elements = spec.workloadSize * imageCount * width * height * 4 * 8;
   return (elements * DEFAULT_ACTIVATION_BYTES) / BYTES_PER_GB;
-}
+};
 
-/**
- 
-@param spec
-@param tokens
-*/
-function visionActivationGb(
+const visionActivationGb = (
   spec: Readonly<CalculationSpec>,
   tokens: number,
-): number {
+): number => {
   const arch = spec.visionArchitecture;
   if (arch !== null) {
     return activationGb(spec, tokens, arch.layers, arch.hidden);
@@ -117,54 +109,35 @@ function visionActivationGb(
     nonNegative(spec.state.imageHeight, 1024),
     nonNegative(spec.state.imageCount, 1),
   );
-}
+};
 
-/**
- 
-@param width
-@param height
-*/
-function imageTokens(width: number, height: number): number {
+const imageTokens = (width: number, height: number): number => {
   const patches =
     Math.ceil(width / DEFAULT_PATCH_SIZE) *
     Math.ceil(height / DEFAULT_PATCH_SIZE);
   return patches + 1;
-}
+};
 
-/**
- 
-@param resolution
-*/
-function videoSize(resolution: "720p" | "1080p"): {
+const videoSize = (
+  resolution: "720p" | "1080p",
+): {
   width: number;
   height: number;
-} {
+} => {
   return resolution === "1080p"
     ? { width: 1920, height: 1080 }
     : { width: 1280, height: 720 };
-}
+};
 
-/**
- 
-@param spec
-@param currentWeightsGb
-*/
-function textGenerationMemory(
-  spec: Readonly<CalculationSpec>,
-  currentWeightsGb: number,
-): WorkingMemory {
+const textGenerationMemory: WorkingMemoryBuilder = (spec, currentWeightsGb) => {
   const scratchRatio = spec.runtimeProfile === "Local / Edge" ? 0.03 : 0.05;
   return {
     kvCacheGb: decoderKvGb(spec, nonNegative(spec.state.contextTokens, 8000)),
     inputActivationGb: currentWeightsGb * scratchRatio,
   };
-}
+};
 
-/**
- 
-@param spec
-*/
-function textEncoderMemory(spec: Readonly<CalculationSpec>): WorkingMemory {
+const textEncoderMemory: WorkingMemoryBuilder = (spec) => {
   return {
     kvCacheGb: 0,
     inputActivationGb: encoderActivationGb(
@@ -172,17 +145,9 @@ function textEncoderMemory(spec: Readonly<CalculationSpec>): WorkingMemory {
       nonNegative(spec.state.sequenceTokens, 512),
     ),
   };
-}
+};
 
-/**
- 
-@param spec
-@param currentWeightsGb
-*/
-function encoderDecoderMemory(
-  spec: Readonly<CalculationSpec>,
-  currentWeightsGb: number,
-): WorkingMemory {
+const encoderDecoderMemory: WorkingMemoryBuilder = (spec, currentWeightsGb) => {
   const input = encoderActivationGb(
     spec,
     nonNegative(spec.state.inputTokens, 1024),
@@ -192,30 +157,18 @@ function encoderDecoderMemory(
     kvCacheGb: kv,
     inputActivationGb: input + currentWeightsGb * 0.05,
   };
-}
+};
 
-/**
- 
-@param spec
-*/
-function visionMemory(spec: Readonly<CalculationSpec>): WorkingMemory {
+const visionMemory: WorkingMemoryBuilder = (spec) => {
   const width = nonNegative(spec.state.imageWidth, 1024);
   const height = nonNegative(spec.state.imageHeight, 1024);
   const tokens = imageTokens(width, height);
   const transformer = encoderActivationGb(spec, tokens);
   const pixels = pixelProxyGb(spec, width, height, 1);
   return { kvCacheGb: 0, inputActivationGb: Math.max(transformer, pixels) };
-}
+};
 
-/**
- 
-@param spec
-@param currentWeightsGb
-*/
-function visionLanguageMemory(
-  spec: Readonly<CalculationSpec>,
-  currentWeightsGb: number,
-): WorkingMemory {
+const visionLanguageMemory: WorkingMemoryBuilder = (spec, currentWeightsGb) => {
   const width = nonNegative(spec.state.imageWidth, 1024);
   const height = nonNegative(spec.state.imageHeight, 1024);
   const imageTokenCount =
@@ -229,17 +182,9 @@ function visionLanguageMemory(
     kvCacheGb: kv,
     inputActivationGb: vision + currentWeightsGb * 0.02,
   };
-}
+};
 
-/**
- 
-@param spec
-@param currentWeightsGb
-*/
-function imageDiffusionMemory(
-  spec: Readonly<CalculationSpec>,
-  currentWeightsGb: number,
-): WorkingMemory {
+const imageDiffusionMemory: WorkingMemoryBuilder = (spec, currentWeightsGb) => {
   const latentHeight = Math.ceil(
     nonNegative(spec.state.imageHeight, 1024) / DEFAULT_LATENT_DOWNSAMPLE,
   );
@@ -253,17 +198,9 @@ function imageDiffusionMemory(
     kvCacheGb: 0,
     inputActivationGb: Math.max(latent * 64, currentWeightsGb * 0.35),
   };
-}
+};
 
-/**
- 
-@param spec
-@param currentWeightsGb
-*/
-function videoMemory(
-  spec: Readonly<CalculationSpec>,
-  currentWeightsGb: number,
-): WorkingMemory {
+const videoMemory: WorkingMemoryBuilder = (spec, currentWeightsGb) => {
   const size = videoSize(spec.state.videoResolution);
   const latentFrames = Math.ceil(
     nonNegative(spec.state.videoFrames, 81) / DEFAULT_TEMPORAL_DOWNSAMPLE,
@@ -281,49 +218,39 @@ function videoMemory(
     kvCacheGb: 0,
     inputActivationGb: Math.max(latent * 96, currentWeightsGb * 0.5),
   };
-}
+};
 
-/**
- 
-@param spec
-*/
-function audioMemory(spec: Readonly<CalculationSpec>): WorkingMemory {
+const audioMemory: WorkingMemoryBuilder = (spec) => {
   const tokens =
     nonNegative(spec.state.audioSeconds, 30) * DEFAULT_AUDIO_TOKENS_PER_SECOND;
   return {
     kvCacheGb: 0,
     inputActivationGb: encoderActivationGb(spec, tokens),
   };
-}
+};
 
-/**
- 
-@param spec
-*/
-function tabularMemory(spec: Readonly<CalculationSpec>): WorkingMemory {
+const tabularMemory: WorkingMemoryBuilder = (spec) => {
   const tabular =
     (nonNegative(spec.state.rowsPerBatch, 10_000) *
       nonNegative(spec.state.features, 100) *
       DEFAULT_FEATURE_BYTES) /
     BYTES_PER_GB;
   return { kvCacheGb: 0, inputActivationGb: tabular * 4 };
-}
+};
 
-/**
- 
-@param spec
-@param currentWeightsGb
-*/
-function customMemory(
-  spec: Readonly<CalculationSpec>,
-  currentWeightsGb: number,
-): WorkingMemory {
+const customMemory: WorkingMemoryBuilder = (spec, currentWeightsGb) => {
   return {
     kvCacheGb: 0,
     inputActivationGb:
       currentWeightsGb * 0.25 * nonNegative(spec.state.inputSizeMultiplier, 1),
   };
-}
+};
+
+const formatSpeed = (tokens: number, family: WorkloadFamily): string => {
+  const style = SPEED_STYLES.get(family) ?? TOKEN_SPEED_STYLE;
+  const value = roundTo(tokens * style.scale, style.decimals);
+  return `${value.toFixed(style.decimals)} ${style.unit}`;
+};
 
 const WORKING_MEMORY_BUILDERS: ReadonlyMap<
   WorkloadFamily,
@@ -342,9 +269,9 @@ const WORKING_MEMORY_BUILDERS: ReadonlyMap<
 ]);
 
 /**
- 
-@param spec
-@param currentWeightsGb
+Estimates inference working memory for the selected workload family.
+@param spec Calculation request.
+@param currentWeightsGb Current weight memory.
 */
 export function inferenceWorkingMemoryGb(
   spec: Readonly<CalculationSpec>,
@@ -355,8 +282,8 @@ export function inferenceWorkingMemoryGb(
 }
 
 /**
- 
-@param spec
+Builds the memory breakdown used by the calculator UI.
+@param spec Calculation request.
 */
 export function memoryBreakdown(
   spec: Readonly<CalculationSpec>,
@@ -387,24 +314,10 @@ export function memoryBreakdown(
 }
 
 /**
- 
-@param family
-*/
-function zeroSpeedEstimate(family: WorkloadFamily): string {
-  const estimates = new Map<WorkloadFamily, string>([
-    ["audio", "0.0 audio tokens/second"],
-    ["image_diffusion", "0.0 images/minute"],
-    ["tabular", "0 rows/second"],
-    ["video_generation", "0.0 clips/minute"],
-  ]);
-  return estimates.get(family) ?? "0.0 tokens/second";
-}
-
-/**
- 
-@param spec
-@param currentWeightsGb
-@param recommendedTier
+Estimates throughput for a workload on the recommended hardware tier.
+@param spec Calculation request.
+@param currentWeightsGb Current weight memory.
+@param recommendedTier Hardware tier selected for the workload.
 */
 export function speedEstimate(
   spec: Readonly<CalculationSpec>,
@@ -412,30 +325,16 @@ export function speedEstimate(
   recommendedTier: Readonly<HardwareTier>,
 ): string {
   if (spec.totalParamsB === 0) {
-    return zeroSpeedEstimate(spec.family);
+    return ZERO_SPEED_ESTIMATES.get(spec.family) ?? "0.0 tokens/second";
   }
   const precision = PRECISION_MAP[spec.precision];
   const computeWeightGb = spec.state.moeEnabled
     ? spec.activeParamsB * precision.weightBytes * precision.weightOverhead
     : currentWeightsGb;
+  const computeWeight = Math.max(computeWeightGb, 0.1);
   const tokens = Math.max(
     0.1,
-    estimateSpeed({
-      computeWeightGb: Math.max(computeWeightGb, 0.1),
-      recommendedTier,
-    }),
+    estimateSpeed({ computeWeightGb: computeWeight, recommendedTier }),
   );
-  if (spec.family === "image_diffusion") {
-    return `${roundTo(tokens / 20, 1).toFixed(1)} images/minute`;
-  }
-  if (spec.family === "video_generation") {
-    return `${roundTo(tokens / 80, 1).toFixed(1)} clips/minute`;
-  }
-  if (spec.family === "tabular") {
-    return `${roundTo(tokens * 1000, 0).toFixed(0)} rows/second`;
-  }
-  if (spec.family === "audio") {
-    return `${roundTo(tokens, 1).toFixed(1)} audio tokens/second`;
-  }
-  return `${roundTo(tokens, 1).toFixed(1)} tokens/second`;
+  return formatSpeed(tokens, spec.family);
 }

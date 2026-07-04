@@ -8,14 +8,14 @@ module.exports = {
     {
       name: "no-circular",
       comment:
-        "Circular dependencies make modules impossible to reason about in isolation.",
+        "Do not allow circular dependencies. They make modules difficult to untangle.",
       severity: "error",
       from: {},
       to: { circular: true },
     },
     {
       name: "production-not-to-tests",
-      comment: "Production modules must never import test files.",
+      comment: "Production modules must never import test or spec files.",
       severity: "error",
       from: { pathNot: "\\.(test|spec)\\.ts$" },
       to: { path: "\\.(test|spec)\\.ts$" },
@@ -35,5 +35,8 @@ module.exports = {
   options: {
     doNotFollow: { path: "node_modules" },
     tsPreCompilationDeps: true,
+    tsConfig: {
+      fileName: 'tsconfig.json'
+    }
   },
 };

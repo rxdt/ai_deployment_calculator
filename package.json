@@ -24,8 +24,5 @@
     "test:file": "npm --prefix harness run test:file --",
     "harness:lint": "npm --prefix harness run lint",
     "harness:test": "npm --prefix harness run test:coverage"
-  },
-  "dependencies": {
-    "direnv": "latest"
   }
 }

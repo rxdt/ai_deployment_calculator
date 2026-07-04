@@ -11,7 +11,9 @@ const NUMBER_MAX = 999_999;
 @returns the camelCase state key
 */
 function toStateKey(name: string): string {
-  return name.replaceAll(/-([a-z])/gu, (match, c: string) => c.toUpperCase());
+  return name.replaceAll(/-([a-z])/gu, (fullMatch, c: string) =>
+    fullMatch.slice(-c.length).toUpperCase(),
+  );
 }
 
 /**
@@ -204,6 +206,8 @@ export class CalculatorApp {
   private fillRows(name: string, rows: readonly DisplayRow[]): void {
     const list = this.slot(name);
     list.replaceChildren();
+    list.removeAttribute("aria-busy");
+    list.toggleAttribute("hidden", rows.length === 0);
     for (const { label, value } of rows) {
       const item = document.importNode(this.rowTemplate.content, true);
       const [labelCell, valueCell] =

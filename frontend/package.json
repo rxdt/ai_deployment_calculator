@@ -14,8 +14,8 @@
     "lint": "npm --prefix ../harness run lint",
     "setup:e2e": "npm --prefix ../harness run setup:e2e",
     "test:file": "npm --prefix ../harness run test:file --",
-    "test": "npm --prefix ../harness run test:coverage",
-    "test:coverage": "npm --prefix ../harness run test:coverage",
+    "test": "npm run test:coverage",
+    "test:coverage": "npm --prefix ../harness exec vitest -- run --config ../harness/vitest.config.js --coverage --coverage.include='src/**/*.ts' src/*.test.ts",
     "test:e2e": "npm --prefix ../harness run test:e2e",
     "typecheck": "npm --prefix ../harness run typecheck:frontend"
   },
@@ -27,8 +27,8 @@
     "@playwright/test": "latest",
     "fast-check": "latest",
     "jsdom": "latest",
-    "vitest": "latest",
-    "vite": "latest"
+    "vite": "latest",
+    "vitest": "latest"
   },
   "size-limit": [
     {

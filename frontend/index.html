@@ -412,13 +412,17 @@
           <details class="panel">
             <summary>Calculation used</summary>
             <div class="panel__body">
-              <ul class="breakdown" data-out="breakdown"></ul>
+              <ul class="breakdown" data-out="breakdown" aria-busy="true"></ul>
               <code data-out="calc-formula"></code>
-              <ul class="assumptions" data-out="assumptions"></ul>
+              <ul
+                class="assumptions"
+                data-out="assumptions"
+                aria-busy="true"
+              ></ul>
             </div>
           </details>
 
-          <ul class="warnings" data-out="warnings"></ul>
+          <ul class="warnings" data-out="warnings" aria-busy="true"></ul>
 
           <p class="note">
             Estimates use heuristics. Real usage varies by model architecture,

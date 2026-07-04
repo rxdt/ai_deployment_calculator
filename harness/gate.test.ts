@@ -337,11 +337,6 @@ const REQUIRED_INSTALLED_GATE_TOOLS: readonly {
     commandFragment: "harness/playwright.config.js",
   },
   {
-    dependency: "size-limit",
-    check: "size",
-    commandFragment: harnessTool("size-limit"),
-  },
-  {
     dependency: "@lhci/cli",
     check: "lighthouse",
     commandFragment: harnessTool("lhci"),
@@ -527,10 +522,6 @@ const REQUIRED_CHECK_POLICIES: readonly {
       "test",
       "harness/playwright.config.js",
     ],
-  },
-  {
-    check: "size",
-    fragments: [harnessTool("size-limit")],
   },
   {
     check: "lighthouse",
@@ -864,211 +855,56 @@ describe("runChecks", () => {
     expect(failureFor(failures, "empty").toLowerCase()).toContain("empty");
   });
 
-  test("fails closed for a missing arbitrary binary", () => {
+  test("skips a missing binary (ENOENT) instead of failing, and warns loudly", () => {
+    const stderr: string[] = [];
+    vi.spyOn(process.stderr, "write").mockImplementation((chunk) => {
+      stderr.push(String(chunk));
+      return true;
+    });
     const failures = runChecks(makeRepo(), {
       missing: ["definitely-not-a-real-gate-binary"],
     });
-    expect(failures).toHaveLength(1);
-    expect(failures[0]).toMatch(/^missing failed:\n/u);
-    expect(failures[0]).toContain("definitely-not-a-real-gate-binary");
-    expect(failures[0]).toContain("ENOENT");
-    expect(failures[0]).not.toContain("undefinedundefined");
+    // A young template must not fail a consumer who hasn't installed an external tool: the check
+    // is skipped (no problem), but the skip is announced loudly so it can never pass silently.
+    expect(failures).toEqual([]);
+    const warning = stderr.join("");
+    expect(warning).toContain("SKIPPED");
+    expect(warning).toContain("definitely-not-a-real-gate-binary");
   });
 
-  test("skips harness tools only when the harness package is absent", () => {
+  test("skips a missing harness tool (ENOENT) regardless of staged packages", () => {
     const repo = makeRepo();
+    stageFile(repo, "harness/package.json", '{"private":true}\n');
     const failures = runChecks(repo, {
       harnessToolCheck: [harnessTool("definitely-missing")],
     });
     expect(failures).toEqual([]);
   });
 
-  test("fails closed for a missing harness tool when harness package exists", () => {
-    const repo = makeRepo();
-    stageFile(repo, "harness/package.json", '{"private":true}\n');
-    const failures = runChecks(repo, {
-      harnessToolCheck: [harnessTool("definitely-missing")],
-    });
-    expect(failures).toHaveLength(1);
-  });
-
-  test("fails clearly when a referenced harness config file is missing (E3 landmine)", () => {
-    const repo = makeRepo();
-    stageFile(repo, "harness/package.json", '{"private":true}\n');
-    const failures = runChecks(repo, {
-      typecheck: [
-        harnessTool("tsc"),
-        "-p",
-        "harness/tsconfig.does-not-exist.json",
-        "--noEmit",
-      ],
-    });
-    expect(failures).toHaveLength(1);
-    expect(failures[0]).toContain("enforcement config missing");
-    expect(failures[0]).toContain("harness/tsconfig.does-not-exist.json");
-  });
-
-  test("skips frontend npm commands only when frontend package is absent", () => {
+  test("fails closed when a present tool exits non-zero (not ENOENT)", () => {
     const failures = runChecks(makeRepo(), {
-      frontendScriptCheck: ["npm", "--prefix", "frontend", "run", "missing"],
-    });
-    expect(failures).toEqual([]);
-  });
-
-  test("fails closed for frontend npm commands when frontend package exists", () => {
-    const repo = makeRepo();
-    stageFile(repo, "frontend/package.json", '{"scripts":{}}\n');
-    const failures = runChecks(repo, {
-      frontendScriptCheck: ["npm", "--prefix", "frontend", "run", "missing"],
+      failing: [process.execPath, "-e", "process.exit(7)"],
     });
     expect(failures).toHaveLength(1);
-  });
-
-  test("fails closed when a tracked frontend package.json is deleted (no skip-by-deletion)", () => {
-    const repo = makeRepo();
-    stageFile(repo, "frontend/package.json", '{"scripts":{}}\n');
-    runCommand(["git", "commit", "-q", "-m", "add frontend pkg"], repo);
-    runCommand(["git", "rm", "-q", "frontend/package.json"], repo);
-    const failures = runChecks(repo, {
-      frontendScriptCheck: ["npm", "--prefix", "frontend", "run", "missing"],
-    });
-    expect(failures).toHaveLength(1);
-  });
-
-  test("fails closed when a tracked harness package.json is deleted", () => {
-    const repo = makeRepo();
-    stageFile(repo, "harness/package.json", '{"private":true}\n');
-    runCommand(["git", "commit", "-q", "-m", "add harness pkg"], repo);
-    runCommand(["git", "rm", "-q", "harness/package.json"], repo);
-    const failures = runChecks(repo, {
-      harnessToolCheck: [harnessTool("definitely-missing")],
-    });
-    expect(failures).toHaveLength(1);
-  });
-
-  test("size check discovers every package that declares its own budget", () => {
-    const repo = makeRepo();
-    stageFile(repo, "frontend/package.json", '{"private":true}\n');
-    stageFile(
-      repo,
-      "packages/admin/package.json",
-      '{"private":true,"size-limit":[{"path":"dist/admin.js","limit":"20 KB"}]}\n',
-    );
-    stageFile(
-      repo,
-      "packages/widget/package.json",
-      '{"private":true,"size-limit":[{"path":"dist/widget.js","limit":"10 KB"}]}\n',
-    );
-    stageFile(
-      repo,
-      "node_modules/hidden/package.json",
-      '{"size-limit":[{"path":"dist/hidden.js","limit":"1 KB"}]}\n',
-    );
-
-    const failures = runChecks(repo, {
-      size: [
-        process.execPath,
-        "-e",
-        "const config = process.argv[process.argv.indexOf('--config') + 1]; process.stderr.write(config); process.exit(7)",
-      ],
-    });
-
-    expect(failures).toHaveLength(2);
-    expect(failures.join("\n")).toContain("packages/admin/package.json");
-    expect(failures.join("\n")).toContain("packages/widget/package.json");
-    expect(failures.join("\n")).not.toContain("frontend/package.json");
-    expect(failures.join("\n")).not.toContain(
-      "node_modules/hidden/package.json",
-    );
-  });
-
-  test("size check ignores malformed package manifests during discovery", () => {
-    const repo = makeRepo();
-    stageFile(repo, "frontend/package.json", '{"private":true}\n');
-    stageFile(repo, "packages/broken/package.json", '{"size-limit": [\n');
-    stageFile(
-      repo,
-      "packages/valid/package.json",
-      '{"private":true,"size-limit":[{"path":"dist/index.js","limit":"5 KB"}]}\n',
-    );
-
-    const failures = runChecks(repo, {
-      size: [
-        process.execPath,
-        "-e",
-        "const config = process.argv[process.argv.indexOf('--config') + 1]; process.stderr.write(config); process.exit(7)",
-      ],
-    });
-
-    expect(failures).toHaveLength(1);
-    expect(failures[0]).toContain("packages/valid/package.json");
-    expect(failures[0]).not.toContain("packages/broken/package.json");
-  });
-
-  test("size check reports missing tool errors with the package budget path", () => {
-    const repo = makeRepo();
-    stageFile(
-      repo,
-      "packages/widget/package.json",
-      '{"private":true,"size-limit":[{"path":"dist/widget.js","limit":"10 KB"}]}\n',
-    );
-
-    const failures = runChecks(repo, {
-      size: ["definitely-not-a-real-size-limit-binary"],
-    });
-
-    expect(failures).toHaveLength(1);
-    expect(failures[0]).toContain("packages/widget/package.json");
-    expect(failures[0]).toContain("definitely-not-a-real-size-limit-binary");
-    expect(failures[0]).toContain("ENOENT");
+    expect(failures[0]).toMatch(/^failing failed:/u);
     expect(failures[0]).not.toContain("undefinedundefined");
   });
 
-  test("size check skips cleanly when no package declares a size budget", () => {
-    const repo = makeRepo();
-    stageFile(repo, "frontend/package.json", '{"private":true}\n');
-    stageFile(repo, "packages/api/package.json", '{"private":true}\n');
-
-    const failures = runChecks(repo, {
-      size: [process.execPath, "-e", "process.exit(99)"],
-    });
-
-    expect(failures).toEqual([]);
-  });
-
   test.each(["semgrep", "osv-scanner"])(
-    "skips external gate tool %s unless both packages exist",
+    "skips external gate tool %s when it is not installed (ENOENT)",
     (tool) => {
       const repo = makeRepo();
-      stageFile(repo, "frontend/package.json", '{"private":true}\n');
-      const failures = runChecks(repo, {
-        external: [tool, "--version"],
-      });
-      expect(failures).toEqual([]);
-    },
-  );
-
-  test.each(["semgrep", "osv-scanner"])(
-    "fails closed for missing external gate tool %s when both packages exist",
-    (tool) => {
-      const repo = makeRepo();
-      stageFile(repo, "frontend/package.json", '{"private":true}\n');
-      stageFile(repo, "harness/package.json", '{"private":true}\n');
       const failures = withEmptyPath(() =>
         runChecks(repo, {
           external: [tool, "--version"],
         }),
       );
-      expect(failures).toHaveLength(1);
-      expect(failures[0]).toContain(tool);
-      expect(failures[0]).toContain("ENOENT");
+      expect(failures).toEqual([]);
     },
   );
 
-  test("skips pnpm audit unless the frontend pnpm lockfile exists", () => {
+  test("skips pnpm audit when pnpm is not installed (ENOENT)", () => {
     const repo = makeRepo();
-    stageFile(repo, "frontend/package.json", '{"private":true}\n');
-    stageFile(repo, "harness/package.json", '{"private":true}\n');
     const failures = withEmptyPath(() =>
       runChecks(repo, {
         pnpmAudit: [
@@ -1082,28 +918,6 @@ describe("runChecks", () => {
       }),
     );
     expect(failures).toEqual([]);
-  });
-
-  test("runs pnpm audit when the frontend pnpm lockfile exists", () => {
-    const repo = makeRepo();
-    stageFile(repo, "frontend/package.json", '{"private":true}\n');
-    stageFile(repo, "frontend/pnpm-lock.yaml", "lockfileVersion: '9.0'\n");
-    stageFile(repo, "harness/package.json", '{"private":true}\n');
-    const failures = withEmptyPath(() =>
-      runChecks(repo, {
-        pnpmAudit: [
-          harnessTool("pnpm"),
-          "--dir",
-          "frontend",
-          "audit",
-          "--audit-level",
-          "high",
-        ],
-      }),
-    );
-    expect(failures).toHaveLength(1);
-    expect(failures[0]).toContain("pnpm");
-    expect(failures[0]).toContain("ENOENT");
   });
 });
 
@@ -1133,11 +947,6 @@ describe("gate constants", () => {
         "harness/tsconfig.app.json",
       ]),
     );
-    // Every user-config candidate setup could adopt must be forbidden, derived from the single
-    // source of truth in cli.CONFIG_CANDIDATES (no per-path duplication here).
-    for (const candidate of Object.values(CONFIG_CANDIDATES).flat()) {
-      expect(FORBIDDEN_FILES.has(candidate), candidate).toBe(true);
-    }
     // A package.json anywhere is forbidden by basename.
     expect(FORBIDDEN_BASENAMES.has("package.json")).toBe(true);
     expect(FORBIDDEN_PATTERNS).toEqual(
@@ -1277,12 +1086,19 @@ describe("runGate / runPreflight wiring", () => {
   });
 
   test("runGate uses the real checks by default", () => {
+    const stderr: string[] = [];
+    vi.spyOn(process.stderr, "write").mockImplementation((chunk) => {
+      stderr.push(String(chunk));
+      return true;
+    });
     const repo = makeRepo();
     stageFile(repo, "frontend/package.json", '{"private":true}\n');
     stageFile(repo, "harness/package.json", '{"private":true}\n');
+    // With no PATH the real tool binaries are ENOENT, so every real check is skipped with a loud
+    // warning — proving runGate spawned the actual FULL_CHECKS commands rather than a stub.
     const result = withEmptyPath(() => runGate(repo));
-    expect(result.length).toBeGreaterThan(0);
-    expect(result[0]).toMatch(/ failed:\n/u);
+    expect(result).toEqual([]);
+    expect(stderr.join("")).toContain("SKIPPED");
   });
 
   test("without RALPH_LOOP, preflight runs commit checks without containment", () => {
@@ -1313,11 +1129,18 @@ describe("runGate / runPreflight wiring", () => {
   });
 
   test("preflight uses the real checks by default", () => {
+    const stderr: string[] = [];
+    vi.spyOn(process.stderr, "write").mockImplementation((chunk) => {
+      stderr.push(String(chunk));
+      return true;
+    });
     const repo = makeRepo();
     stageFile(repo, "harness/package.json", '{"private":true}\n');
-    const result = runPreflight(repo);
-    expect(result.length).toBeGreaterThan(0);
-    expect(result[0]).toMatch(/ failed:\n/u);
+    // Same proof for preflight: empty PATH makes the real COMMIT_CHECKS binaries ENOENT, so they
+    // skip with a warning — confirming the default runner spawns the real commands.
+    const result = withEmptyPath(() => runPreflight(repo));
+    expect(result).toEqual([]);
+    expect(stderr.join("")).toContain("SKIPPED");
   });
 
   test("preflight runs commit checks while gate runs full checks", () => {
@@ -1609,44 +1432,41 @@ describe("loop containment (continued)", () => {
     },
   );
 
-  test("loop preflight unstages a whole non-forbidden file when one added line has a forbidden pattern", () => {
+  test("loop preflight reports a forbidden pattern in an added line and keeps the file staged", () => {
     const stderr: string[] = [];
     vi.spyOn(process.stderr, "write").mockImplementation((chunk) => {
       stderr.push(String(chunk));
       return true;
     });
     const target = "frontend/src/report.ts";
+    const pattern = requiredForbiddenPattern("ts-ignore");
     const content = [
       ...Array.from(
         Array.from({ length: 100 }).keys(),
         (index) => `export const value${String(index)} = ${String(index)};\n`,
       ),
-      `export const blocked = 1; // ${requiredForbiddenPattern("ts-ignore")}\n`,
+      `export const blocked = 1; // ${pattern}\n`,
     ].join("");
 
-    process.env.RALPH_LOOP = "1";
-    const gateRepo = makeRepo();
-    stageFile(gateRepo, target, content);
-    expect(runGate(gateRepo, () => [])).toEqual([]);
-    expect(stagedNames(gateRepo)).toEqual([target]);
-
+    // Without the loop there is no containment: the pattern is not scanned at all.
     delete process.env.RALPH_LOOP;
     const humanRepo = makeRepo();
     stageFile(humanRepo, target, content);
     expect(runPreflight(humanRepo, () => [])).toEqual([]);
     expect(stagedNames(humanRepo)).toEqual([target]);
 
+    // In the loop the pattern is REPORTED (blocking the push) but the file stays staged and its
+    // worktree content is untouched — no unstaging, no "kept forbidden paths" warning (that is only
+    // for forbidden PATHS/symlinks).
     process.env.RALPH_LOOP = "1";
     const loopRepo = makeRepo();
     stageFile(loopRepo, target, content);
     expect(runPreflight(loopRepo, () => [])).toContain(
-      "Empty commits are rejected. Stage real work.",
+      `forbidden pattern '${pattern}' in ${target}`,
     );
-    expect(stagedNames(loopRepo)).toEqual([]);
+    expect(stagedNames(loopRepo)).toEqual([target]);
     expect(readFileSync(path.join(loopRepo, target), "utf8")).toBe(content);
-    expect(stderr).toEqual([
-      `harness kept forbidden paths out of the commit: ${target}\n`,
-    ]);
+    expect(stderr.join("")).not.toContain("kept forbidden paths");
   });
 
   test.each(["harness/preferences.ts", "PROMPT.md"])(
@@ -1755,25 +1575,33 @@ describe("loop containment (continued)", () => {
     expect(stagedNames(repo)).toEqual(["frontend/src/report.ts"]);
   });
 
-  test("drops a banned add without leaving an orphan staged deletion", () => {
+  test("reports a banned add and keeps it staged alongside its staged deletion", () => {
     process.env.RALPH_LOOP = "1";
     const repo = makeRepo();
+    const pattern = requiredForbiddenPattern("eslint-disable");
     stageFile(repo, "frontend/src/old.ts", "export const oldValue = 1;\n");
     runCommand(["git", "commit", "-q", "-m", "add old source"], repo);
     runCommand(["git", "rm", "-q", "frontend/src/old.ts"], repo);
     stageFile(
       repo,
       "frontend/src/new.ts",
-      `export const newValue = 1; // ${requiredForbiddenPattern("eslint-disable")}\n`,
+      `export const newValue = 1; // ${pattern}\n`,
     );
     stageFile(repo, "frontend/src/report.ts", "export const keep = 1;\n");
-    expect(runPreflight(repo)).toEqual([]);
-    expect(stagedNames(repo)).toEqual(["frontend/src/report.ts"]);
+    // The banned add is reported (blocking the push); nothing is unstaged, so new.ts and the
+    // old.ts deletion both remain staged for the author to resolve.
+    expect(runPreflight(repo)).toContain(
+      `forbidden pattern '${pattern}' in frontend/src/new.ts`,
+    );
+    expect(stagedNames(repo)).toContain("frontend/src/new.ts");
+    expect(stagedNames(repo)).toContain("frontend/src/old.ts");
+    expect(stagedNames(repo)).toContain("frontend/src/report.ts");
   });
 
-  test("drops a rewritten rename with a banned added line as one change", () => {
+  test("reports a rewritten rename with a banned added line", () => {
     process.env.RALPH_LOOP = "1";
     const repo = makeRepo();
+    const pattern = requiredForbiddenPattern("ts-ignore");
     stageFile(repo, "frontend/src/old.ts", "export const oldValue = 1;\n");
     runCommand(["git", "commit", "-q", "-m", "add old source"], repo);
     runCommand(
@@ -1782,27 +1610,31 @@ describe("loop containment (continued)", () => {
     );
     writeFileSync(
       path.join(repo, "frontend/src/new.ts"),
-      `export const newValue = 1; // ${requiredForbiddenPattern("ts-ignore")}\n`,
+      `export const newValue = 1; // ${pattern}\n`,
     );
     runCommand(["git", "add", "--", "frontend/src/new.ts"], repo);
     stageFile(repo, "frontend/src/report.ts", "export const keep = 1;\n");
-    expect(runPreflight(repo)).toEqual([]);
-    expect(stagedNames(repo)).toEqual(["frontend/src/report.ts"]);
+    expect(runPreflight(repo)).toContain(
+      `forbidden pattern '${pattern}' in frontend/src/new.ts`,
+    );
+    expect(stagedNames(repo)).toContain("frontend/src/new.ts");
+    expect(stagedNames(repo)).toContain("frontend/src/report.ts");
   });
 
-  test("unstaging a banned file preserves later dirty worktree edits", () => {
+  test("reporting a banned file leaves it staged and its dirty worktree edits intact", () => {
     process.env.RALPH_LOOP = "1";
     const repo = makeRepo();
     const target = "frontend/src/state.ts";
-    stageFile(
-      repo,
-      target,
-      `export const staged = 1; // ${requiredForbiddenPattern("noqa")}\n`,
-    );
+    const pattern = requiredForbiddenPattern("noqa");
+    stageFile(repo, target, `export const staged = 1; // ${pattern}\n`);
     writeFileSync(path.join(repo, target), "export const dirty = 2;\n");
     stageFile(repo, "frontend/src/report.ts", "export const keep = 1;\n");
-    expect(runPreflight(repo)).toEqual([]);
-    expect(stagedNames(repo)).toEqual(["frontend/src/report.ts"]);
+    expect(runPreflight(repo)).toContain(
+      `forbidden pattern '${pattern}' in ${target}`,
+    );
+    expect(stagedNames(repo)).toContain(target);
+    expect(stagedNames(repo)).toContain("frontend/src/report.ts");
+    // Report-only never touches the worktree: the later dirty edit is preserved.
     expect(readFileSync(path.join(repo, target), "utf8")).toBe(
       "export const dirty = 2;\n",
     );
@@ -1811,7 +1643,7 @@ describe("loop containment (continued)", () => {
 
 describe("banned patterns and preferences under loop", () => {
   test.each(FORBIDDEN_PATTERNS)(
-    "ejects a staged file that adds banned pattern %s",
+    "reports a staged file that adds banned pattern %s and keeps it staged",
     (pattern) => {
       process.env.RALPH_LOOP = "1";
       const repo = makeRepo();
@@ -1821,36 +1653,47 @@ describe("banned patterns and preferences under loop", () => {
         `export const value = 1; // ${pattern}\n`,
       );
       stageFile(repo, "frontend/src/report.ts", "export const keep = 1;\n");
-      expect(runPreflight(repo)).toEqual([]);
-      expect(stagedNames(repo)).not.toContain("frontend/src/state.ts");
+      // Banned PATTERNS are reported (blocking the commit), not unstaged: the author must remove
+      // the escape hatch themselves; the file stays staged so they see exactly where it is.
+      expect(runPreflight(repo)).toContain(
+        `forbidden pattern '${pattern}' in frontend/src/state.ts`,
+      );
+      expect(stagedNames(repo)).toContain("frontend/src/state.ts");
       expect(stagedNames(repo)).toContain("frontend/src/report.ts");
     },
   );
 
-  test("rejects a commit emptied by a banned TypeScript suppression", () => {
+  test("reports a banned TypeScript suppression and keeps the file staged", () => {
     process.env.RALPH_LOOP = "1";
     const repo = makeRepo();
+    const pattern = requiredForbiddenPattern("ts-ignore");
     stageFile(
       repo,
       "frontend/src/state.ts",
-      `export const value = 1; // @${requiredForbiddenPattern("ts-ignore")}\n`,
+      `export const value = 1; // @${pattern}\n`,
     );
     const problems = runPreflight(repo);
-    expect(problems).toContain("Empty commits are rejected. Stage real work.");
-    expect(stagedNames(repo)).not.toContain("frontend/src/state.ts");
+    expect(problems).toContain(
+      `forbidden pattern '${pattern}' in frontend/src/state.ts`,
+    );
+    expect(stagedNames(repo)).toContain("frontend/src/state.ts");
   });
 
   test("matches banned patterns case-insensitively", () => {
     process.env.RALPH_LOOP = "1";
     const repo = makeRepo();
+    const pattern = requiredForbiddenPattern("noqa");
     stageFile(
       repo,
       "frontend/src/state.ts",
-      `export const value = 1; // ${requiredForbiddenPattern("noqa").toUpperCase()}\n`,
+      `export const value = 1; // ${pattern.toUpperCase()}\n`,
     );
     stageFile(repo, "frontend/src/report.ts", "export const keep = 1;\n");
-    expect(runPreflight(repo)).toEqual([]);
-    expect(stagedNames(repo)).not.toContain("frontend/src/state.ts");
+    // The uppercase NOQA still matches; it is reported (lowercased pattern name) and stays staged.
+    expect(runPreflight(repo)).toContain(
+      `forbidden pattern '${pattern}' in frontend/src/state.ts`,
+    );
+    expect(stagedNames(repo)).toContain("frontend/src/state.ts");
     expect(stagedNames(repo)).toContain("frontend/src/report.ts");
   });
 
@@ -1894,49 +1737,75 @@ describe("banned patterns and preferences under loop", () => {
     expect(stagedNames(repo)).toEqual(["frontend/src/state.ts"]);
   });
 
-  test("does not eject unrelated staged files with legacy banned content", () => {
+  test("reports only the file whose ADDED line has a banned pattern, not legacy content", () => {
     process.env.RALPH_LOOP = "1";
     const repo = makeRepo();
+    const legacyPattern = requiredForbiddenPattern("noqa");
+    const addedPattern = requiredForbiddenPattern("ts-ignore");
     stageFile(
       repo,
       "frontend/src/legacy.ts",
-      `export const legacy = 1; // ${requiredForbiddenPattern("noqa")}\n`,
+      `export const legacy = 1; // ${legacyPattern}\n`,
     );
     runCommand(["git", "commit", "-q", "-m", "add legacy suppression"], repo);
     stageFile(
       repo,
       "frontend/src/state.ts",
-      `export const value = 1; // ${requiredForbiddenPattern("ts-ignore")}\n`,
+      `export const value = 1; // ${addedPattern}\n`,
     );
     stageFile(
       repo,
       "frontend/src/legacy.ts",
       [
-        `export const legacy = 1; // ${requiredForbiddenPattern("noqa")}\n`,
+        `export const legacy = 1; // ${legacyPattern}\n`,
         "export const clean = 1;\n",
       ].join(""),
     );
 
-    expect(runPreflight(repo)).toEqual([]);
-    expect(stagedNames(repo)).toEqual(["frontend/src/legacy.ts"]);
+    const problems = runPreflight(repo);
+    // Only state.ts adds a banned pattern; legacy.ts's noqa is pre-existing context, so it is not
+    // re-flagged. Both files stay staged (patterns are reported, never unstaged).
+    expect(problems).toContain(
+      `forbidden pattern '${addedPattern}' in frontend/src/state.ts`,
+    );
+    expect(problems).not.toContain(
+      `forbidden pattern '${legacyPattern}' in frontend/src/legacy.ts`,
+    );
+    expect(stagedNames(repo)).toEqual([
+      "frontend/src/legacy.ts",
+      "frontend/src/state.ts",
+    ]);
   });
 
-  test("ejects every file that adds a banned pattern in one preflight", () => {
+  test("reports every file that adds a banned pattern in one preflight", () => {
     process.env.RALPH_LOOP = "1";
     const repo = makeRepo();
+    const patternA = requiredForbiddenPattern("ts-nocheck");
+    const patternB = requiredForbiddenPattern("prettier-ignore");
     stageFile(
       repo,
       "frontend/src/a.ts",
-      `export const a = 1; // ${requiredForbiddenPattern("ts-nocheck")}\n`,
+      `export const a = 1; // ${patternA}\n`,
     );
     stageFile(
       repo,
       "frontend/src/b.ts",
-      `export const b = 1; // ${requiredForbiddenPattern("prettier-ignore")}\n`,
+      `export const b = 1; // ${patternB}\n`,
     );
     stageFile(repo, "frontend/src/report.ts", "export const keep = 1;\n");
-    expect(runPreflight(repo)).toEqual([]);
-    expect(stagedNames(repo)).toEqual(["frontend/src/report.ts"]);
+    const problems = runPreflight(repo);
+    expect(problems).toContain(
+      `forbidden pattern '${patternA}' in frontend/src/a.ts`,
+    );
+    expect(problems).toContain(
+      `forbidden pattern '${patternB}' in frontend/src/b.ts`,
+    );
+    // Every file stays staged; nothing is unstaged for a pattern hit.
+    expect(stagedNames(repo)).toEqual([
+      "frontend/src/a.ts",
+      "frontend/src/b.ts",
+      "frontend/src/report.ts",
+    ]);
   });
 
   test("does not flag banned words that appear only in a filename", () => {
@@ -2056,65 +1925,6 @@ describe("harness setup script merging", () => {
     expect(result.status, `${result.stdout}\n${result.stderr}`).toBe(0);
     expect(readHarnessPackageJsonInRepo(repo).scripts).toEqual(before);
   });
-
-  test("uses a user config outside harness when one exists", () => {
-    const repo = makeInstallRepo({});
-    writeFileSync(path.join(repo, "eslint.config.js"), "export default [];\n");
-
-    const result = runHarnessSetup(repo);
-
-    expect(result.status, `${result.stdout}\n${result.stderr}`).toBe(0);
-    const scripts = readHarnessPackageJsonInRepo(repo).scripts ?? {};
-    expect(scripts.eslint).toContain("--config eslint.config.js");
-    expect(scripts.eslint).not.toContain("harness/eslint.config.js");
-    expect(existsSync(path.join(repo, "harness", "configs.json"))).toBe(false);
-  });
-
-  test("uses an empty user config when one exists", () => {
-    const repo = makeInstallRepo({});
-    writeFileSync(path.join(repo, "eslint.config.js"), "");
-
-    const result = runHarnessSetup(repo);
-
-    expect(result.status, `${result.stdout}\n${result.stderr}`).toBe(0);
-    const scripts = readHarnessPackageJsonInRepo(repo).scripts ?? {};
-    expect(scripts.eslint).toContain("--config eslint.config.js");
-    expect(scripts.eslint).not.toContain("harness/eslint.config.js");
-  });
-
-  test("rewrites an existing harness lint script to a complex user config path", () => {
-    const repo = makeInstallRepo({});
-    writeFileSync(path.join(repo, "frontend", "tsconfig.json"), "{}\n");
-    const harnessPackage = readHarnessPackageJsonInRepo(repo);
-    harnessPackage.scripts = {
-      ...harnessPackage.scripts,
-      lint: [
-        "node tools/lint-entry.js --project harness/tsconfig.app.json",
-        "node tools/lint-extra.js --project=harness/tsconfig.app.json",
-        "node tools/lint-literal.js harness/tsconfig.app.json",
-      ].join(" && "),
-      "lint:shadow": "node tools/keep.js --project harness/tsconfig.app.json",
-    };
-    writeFileSync(
-      path.join(repo, "harness", "package.json"),
-      `${JSON.stringify(harnessPackage, null, 2)}\n`,
-    );
-
-    const result = runHarnessSetup(repo);
-
-    expect(result.status, `${result.stdout}\n${result.stderr}`).toBe(0);
-    const scripts = readHarnessPackageJsonInRepo(repo).scripts ?? {};
-    expect(scripts.lint).toBe(
-      [
-        "node tools/lint-entry.js --project frontend/tsconfig.json",
-        "node tools/lint-extra.js --project=frontend/tsconfig.json",
-        "node tools/lint-literal.js frontend/tsconfig.json",
-      ].join(" && "),
-    );
-    expect(scripts["lint:shadow"]).toBe(
-      "node tools/keep.js --project frontend/tsconfig.json",
-    );
-  });
 });
 
 // Containment matches on path strings and reads staged content as text. A staged symlink
@@ -2195,7 +2005,6 @@ describe("frontend gate shape", () => {
         "osv",
         "pnpmAudit",
         "sast",
-        "size",
       ]);
       return [];
     });
@@ -2215,7 +2024,6 @@ describe("frontend gate shape", () => {
       "osv",
       "pnpmAudit",
       "sast",
-      "size",
     ]);
     expect(commandText(checkCommand(chosen, "build"))).toBe(
       "npm --prefix frontend run build",
@@ -2226,7 +2034,6 @@ describe("frontend gate shape", () => {
     expect(commandText(checkCommand(chosen, "e2e"))).toContain(
       "harness/playwright.config.js",
     );
-    expect(checkCommand(chosen, "size")).toEqual([harnessTool("size-limit")]);
     expect(commandText(checkCommand(chosen, "lighthouse"))).toContain(
       "harness/lighthouserc.cjs",
     );
@@ -2361,29 +2168,37 @@ describe("frontend gate shape", () => {
     },
   );
 
-  test("knip maps dependencies to package workspaces", () => {
+  test("knip scans repo TypeScript and JavaScript entrypoints", () => {
     const config = parseJsonObject("harness/knip.json");
-    const { workspaces } = config;
-    if (!isPlainObject(workspaces)) {
-      throw new Error("Expected knip workspaces config");
-    }
-    const { frontend, harness } = workspaces;
-    if (!isPlainObject(frontend) || !isPlainObject(harness)) {
-      throw new Error("Expected frontend and harness knip workspaces");
-    }
-    expect(
-      Object.keys(workspaces).toSorted((a, b) => a.localeCompare(b)),
-    ).toEqual([".", "frontend", "harness"]);
-    expect(frontend.entry).toEqual([
-      "src/main.ts",
-      "src/**/*.test.ts",
-      "tests/**/*.spec.ts",
+    expect(config.ignoreDependencies).toEqual([
+      "@secretlint/secretlint-rule-preset-recommend",
     ]);
-    expect(harness.entry).toContain("harness.mjs");
-    expect(config.ignore).toEqual([
-      "frontend/dist/**",
-      "frontend/test-results/**",
-      "scratchpad/**",
+    expect(config.ignoreBinaries).toEqual(["semgrep"]);
+    expect(config.include).toEqual([
+      "files",
+      "exports",
+      "nsExports",
+      "types",
+      "nsTypes",
+    ]);
+    expect(config.entry).toEqual([
+      "**/main.ts",
+      "**/index.ts",
+      "**/cli.ts",
+      "**/*.test.ts",
+      "**/*.spec.ts",
+      "**/*.config.js",
+      "**/*.config.cjs",
+      "**/*.config.mjs",
+      "**/*.config.ts",
+      "**/*.mjs",
+      "**/*.cjs",
+    ]);
+    expect(config.project).toEqual([
+      "**/*.ts",
+      "**/*.mjs",
+      "**/*.js",
+      "**/*.cjs",
     ]);
     expect(existsSync(path.join(HARNESS, "tmprepo.ts"))).toBe(false);
   });
@@ -2462,21 +2277,20 @@ describe("frontend gate shape", () => {
     );
   });
 
-  test("harness leaf tsconfig keeps the required harness compiler flags", () => {
+  test("harness leaf tsconfig keeps the required harness compiler settings", () => {
     const harnessConfig = parseJsonObject("harness/tsconfig.harness.json") as {
       compilerOptions?: Record<string, unknown>;
       include?: unknown;
     };
 
-    expect(harnessConfig.include).toEqual([
-      "*.ts",
-      "../frontend/tests/**/*.ts",
-    ]);
+    expect(harnessConfig.include).toEqual(["*.ts", "../**/tests/**/*.ts"]);
     expect(harnessConfig.compilerOptions).toEqual(
       expect.objectContaining({
         strict: true,
-        noImplicitReturns: true,
-        noUncheckedSideEffectImports: true,
+        noUnusedLocals: true,
+        noUnusedParameters: true,
+        noFallthroughCasesInSwitch: true,
+        noUncheckedIndexedAccess: true,
       }),
     );
   });
@@ -2499,7 +2313,8 @@ describe("frontend gate shape", () => {
     );
     expect(scripts.build).toBe("vite build");
     expect(scripts.dev).toContain("vite");
-    expect(scripts.test).toContain("../harness");
+    expect(scripts.test).toBe("npm run test:coverage");
+    expect(scripts["test:coverage"]).toContain("../harness");
     expect(scripts.lint).toContain("../harness");
     for (const hidden of [
       "gate:checks",

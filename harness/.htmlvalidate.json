@@ -4,6 +4,9 @@
   "rules": {
     "deprecated-rule": "error",
     "svg-focusable": "error",
-    "no-inline-style": "error"
+    "no-inline-style": "error",
+    "element-permitted-content": "error",
+    "no-dup-id": "error",
+    "attr-spacing": "error"
   }
 }

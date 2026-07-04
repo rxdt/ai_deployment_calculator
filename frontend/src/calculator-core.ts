@@ -133,81 +133,31 @@ export function roundTo(value: number, digits: number): number {
   return Math.round((value + Number.EPSILON) * factor) / factor;
 }
 
+// Transformer shape by parameter count (billions). Ordered ascending by the inclusive upper bound;
+// the last entry (Infinity) is the fallback for the largest models.
+const ARCHITECTURE_BUCKETS: readonly {
+  readonly maxB: number;
+  readonly architecture: TransformerArchitecture;
+}[] = [
+  { maxB: 1, architecture: { layers: 16, hidden: 2048, attentionHeads: 32, kvHeads: 8, headDim: 64 } },
+  { maxB: 4, architecture: { layers: 28, hidden: 3072, attentionHeads: 24, kvHeads: 8, headDim: 128 } },
+  { maxB: 10, architecture: { layers: 32, hidden: 4096, attentionHeads: 32, kvHeads: 8, headDim: 128 } },
+  { maxB: 20, architecture: { layers: 40, hidden: 5120, attentionHeads: 40, kvHeads: 8, headDim: 128 } },
+  { maxB: 40, architecture: { layers: 48, hidden: 6144, attentionHeads: 48, kvHeads: 8, headDim: 128 } },
+  { maxB: 80, architecture: { layers: 80, hidden: 8192, attentionHeads: 64, kvHeads: 8, headDim: 128 } },
+  { maxB: 160, architecture: { layers: 96, hidden: 10_240, attentionHeads: 80, kvHeads: 8, headDim: 128 } },
+  { maxB: Infinity, architecture: { layers: 120, hidden: 12_288, attentionHeads: 96, kvHeads: 8, headDim: 128 } },
+];
+
 /**
- 
+
 @param parametersB
 */
 export function architectureFor(parametersB: number): TransformerArchitecture {
-  if (parametersB <= 1) {
-    return {
-      layers: 16,
-      hidden: 2048,
-      attentionHeads: 32,
-      kvHeads: 8,
-      headDim: 64,
-    };
-  }
-  if (parametersB <= 4) {
-    return {
-      layers: 28,
-      hidden: 3072,
-      attentionHeads: 24,
-      kvHeads: 8,
-      headDim: 128,
-    };
-  }
-  if (parametersB <= 10) {
-    return {
-      layers: 32,
-      hidden: 4096,
-      attentionHeads: 32,
-      kvHeads: 8,
-      headDim: 128,
-    };
-  }
-  if (parametersB <= 20) {
-    return {
-      layers: 40,
-      hidden: 5120,
-      attentionHeads: 40,
-      kvHeads: 8,
-      headDim: 128,
-    };
-  }
-  if (parametersB <= 40) {
-    return {
-      layers: 48,
-      hidden: 6144,
-      attentionHeads: 48,
-      kvHeads: 8,
-      headDim: 128,
-    };
-  }
-  if (parametersB <= 80) {
-    return {
-      layers: 80,
-      hidden: 8192,
-      attentionHeads: 64,
-      kvHeads: 8,
-      headDim: 128,
-    };
-  }
-  if (parametersB <= 160) {
-    return {
-      layers: 96,
-      hidden: 10_240,
-      attentionHeads: 80,
-      kvHeads: 8,
-      headDim: 128,
-    };
-  }
-  return {
-    layers: 120,
-    hidden: 12_288,
-    attentionHeads: 96,
-    kvHeads: 8,
-    headDim: 128,
-  };
+  const bucket =
+    ARCHITECTURE_BUCKETS.find(({ maxB }) => parametersB <= maxB) ??
+    ARCHITECTURE_BUCKETS[ARCHITECTURE_BUCKETS.length - 1];
+  return bucket.architecture;
 }
 
 /**

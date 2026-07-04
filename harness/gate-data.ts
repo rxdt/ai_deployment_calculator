@@ -88,13 +88,17 @@ export const FORBIDDEN_PATTERNS = [
 const HARNESS_BIN = "harness/node_modules/.bin";
 const tool = (name: string): string => path.join(HARNESS_BIN, name);
 
-// Fast checks every committer pays. Tools auto-discover the project's own config (cosmiconfig),
-// falling back to their built-in defaults; the gate supplies only scope + policy flags.
+// Fast checks every committer pays. Each check names its harness-owned config explicitly: the
+// configs live in harness/ (protected as FORBIDDEN_FILES) and are NOT ancestors of the linted
+// files, so the tools' own cosmiconfig walk-up would never find them — the --config flag is what
+// makes the protected config actually govern the check.
 export const COMMIT_CHECKS: Record<string, string[]> = {
   format: [
     tool("prettier"),
     ".",
     "--check",
+    "--ignore-path",
+    "harness/.prettierignore",
     "--cache",
     "--cache-location",
     ".cache_prettier",
@@ -102,6 +106,8 @@ export const COMMIT_CHECKS: Record<string, string[]> = {
   eslint: [
     tool("eslint"),
     ".",
+    "--config",
+    "harness/eslint.config.js",
     "--cache",
     "--cache-location",
     ".",
@@ -110,21 +116,36 @@ export const COMMIT_CHECKS: Record<string, string[]> = {
   style: [
     tool("stylelint"),
     "**/*.css",
+    "--config",
+    "harness/stylelint.config.js",
     "--cache",
     "--cache-location",
     ".cache_stylelint",
     "--max-warnings=0",
     "--allow-empty-input",
   ],
-  html: [tool("html-validate"), "**/*.html"],
+  html: [
+    tool("html-validate"),
+    "--config",
+    "harness/.htmlvalidate.json",
+    "**/*.html",
+  ],
 };
 
 // The full bar: app, harness tooling, dependency/security, and browser checks.
+//
+// FOLLOW-UP (size budget): a per-package `size` check (size-limit) belongs here. The previous size
+// subsystem was removed during the library/template redesign; without it an agent can sneak
+// new/oversized files into a bundle without tripping a budget. Re-adding it means a `size` entry
+// here plus its tests (removed from gate.test.ts — recover the shape from Git history at a721b9a).
 export const FULL_CHECKS: Record<string, string[]> = {
   ...COMMIT_CHECKS,
-  // The project's own tsconfig.json governs its typecheck; the harness only enforces --noEmit.
+  // The harness-owned app tsconfig governs the typecheck (browser types, strict flags); pinned
+  // with -p so an agent can't repoint it at a weaker project tsconfig.
   typecheck: [
     tool("tsc"),
+    "-p",
+    "harness/tsconfig.app.json",
     "--noEmit",
     "--incremental",
     "--tsBuildInfoFile",
@@ -155,13 +176,29 @@ export const FULL_CHECKS: Record<string, string[]> = {
     "ajv-keywords",
   ],
   packageJson: [tool("npmPkgJsonLint"), "."],
-  cruise: [tool("depcruise"), "frontend/src", "--output-type", "err"],
-  deadcode: [tool("knip")],
-  spelling: [tool("cspell"), ".", "--no-progress", "--no-summary"],
+  cruise: [
+    tool("depcruise"),
+    "frontend/src",
+    "--config",
+    "harness/.dependency-cruiser.cjs",
+    "--output-type",
+    "err",
+  ],
+  deadcode: [tool("knip"), "--config", "harness/knip.json"],
+  spelling: [
+    tool("cspell"),
+    ".",
+    "--config",
+    "harness/cspell.json",
+    "--no-progress",
+    "--no-summary",
+  ],
   workflow: [
     tool("spectral"),
     "lint",
     ".github/workflows/ci.yml",
+    "--ruleset",
+    "harness/.spectral.yml",
     "--fail-severity=warn",
   ],
   sast: [
@@ -173,7 +210,12 @@ export const FULL_CHECKS: Record<string, string[]> = {
     "--error",
     "--metrics=off",
   ],
-  secrets: [tool("secretlint"), "**/*"],
+  secrets: [
+    tool("secretlint"),
+    "**/*",
+    "--secretlintrc",
+    "harness/.secretlintrc.json",
+  ],
   npmAudit: ["npm", "--prefix", "frontend", "audit", "--audit-level=high"],
   pnpmAudit: [
     tool("pnpm"),
@@ -203,7 +245,14 @@ export const FULL_CHECKS: Record<string, string[]> = {
     "--lockfile=harness/package-lock.json",
   ],
   build: ["npm", "--prefix", "frontend", "run", "build"],
-  coverage: [tool("vitest"), "run", "--coverage"],
-  e2e: [tool("playwright"), "test"],
-  lighthouse: [tool("lhci"), "autorun"],
+  coverage: [
+    tool("vitest"),
+    "run",
+    "--config",
+    "harness/vitest.config.js",
+    "--cache",
+    "--coverage",
+  ],
+  e2e: [tool("playwright"), "test", "--config", "harness/playwright.config.js"],
+  lighthouse: [tool("lhci"), "autorun", "--config", "harness/lighthouserc.cjs"],
 };

@@ -60,8 +60,8 @@ const requiredForbiddenPattern = (pattern: string): string => {
   return pattern;
 };
 
-const harnessTool = (name: string): string =>
-  path.join("harness/node_modules/.bin", name);
+// Harness-owned tools are invoked by bare name; the gate puts harness/node_modules/.bin on PATH.
+const harnessTool = (name: string): string => name;
 const commandText = (command: string[]): string => command.join(" ");
 const withEmptyPath = <T>(callback: () => T): T => {
   const originalPath = process.env.PATH;
@@ -190,32 +190,6 @@ const packageRoot = (
   };
 };
 
-const lockRootPackage = (
-  relpath: string,
-): {
-  dependencies: Record<string, string> | undefined;
-  devDependencies: Record<string, string> | undefined;
-} => {
-  const parsed = parseJsonObject(relpath);
-  const { packages } = parsed;
-  if (!isPlainObject(packages)) {
-    throw new Error(`${relpath} has no packages object`);
-  }
-  const root = packages[""];
-  if (!isPlainObject(root)) {
-    throw new Error(`${relpath} has no root package entry`);
-  }
-  const rootPackage = root;
-  return {
-    dependencies: isStringRecord(rootPackage.dependencies)
-      ? rootPackage.dependencies
-      : undefined,
-    devDependencies: isStringRecord(rootPackage.devDependencies)
-      ? rootPackage.devDependencies
-      : undefined,
-  };
-};
-
 const REQUIRED_INSTALLED_GATE_TOOLS: readonly {
   dependency: string;
   check: string;
@@ -297,16 +271,6 @@ const REQUIRED_INSTALLED_GATE_TOOLS: readonly {
     commandFragment: harnessTool("secretlint"),
   },
   {
-    dependency: "pnpm",
-    check: "pnpmAudit",
-    commandFragment: harnessTool("pnpm"),
-  },
-  {
-    dependency: "lockfile-lint",
-    check: "lockfile",
-    commandFragment: harnessTool("lockfile-lint"),
-  },
-  {
     dependency: "syncpack",
     check: "versions",
     commandFragment: harnessTool("syncpack"),
@@ -314,7 +278,7 @@ const REQUIRED_INSTALLED_GATE_TOOLS: readonly {
   {
     dependency: "vite",
     check: "build",
-    commandFragment: "npm --prefix frontend run build",
+    commandFragment: "--dir frontend run build",
   },
   {
     dependency: "vitest",
@@ -467,26 +431,8 @@ const REQUIRED_CHECK_POLICIES: readonly {
     ],
   },
   {
-    check: "npmAudit",
-    fragments: ["npm", "--prefix", "frontend", "audit", "--audit-level=high"],
-  },
-  {
-    check: "pnpmAudit",
-    fragments: [harnessTool("pnpm"), "--dir", "frontend", "audit", "high"],
-  },
-  {
-    check: "npmSignatures",
-    fragments: ["npm", "--prefix", "frontend", "audit", "signatures"],
-  },
-  {
-    check: "lockfile",
-    fragments: [
-      harnessTool("lockfile-lint"),
-      "frontend/package-lock.json",
-      "--allowed-hosts",
-      "npm",
-      "--validate-https",
-    ],
+    check: "audit",
+    fragments: ["pnpm", "--dir", "frontend", "audit", "--audit-level", "high"],
   },
   {
     check: "versions",
@@ -498,13 +444,13 @@ const REQUIRED_CHECK_POLICIES: readonly {
       "osv-scanner",
       "scan",
       "source",
-      "--lockfile=frontend/package-lock.json",
-      "--lockfile=harness/package-lock.json",
+      "--lockfile=frontend/pnpm-lock.yaml",
+      "--lockfile=harness/pnpm-lock.yaml",
     ],
   },
   {
     check: "build",
-    fragments: ["npm", "--prefix", "frontend", "run", "build"],
+    fragments: ["pnpm", "--dir", "frontend", "run", "build"],
   },
   {
     check: "coverage",
@@ -593,6 +539,16 @@ const makeInstallRepo = (scripts: Record<string, string>): string => {
   );
   mkdirSync(path.join(repo, "frontend/node_modules"), { recursive: true });
   mkdirSync(path.join(repo, "harness/node_modules"), { recursive: true });
+  // setup runs one workspace-aware `pnpm install` at the root; give the temp repo a workspace
+  // manifest + dependency-free member manifests so that install is a trivial no-op offline.
+  writeFileSync(
+    path.join(repo, "pnpm-workspace.yaml"),
+    "packages:\n  - frontend\n  - harness\n",
+  );
+  writeFileSync(
+    path.join(repo, "frontend", "package.json"),
+    `${JSON.stringify({ name: "setup-target-frontend", private: true }, null, 2)}\n`,
+  );
   writeFileSync(
     path.join(repo, "harness", "package.json"),
     `${JSON.stringify(
@@ -670,9 +626,11 @@ console.log(JSON.stringify(module.default));`,
 };
 
 const resolvedEslintConfig = (): EslintResolvedConfig => {
+  // This test spawns ESLint directly (not through the gate), so it needs the real binary path,
+  // not the bare name the gate resolves via its PATH-prepended checkEnvironment.
   const output = runCommand(
     [
-      harnessTool("eslint"),
+      "harness/node_modules/.bin/eslint",
       "--print-config",
       "sample.ts",
       "--config",
@@ -902,22 +860,22 @@ describe("runChecks", () => {
       expect(failures).toEqual([]);
     },
   );
+});
 
-  test("skips pnpm audit when pnpm is not installed (ENOENT)", () => {
-    const repo = makeRepo();
-    const failures = withEmptyPath(() =>
-      runChecks(repo, {
-        pnpmAudit: [
-          harnessTool("pnpm"),
-          "--dir",
-          "frontend",
-          "audit",
-          "--audit-level",
-          "high",
-        ],
-      }),
-    );
-    expect(failures).toEqual([]);
+describe("spelling check", () => {
+  // Spelling is advisory (`--no-exit-code`): running cspell exactly as the gate's `spelling` check
+  // does must NOT error, but must still WARN. This repo has real unknown words, so cspell reports
+  // them yet exits 0. Spawns cspell directly with the real binary path (the gate resolves the bare
+  // name via its PATH-prepended checkEnvironment, which this direct spawn does not set up).
+  test("cspell warns about unknown words but does not fail the gate", () => {
+    const [, ...args] = checkCommand(FULL_CHECKS, "spelling");
+    const result = spawnSync("harness/node_modules/.bin/cspell", args, {
+      cwd: REPO,
+      encoding: "utf8",
+      env: gitSafeEnvironment(),
+    });
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain("Unknown word");
   });
 });
 
@@ -938,8 +896,9 @@ describe("gate constants", () => {
         "docs/plan.md",
         "pyproject.toml",
         "package.json",
+        "pnpm-lock.yaml",
         "frontend/package.json",
-        "frontend/package-lock.json",
+        "frontend/pnpm-lock.yaml",
         "frontend/tsconfig.json",
         "harness/preferences.ts",
         "harness/package.json",
@@ -1354,7 +1313,7 @@ describe("loop containment", () => {
     runCommand(["git", "rm", "-q", "pyproject.toml"], repo);
     stageFile(repo, "frontend/src/report.ts", "export const y = 2;\n");
     process.env.RALPH_LOOP = "1";
-    expect(runPreflight(repo)).toEqual([]);
+    expect(runPreflight(repo, () => [])).toEqual([]);
     expect(stagedNames(repo)).not.toContain("pyproject.toml");
     expect(stagedNames(repo)).toContain("frontend/src/report.ts");
   });
@@ -1365,7 +1324,7 @@ describe("loop containment", () => {
     stageFile(repo, "pyproject.toml", "x = 1\n");
     stageFile(repo, "harness/gate.ts", "export const value = 1;\n");
     stageFile(repo, "frontend/src/report.ts", "export const y = 2;\n");
-    expect(runPreflight(repo)).toEqual([]);
+    expect(runPreflight(repo, () => [])).toEqual([]);
     const staged = stagedNames(repo);
     expect(staged).not.toContain("pyproject.toml");
     expect(staged).not.toContain("harness/gate.ts");
@@ -1378,7 +1337,7 @@ describe("loop containment (continued)", () => {
     const repo = makeRepo();
     stageFile(repo, "harness/gate.ts", "export const value = 1;\n");
     stageFile(repo, "frontend/src/report.ts", "export const y = 2;\n");
-    expect(runPreflight(repo)).toEqual([]);
+    expect(runPreflight(repo, () => [])).toEqual([]);
     expect(stagedNames(repo)).toContain("harness/gate.ts");
     expect(stagedNames(repo)).toContain("frontend/src/report.ts");
   });
@@ -1414,7 +1373,7 @@ describe("loop containment (continued)", () => {
     const repo = makeRepo();
     stageFile(repo, "harness/gate.ts", "export const value = 1;\n");
     stageFile(repo, "frontend/src/report.ts", "export const y = 2;\n");
-    expect(runPreflight(repo)).toEqual([]);
+    expect(runPreflight(repo, () => [])).toEqual([]);
     expect(stagedNames(repo)).toContain("harness/gate.ts");
     expect(stagedNames(repo)).toContain("frontend/src/report.ts");
   });
@@ -1426,7 +1385,7 @@ describe("loop containment (continued)", () => {
       const repo = makeRepo();
       stageFile(repo, "harness/gate.ts", "export const value = 1;\n");
       stageFile(repo, "frontend/src/report.ts", "export const y = 2;\n");
-      expect(runPreflight(repo)).toEqual([]);
+      expect(runPreflight(repo, () => [])).toEqual([]);
       expect(stagedNames(repo)).toContain("harness/gate.ts");
       expect(stagedNames(repo)).toContain("frontend/src/report.ts");
     },
@@ -1476,7 +1435,7 @@ describe("loop containment (continued)", () => {
       const repo = makeRepo();
       stageFile(repo, target, "updated\n");
       stageFile(repo, "frontend/src/report.ts", "export const keep = 1;\n");
-      expect(runPreflight(repo)).toEqual([]);
+      expect(runPreflight(repo, () => [])).toEqual([]);
       expect(stagedNames(repo)).not.toContain(target);
       expect(stagedNames(repo)).toContain("frontend/src/report.ts");
     },
@@ -1489,7 +1448,7 @@ describe("loop containment (continued)", () => {
     runCommand(["git", "rm", "-q", "harness/.htmlvalidate.json"], repo);
     stageFile(repo, "frontend/src/report.ts", "export const keep = 1;\n");
     process.env.RALPH_LOOP = "1";
-    expect(runPreflight(repo)).toEqual([]);
+    expect(runPreflight(repo, () => [])).toEqual([]);
     expect(stagedNames(repo)).not.toContain("harness/.htmlvalidate.json");
     expect(stagedNames(repo)).toContain("frontend/src/report.ts");
   });
@@ -1500,7 +1459,7 @@ describe("loop containment (continued)", () => {
     stageFile(repo, "frontend/src/state.ts", 'document.querySelector(".x");\n');
     runCommand(["rm", path.join(repo, "frontend/src/state.ts")], repo);
     expect(preferenceProblems(repo, ["frontend/src/state.ts"])).not.toEqual([]);
-    const isFlagged = runPreflight(repo).some((problem) =>
+    const isFlagged = runPreflight(repo, () => []).some((problem) =>
       problem.includes("class selector"),
     );
     expect(isFlagged).toBe(true);
@@ -1526,7 +1485,7 @@ describe("loop containment (continued)", () => {
       path.join(repo, "frontend/src/state.ts"),
       "const _bad = 1;\n",
     );
-    expect(runPreflight(repo)).toEqual([]);
+    expect(runPreflight(repo, () => [])).toEqual([]);
   });
 
   test("ejects both sides of a rename when the destination is forbidden", () => {
@@ -1540,7 +1499,7 @@ describe("loop containment (continued)", () => {
       repo,
     );
     stageFile(repo, "frontend/src/state.ts", "export const keep = 1;\n");
-    expect(runPreflight(repo)).toEqual([]);
+    expect(runPreflight(repo, () => [])).toEqual([]);
     const staged = stagedNames(repo);
     expect(staged).not.toContain("frontend/src/report.ts");
     expect(staged).not.toContain("harness/gate.ts");
@@ -1559,7 +1518,7 @@ describe("loop containment (continued)", () => {
     );
     stageFile(repo, "frontend/src/state.ts", "export const keep = 1;\n");
 
-    expect(runPreflight(repo)).toEqual([]);
+    expect(runPreflight(repo, () => [])).toEqual([]);
     const staged = stagedNames(repo);
     expect(staged).not.toContain("harness/gate.ts");
     expect(staged).not.toContain("frontend/src/report.ts");
@@ -1571,7 +1530,7 @@ describe("loop containment (continued)", () => {
     const repo = makeRepo();
     stageFile(repo, "harness/gate.ts", "const _bad = 1;\n");
     stageFile(repo, "frontend/src/report.ts", "export const keep = 1;\n");
-    expect(runPreflight(repo)).toEqual([]);
+    expect(runPreflight(repo, () => [])).toEqual([]);
     expect(stagedNames(repo)).toEqual(["frontend/src/report.ts"]);
   });
 
@@ -1707,7 +1666,7 @@ describe("banned patterns and preferences under loop", () => {
     );
     runCommand(["git", "commit", "-q", "-m", "add legacy suppression"], repo);
     stageFile(repo, "frontend/src/state.ts", "export const value = 2;\n");
-    expect(runPreflight(repo)).toEqual([]);
+    expect(runPreflight(repo, () => [])).toEqual([]);
     expect(stagedNames(repo)).toEqual(["frontend/src/state.ts"]);
   });
 
@@ -1733,7 +1692,7 @@ describe("banned patterns and preferences under loop", () => {
         "export const after = 1;\n",
       ].join(""),
     );
-    expect(runPreflight(repo)).toEqual([]);
+    expect(runPreflight(repo, () => [])).toEqual([]);
     expect(stagedNames(repo)).toEqual(["frontend/src/state.ts"]);
   });
 
@@ -1842,11 +1801,11 @@ describe("harness setup script merging", () => {
     expect(scripts.build).toBe("vite build");
     expect(scripts.gate).toBe("node harness/harness.mjs gate");
     expect(scripts.setup).toBe("node harness/harness.mjs setup");
-    expect(scripts.lint).toBe("npm --prefix harness run lint");
+    expect(scripts.lint).toBe("pnpm --prefix harness run lint");
     expect(scripts.loop).toBe("node harness/harness.mjs loop");
     expect(scripts.status).toBe("node harness/harness.mjs status");
-    expect(scripts.test).toBe("npm --prefix harness run test:coverage");
-    expect(scripts["test:file"]).toBe("npm --prefix harness run test:file --");
+    expect(scripts.test).toBe("pnpm --prefix harness run test:coverage");
+    expect(scripts["test:file"]).toBe("pnpm --prefix harness run test:file --");
     expect(Object.hasOwn(scripts, "run")).toBe(false);
   });
 
@@ -1864,9 +1823,9 @@ describe("harness setup script merging", () => {
     expect(scripts.gate).toBe("node custom-gate.js");
     expect(scripts.lint).toBe("eslint app");
     expect(scripts.test).toBe("node custom-test.js");
-    expect(scripts["harness:lint"]).toBe("npm --prefix harness run lint");
+    expect(scripts["harness:lint"]).toBe("pnpm --prefix harness run lint");
     expect(scripts["harness:test"]).toBe(
-      "npm --prefix harness run test:coverage",
+      "pnpm --prefix harness run test:coverage",
     );
   });
 
@@ -1895,9 +1854,9 @@ describe("harness setup script merging", () => {
     expect(scripts.status).toBe("node project-status.js");
     expect(scripts.test).toBe("node project-test.js");
     expect(scripts["test:file"]).toBe("node project-test-file.js");
-    expect(scripts["harness:lint"]).toBe("npm --prefix harness run lint");
+    expect(scripts["harness:lint"]).toBe("pnpm --prefix harness run lint");
     expect(scripts["harness:test"]).toBe(
-      "npm --prefix harness run test:coverage",
+      "pnpm --prefix harness run test:coverage",
     );
     expect(Object.hasOwn(scripts, "harness:gate")).toBe(false);
     expect(Object.hasOwn(scripts, "harness:setup")).toBe(false);
@@ -1981,7 +1940,7 @@ describe("frontend gate shape", () => {
     for (const target of [
       ".github/workflows/ci.yml",
       "frontend/index.html",
-      "frontend/package-lock.json",
+      "frontend/pnpm-lock.yaml",
       "frontend/package.json",
       "harness/tsconfig.app.json",
     ]) {
@@ -1996,14 +1955,12 @@ describe("frontend gate shape", () => {
     const failures = runGate(repo, (runnerRepo, checks) => {
       seenRepo = runnerRepo;
       selected = pickChecks(checks, [
+        "audit",
         "build",
         "coverage",
         "e2e",
         "lighthouse",
-        "npmAudit",
-        "npmSignatures",
         "osv",
-        "pnpmAudit",
         "sast",
       ]);
       return [];
@@ -2015,18 +1972,16 @@ describe("frontend gate shape", () => {
     }
     const chosen = selected;
     expect(Object.keys(chosen).toSorted((a, b) => a.localeCompare(b))).toEqual([
+      "audit",
       "build",
       "coverage",
       "e2e",
       "lighthouse",
-      "npmAudit",
-      "npmSignatures",
       "osv",
-      "pnpmAudit",
       "sast",
     ]);
     expect(commandText(checkCommand(chosen, "build"))).toBe(
-      "npm --prefix frontend run build",
+      "pnpm --dir frontend run build",
     );
     expect(commandText(checkCommand(chosen, "coverage"))).toContain(
       "harness/vitest.config.js --cache --coverage",
@@ -2037,20 +1992,14 @@ describe("frontend gate shape", () => {
     expect(commandText(checkCommand(chosen, "lighthouse"))).toContain(
       "harness/lighthouserc.cjs",
     );
-    expect(commandText(checkCommand(chosen, "npmAudit"))).toBe(
-      "npm --prefix frontend audit --audit-level=high",
-    );
-    expect(commandText(checkCommand(chosen, "npmSignatures"))).toBe(
-      "npm --prefix frontend audit signatures",
-    );
-    expect(commandText(checkCommand(chosen, "pnpmAudit"))).toBe(
-      `${harnessTool("pnpm")} --dir frontend audit --audit-level high`,
+    expect(commandText(checkCommand(chosen, "audit"))).toBe(
+      "pnpm --dir frontend audit --audit-level high",
     );
     expect(commandText(checkCommand(chosen, "sast"))).toContain(
       "semgrep scan --config=p/typescript --config=p/javascript --config=p/security-audit --error --metrics=off",
     );
     expect(commandText(checkCommand(chosen, "osv"))).toBe(
-      "osv-scanner scan source --lockfile=frontend/package-lock.json --lockfile=harness/package-lock.json",
+      "osv-scanner scan source --lockfile=frontend/pnpm-lock.yaml --lockfile=harness/pnpm-lock.yaml",
     );
   });
 
@@ -2144,16 +2093,6 @@ describe("frontend gate shape", () => {
       required: ["**/*", "--secretlintrc harness/.secretlintrc.json"],
     },
     {
-      check: "lockfile",
-      tool: "lockfile-lint",
-      required: [
-        "--path frontend/package-lock.json",
-        "--type npm",
-        "--allowed-hosts npm",
-        "--validate-https",
-      ],
-    },
-    {
       check: "spelling",
       tool: "cspell",
       required: [".", "--config harness/cspell.json"],
@@ -2222,37 +2161,37 @@ describe("frontend gate shape", () => {
         "test:file",
       ],
     );
-    expect(scripts.test).toBe("npm --prefix harness run test:coverage");
-    expect(scripts["test:file"]).toBe("npm --prefix harness run test:file --");
-    expect(scripts.lint).toBe("npm --prefix harness run lint");
+    expect(scripts.test).toBe("pnpm --filter ./harness coverage");
+    expect(scripts["test:file"]).toBe("pnpm --filter ./harness test:file --");
+    expect(scripts.lint).toBe("pnpm --filter ./harness lint");
     expect(scripts.gate).toBe("node harness/harness.mjs gate");
     expect(scripts.preflight).toBe("node harness/harness.mjs preflight");
   });
 
   test("harness package scripts use generic repo-wide file targets", () => {
     const scripts = readPackageScripts("harness/package.json");
+    // Harness npm scripts run via `pnpm run`, which puts the workspace node_modules/.bin on PATH,
+    // so tools are invoked by bare name (the pnpm-idiomatic form) — no hard-coded .bin path.
     expect(scripts.eslint).toBe(
-      "cd .. && harness/node_modules/.bin/eslint . --config harness/eslint.config.js --cache --cache-location . --max-warnings=0",
+      "cd .. && eslint . --config harness/eslint.config.js --cache --cache-location . --max-warnings=0",
     );
     expect(scripts.style).toBe(
-      'cd .. && harness/node_modules/.bin/stylelint "**/*.css" --config harness/stylelint.config.js --max-warnings=0 --allow-empty-input',
+      'cd .. && stylelint "**/*.css" --config harness/stylelint.config.js --max-warnings=0 --allow-empty-input',
     );
     expect(scripts.html).toBe(
-      'cd .. && harness/node_modules/.bin/html-validate --config harness/.htmlvalidate.json "**/*.html"',
+      'cd .. && html-validate --config harness/.htmlvalidate.json "**/*.html"',
     );
     expect(scripts.typecheck).toBe(
-      "npm run typecheck:harness && npm run typecheck:project",
+      "pnpm typecheck:harness && pnpm typecheck:project",
     );
     expect(scripts["typecheck:project"]).toBe(
-      "cd .. && harness/node_modules/.bin/tsc -p harness/tsconfig.app.json --noEmit",
+      "cd .. && tsc -p harness/tsconfig.app.json --noEmit",
     );
-    expect(scripts["typecheck:frontend"]).toBe("npm run typecheck:project");
+    expect(scripts["typecheck:frontend"]).toBe("pnpm typecheck:project");
     expect(scripts["typecheck:frontend"]).not.toContain(
       "frontend/tsconfig.json",
     );
-    expect(scripts["lint:design"]).toBe(
-      "cd .. && harness/node_modules/.bin/designmd lint DESIGN.md",
-    );
+    expect(scripts["lint:design"]).toBe("cd .. && designmd lint DESIGN.md");
   });
 
   test("harness app tsconfig owns the repo TypeScript include set and strict flags", () => {
@@ -2313,7 +2252,7 @@ describe("frontend gate shape", () => {
     );
     expect(scripts.build).toBe("vite build");
     expect(scripts.dev).toContain("vite");
-    expect(scripts.test).toBe("npm run test:coverage");
+    expect(scripts.test).toBe("pnpm test:coverage");
     expect(scripts["test:coverage"]).toContain("../harness");
     expect(scripts.lint).toContain("../harness");
     for (const hidden of [
@@ -2332,17 +2271,9 @@ describe("frontend gate shape", () => {
     }
   });
 
-  test.each(["frontend", "harness"])(
-    "%s package lock matches manifest root dependencies",
-    (root) => {
-      const manifest = packageRoot(`${root}/package.json`);
-      const lock = lockRootPackage(`${root}/package-lock.json`);
-      expect(lock.dependencies ?? {}).toEqual(manifest.dependencies ?? {});
-      expect(lock.devDependencies ?? {}).toEqual(
-        manifest.devDependencies ?? {},
-      );
-    },
-  );
+  // (Removed: "package lock matches manifest root dependencies" — that npm-lock invariant is now
+  // enforced by pnpm itself at install time; pnpm refuses to install packages absent from
+  // package.json, and pnpm-lock.yaml's shape is not the npm packages[""] map this test parsed.)
 
   test("vitest coverage thresholds are all 100 in exported config", () => {
     const config = importedVitestConfig();
@@ -2448,21 +2379,21 @@ describe("frontend gate shape", () => {
       "#!/bin/sh\nset -eu\n\nnode harness/harness.mjs gate\n",
     );
     expect(githubCi).toContain("node harness/harness.mjs gate");
-    expect(githubCi).not.toContain("npm run gate");
+    expect(githubCi).not.toContain("npmp gate");
   });
 
   test("GitHub CI installs the root workspace before the gate", () => {
     const githubCi = readRepo(".github/workflows/ci.yml");
-    expect(githubCi).toContain("cache-dependency-path: package-lock.json");
-    expect(githubCi).toContain("run: npm ci");
-    expect(githubCi).not.toContain("**/package-lock.json");
-    expect(githubCi).not.toContain("npm ci --prefix");
+    expect(githubCi).toContain("cache-dependency-path: pnpm-lock.yaml");
+    expect(githubCi).toContain("run: pnpm install --frozen-lockfile");
+    expect(githubCi).not.toContain("**/pnpm-lock.yaml");
+    expect(githubCi).not.toContain("package-lock.json");
   });
 
   test("GitHub CI runs browser setup and gate through the harness", () => {
     const githubCi = readRepo(".github/workflows/ci.yml");
     expect(githubCi).toContain(
-      "run: npm --prefix harness run setup:e2e -- chromium",
+      "run: pnpm --dir harness run setup:e2e -- chromium",
     );
     expect(githubCi).toContain("run: node harness/harness.mjs gate");
   });

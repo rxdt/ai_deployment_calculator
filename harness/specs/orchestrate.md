@@ -60,7 +60,7 @@ Goal: Maintain global state. Coordinate short headless agents until `docs/plan.m
 
 ## Acceptance Signals
 
-- `npm run gate` passes.
+- `pnpm gate` passes.
 - No frontend source calls `/api/report`.
 - Only javascript frontend calculator path + python harness relic remains.
 - README/specs describe Vite-only operation.

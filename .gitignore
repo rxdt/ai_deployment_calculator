@@ -12,3 +12,5 @@ dist/
 **/.playwright-*
 specs/fp_*
 scratchpad/
+*pnpm-debug.log
+.npmrc

@@ -9,11 +9,11 @@ const LOOP_SETUP_ERROR = "harness setup must not run inside the agent loop\n";
 const ROOT_SCRIPTS: Record<string, string> = {
   gate: "node harness/harness.mjs gate",
   setup: "node harness/harness.mjs setup",
-  lint: "npm --prefix harness run lint",
+  lint: "pnpm --prefix harness run lint",
   loop: "node harness/harness.mjs loop",
   status: "node harness/harness.mjs status",
-  test: "npm --prefix harness run test:coverage",
-  "test:file": "npm --prefix harness run test:file --",
+  test: "pnpm --prefix harness run test:coverage",
+  "test:file": "pnpm --prefix harness run test:file --",
 };
 const CODEX_COMMAND = (
   "env -u CODEX_THREAD_ID -u CODEX_CONVERSATION_ID -u CODEX_SESSION_ID " +
@@ -156,40 +156,69 @@ const runStatus = (): number => {
   return 0;
 };
 
-const hasScript = (repo: string, name: string): boolean =>
-  spawnSync("npm", ["pkg", "get", `scripts.${name}`], {
-    cwd: repo,
-    encoding: "utf8",
-  }).stdout.trim() !== "{}";
+const isObjectRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
 
-const addRootScripts = (repo: string): number => {
-  const args = ["set"];
+const isStringRecord = (value: unknown): value is Record<string, string> =>
+  isObjectRecord(value) &&
+  Object.values(value).every((entry) => typeof entry === "string");
+
+// Merge the harness root scripts into an existing scripts map (mutates + returns it). A `lint`/
+// `test` name the project already defines is kept; the harness command is added under a
+// `harness:<name>` alias instead so the project's own script wins.
+const mergeRootScripts = (
+  scripts: Record<string, string>,
+): Record<string, string> => {
   for (const [name, command] of Object.entries(ROOT_SCRIPTS)) {
-    const alias = `harness:${name}`;
-    if (!hasScript(repo, name)) args.push(`scripts.${name}=${command}`);
-    else if ((name === "lint" || name === "test") && !hasScript(repo, alias))
-      args.push(`scripts.${alias}=${command}`);
+    if (!Object.hasOwn(scripts, name)) scripts[name] = command;
+    else if (
+      (name === "lint" || name === "test") &&
+      !Object.hasOwn(scripts, `harness:${name}`)
+    )
+      scripts[`harness:${name}`] = command;
   }
-  if (args.length === 1) return 0;
-  const result = spawnSync("npm", ["pkg", ...args], {
-    cwd: repo,
-    encoding: "utf8",
-  });
-  if (result.status !== 0) process.stderr.write(result.stderr);
-  return result.status ?? 0;
+  return scripts;
+};
+
+// Add the harness root scripts by editing package.json directly. (`pnpm pkg set` can't address a
+// script key containing ":" like "test:file" — it errors ERR_PNPM_UNEXPECTED_TOKEN_IN_PROPERTY_PATH
+// — so we read/merge/write the file ourselves, which also handles every other key.)
+const addRootScripts = (repo: string): number => {
+  const packagePath = path.join(repo, "package.json");
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(fs.readFileSync(packagePath, "utf8"));
+  } catch {
+    process.stderr.write("harness setup: cannot read root package.json\n");
+    return 1;
+  }
+  if (!isObjectRecord(parsed)) {
+    process.stderr.write("harness setup: root package.json is not an object\n");
+    return 1;
+  }
+  const existing = parsed.scripts;
+  parsed.scripts = mergeRootScripts(
+    isStringRecord(existing) ? { ...existing } : {},
+  );
+  fs.writeFileSync(packagePath, `${JSON.stringify(parsed, null, 2)}\n`);
+  return 0;
 };
 
 const installPackages = (repo: string): number => {
-  for (const directory of ["harness", "frontend"]) {
-    if (!fs.existsSync(path.join(repo, directory, "package.json"))) continue;
-    const result = spawnSync("npm", ["install"], {
-      cwd: path.join(repo, directory),
-      stdio: "inherit",
-    });
-    if (result.status !== 0) {
-      process.stderr.write("npm install failed\n");
-      return result.status ?? 1;
-    }
+  // One workspace-aware install at the repo root installs every workspace project (frontend +
+  // harness). `--ignore-scripts`: setup must not run the target repo's install/postinstall
+  // lifecycle hooks (untrusted code, and not needed to fetch the harness toolchain).
+  const result = spawnSync("pnpm", ["install", "--ignore-scripts"], {
+    cwd: repo,
+    encoding: "utf8",
+  });
+  if (result.status !== 0) {
+    const detail =
+      result.error === undefined
+        ? `${result.stdout}${result.stderr}`
+        : String(result.error);
+    process.stderr.write(`pnpm install failed\n${detail}\n`);
+    return result.status ?? 1;
   }
   return 0;
 };

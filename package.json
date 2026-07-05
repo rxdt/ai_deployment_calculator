@@ -8,21 +8,21 @@
   },
   "engines": {
     "node": "^22.16.0 || >=24.8.0",
-    "npm": ">=10"
+    "pnpm": ">=10"
   },
   "scripts": {
-    "build": "npm --prefix frontend run build",
-    "dev": "npm --prefix frontend run dev",
-    "preview": "npm --prefix frontend run preview",
+    "build": "pnpm --prefix frontend run build",
+    "dev": "pnpm --prefix frontend run dev",
+    "preview": "pnpm --prefix frontend run preview",
     "preflight": "node harness/harness.mjs preflight",
     "gate": "node harness/harness.mjs gate",
     "loop": "node harness/harness.mjs loop",
     "status": "node harness/harness.mjs status",
     "setup": "node harness/harness.mjs setup",
-    "lint": "npm --prefix harness run lint",
-    "test": "npm --prefix harness run test:coverage",
-    "test:file": "npm --prefix harness run test:file --",
-    "harness:lint": "npm --prefix harness run lint",
-    "harness:test": "npm --prefix harness run test:coverage"
+    "lint": "pnpm --filter ./harness lint",
+    "test": "pnpm --filter ./harness coverage",
+    "test:file": "pnpm --filter ./harness test:file --",
+    "harness:lint": "pnpm --filter ./harness lint",
+    "harness:test": "pnpm --filter ./harness coverage"
   }
 }

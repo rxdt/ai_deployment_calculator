@@ -1,0 +1,8 @@
+packages:
+  - "frontend"
+  - "harness"
+
+allowBuilds:
+  esbuild: true
+  "@scarf/scarf": false
+  unrs-resolver: false

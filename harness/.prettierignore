@@ -6,3 +6,5 @@
 **/.lighthouseci/
 **/scratchpad/
 **/.lighthouseci/
+# generated lockfiles are not hand-formatted
+**/pnpm-lock.yaml

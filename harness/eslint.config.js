@@ -357,7 +357,7 @@ export default defineConfig([
       "no-console": "off",
     },
   },
-  // JSON family files, linted via `npm run json:lint`.
+  // JSON family files, linted via `pnpm json:lint`.
   {
     files: ["**/*.json"],
     ignores: ["tsconfig*.json"],

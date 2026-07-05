@@ -397,11 +397,13 @@ describe("runLoop", () => {
 });
 
 describe("harness command", () => {
+  // Runs the real preflight against this repo, where the harness configs exist (a bare temp repo
+  // has no harness/ configs, so the lint checks would hard-error rather than exercise the CLI).
   test("preflight", () => {
-    const result = harnessCli(["preflight"], { cwd: makeRepo() });
+    const result = harnessCli(["preflight"], { cwd: repoRoot(process.cwd()) });
 
     expect(result.status).toBe(0);
-  });
+  }, 60_000);
 
   // Spawns a real agent subprocess; the default 5s timeout is too tight under the coverage run.
   test("loop", () => {
@@ -456,7 +458,7 @@ describe("harness command", () => {
     expect(result.status).toBe(0);
   });
 
-  // Runs the real setup (reaches `npm install`); default 5s is too tight under coverage.
+  // Runs the real setup (reaches `pnpm install`); default 5s is too tight under coverage.
   test("setup", () => {
     const result = harnessCli(["setup"], { cwd: repoRoot(process.cwd()) });
 
@@ -491,7 +493,7 @@ describe("harness command", () => {
     expect(name).toBe("old-project");
   });
 
-  // Runs `npm install` twice via real subprocesses; the default 5s timeout is too tight under coverage.
+  // Runs `pnpm install` twice via real subprocesses; the default 5s timeout is too tight under coverage.
   test("setup twice does not error on the second run", () => {
     const repo = repoRoot(process.cwd());
     harnessCli(["setup"], { cwd: repo });

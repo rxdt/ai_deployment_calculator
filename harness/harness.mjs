@@ -20,7 +20,7 @@ try {
     process.exit(1);
   }
   const code =
-    spawnSync("npm", ["install"], { cwd: here, stdio: "inherit" }).status ?? 1;
+    spawnSync("pnpm", ["install"], { cwd: here, stdio: "inherit" }).status ?? 1;
   if (code !== 0) {
     process.stderr.write("harness: failed to install harness dependencies\n");
     process.exit(code);

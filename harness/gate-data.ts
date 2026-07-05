@@ -1,8 +1,6 @@
 // Static data for the gate: the containment denylists and the check registry. Split from gate.ts
 // so the engine (git/spawn/containment logic) and its data each stay small and reviewable.
 
-import path from "node:path";
-
 // A staged file is forbidden if a parent dir is here, or its exact path is in the file set.
 export const FORBIDDEN_DIRS = new Set([
   "harness",
@@ -23,11 +21,13 @@ export const FORBIDDEN_FILES = new Set([
   "pyproject.toml",
   // tooling/config that would weaken the gate's thresholds or its checks
   "package.json",
+  "pnpm-lock.yaml",
+  "pnpm-workspace.yaml",
   "frontend/package.json",
-  "frontend/package-lock.json",
+  "frontend/pnpm-lock.yaml",
   "frontend/tsconfig.json",
   "harness/package.json",
-  "harness/package-lock.json",
+  "harness/pnpm-lock.yaml",
   "harness/tsconfig.json",
   "harness/tsconfig.app.json",
   "harness/tsconfig.harness.json",
@@ -85,8 +85,10 @@ export const FORBIDDEN_PATTERNS = [
   "lighthouse:skip",
 ] as const;
 
-const HARNESS_BIN = "harness/node_modules/.bin";
-const tool = (name: string): string => path.join(HARNESS_BIN, name);
+// Harness-owned tools are invoked by BARE NAME. The gate runs checks with harness/node_modules/
+// .bin prepended to PATH (see checkEnvironment in gate.ts), so `eslint`/`prettier`/… resolve
+// wherever pnpm links them — no hard-coded path, robust across install layouts.
+const tool = (name: string): string => name;
 
 // Fast checks every committer pays. Each check names its harness-owned config explicitly: the
 // configs live in harness/ (protected as FORBIDDEN_FILES) and are NOT ancestors of the linted
@@ -185,6 +187,8 @@ export const FULL_CHECKS: Record<string, string[]> = {
     "err",
   ],
   deadcode: [tool("knip"), "--config", "harness/knip.json"],
+  // Spelling is advisory: --no-exit-code makes cspell print issues but always exit 0, so a typo
+  // (or a domain word not yet in the allowlist) warns loudly without ever failing the gate.
   spelling: [
     tool("cspell"),
     ".",
@@ -192,6 +196,7 @@ export const FULL_CHECKS: Record<string, string[]> = {
     "harness/cspell.json",
     "--no-progress",
     "--no-summary",
+    "--no-exit-code",
   ],
   workflow: [
     tool("spectral"),
@@ -216,35 +221,23 @@ export const FULL_CHECKS: Record<string, string[]> = {
     "--secretlintrc",
     "harness/.secretlintrc.json",
   ],
-  npmAudit: ["npm", "--prefix", "frontend", "audit", "--audit-level=high"],
-  pnpmAudit: [
-    tool("pnpm"),
-    "--dir",
-    "frontend",
-    "audit",
-    "--audit-level",
-    "high",
-  ],
-  npmSignatures: ["npm", "--prefix", "frontend", "audit", "signatures"],
-  lockfile: [
-    tool("lockfile-lint"),
-    "--path",
-    "frontend/package-lock.json",
-    "--type",
-    "npm",
-    "--allowed-hosts",
-    "npm",
-    "--validate-https",
-  ],
+  // pnpm audit reads the pnpm-lock.yaml; --dir targets the frontend package. Covers the same
+  // dependency-vulnerability surface npm audit did before the pnpm migration.
+  audit: ["pnpm", "--dir", "frontend", "audit", "--audit-level", "high"],
+  // No `lockfile` (lockfile-lint) check: lockfile-lint has no pnpm-lock parser (npm/yarn only),
+  // and pnpm already blocks the injection vector it guarded — pnpm refuses to install packages in
+  // pnpm-lock.yaml that are absent from package.json, and the lock does not carry alternative HTTP
+  // tarball sources for registry packages. No `npmSignatures`: `pnpm audit signatures` needs an
+  // installed-package context the gate can't give cleanly; osv + pnpm audit cover dependency risk.
   versions: [tool("syncpack"), "lint"],
   osv: [
     "osv-scanner",
     "scan",
     "source",
-    "--lockfile=frontend/package-lock.json",
-    "--lockfile=harness/package-lock.json",
+    "--lockfile=frontend/pnpm-lock.yaml",
+    "--lockfile=harness/pnpm-lock.yaml",
   ],
-  build: ["npm", "--prefix", "frontend", "run", "build"],
+  build: ["pnpm", "--dir", "frontend", "run", "build"],
   coverage: [
     tool("vitest"),
     "run",

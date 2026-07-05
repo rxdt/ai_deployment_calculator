@@ -1,5 +1,4 @@
 {
-  "version": "0.2",
   "language": "en",
   "severity": "Warning",
   "ignorePaths": [
@@ -72,6 +71,10 @@
     "uncheckpointed",
     "venv",
     "vitest",
-    "worktree"
+    "worktree",
+    "BASENAMES",
+    "deadcode",
+    "nosec",
+    "htmlvalidate"
   ]
 }

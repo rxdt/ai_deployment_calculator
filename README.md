@@ -31,7 +31,7 @@ flowchart LR
 
 ## Install
 
-On a fresh drop-in, bootstrap by invoking the harness directly (the `npm run
+On a fresh drop-in, bootstrap by invoking the harness directly (the `pnpm
 setup` script does not exist yet — `setup` is what creates it):
 
 ```sh
@@ -44,14 +44,14 @@ Git hooks, and rewrites harness commands to use any existing user config file,
 even if that file is empty. Setup checks for config file presence only; the
 check command validates the config later ([harness/cli.ts](harness/cli.ts#L263)).
 
-After setup, the added root scripts work from the repository root: `npm run
-gate`, `npm run loop`, `npm run status`, and re-running setup via `npm run
+After setup, the added root scripts work from the repository root: `pnpm
+gate`, `pnpm loop`, `pnpm status`, and re-running setup via `pnpm
 setup`.
 
 ## Run
 
 ```sh
-cd frontend && npm run dev -- --port 5173
+cd frontend && pnpm dev -- --port 5173
 ```
 
 `http://127.0.0.1:5173`.
@@ -59,25 +59,25 @@ cd frontend && npm run dev -- --port 5173
 Build:
 
 ```sh
-cd frontend && npm run build
+cd frontend && pnpm build
 ```
 
 Preview:
 
 ```sh
-cd frontend && npm run preview
+cd frontend && pnpm preview
 ```
 
 ## Faster checks
 
 ```sh
-npm run preflight
+pnpm preflight
 ```
 
 ## Full checks (lint, tests, security, type-checking, etc.)
 
 ```sh
-npm run gate
+pnpm preflight
 ```
 
 ## Harness behavior
@@ -103,7 +103,7 @@ Gate-only security policy:
   - Dependency audit/signature network checks run only in `gate`; scheduled or
     release runs can add coverage without making local preflight slow.
 - Cache aggressively in CI:
-  - npm cache keyed by lockfiles.
+  - pnpm cache keyed by lockfiles.
   - Playwright browser cache keyed by the Playwright package/lockfile version.
   - Vitest/Vite cache if the harness persists their cache directories.
   - TypeScript incremental cache if the harness permits `.tsbuildinfo` reuse.
@@ -135,10 +135,10 @@ Closed: skip-by-`package.json`-deletion, case-fold/normalized forbidden paths, m
 ## Loop
 
 ```sh
-npm run harness loop <agent> <#> <$>
+pnpm loop <agent> <#> <$>
 ```
 
-For any other harness command, use `npm run harness -- <command>`.
+For any other harness command [status|setup|preflight|gate|loop], use `pnpm <command>`.
 
 > do NOT DELETE!:
 
@@ -147,10 +147,10 @@ For any other harness command, use `npm run harness -- <command>`.
 - Semgrep CA trust-store issue triggered from sandbox. `env -u SEMGREP_SEND_METRICS harness loop...` with agent launch bypasses,
 - Except for `plan.md`, all `.md` documents should stay < 100 lines.
 - prompt precedence/context leakage into the worker when orchestrator launches headless agent even when prompt says _'do NOT orchestrate, do THIS.'_
-- when running an orchestrator, `harness loop codex` is giving the child enough context that it follows specs/orchestrate.md
+- when running an orchestrator, `pnpm loop codex <args>` is giving the child enough context that it follows specs/orchestrate.md
 - using the old harness Python ralph.sh NOT the new (supposted to be identical Js ralph.sh)
 - `Claude flags --bare --no-session-persistence --fork-session`
-- npm exec --package . -- harness loop codex 1 20
+- pnpm --package . -- harness loop codex 1 20
 - `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1 claude -p --permission-mode acceptEdits --output-format stream-json "Act as the team lead. Create an agent team, split this repo work into frontend verification, backend/docs verification, and review teammates. Coordinate through the shared task list. Do not run nested harness commands."` <- orchestrater prompt
 - `codex exec --json "Spawn explorer and worker subagents..."`, Codex spawns flat, parallel worker threads (explorer, reviewer, worker) in a managed cloud environment or local worktree to split up tasks simultaneously. Sub-types: default, worker, explorer (read-heavy). ORCHESTRATE: Spawn two Codex subagents:
   - explorer: read-only, map the relevant files and risks.

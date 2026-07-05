@@ -1,6 +1,6 @@
 /**
  * Architecture rules for the frontend TypeScript sources.
- * `npm run lint:arch` runs `depcruise src --output-type err`, so only
+ * `pnpm lint:arch` runs `depcruise src --output-type err`, so only
  * `error`-severity violations fail the gate.
  */
 module.exports = {
@@ -36,7 +36,7 @@ module.exports = {
     doNotFollow: { path: "node_modules" },
     tsPreCompilationDeps: true,
     tsConfig: {
-      fileName: "tsconfig.json",
+      fileName: "tsconfig.app.json",
     },
   },
 };

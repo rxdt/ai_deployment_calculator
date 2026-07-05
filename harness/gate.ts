@@ -55,6 +55,20 @@ export function gitSafeEnvironment(): NodeJS.ProcessEnv {
   );
 }
 
+// Check environment: the safe env plus the harness's own binary dir on PATH, so checks invoke
+// their tools by bare name (`eslint`, `prettier`, …) instead of a hard-coded path. This mirrors
+// what `pnpm run` does and resolves the tools wherever pnpm links them, while external tools
+// (semgrep, osv-scanner, pnpm) still resolve from the machine's own PATH.
+/**
+@param repo
+*/
+function checkEnvironment(repo: string): NodeJS.ProcessEnv {
+  const environment = gitSafeEnvironment();
+  const binDirectory = path.join(repo, "harness", "node_modules", ".bin");
+  environment.PATH = `${binDirectory}${path.delimiter}${environment.PATH ?? ""}`;
+  return environment;
+}
+
 // Run a Git command in the repo and return its stdout.
 /**
 @param repo
@@ -313,7 +327,7 @@ export function runChecks(
 ): string[] {
   const context: CheckContext = {
     repo,
-    environment: gitSafeEnvironment(),
+    environment: checkEnvironment(repo),
     timeoutMs,
   };
   return Object.entries(checks).flatMap(([name, command]) => {

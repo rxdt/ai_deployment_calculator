@@ -36,7 +36,7 @@ module.exports = {
     doNotFollow: { path: "node_modules" },
     tsPreCompilationDeps: true,
     tsConfig: {
-      fileName: "tsconfig.app.json",
+      fileName: "harness/tsconfig.app.json",
     },
   },
 };

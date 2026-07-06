@@ -3,18 +3,18 @@
   "ignoreDependencies": ["@secretlint/secretlint-rule-preset-recommend"],
   "ignoreBinaries": ["semgrep"],
   "include": ["files", "exports", "nsExports", "types", "nsTypes"],
-  "entry": [
-    "**/main.ts",
-    "**/index.ts",
-    "**/cli.ts",
-    "**/*.test.ts",
-    "**/*.spec.ts",
-    "**/*.config.js",
-    "**/*.config.cjs",
-    "**/*.config.mjs",
-    "**/*.config.ts",
-    "**/*.mjs",
-    "**/*.cjs"
-  ],
-  "project": ["**/*.ts", "**/*.mjs", "**/*.js", "**/*.cjs"]
+  "workspaces": {
+    "frontend": {
+      "project": ["src/**/*.ts"]
+    },
+    "harness": {
+      "entry": [
+        "cli.ts",
+        "*.config.{js,cjs,mjs,ts}",
+        "*.test.ts",
+        "lighthouserc.cjs"
+      ],
+      "project": ["*.ts", "*.{js,cjs,mjs}"]
+    }
+  }
 }

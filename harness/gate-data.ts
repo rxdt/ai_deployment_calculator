@@ -36,6 +36,7 @@ export const FORBIDDEN_FILES = new Set([
   "harness/stylelint.config.js",
   "harness/knip.json",
   "harness/cspell.json",
+  "harness/.npmpackagejsonlintrc.json",
   "harness/.markuplintrc.json",
   "harness/.prettierrc.json",
   "harness/biome.json",
@@ -177,7 +178,12 @@ export const FULL_CHECKS: Record<string, string[]> = {
     "-c",
     "ajv-keywords",
   ],
-  packageJson: [tool("npmPkgJsonLint"), "."],
+  packageJson: [
+    tool("npmPkgJsonLint"),
+    ".",
+    "--configFile",
+    "harness/.npmpackagejsonlintrc.json",
+  ],
   cruise: [
     tool("depcruise"),
     "frontend/src",

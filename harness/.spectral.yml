@@ -50,13 +50,13 @@ rules:
       function: falsy
 
   workflow-actions-are-approved-and-pinned:
-    description: Workflows may only use approved first-party actions pinned to a major version.
+    description: Workflows may only use approved actions pinned to a major version.
     given: "$.jobs.*.steps[*].uses"
     severity: error
     then:
       function: pattern
       functionOptions:
-        match: "^actions/(checkout|dependency-review-action|setup-node)@v[0-9]+$"
+        match: "^(actions/(checkout|dependency-review-action|setup-node)|pnpm/action-setup)@v[0-9]+$"
 
   workflow-run-commands-do-not-weaken-gate:
     description: Shell steps must not bypass or weaken gate execution.
@@ -93,19 +93,19 @@ rules:
       field: cache-dependency-path
       function: pattern
       functionOptions:
-        match: "^package-lock\\.json$"
+        match: "^pnpm-lock\\.yaml$"
 
-  workflow-installs-dependencies-with-pnpm-ci:
-    description: CI must install pnpm dependencies from lockfiles, not mutate dependency state.
+  workflow-installs-dependencies-frozen:
+    description: A pnpm install in CI must be frozen so it cannot mutate the lockfile.
     given: "$.jobs.*.steps[*].run"
     severity: error
     then:
       function: pattern
       functionOptions:
-        notMatch: "(^|\\n)\\s*pnpm\\s+install(\\s|$)"
+        notMatch: "(^|\\n)\\s*pnpm\\s+install(?!.*--frozen-lockfile)(\\s|$)"
 
   workflow-installs-root-workspace:
-    description: CI must install the root pnpm workspace from the root lockfile.
+    description: CI must install the root pnpm workspace from the frozen root lockfile.
     given: "$.jobs.checks.steps"
     severity: error
     then:
@@ -119,7 +119,7 @@ rules:
             properties:
               run:
                 type: string
-                pattern: "^pnpm ci$"
+                pattern: "^pnpm install --frozen-lockfile$"
 
   workflow-installs-browsers-through-harness:
     description: Browser setup must run through the harness package.

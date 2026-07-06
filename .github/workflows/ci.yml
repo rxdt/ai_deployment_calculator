@@ -47,7 +47,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Install browsers
-        run: pnpm --dir harness run setup:e2e -- chromium
+        run: pnpm --prefix harness run setup:e2e -- chromium
 
       - name: Run checks
         run: node harness/harness.mjs gate

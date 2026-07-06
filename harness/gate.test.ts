@@ -988,10 +988,12 @@ describe("gate constants", () => {
     expect(configText).toContain('"../**/scratchpad/**"');
   });
 
-  test("package-json lint is pinned to the repo root", () => {
+  test("package-json lint is pinned to the repo root and the harness config", () => {
     expect(checkCommand(FULL_CHECKS, "packageJson")).toEqual([
       harnessTool("npmPkgJsonLint"),
       ".",
+      "--configFile",
+      "harness/.npmpackagejsonlintrc.json",
     ]);
   });
 
@@ -2066,7 +2068,7 @@ describe("frontend gate shape", () => {
     {
       check: "packageJson",
       tool: "npmPkgJsonLint",
-      required: ["."],
+      required: [".", "--configFile harness/.npmpackagejsonlintrc.json"],
     },
     {
       check: "cruise",
@@ -2120,25 +2122,22 @@ describe("frontend gate shape", () => {
       "types",
       "nsTypes",
     ]);
-    expect(config.entry).toEqual([
-      "**/main.ts",
-      "**/index.ts",
-      "**/cli.ts",
-      "**/*.test.ts",
-      "**/*.spec.ts",
-      "**/*.config.js",
-      "**/*.config.cjs",
-      "**/*.config.mjs",
-      "**/*.config.ts",
-      "**/*.mjs",
-      "**/*.cjs",
-    ]);
-    expect(config.project).toEqual([
-      "**/*.ts",
-      "**/*.mjs",
-      "**/*.js",
-      "**/*.cjs",
-    ]);
+    // knip maps each pnpm workspace so imports resolve to the right package.json; the harness
+    // workspace names cli.ts, its configs, tests, and the lighthouse config as entrypoints.
+    expect(config.workspaces).toEqual({
+      frontend: {
+        project: ["src/**/*.ts"],
+      },
+      harness: {
+        entry: [
+          "cli.ts",
+          "*.config.{js,cjs,mjs,ts}",
+          "*.test.ts",
+          "lighthouserc.cjs",
+        ],
+        project: ["*.ts", "*.{js,cjs,mjs}"],
+      },
+    });
     expect(existsSync(path.join(HARNESS, "tmprepo.ts"))).toBe(false);
   });
 
@@ -2393,7 +2392,7 @@ describe("frontend gate shape", () => {
   test("GitHub CI runs browser setup and gate through the harness", () => {
     const githubCi = readRepo(".github/workflows/ci.yml");
     expect(githubCi).toContain(
-      "run: pnpm --dir harness run setup:e2e -- chromium",
+      "run: pnpm --prefix harness run setup:e2e -- chromium",
     );
     expect(githubCi).toContain("run: node harness/harness.mjs gate");
   });

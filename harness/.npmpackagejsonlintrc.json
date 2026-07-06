@@ -1,0 +1,13 @@
+{
+  "rules": {
+    "no-duplicate-properties": "error",
+    "prefer-no-engineStrict": "error",
+    "require-engines": "error",
+    "require-name": "error",
+    "require-private": "error",
+    "require-scripts": "error",
+    "require-type": "error",
+    "valid-values-private": ["error", [true]],
+    "valid-values-type": ["error", ["module"]]
+  }
+}

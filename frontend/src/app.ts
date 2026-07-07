@@ -249,6 +249,7 @@ export class CalculatorApp {
       `The workload needs ${report.totalRequiredMemory} usable VRAM.`,
     );
     this.setText("gpu-class", recommendedGpuClass(fit.recommendedTier));
+    this.setText("confidence", report.confidence);
     this.setText("why", whyText(report));
     this.setText("min-cap", report.minimumRawVramNeeded);
     this.setText("usable-target", fit.usableVramTarget);

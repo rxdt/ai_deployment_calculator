@@ -5,7 +5,7 @@ Specs say what to build. You decide what is the next most useful change.
 
 1. Read `specs/*.md` and identify the most important unfinished item.
 2. Inspect the relevant code and tests before editing.
-3. Implement one tightly scoped change that advances the chosen spec.
+3. Implement the scoped change that advances the chosen spec.
 4. Add or update tests that prove behavior and challenge the source; use durable, behavior-focused names and docstrings.
 5. Run `pnpm preflight`.
 6. Fix failures without weakening tests, coverage, typing, security checks, or the gate.

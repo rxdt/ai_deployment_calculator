@@ -261,6 +261,7 @@ describe("buildReport", () => {
         "assumptions",
         "breakdown",
         "calculation",
+        "confidence",
         "minimumRawVramNeeded",
         "recommendedHardware",
         "speed",
@@ -268,6 +269,19 @@ describe("buildReport", () => {
         "warnings",
       ].sort((a, b) => a.localeCompare(b)),
     );
+  });
+
+  test("labels architecture-based families Estimated and guessier ones Rough", () => {
+    const cases = [
+      ["text_generation", "Estimated"],
+      ["text_encoder", "Estimated"],
+      ["image_diffusion", "Rough"],
+      ["video_generation", "Rough"],
+      ["custom", "Rough"],
+    ] as const;
+    for (const [workloadFamily, expected] of cases) {
+      expect(buildReport(state({ workloadFamily })).confidence).toBe(expected);
+    }
   });
 
   test("assumptions show resolved KV head values", () => {

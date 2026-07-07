@@ -6,8 +6,9 @@
 - Static Vite + TypeScript calculator; frontend calculations and report
   rendering are the source of truth.
 - Styling has not started. `frontend/src/styles.css` is reset-only.
-- This iteration gated MoE calculations to MoE-applicable workload families;
-  hidden or query-supplied MoE state no longer changes non-MoE speed or warnings.
+- This iteration added an always-visible `Estimate confidence` hero label
+  (`Rough` for diffusion/video/custom, `Estimated` otherwise) via
+  `frontend/src/confidence.ts`, closing plan acceptance criteria #14 and #25.
 
 ## Calculation Contract
 
@@ -34,7 +35,8 @@
 - Current warnings are only training, MoE, and sharded-tier speed guidance.
   Default inference renders no warnings; family caveats stay out of warnings.
 - There is no compare-with-my-GPU input/state/report value, no `Accuracy`
-  output, and no separate `Your GPU Fit` panel.
+  output, and no separate `Your GPU Fit` panel. `Estimate confidence` is a
+  distinct, always-visible qualitative label (`ReportPayload.confidence`).
 
 ## Open Items
 
@@ -44,7 +46,19 @@
 
 ## Checks
 
-- `pnpm --prefix frontend run test:coverage` passes: 114 tests, 100% coverage.
-- `pnpm preflight` passes after staging current changes.
+- Direct `pnpm`/`node`/harness commands require interactive approval
+  unavailable in this session, but the git pre-commit hook runs preflight, so
+  the confidence-label commit was gated through it.
+- Preflight (pre-commit hook: prettier, eslint, stylelint, html-validate, plus
+  the Ralph banned-pattern and data-* selector preference checks) PASSED for
+  this commit. It rejected the prior iteration's `.closest("details")` selector
+  and a prettier break, both fixed here (ancestor walk; table-driven test).
+- NOT run this session: `tsc` typecheck, `frontend` build, and vitest coverage
+  (all gate-only, `pnpm gate`). A human must run `pnpm gate` to confirm types,
+  build, and 100% coverage before push.
+- The unrelated working-tree edit to forbidden `PROMPT.md` was left unstaged for
+  human review.
+- Last verified (prior iteration): `pnpm --prefix frontend run test:coverage`
+  passed 114 tests, 100% coverage; `pnpm preflight` passed after staging.
 - `pnpm gate` passes static/type/build/audit/frontend checks, then fails in
   existing forbidden `harness/cli.test.ts` setup tests returning status 2.

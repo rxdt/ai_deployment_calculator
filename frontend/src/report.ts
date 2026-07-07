@@ -1,4 +1,5 @@
 import { specFromState, weightsGb } from "./calculator-core";
+import { confidenceLabel } from "./confidence";
 import {
   formatGb,
   hardware,
@@ -124,6 +125,7 @@ export function buildReport(state: Readonly<FormState>): ReportPayload {
     totalRequiredMemory: formatGb(required),
     recommendedHardware: recommendation,
     minimumRawVramNeeded: recommendation.minimumRawVram,
+    confidence: confidenceLabel(state.workloadFamily),
     speed: speedEstimate(spec, weights, speedTierFor(tier)),
     breakdown: compactRows([
       row(weightsLabel(state), breakdown.weightsGb),

@@ -212,8 +212,24 @@ describe("mounted calculator", () => {
       "Recommended GPU Class",
     );
     expect(out("min-cap")).toBe("22.4 GB");
+    expect(out("confidence")).toBe("Estimated");
     expect(out("speed")).toMatch(/tokens\/sec$/u);
     expect(outSlot("breakdown").children).toHaveLength(5);
+  });
+
+  test("keeps the confidence label visible and adapts it to the workload", () => {
+    loadDom();
+    mountCalculator(document);
+    // The confidence label lives outside every collapsible <details> panel, so
+    // none of its ancestors is a <details> and it needs no expansion to show.
+    let ancestor = outSlot("confidence").parentElement;
+    while (ancestor !== null) {
+      expect(ancestor.tagName).not.toBe("DETAILS");
+      ancestor = ancestor.parentElement;
+    }
+    expect(out("confidence")).toBe("Estimated");
+    fireChange("workload-family", "image_diffusion");
+    expect(out("confidence")).toBe("Rough");
   });
 
   test("recomputes when a numeric input changes", () => {

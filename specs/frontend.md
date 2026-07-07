@@ -46,8 +46,10 @@ PRIORITY - frontend and UI compaction implemented; keep green. Responsive standa
 ## Outputs
 
 - First glance (hero): `Estimated VRAM Required` (the total), a short
-  "The workload needs N GB usable VRAM." line, and `Recommended GPU Class`
-  (e.g. `24 GB GPU hardware tier`). Nothing else is shown by default.
+  "The workload needs N GB usable VRAM." line, an always-visible
+  `Estimate confidence` label (`Rough` for diffusion/video/custom, `Estimated`
+  otherwise), and `Recommended GPU Class` (e.g. `24 GB GPU hardware tier`).
+  Nothing else is shown by default.
 - Collapsed `<details>` panels hold the rest:
   - `Why this recommendation` — a plain-language "why" sentence plus
     `Minimum GPU VRAM Capacity`, `Usable VRAM Target`,
@@ -77,8 +79,9 @@ PRIORITY - frontend and UI compaction implemented; keep green. Responsive standa
   legacy flag removal.
 - Playwright covers accessibility, local report rendering, adaptive controls,
   no generic `Batch Size`, MoE visibility, and escaping.
-- App unit tests cover the real HTML `KV Cache Precision` options and the
-  rendered 32-bit KV estimate.
+- App unit tests cover the real HTML `KV Cache Precision` options, the
+  rendered 32-bit KV estimate, and the always-visible `Estimate confidence`
+  label (outside any `<details>`, `Rough` for diffusion vs `Estimated`).
 - `frontend/src/legacy-approximations.test.ts` was deleted; do not reintroduce
   it or any legacy-approximation test.
 - Required commands: `npm --prefix frontend run build`,

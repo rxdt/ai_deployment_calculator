@@ -89,9 +89,8 @@ const pixelProxyGb = (
   spec: Readonly<CalculationSpec>,
   width: number,
   height: number,
-  imageCount: number,
 ): number => {
-  const elements = spec.workloadSize * imageCount * width * height * 4 * 8;
+  const elements = spec.workloadSize * width * height * 4 * 8;
   return (elements * DEFAULT_ACTIVATION_BYTES) / BYTES_PER_GB;
 };
 
@@ -107,7 +106,6 @@ const visionActivationGb = (
     spec,
     nonNegative(spec.state.imageWidth, 1024),
     nonNegative(spec.state.imageHeight, 1024),
-    nonNegative(spec.state.imageCount, 1),
   );
 };
 
@@ -164,7 +162,7 @@ const visionMemory: WorkingMemoryBuilder = (spec) => {
   const height = nonNegative(spec.state.imageHeight, 1024);
   const tokens = imageTokens(width, height);
   const transformer = encoderActivationGb(spec, tokens);
-  const pixels = pixelProxyGb(spec, width, height, 1);
+  const pixels = pixelProxyGb(spec, width, height);
   return { kvCacheGb: 0, inputActivationGb: Math.max(transformer, pixels) };
 };
 

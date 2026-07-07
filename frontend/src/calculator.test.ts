@@ -425,15 +425,23 @@ describe("workload-family working memory", () => {
     expect(memoryBreakdown(spec).requiredGb.toFixed(1)).toBe("18.6");
   });
 
-  test("vision-language pixel fallback scales with image count", () => {
-    const spec = specFromState(
+  test("vision-language pixel fallback keeps image count in KV only", () => {
+    const base = specFromState(state({ workloadFamily: "vision_language" }));
+    const counted = specFromState(
       state({ workloadFamily: "vision_language", imageCount: "3" }),
     );
-    const working = inferenceWorkingMemoryGb(spec, weightsGb(spec));
+    const baseWorking = inferenceWorkingMemoryGb(base, weightsGb(base));
+    const countedWorking = inferenceWorkingMemoryGb(
+      counted,
+      weightsGb(counted),
+    );
 
-    expect(spec.visionArchitecture).toBeNull();
-    expect(working.kvCacheGb).toBeCloseTo(2.134900736, 9);
-    expect(working.inputActivationGb).toBeCloseTo(0.481326592, 9);
+    expect(counted.visionArchitecture).toBeNull();
+    expect(countedWorking.kvCacheGb).toBeCloseTo(2.134900736, 9);
+    expect(countedWorking.inputActivationGb).toBeCloseTo(
+      baseWorking.inputActivationGb,
+      9,
+    );
   });
 
   test("vision-language uses explicit vision architecture for image tokens", () => {

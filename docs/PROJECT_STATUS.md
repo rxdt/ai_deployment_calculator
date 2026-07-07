@@ -47,21 +47,22 @@ Training_State + Runtime_Overhead) * Buffer`, rounded to one decimal.
    Done so far: `KV Cache Precision` control and the report's KV assumption rows
    are now gated by `hasDecoderKvCache` (`workload-visibility.ts`) so they show
    only for inference decoder-KV families; the real form now offers all
-   supported KV precisions: `8-bit / FP8`, `16-bit`, and `32-bit`.
-2. Decide whether VL pixel-proxy should multiply by `image_count`
-   (`workload-memory.ts`) or match the plan's single-image wording.
-3. Reconcile stale spec text around warnings and compare-with-my-GPU against the
+   supported KV precisions: `8-bit / FP8`, `16-bit`, and `32-bit`. VL
+   pixel-proxy fallback now matches the single-image formula; image count still
+   scales multimodal tokens, KV, and explicit vision activations.
+2. Reconcile stale spec text around warnings and compare-with-my-GPU against the
    current source and tests.
-4. After all above items are complete, decide whether to start styling from
+3. After all above items are complete, decide whether to start styling from
    `specs/DESIGN.md`.
 
 ## Checks
 
 - Current branch: `harness-setup-config-overrides`.
+- `pnpm --prefix frontend run test:coverage -- frontend/src/calculator.test.ts`
+  passes: 112 tests, 100% coverage.
+- `pnpm preflight` passes.
 - `pnpm --prefix frontend run test:coverage -- frontend/src/app.test.ts`
   passes: 112 tests, 100% coverage.
-- `pnpm preflight` passes after staging the iteration files; an unstaged first
-  run passed checks but failed the harness empty-staged-commit guard.
 - `pnpm gate` runs format, lint, style, html, typecheck, markup, schema,
   dependency, spelling, audit, and build checks, then fails in existing forbidden
   `harness/cli.test.ts` setup tests returning status 2.

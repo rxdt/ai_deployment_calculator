@@ -85,12 +85,8 @@ PRIORITY - frontend parity and UI compaction implemented; keep green. Responsive
 ## Open Parity Gaps (code review)
 
 Gaps #1-#4 and minor parity items are closed and verified plan-conformant by
-code review (expected values hand-recomputed from `docs/plan.md`). Remaining:
-
-- For human: VL pixel-proxy (`workload-memory.ts` L62) multiplies the proxy by
-  `image_count`; `docs/plan.md` L211 defines it per single image. Default
-  `image_count=1` so no test impact — decide whether to document the scaling in
-  the plan or drop it.
+code review (expected values hand-recomputed from `docs/plan.md`). No reviewed
+frontend calculation parity gaps remain.
 
 ## Formulas
 
@@ -315,6 +311,10 @@ Final:
 `Multimodal_KV_GB = Concurrent_Requests * Effective_Context_Tokens * 2 * Num_Layers * Num_KV_Heads * Head_Dim * KV_Bytes / 1e9`
 
 `Multimodal_Vision_Working_GB = Activation_Factor_Inference * Concurrent_Requests * Image_Tokens * Vision_Layers * Vision_Hidden_Size * Activation_Bytes / 1e9`
+
+If the vision architecture is unknown, the fallback pixel proxy uses one image's
+pixels; `Image_Count` still scales multimodal tokens, KV, and explicit vision
+architecture activations.
 
 `Projector_Scratch_GB = Weights_GB * 0.02`
 

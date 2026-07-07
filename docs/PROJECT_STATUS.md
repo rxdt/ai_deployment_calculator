@@ -43,16 +43,35 @@ Tier_GB * util` and `Fit_Headroom_GB = Usable - Required` (overflow/empty show
 - 98 unit tests pass; coverage 100% (stmts/branch/funcs/lines).
 - 8/8 Playwright e2e pass, including axe.
 
-## Open Items (none block launch)
+## Open Items
 
-1. VL pixel-proxy multiplies by `image_count` (`workload-memory.ts`); plan
-   defines it per single image. No test impact at `image_count=1` (default).
-   Decide document-vs-drop.
-2. Compare-with-my-GPU is advisory only: `my_gpu_vram_gb` triggers the local
-   offload warning but the report does not surface a `Fits_My_GPU` value.
-3. README still says "Active Parameters"; the field label is now "Active
-   parameters per token".
+1. VL pixel-proxy multiplies by `image_count` (`workload-memory.ts` L110);
+   `specs/plan.md` defines it per single image. No test impact at the default
+   `image_count=1`. Human decision: document the scaling or drop it.
+2. Stale spec drift to reconcile (code + tests are the truth):
+   `specs/frontend.md` L52-60 lists family/offload/architecture warnings the
+   code never emits (`report.test.ts` "keeps family-specific guidance out of
+   warnings" pins training + MoE + sharded-speed only); L523-530 describes a
+   compare-with-my-GPU / `my_gpu_vram_gb` / `Fits_My_GPU` feature absent from
+   `state.ts`/`report.ts` (the "Your GPU Fit" panel was removed by product
+   decision). The prior "README says Active Parameters" item was false and is
+   dropped: the README omits it and the `index.html` label is "Active
+   Parameters".
+
+## Blocked This Iteration
+
+- Commit works: the `.githooks` pre-commit runs preflight (format, eslint,
+  style, html) and it passes on this doc-only change. Running `harness`, `npx`,
+  `pnpm`, or `git config` *directly* through the tool is approval-gated, but the
+  git hooks invoke them fine, so that is not the blocker.
+- Push is blocked: pre-push `gate` fails on 7 pre-existing `harness/cli.test.ts`
+  failures (`runSetup` exits 2 vs expected 0/1/7; `preflight` exits 1 vs 0) plus
+  `semgrep` SKIPPED (not installed). These live in the forbidden `harness/`
+  path, predate this markdown-only change, and cannot be fixed here. Gate is red
+  on `main`-adjacent WIP, not on the frontend. Human must repair the harness
+  self-tests (or install `semgrep`) before any branch can push.
 
 ## Docs
 
-- `docs/plan.md` and `specs/frontend.md` hold the canonical formula, hardware
+- `specs/plan.md` and `specs/frontend.md` hold the canonical formula, hardware
+  tiers, and per-family formulas.

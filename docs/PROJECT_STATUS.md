@@ -6,8 +6,8 @@
 - Static Vite + TypeScript calculator; frontend calculations and report
   rendering are the source of truth.
 - Styling has not started. `frontend/src/styles.css` is reset-only.
-- This iteration aligned the hero output label with the contract:
-  `Recommended GPU Class`.
+- This iteration gated MoE calculations to MoE-applicable workload families;
+  hidden or query-supplied MoE state no longer changes non-MoE speed or warnings.
 
 ## Calculation Contract
 
@@ -29,6 +29,8 @@
   adaptive control visibility, and report rendering.
 - `KV Cache Precision` is gated by `hasDecoderKvCache`, appears only for
   inference decoder-KV families, and offers `8-bit / FP8`, `16-bit`, `32-bit`.
+- MoE visibility and calculation impact are gated by `hasMoeControl`; non-MoE
+  families ignore stale hidden MoE checkbox/query values.
 - Current warnings are only training, MoE, and sharded-tier speed guidance.
   Default inference renders no warnings; family caveats stay out of warnings.
 - There is no compare-with-my-GPU input/state/report value, no `Accuracy`
@@ -42,9 +44,7 @@
 
 ## Checks
 
-- `pnpm --prefix frontend run test:coverage -- frontend/src/app.test.ts`
-  passes: 112 tests, 100% coverage.
+- `pnpm --prefix frontend run test:coverage` passes: 114 tests, 100% coverage.
 - `pnpm preflight` passes after staging current changes.
-- `pnpm gate` passes format, lint, style, HTML, typecheck, markup, schema,
-  dependency, spelling, audit, and build checks, then fails in existing
-  forbidden `harness/cli.test.ts` setup tests returning status 2.
+- `pnpm gate` passes static/type/build/audit/frontend checks, then fails in
+  existing forbidden `harness/cli.test.ts` setup tests returning status 2.

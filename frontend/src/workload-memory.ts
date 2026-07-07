@@ -9,6 +9,7 @@ import {
 } from "./calculator-core";
 import { estimateSpeed, type HardwareTier } from "./hardware";
 import type { WorkloadFamily } from "./types";
+import { hasMoeControl } from "./workload-visibility";
 
 const BYTES_PER_GB = 1_000_000_000;
 const DEFAULT_PATCH_SIZE = 16;
@@ -326,9 +327,10 @@ export function speedEstimate(
     return ZERO_SPEED_ESTIMATES.get(spec.family) ?? "0.0 tokens/second";
   }
   const precision = PRECISION_MAP[spec.precision];
-  const computeWeightGb = spec.state.moeEnabled
-    ? spec.activeParamsB * precision.weightBytes * precision.weightOverhead
-    : currentWeightsGb;
+  const computeWeightGb =
+    hasMoeControl(spec.family) && spec.state.moeEnabled
+      ? spec.activeParamsB * precision.weightBytes * precision.weightOverhead
+      : currentWeightsGb;
   const computeWeight = Math.max(computeWeightGb, 0.1);
   const tokens = Math.max(
     0.1,

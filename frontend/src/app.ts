@@ -1,7 +1,7 @@
 import { buildReport } from "./report";
 import { normalizedState, zeroState } from "./state";
 import type { DisplayRow, FormState, ReportPayload } from "./types";
-import { hasDecoderKvCache } from "./workload-visibility";
+import { hasDecoderKvCache, hasMoeControl } from "./workload-visibility";
 
 const NUMBER_MAX = 999_999;
 
@@ -273,13 +273,10 @@ export class CalculatorApp {
         .split(" ")
         .includes(family);
     }
-    let isMoeApplicable = false;
+    const isMoeApplicable = hasMoeControl(family);
     for (const node of this.root.querySelectorAll<HTMLElement>(
       "[data-moe-families]",
     )) {
-      isMoeApplicable = String(node.dataset["moeFamilies"])
-        .split(" ")
-        .includes(family);
       node.hidden = !isMoeApplicable;
     }
     const isActiveVisible = isMoeApplicable && state.moeEnabled;

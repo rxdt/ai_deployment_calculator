@@ -1,7 +1,9 @@
 # Frontend Spec
 
-PRIORITY - frontend parity and UI compaction implemented; keep green. Responsive standards met. Frontend best practices implemented.
+PRIORITY - frontend and UI compaction implemented; keep green. Responsive standards met. Frontend best practices implemented.
 **Styling is the very LAST thing implemented.**
+
+> ~~strikethrough~ completed items to clarify what is done~~
 
 ## Current Contract
 
@@ -38,6 +40,8 @@ PRIORITY - frontend parity and UI compaction implemented; keep green. Responsive
   parameters affect speed/KV only, not resident weight memory; training modes use
   adapter/full-training state plus checkpointed activations; legacy
   `trained=on&use_adapter=on` query flags are ignored.
+- MoE state is honored only for MoE-applicable workload families. Hidden or
+  query-supplied MoE values for other families do not affect speed or warnings.
 
 ## Outputs
 
@@ -659,3 +663,5 @@ Accessibility:
   Playwright suite asserts. The styling pass must keep axe violations at zero and
   meet the touch-target (>=40px) and readable-text (>=13px) checks in
   `tests/responsive.spec.ts`.
+
+> ~~strikethrough~ completed items to clarify what is done~~

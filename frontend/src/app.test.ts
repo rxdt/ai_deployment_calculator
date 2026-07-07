@@ -315,6 +315,28 @@ describe("adaptive controls", () => {
     expect(isRowHidden("active-params")).toBe(false);
   });
 
+  test("ignores a checked hidden MoE box after switching workload family", () => {
+    loadDom();
+    mountCalculator(document);
+    fireChange("workload-family", "vision");
+    const visionSpeed = out("speed");
+
+    fireChange("workload-family", "text_generation");
+    const moe = field("moe-enabled");
+    if (moe instanceof HTMLInputElement) {
+      moe.checked = true;
+    }
+    fireInput("active-params", "0.1");
+    moe.dispatchEvent(new Event("change", { bubbles: true }));
+
+    fireChange("workload-family", "vision");
+    expect(isRowHidden("moe-enabled")).toBe(true);
+    expect(out("speed")).toBe(visionSpeed);
+    expect(outSlot("warnings").textContent).not.toContain(
+      "MoE active parameters",
+    );
+  });
+
   test("switches the workload size label for training", () => {
     loadDom();
     mountCalculator(document);

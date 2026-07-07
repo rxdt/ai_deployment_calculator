@@ -7,6 +7,7 @@ import type {
   RuntimeProfile,
   WorkloadFamily,
 } from "./types";
+import { hasMoeControl } from "./workload-visibility";
 
 const BYTES_PER_GB = 1_000_000_000;
 
@@ -278,13 +279,12 @@ export function specFromState(state: Readonly<FormState>): CalculationSpec {
   const knownFile = state.knownModelFileSizeGb.trim()
     ? positive(state.knownModelFileSizeGb, 0)
     : null;
+  const isMoeEnabled = hasMoeControl(state.workloadFamily) && state.moeEnabled;
   return {
     family: state.workloadFamily,
     totalParamsB: total,
     residentParamsB: total,
-    activeParamsB: state.moeEnabled
-      ? positive(state.activeParams, total)
-      : total,
+    activeParamsB: isMoeEnabled ? positive(state.activeParams, total) : total,
     precision: state.precision,
     executionMode: state.executionMode,
     runtimeProfile: state.runtimeProfile,

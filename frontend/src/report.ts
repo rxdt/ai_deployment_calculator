@@ -9,7 +9,7 @@ import {
 } from "./hardware";
 import type { DisplayRow, FormState, ReportPayload } from "./types";
 import { memoryBreakdown, speedEstimate } from "./workload-memory";
-import { hasDecoderKvCache } from "./workload-visibility";
+import { hasDecoderKvCache, hasMoeControl } from "./workload-visibility";
 
 export { specFromState } from "./calculator-core";
 
@@ -56,7 +56,7 @@ function warningsFor(state: Readonly<FormState>): string[] {
   if (conditional !== null) {
     warnings.push(conditional);
   }
-  if (state.moeEnabled) {
+  if (state.moeEnabled && hasMoeControl(state.workloadFamily)) {
     warnings.push(
       "MoE active parameters affect speed, not resident weight memory, unless expert offload or sharding is enabled.",
     );

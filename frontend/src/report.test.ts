@@ -198,6 +198,20 @@ describe("buildReport", () => {
     expect(report.breakdown[0]?.label).toBe("QLoRA base model memory");
   });
 
+  test("ignores MoE state for families without MoE controls", () => {
+    const plain = buildReport(state({ workloadFamily: "vision" }));
+    const hiddenMoeState = state({
+      workloadFamily: "vision",
+      moeEnabled: true,
+      activeParams: "0.1",
+    });
+    const hiddenMoe = buildReport(hiddenMoeState);
+
+    expect(specFromState(hiddenMoeState).activeParamsB).toBe(7);
+    expect(hiddenMoe.speed).toBe(plain.speed);
+    expect(hiddenMoe.warnings).toEqual(plain.warnings);
+  });
+
   test("keeps family-specific guidance out of warnings", () => {
     expect(
       buildReport(state({ workloadFamily: "image_diffusion" })).warnings.join(

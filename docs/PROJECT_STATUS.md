@@ -46,8 +46,8 @@ Training_State + Runtime_Overhead) * Buffer`, rounded to one decimal.
 1. Review `frontend/` for unfinished JavaScript behavior and HTML wiring.
    Done so far: `KV Cache Precision` control and the report's KV assumption rows
    are now gated by `hasDecoderKvCache` (`workload-visibility.ts`) so they show
-   only for inference decoder-KV families; the stale "show only for..." HTML
-   comment is removed.
+   only for inference decoder-KV families; the real form now offers all
+   supported KV precisions: `8-bit / FP8`, `16-bit`, and `32-bit`.
 2. Decide whether VL pixel-proxy should multiply by `image_count`
    (`workload-memory.ts`) or match the plan's single-image wording.
 3. Reconcile stale spec text around warnings and compare-with-my-GPU against the
@@ -58,16 +58,17 @@ Training_State + Runtime_Overhead) * Buffer`, rounded to one decimal.
 ## Checks
 
 - Current branch: `harness-setup-config-overrides`.
-- `npm --prefix frontend run test:coverage` passes: 111 tests, 100% coverage.
-- `bin/harness preflight` passes. `bin/harness gate` and the pre-push gate are
-  blocked in coverage by forbidden `harness/cli.test.ts` setup/preflight tests
-  returning status 1/2; Semgrep is also skipped because it is not installed.
-- Push was attempted with upstream setup and rejected by that pre-push gate.
+- `pnpm --prefix frontend run test:coverage -- frontend/src/app.test.ts`
+  passes: 112 tests, 100% coverage.
+- `pnpm preflight` passes after staging the iteration files; an unstaged first
+  run passed checks but failed the harness empty-staged-commit guard.
+- `pnpm gate` runs format, lint, style, html, typecheck, markup, schema,
+  dependency, spelling, audit, and build checks, then fails in existing forbidden
+  `harness/cli.test.ts` setup tests returning status 2.
 - `npm --prefix frontend run test:e2e` still fails before tests because the
   harness script resolves `harness/harness/playwright.config.js`.
-- Direct frontend Playwright run with a scratch config reached the suite; this
-  iteration's adaptive KV assertions passed, while existing responsive
-  touch-target/axe checks fail because `styles.css` is reset-only.
+- Previous direct frontend Playwright with a scratch config reached the suite;
+  responsive touch-target/axe checks fail because `styles.css` is reset-only.
 
 ## Docs
 

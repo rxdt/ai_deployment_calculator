@@ -17,6 +17,9 @@ PRIORITY - frontend parity and UI compaction implemented; keep green. Responsive
   `Parameter Unit`, `Precision`, `Execution Mode`, `Runtime Profile`,
   adaptive input controls, adaptive workload size, and relevant `MoE Model`.
 - Rare controls live in `<details><summary>Advanced assumptions</summary>`.
+- `KV Cache Precision` lives in advanced assumptions, is visible only for
+  inference decoder-KV workloads, and offers `8-bit / FP8`, `16-bit`, and
+  `32-bit`.
 - Workload size label is `Concurrent Requests` for inference and
   `Micro Batch Size` for training; never reintroduce generic `Batch Size`.
 - `MoE Model` appears only for text generation, embeddings, encoder-decoder,
@@ -70,6 +73,8 @@ PRIORITY - frontend parity and UI compaction implemented; keep green. Responsive
   confidence, and legacy flag removal.
 - Playwright covers accessibility, local report rendering, adaptive controls,
   no generic `Batch Size`, MoE visibility, and escaping.
+- App unit tests cover the real HTML `KV Cache Precision` options and the
+  rendered 32-bit KV estimate.
 - `frontend/src/legacy-approximations.test.ts` was deleted; do not reintroduce
   it or any legacy-approximation test.
 - Required commands: `npm --prefix frontend run build`,

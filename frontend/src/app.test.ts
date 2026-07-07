@@ -344,6 +344,25 @@ describe("adaptive controls", () => {
     fireChange("workload-family", "vision_language");
     expect(isRowHidden("kv-cache-precision")).toBe(false);
   });
+
+  test("offers all KV precision choices and applies 32-bit KV cache estimates", () => {
+    loadDom();
+    mountCalculator(document);
+    const precision = field("kv-cache-precision");
+    if (!(precision instanceof HTMLSelectElement)) {
+      throw new TypeError("KV precision control must be a select");
+    }
+    expect([...precision.options].map((option) => option.value)).toEqual([
+      "8-bit / FP8",
+      "16-bit",
+      "32-bit",
+    ]);
+
+    fireChange("kv-cache-precision", "32-bit");
+
+    expect(out("total")).toBe("20.1 GB");
+    expect(out("assumptions")).toContain("32-bit");
+  });
 });
 
 describe("sanitizeNumberInput", () => {

@@ -44,6 +44,10 @@ Training_State + Runtime_Overhead) * Buffer`, rounded to one decimal.
 ## Open Items
 
 1. Review `frontend/` for unfinished JavaScript behavior and HTML wiring.
+   Done so far: `KV Cache Precision` control and the report's KV assumption rows
+   are now gated by `hasDecoderKvCache` (`workload-visibility.ts`) so they show
+   only for inference decoder-KV families; the stale "show only for..." HTML
+   comment is removed.
 2. Decide whether VL pixel-proxy should multiply by `image_count`
    (`workload-memory.ts`) or match the plan's single-image wording.
 3. Reconcile stale spec text around warnings and compare-with-my-GPU against the
@@ -53,9 +57,17 @@ Training_State + Runtime_Overhead) * Buffer`, rounded to one decimal.
 
 ## Checks
 
-- Do not rely on old green-check notes as proof of completion.
-- After any frontend code change, run the relevant frontend tests and the
-  harness gate/preflight required by the loop.
+- Current branch: `harness-setup-config-overrides`.
+- `npm --prefix frontend run test:coverage` passes: 111 tests, 100% coverage.
+- `bin/harness preflight` passes. `bin/harness gate` and the pre-push gate are
+  blocked in coverage by forbidden `harness/cli.test.ts` setup/preflight tests
+  returning status 1/2; Semgrep is also skipped because it is not installed.
+- Push was attempted with upstream setup and rejected by that pre-push gate.
+- `npm --prefix frontend run test:e2e` still fails before tests because the
+  harness script resolves `harness/harness/playwright.config.js`.
+- Direct frontend Playwright run with a scratch config reached the suite; this
+  iteration's adaptive KV assertions passed, while existing responsive
+  touch-target/axe checks fail because `styles.css` is reset-only.
 
 ## Docs
 

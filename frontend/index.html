@@ -21,7 +21,11 @@
 
       <main class="layout">
         <!-- INPUTS -->
-        <form class="inputs" aria-label="Deployment inputs">
+        <form
+          class="inputs"
+          aria-label="Deployment inputs"
+          data-slot="inputs-form"
+        >
           <div class="intro">
             <h1>VRAM Deployment Calculator</h1>
             <p>Estimate VRAM and hardware fit for AI workloads.</p>
@@ -289,10 +293,13 @@
           <details class="advanced">
             <summary>Advanced assumptions</summary>
             <div class="group">
-              <p class="field">
+              <p
+                class="field"
+                data-families="text_generation encoder_decoder vision_language"
+                data-slot="kv-cache-row"
+              >
                 <label for="kv-cache-precision">KV Cache Precision</label>
                 <select id="kv-cache-precision" name="kv-cache-precision">
-                  <!-- show only for text-gen/Encoder-decoder/VLM -->
                   <option value="8-bit / FP8">8-bit / FP8</option>
                   <option value="16-bit" selected>16-bit</option>
                 </select>
@@ -432,7 +439,7 @@
       </main>
     </div>
 
-    <template id="row-template">
+    <template id="row-template" data-slot="row-template">
       <li class="metric">
         <span data-slot="label"></span><strong data-slot="value"></strong>
       </li>

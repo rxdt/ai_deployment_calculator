@@ -80,11 +80,18 @@ test("swaps adaptive inputs and hides MoE per workload family", async ({
 }) => {
   await page.goto("/");
 
+  await page.getByText("Advanced assumptions").click();
   await expect(page.locator("#context-tokens")).toBeVisible();
+  await expect(page.locator("#kv-cache-precision")).toBeVisible();
   await page.locator("#workload-family").selectOption("vision");
   await expect(page.locator("#context-tokens")).toBeHidden();
   await expect(page.locator("#image-width")).toBeVisible();
   await expect(page.locator("#moe-enabled")).toBeHidden();
+  await expect(page.locator("#kv-cache-precision")).toBeHidden();
+  await page.locator("#workload-family").selectOption("encoder_decoder");
+  await expect(page.locator("#kv-cache-precision")).toBeVisible();
+  await page.locator("#execution-mode").selectOption("Full training");
+  await expect(page.locator("#kv-cache-precision")).toBeHidden();
 });
 
 test("switches the workload size label and never shows generic Batch Size", async ({

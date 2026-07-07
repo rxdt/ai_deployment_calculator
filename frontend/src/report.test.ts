@@ -271,6 +271,25 @@ describe("buildReport", () => {
     });
   });
 
+  test("assumptions omit KV cache details outside inference decoder KV workloads", () => {
+    const visionRows = buildReport(
+      state({ workloadFamily: "vision" }),
+    ).assumptions;
+    expect(visionRows).not.toContainEqual(
+      expect.objectContaining({ label: "KV Cache precision" }),
+    );
+    expect(visionRows).not.toContainEqual(
+      expect.objectContaining({ label: "KV heads used" }),
+    );
+
+    const trainingRows = buildReport(
+      state({ executionMode: "Full training" }),
+    ).assumptions;
+    expect(trainingRows).not.toContainEqual(
+      expect.objectContaining({ label: "KV Cache precision" }),
+    );
+  });
+
   test("never surfaces pricing or cost language", () => {
     const haystack = JSON.stringify(
       buildReport(state({ totalParams: "70" })),

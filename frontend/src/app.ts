@@ -1,6 +1,7 @@
 import { buildReport } from "./report";
 import { normalizedState, zeroState } from "./state";
 import type { DisplayRow, FormState, ReportPayload } from "./types";
+import { hasDecoderKvCache } from "./workload-visibility";
 
 const NUMBER_MAX = 999_999;
 
@@ -118,21 +119,35 @@ function formatSpeed(speed: string): string {
   return speed.replaceAll("/second", "/sec");
 }
 
+/**
+Look up an element by its data-slot value.
+@param root - DOM root to search
+@param name - data-slot value
+*/
+function dataSlot(root: ParentNode, name: string): HTMLElement | null {
+  for (const node of root.querySelectorAll<HTMLElement>("[data-slot]")) {
+    if (node.dataset["slot"] === name) {
+      return node;
+    }
+  }
+  return null;
+}
+
 export class CalculatorApp {
   private readonly root: ParentNode;
   private readonly form: HTMLFormElement;
   private readonly rowTemplate: HTMLTemplateElement;
   private readonly resetButton: HTMLButtonElement;
+  private readonly kvCacheRow: HTMLElement;
 
   public constructor(root: ParentNode) {
-    const form = root.querySelector<HTMLFormElement>("form.inputs");
-    if (form === null) {
-      throw new Error("Missing inputs form");
+    const form = dataSlot(root, "inputs-form");
+    if (!(form instanceof HTMLFormElement)) {
+      throw new TypeError("Missing inputs form");
     }
-    const rowTemplate =
-      root.querySelector<HTMLTemplateElement>("#row-template");
-    if (rowTemplate === null) {
-      throw new Error("Missing row template");
+    const rowTemplate = dataSlot(root, "row-template");
+    if (!(rowTemplate instanceof HTMLTemplateElement)) {
+      throw new TypeError("Missing row template");
     }
     const resetButton = root.querySelector<HTMLButtonElement>(
       '[data-action="reset"]',
@@ -140,10 +155,15 @@ export class CalculatorApp {
     if (resetButton === null) {
       throw new Error("Missing reset button");
     }
+    const kvCacheRow = dataSlot(root, "kv-cache-row");
+    if (kvCacheRow === null) {
+      throw new Error("Missing KV cache row");
+    }
     this.root = root;
     this.form = form;
     this.rowTemplate = rowTemplate;
     this.resetButton = resetButton;
+    this.kvCacheRow = kvCacheRow;
   }
 
   public mount(): void {
@@ -268,6 +288,7 @@ export class CalculatorApp {
     )) {
       node.hidden = !isActiveVisible;
     }
+    this.kvCacheRow.hidden = !hasDecoderKvCache(state);
     const label =
       state.executionMode === "Inference"
         ? "Concurrent Requests"

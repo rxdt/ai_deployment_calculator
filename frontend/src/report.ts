@@ -9,6 +9,7 @@ import {
 } from "./hardware";
 import type { DisplayRow, FormState, ReportPayload } from "./types";
 import { memoryBreakdown, speedEstimate } from "./workload-memory";
+import { hasDecoderKvCache } from "./workload-visibility";
 
 export { specFromState } from "./calculator-core";
 
@@ -68,11 +69,17 @@ function warningsFor(state: Readonly<FormState>): string[] {
 @param state
 */
 function assumptionRows(state: Readonly<FormState>): DisplayRow[] {
-  const spec = specFromState(state);
-  return [
+  const rows: DisplayRow[] = [
     { label: "Precision", value: state.precision },
     { label: "Runtime profile", value: state.runtimeProfile },
     { label: "Execution mode", value: state.executionMode },
+  ];
+  if (!hasDecoderKvCache(state)) {
+    return rows;
+  }
+  const spec = specFromState(state);
+  return [
+    ...rows,
     { label: "KV Cache precision", value: state.kvCachePrecision },
     { label: "KV heads used", value: spec.architecture.kvHeads.toString() },
     {

@@ -19,6 +19,7 @@ function loadDom(): void {
 function makeForm(): HTMLFormElement {
   const form = document.createElement("form");
   form.classList.add("inputs");
+  form.dataset["slot"] = "inputs-form";
   return form;
 }
 
@@ -28,18 +29,57 @@ function makeForm(): HTMLFormElement {
 */
 function makeTemplate(): HTMLTemplateElement {
   const template = document.createElement("template");
-  template.id = "row-template";
+  template.dataset["slot"] = "row-template";
   return template;
+}
+
+/**
+ Look up an output slot by its data-out name.
+@param name - the data-out slot name
+@returns the matching output slot
+*/
+function outSlot(name: string): HTMLElement {
+  const nodes = [...document.querySelectorAll<HTMLElement>("[data-out]")];
+  const slot = nodes.find((node) => node.dataset["out"] === name);
+  if (slot === undefined) {
+    throw new TypeError(`Missing output slot: ${name}`);
+  }
+  return slot;
 }
 
 /**
  Read the text of an output slot by its data-out name.
 @param name - the data-out slot name
-@returns the slot's text content, or "" when absent
+@returns the slot's text content
 */
 function out(name: string): string {
-  const nodes = [...document.querySelectorAll<HTMLElement>("[data-out]")];
-  return nodes.find((node) => node.dataset["out"] === name)?.textContent ?? "";
+  return outSlot(name).textContent;
+}
+
+/**
+ Look up an element by its data-slot value.
+@param name - data-slot value
+@returns the matching element
+*/
+function dataSlot(name: string): HTMLElement {
+  const nodes = [...document.querySelectorAll<HTMLElement>("[data-slot]")];
+  const slot = nodes.find((node) => node.dataset["slot"] === name);
+  if (slot === undefined) {
+    throw new TypeError(`Missing data slot: ${name}`);
+  }
+  return slot;
+}
+
+/**
+ Return the mounted inputs form.
+@returns the form.inputs element
+*/
+function inputsForm(): HTMLFormElement {
+  const form = dataSlot("inputs-form");
+  if (!(form instanceof HTMLFormElement)) {
+    throw new TypeError("Missing inputs form");
+  }
+  return form;
 }
 
 /**
@@ -48,7 +88,7 @@ function out(name: string): string {
 @returns the matching input or select element
 */
 function field(name: string): HTMLInputElement | HTMLSelectElement {
-  const node = document.querySelector("form")?.elements.namedItem(name);
+  const node = inputsForm().elements.namedItem(name);
   if (!(
     node instanceof HTMLInputElement || node instanceof HTMLSelectElement
   )) {
@@ -99,7 +139,10 @@ function fireChange(name: string, value: string): void {
 @returns true when the enclosing row is hidden
 */
 function isRowHidden(name: string): boolean {
-  const row = field(name).closest("p");
+  let row = field(name).parentElement;
+  while (row instanceof HTMLElement && row.tagName !== "P") {
+    row = row.parentElement;
+  }
   return row instanceof HTMLElement && row.hidden === true;
 }
 
@@ -136,13 +179,25 @@ describe("CalculatorApp construction", () => {
 
   test("throws when the row template lacks slots", () => {
     loadDom();
-    const template = document.querySelector("#row-template");
+    const template = dataSlot("row-template");
     if (template instanceof HTMLTemplateElement) {
       template.content.replaceChildren(document.createElement("li"));
     }
     expect(() => mountCalculator(document)).toThrow(
       "Missing row template slots",
     );
+  });
+
+  test("throws when the KV cache row is missing", () => {
+    loadDom();
+    dataSlot("kv-cache-row").remove();
+    expect(() => mountCalculator(document)).toThrow("Missing KV cache row");
+  });
+
+  test("keeps rendering when the KV precision select is missing from its row", () => {
+    loadDom();
+    field("kv-cache-precision").remove();
+    expect(() => mountCalculator(document)).not.toThrow();
   });
 });
 
@@ -155,9 +210,7 @@ describe("mounted calculator", () => {
     expect(out("gpu-class")).toBe("24 GB GPU hardware tier");
     expect(out("min-cap")).toBe("22.4 GB");
     expect(out("speed")).toMatch(/tokens\/sec$/u);
-    expect(document.querySelectorAll('[data-out="breakdown"] li')).toHaveLength(
-      5,
-    );
+    expect(outSlot("breakdown").children).toHaveLength(5);
   });
 
   test("recomputes when a numeric input changes", () => {
@@ -200,10 +253,9 @@ describe("mounted calculator", () => {
   test("prevents form submission so the page never reloads", () => {
     loadDom();
     mountCalculator(document);
-    const form = document.querySelector("form");
     const event = new Event("submit", { bubbles: true, cancelable: true });
-    const notCancelled = form?.dispatchEvent(event);
-    expect(notCancelled).toBe(false);
+    const wasSubmissionAllowed = inputsForm().dispatchEvent(event);
+    expect(wasSubmissionAllowed).toBe(false);
   });
 
   test("serializes a checked MoE box into the estimate", () => {
@@ -267,6 +319,30 @@ describe("adaptive controls", () => {
     expect(label?.textContent).toBe("Concurrent Requests");
     fireChange("execution-mode", "Full training");
     expect(label?.textContent).toBe("Micro Batch Size");
+  });
+
+  test("shows KV precision only for decoder KV workloads", () => {
+    loadDom();
+    mountCalculator(document);
+    expect(isRowHidden("kv-cache-precision")).toBe(false);
+
+    fireChange("execution-mode", "Full training");
+    expect(isRowHidden("kv-cache-precision")).toBe(true);
+
+    fireChange("execution-mode", "Inference");
+    expect(isRowHidden("kv-cache-precision")).toBe(false);
+
+    fireChange("workload-family", "text_encoder");
+    expect(isRowHidden("kv-cache-precision")).toBe(true);
+
+    fireChange("workload-family", "encoder_decoder");
+    expect(isRowHidden("kv-cache-precision")).toBe(false);
+
+    fireChange("workload-family", "vision");
+    expect(isRowHidden("kv-cache-precision")).toBe(true);
+
+    fireChange("workload-family", "vision_language");
+    expect(isRowHidden("kv-cache-precision")).toBe(false);
   });
 });
 

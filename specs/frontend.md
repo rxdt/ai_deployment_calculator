@@ -29,6 +29,12 @@ reality.
   `Micro Batch Size` for training; never reintroduce generic `Batch Size`.
 - `MoE Model` appears only for text generation, embeddings, encoder-decoder,
   multimodal, and custom. `Active Parameters` appears only when checked.
+- `KV Cache Precision` (and the KV assumption rows in the report) appear only for
+  inference decoder-KV families (text generation, encoder-decoder,
+  vision-language); training modes and non-decoder families hide them.
+  `hasDecoderKvCache` in `frontend/src/workload-visibility.ts` is the single
+  source of that predicate for both `app.ts` control visibility and `report.ts`
+  assumptions.
 - Changing workload family or execution mode rerenders adaptive controls without
   waiting for form submit.
 - ZERO styling until all JavaScript and HTML work is complete.

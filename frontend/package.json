@@ -16,7 +16,7 @@
     "test:file": "pnpm --prefix ../harness run test:file --",
     "test": "pnpm test:coverage",
     "test:coverage": "vitest run --config ../harness/vitest.config.js --coverage --coverage.include=\"frontend/src/**/*.ts\" ../frontend/src/*.test.ts",
-    "test:e2e": "pnpm --prefix ../harness run test:e2e",
+    "test:e2e": "pnpm --prefix ../harness run e2e",
     "typecheck": "pnpm --prefix ../harness run typecheck:frontend"
   },
   "dependencies": {

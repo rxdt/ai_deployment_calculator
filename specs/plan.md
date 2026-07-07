@@ -100,7 +100,9 @@ MoE active parameters affect rough speed, not resident weight memory, unless exp
 
 Frontend-specific UI, output, warnings, TypeScript structure, and corrected frontend test expectations live in `specs/frontend.md`.
 
-Use `docs/plan.md` for the broader architecture and calculation contract. Use `specs/frontend.md` for headless frontend implementation work.
+Use this file for the human grand vision, product goals, naming contract, and
+research constraints. Keep implementation details in focused specs such as
+`specs/frontend.md`.
 
 Architecture bucket defaults, training defaults, and per-family working-memory
 formulas are implementation detail and live in `specs/frontend.md`.

@@ -1,7 +1,15 @@
 # Frontend Refactor Spec
 
-PRIORITY 1 - frontend parity and UI compaction implemented; keep green. Responsive standards met. Frontend best practices implemented.
-**Styling is the very LAST thing implemented.**
+PRIORITY 0 - finish frontend JavaScript behavior and HTML wiring before styling.
+
+Current reality: the app has a static Vite shell, a minimal HTML interface,
+local TypeScript report generation, and some reactive `CalculatorApp` wiring.
+It is not complete. `frontend/src/styles.css` is only a reset.
+
+Styling is deferred. Start styling only after a thorough review of `frontend/`
+shows JavaScript behavior and HTML wiring work is exhausted, tests cover that
+state, and this spec plus `docs/PROJECT_STATUS.md` have been updated to match
+reality.
 
 ## Current Contract
 
@@ -23,7 +31,7 @@ PRIORITY 1 - frontend parity and UI compaction implemented; keep green. Responsi
   multimodal, and custom. `Active Parameters` appears only when checked.
 - Changing workload family or execution mode rerenders adaptive controls without
   waiting for form submit.
--  ZERO styling until all Javascript and HTML work is complete.
+- ZERO styling until all JavaScript and HTML work is complete.
 
 ## Calculation State
 
@@ -52,9 +60,10 @@ PRIORITY 1 - frontend parity and UI compaction implemented; keep green. Responsi
     and the assumptions list. Rows that round to `0.0 GB` are hidden.
 - The hardware-recommendation and fit math (usable VRAM on class, fit headroom,
   overflow `n/a`, speed) is defined in the Formulas section below.
-- Warnings are conditional only: estimated architecture, diffusion/video, MoE,
-  training, local offload, tabular, vision, and audio. The always-on "standard
-  heuristic" disclaimer has been removed; default inference renders no warnings.
+- Warnings are conditional only: training, MoE, and sharded-tier rough speed
+  guidance. Family-specific caveats stay out of warnings. The always-on
+  "standard heuristic" disclaimer has been removed; default inference renders no
+  warnings.
 - There is no `Accuracy` output and no separate `Your GPU Fit` panel; both were
   removed by product decision.
 
@@ -79,13 +88,20 @@ PRIORITY 1 - frontend parity and UI compaction implemented; keep green. Responsi
 
 ## Open Parity Gaps (code review)
 
-Gaps #1-#4 and minor parity items are closed and verified plan-conformant by
-code review (expected values hand-recomputed from `docs/plan.md`). Remaining:
+Do not mark frontend parity complete yet. The next agent should review
+`frontend/` for missing JavaScript behavior and HTML wiring before touching
+visual design.
 
-- For human: VL pixel-proxy (`workload-memory.ts` L62) multiplies the proxy by
-  `image_count`; `docs/plan.md` L211 defines it per single image. Default
-  `image_count=1` so no test impact — decide whether to document the scaling in
-  the plan or drop it.
+Known current reality:
+
+- `frontend/index.html` is a minimal static shell with form controls and output
+  slots.
+- `frontend/src/app.ts` wires reactive updates, reset, adaptive controls, and
+  report rendering.
+- `frontend/src/styles.css` is reset-only. This is intentional until HTML/JS
+  work is exhausted.
+- Styling can begin only after a fresh `frontend/` review finds no remaining
+  JavaScript or HTML wiring work and updates this section with that evidence.
 
 ## Formulas
 
@@ -311,6 +327,9 @@ Final:
 
 `Multimodal_Vision_Working_GB = Activation_Factor_Inference * Concurrent_Requests * Image_Tokens * Vision_Layers * Vision_Hidden_Size * Activation_Bytes / 1e9`
 
+If no explicit vision architecture exists, fallback pixel-proxy working memory
+uses `Image_Count * Image_Width * Image_Height` pixels.
+
 `Projector_Scratch_GB = Weights_GB * 0.02`
 
 `Working_Memory_GB = Multimodal_KV_GB + Multimodal_Vision_Working_GB + Projector_Scratch_GB`
@@ -520,14 +539,8 @@ Display `fit headroom`.
 For the recommended tier `Fit_Headroom_GB >= 0` by construction. Overflow and the
 empty workload report `n/a` for usable VRAM and fit headroom.
 
-Compare-with-my-GPU (advisory only; `my_gpu_vram_gb`):
-
-`My_Usable_VRAM_GB = My_GPU_Raw_VRAM_GB * GPU_Utilization_Target`
-
-`Fits_My_GPU = Required_GB <= My_Usable_VRAM_GB`
-
-Today this only adds the Local / Edge offload warning when a GPU is entered; the
-report does not yet surface a separate `Fits_My_GPU` value.
+There is no separate compare-with-my-GPU output. The prior `Your GPU Fit` panel
+was removed by product decision.
 
 ---
 
@@ -617,11 +630,13 @@ assert includes weights + master weights + gradients + optimizer + activations
 expected = 79.2 GB (scratch-zero comparison: 77.7 GB)
 assert known file size overrides parameter-derived weight estimate
 
-## Design Direction (styling phase, not yet implemented)
+## Design Direction (deferred)
 
-Styling is deferred; `styles.css` currently holds only a box-sizing reset. When
-the visual pass happens, follow this direction. It describes presentation only —
-no calculation, markup-structure, or label changes (those are fixed above).
+Do not implement styling yet. `styles.css` currently holds only a box-sizing
+reset. When all JavaScript and HTML work is exhausted and documented, follow
+this direction. It describes presentation only — no calculation,
+markup-structure, or label changes unless the completed frontend review says
+those are still required.
 
 Hierarchy:
 

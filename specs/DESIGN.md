@@ -240,6 +240,10 @@ components:
     padding: 12px
 ---
 
+> Deferred. Do not implement styling until `specs/frontend.md` and
+> `docs/PROJECT_STATUS.md` say JavaScript behavior and HTML wiring are complete
+> after a fresh review of `frontend/`.
+
 # VRAM-calculator
 
 ## Overview

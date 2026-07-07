@@ -1,6 +1,6 @@
-> Current handoff. Keep it short and current.
+> Handoff. Keep it short and current.
 
-## Current State
+## State
 
 - Work on the current branch. Do not auto-commit, push, pull, merge, or rebase
   without instruction.

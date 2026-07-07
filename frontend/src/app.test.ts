@@ -208,6 +208,9 @@ describe("mounted calculator", () => {
     expect(out("total")).toBe("19.0 GB");
     expect(out("vram-say")).toBe("The workload needs 19.0 GB usable VRAM.");
     expect(out("gpu-class")).toBe("24 GB GPU hardware tier");
+    expect(dataSlot("gpu-class-label").textContent.trim()).toBe(
+      "Recommended GPU Class",
+    );
     expect(out("min-cap")).toBe("22.4 GB");
     expect(out("speed")).toMatch(/tokens\/sec$/u);
     expect(outSlot("breakdown").children).toHaveLength(5);

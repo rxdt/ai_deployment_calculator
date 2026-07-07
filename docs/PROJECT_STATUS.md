@@ -2,28 +2,18 @@
 
 ## State
 
-- Work on the current branch. Do not auto-commit, push, pull, merge, or rebase
-  without instruction.
-- The frontend is not done. It is a static Vite + TypeScript calculator with a
-  minimal HTML shell, local report generation, and some reactive
-  `CalculatorApp` wiring.
-- `frontend/src/styles.css` is reset-only. Styling has not started.
-
-## Active Priority
-
-1. Finish JavaScript behavior in `frontend/src/`.
-2. Wire and audit `frontend/index.html` against that behavior.
-3. Update `specs/frontend.md` and this file to the reviewed truth.
-4. Only after all JavaScript and HTML work is exhausted, consider styling.
-
-Styling may begin only after a thorough review of `frontend/` finds no remaining
-JavaScript or HTML wiring work and the docs say so explicitly.
+- Current branch: `harness-setup-config-overrides`.
+- Static Vite + TypeScript calculator; frontend calculations and report
+  rendering are the source of truth.
+- Styling has not started. `frontend/src/styles.css` is reset-only.
+- This iteration aligned the hero output label with the contract:
+  `Recommended GPU Class`.
 
 ## Calculation Contract
 
-- Frontend TypeScript is the calculation source of truth.
-- Canonical equation: `Required_GB = (Weights + KV + Working/Activation +
-Training_State + Runtime_Overhead) * Buffer`, rounded to one decimal.
+- Canonical equation:
+  `Required_GB = (Weights + Working/Activation + Training_State + Runtime_Overhead) * Buffer`,
+  rounded to one decimal.
 - Decoder KV is architecture-based (`layers * kv_heads * head_dim * kv_bytes`),
   never `Active_P / 10`.
 - QLoRA = frozen 4-bit base + adapter state. Full training = weights + master +
@@ -31,47 +21,30 @@ Training_State + Runtime_Overhead) * Buffer`, rounded to one decimal.
 - `decoder_scratch_gb` is scratch-included by product default (`weights * 0.05`
   server, `* 0.03` local). Scratch-zero is test-only.
 
-## Frontend Reality To Review
+## Frontend Reality
 
 - `frontend/index.html` contains the current form, advanced assumptions, output
-  slots, and template markup. Treat it as minimal, not final.
-- `frontend/src/app.ts` currently handles form normalization, numeric input
-  cleanup, reset, adaptive control visibility, and report rendering.
-- `frontend/src/styles.css` intentionally contains only a reset.
-- Do not claim frontend parity, responsive standards, or best-practice UI
-  completion until a fresh `frontend/` review proves it.
+  slots, and template markup. Treat it as minimal, not styled.
+- `frontend/src/app.ts` handles form normalization, numeric input cleanup, reset,
+  adaptive control visibility, and report rendering.
+- `KV Cache Precision` is gated by `hasDecoderKvCache`, appears only for
+  inference decoder-KV families, and offers `8-bit / FP8`, `16-bit`, `32-bit`.
+- Current warnings are only training, MoE, and sharded-tier speed guidance.
+  Default inference renders no warnings; family caveats stay out of warnings.
+- There is no compare-with-my-GPU input/state/report value, no `Accuracy`
+  output, and no separate `Your GPU Fit` panel.
 
 ## Open Items
 
-1. Review `frontend/` for unfinished JavaScript behavior and HTML wiring.
-   Done so far: `KV Cache Precision` control and the report's KV assumption rows
-   are now gated by `hasDecoderKvCache` (`workload-visibility.ts`) so they show
-   only for inference decoder-KV families; the real form now offers all
-   supported KV precisions: `8-bit / FP8`, `16-bit`, and `32-bit`. VL
-   pixel-proxy fallback now matches the single-image formula; image count still
-   scales multimodal tokens, KV, and explicit vision activations.
-2. Reconcile stale spec text around warnings and compare-with-my-GPU against the
-   current source and tests.
-3. After all above items are complete, decide whether to start styling from
+1. Continue the frontend JavaScript/HTML audit for remaining behavior gaps.
+2. After JavaScript and HTML work is exhausted, start styling from
    `specs/DESIGN.md`.
 
 ## Checks
 
-- Current branch: `harness-setup-config-overrides`.
-- `pnpm --prefix frontend run test:coverage -- frontend/src/calculator.test.ts`
-  passes: 112 tests, 100% coverage.
-- `pnpm preflight` passes.
 - `pnpm --prefix frontend run test:coverage -- frontend/src/app.test.ts`
   passes: 112 tests, 100% coverage.
-- `pnpm gate` runs format, lint, style, html, typecheck, markup, schema,
-  dependency, spelling, audit, and build checks, then fails in existing forbidden
-  `harness/cli.test.ts` setup tests returning status 2.
-- `npm --prefix frontend run test:e2e` still fails before tests because the
-  harness script resolves `harness/harness/playwright.config.js`.
-- Previous direct frontend Playwright with a scratch config reached the suite;
-  responsive touch-target/axe checks fail because `styles.css` is reset-only.
-
-## Docs
-
-- `specs/frontend.md` is the active frontend work spec.
-- `specs/DESIGN.md` is deferred until JavaScript and HTML work is exhausted.
+- `pnpm preflight` passes after staging current changes.
+- `pnpm gate` passes format, lint, style, HTML, typecheck, markup, schema,
+  dependency, spelling, audit, and build checks, then fails in existing
+  forbidden `harness/cli.test.ts` setup tests returning status 2.

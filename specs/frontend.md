@@ -55,9 +55,9 @@ PRIORITY - frontend parity and UI compaction implemented; keep green. Responsive
     and the assumptions list. Rows that round to `0.0 GB` are hidden.
 - The hardware-recommendation and fit math (usable VRAM on class, fit headroom,
   overflow `n/a`, speed) is defined in the Formulas section below.
-- Warnings are conditional only: estimated architecture, diffusion/video, MoE,
-  training, local offload, tabular, vision, and audio. The always-on "standard
-  heuristic" disclaimer has been removed; default inference renders no warnings.
+- Warnings are conditional only: training, MoE, and sharded-tier speed guidance.
+  Family-specific caveats stay out of warnings; default inference renders no
+  warnings.
 - There is no `Accuracy` output and no separate `Your GPU Fit` panel; both were
   removed by product decision.
 
@@ -69,8 +69,8 @@ PRIORITY - frontend parity and UI compaction implemented; keep green. Responsive
 - Unit tests cover conversion, precision map, file-size override, MoE resident
   memory, decoder KV scaling, no encoder KV, encoder-decoder memory,
   diffusion/video/audio/tabular scaling, LoRA, QLoRA, full training, hardware
-  tier matching (single-GPU vs sharded, overflow), tier-bandwidth speed,
-  confidence, and legacy flag removal.
+  tier matching (single-GPU vs sharded, overflow), tier-bandwidth speed, and
+  legacy flag removal.
 - Playwright covers accessibility, local report rendering, adaptive controls,
   no generic `Batch Size`, MoE visibility, and escaping.
 - App unit tests cover the real HTML `KV Cache Precision` options and the
@@ -525,14 +525,9 @@ Display `fit headroom`.
 For the recommended tier `Fit_Headroom_GB >= 0` by construction. Overflow and the
 empty workload report `n/a` for usable VRAM and fit headroom.
 
-Compare-with-my-GPU (advisory only; `my_gpu_vram_gb`):
-
-`My_Usable_VRAM_GB = My_GPU_Raw_VRAM_GB * GPU_Utilization_Target`
-
-`Fits_My_GPU = Required_GB <= My_Usable_VRAM_GB`
-
-Today this only adds the Local / Edge offload warning when a GPU is entered; the
-report does not yet surface a separate `Fits_My_GPU` value.
+There is no compare-with-my-GPU input, `my_gpu_vram_gb` state, or separate
+`Fits_My_GPU` report value. Hardware fit is expressed through the recommended
+class, usable VRAM target, usable VRAM on class, and fit headroom.
 
 ---
 

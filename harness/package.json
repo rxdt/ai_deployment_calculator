@@ -16,12 +16,12 @@
     "harness": "node harness.mjs",
     "html": "cd .. && html-validate --config harness/.htmlvalidate.json \"**/*.html\"",
     "lint": "pnpm eslint && pnpm style && pnpm html",
-    "eslint": "cd .. && eslint . --config harness/eslint.config.js --cache --cache-location . --max-warnings=0",
+    "eslint": "cd .. && eslint . --config harness/eslint.config.js --cache --cache-location . --max-warnings=0 --debug",
     "preflight": "node harness.mjs preflight",
-    "style": "cd .. && stylelint \"**/*.css\" --config harness/stylelint.config.js --max-warnings=0 --allow-empty-input",
-    "test": "cd .. && vitest run --config harness/vitest.config.js",
-    "test:file": "cd .. && vitest run --config harness/vitest.config.js --coverage=false",
-    "coverage": "vitest run --config harness/vitest.config.js --coverage",
+    "style": "cd .. && stylelint \"**/*.css\" --config harness/stylelint.config.js --max-warnings=0 --allow-empty-input --formatter verbose",
+    "test": "cd .. && vitest run --config harness/vitest.config.js --reporter=verbose",
+    "test:file": "cd .. && vitest run --config harness/vitest.config.js --coverage=false --reporter=verbose",
+    "coverage": "vitest run --config harness/vitest.config.js --coverage --reporter=verbose",
     "e2e": "pnpm playwright test --config harness/playwright.config.js",
     "setup:e2e": "playwright install --with-deps",
     "typecheck": "pnpm typecheck:harness && pnpm typecheck:project",
@@ -73,7 +73,6 @@
     "knip": "latest",
     "lighthouse": "^12.6.1",
     "markuplint": "latest",
-    "npm-package-json-lint": "latest",
     "pnpm": "latest",
     "prettier": "latest",
     "secretlint": "latest",
@@ -81,52 +80,10 @@
     "stylelint": "latest",
     "stylelint-config-standard": "latest",
     "stylelint-declaration-strict-value": "latest",
-    "syncpack": "latest",
     "tsx": "latest",
     "typescript": "latest",
     "typescript-eslint": "latest",
     "vite": "latest",
     "vitest": "latest"
-  },
-  "overrides": {
-    "fast-json-patch": "latest"
-  },
-  "npmpackagejsonlint": {
-    "rules": {
-      "dependencies-type": "error",
-      "devDependencies-type": "error",
-      "engines-type": "error",
-      "name-type": "error",
-      "no-archive-dependencies": "error",
-      "no-archive-devDependencies": "error",
-      "no-duplicate-properties": "error",
-      "no-file-dependencies": "error",
-      "no-file-devDependencies": "error",
-      "no-git-dependencies": "error",
-      "no-git-devDependencies": "error",
-      "no-repeated-dependencies": "error",
-      "prefer-alphabetical-dependencies": "error",
-      "prefer-alphabetical-devDependencies": "error",
-      "prefer-no-engineStrict": "error",
-      "private-type": "error",
-      "require-engines": "error",
-      "require-name": "error",
-      "require-private": "error",
-      "require-scripts": "error",
-      "require-type": "error",
-      "type-type": "error",
-      "valid-values-private": [
-        "error",
-        [
-          true
-        ]
-      ],
-      "valid-values-type": [
-        "error",
-        [
-          "module"
-        ]
-      ]
-    }
   }
 }

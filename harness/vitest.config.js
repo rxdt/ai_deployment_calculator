@@ -9,28 +9,29 @@ export default defineConfig({
   root: repoRoot,
   test: {
     environment: "jsdom",
-    include: ["**/*.test.ts"],
+    // Scope discovery to the real source roots. A bare `**/*.test.ts` recurses the whole
+    // repo and picks up copies inside generated/installed dirs (e.g. a local .pnpm-store,
+    // node_modules, gate.test.ts fixture trees), double-running suites and inflating counts.
+    include: ["harness/**/*.test.ts", "frontend/**/*.test.ts"],
     exclude: [
-      "**/.git/**",
-      "**/.lighthouseci/**",
-      "**/coverage/**",
-      "**/dist/**",
       "**/node_modules/**",
-      "**/scratchpad/**",
-      "**/test-results/**",
+      "**/.pnpm-store/**",
+      "**/dist/**",
+      "**/tests/**",
     ],
     coverage: {
       provider: "v8",
       reporter: ["text"],
-      include: ["**/*.ts"],
+      // Cover only the harness engine + the frontend app source — never libraries,
+      // generated fixtures, config files, or the e2e specs (run under the `e2e` check).
+      include: ["harness/*.ts", "frontend/src/**/*.ts"],
       exclude: [
-        "**/.git/**",
-        "**/.lighthouseci/**",
-        "**/coverage/**",
-        "**/dist/**",
         "**/node_modules/**",
-        "**/scratchpad/**",
-        "**/test-results/**",
+        "**/.pnpm-store/**",
+        "**/dist/**",
+        "**/*.test.ts",
+        "**/*.spec.ts",
+        "**/tests/**",
       ],
       thresholds: {
         branches: 100,

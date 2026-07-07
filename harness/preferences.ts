@@ -66,17 +66,34 @@ function lineOf(source: ts.SourceFile, node: ts.Node): number {
   return source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1;
 }
 
+type TsMemberAccess = ts.PropertyAccessExpression | ts.ElementAccessExpression;
+
+// Note: ts.isPropertyAccessExpression/isElementAccessExpression already return true for the
+// optional-chain variants (a?.b, a?.["b"] parse as *AccessExpression / *AccessChain, and the
+// Chain nodes are a subtype the Expression predicates also match), so no separate isXxxChain
+// check is needed — adding one would be dead, unreachable code.
+/**
+Whether a node is a member access (dot or bracket) that exposes a base `.expression`.
+@param node - The AST node to inspect.
+@returns True when the node is a property/element access.
+*/
+function isTsMemberAccess(node: ts.Node): node is TsMemberAccess {
+  return (
+    ts.isPropertyAccessExpression(node) || ts.isElementAccessExpression(node)
+  );
+}
+
 /**
 Static member name from dot access or quoted bracket access.
 @param node - The AST node to inspect.
 @returns The member name, or undefined when the access is dynamic or not a member access.
 */
 function staticTsMemberName(node: ts.Node): string | undefined {
-  if (ts.isPropertyAccessExpression(node) || ts.isPropertyAccessChain(node)) {
+  if (ts.isPropertyAccessExpression(node)) {
     return node.name.text;
   }
   if (
-    (ts.isElementAccessExpression(node) || ts.isElementAccessChain(node)) &&
+    ts.isElementAccessExpression(node) &&
     ts.isStringLiteralLike(node.argumentExpression)
   ) {
     return node.argumentExpression.text;
@@ -89,18 +106,8 @@ Whether a member access starts from the global window object.
 @param node - The AST node to inspect.
 @returns True when the node is window.name or window["name"].
 */
-function isTsMemberBaseWindowIdentifier(node: ts.Node): boolean {
-  if (
-    ts.isPropertyAccessExpression(node) ||
-    ts.isPropertyAccessChain(node) ||
-    ts.isElementAccessExpression(node) ||
-    ts.isElementAccessChain(node)
-  ) {
-    return (
-      ts.isIdentifier(node.expression) && node.expression.text === "window"
-    );
-  }
-  return false;
+function isTsMemberBaseWindowIdentifier(node: TsMemberAccess): boolean {
+  return ts.isIdentifier(node.expression) && node.expression.text === "window";
 }
 
 /**
@@ -221,6 +228,9 @@ function tsLayoutMeasurementPreferenceProblem(
     }
   }
 
+  if (!isTsMemberAccess(node)) {
+    return undefined;
+  }
   const property = staticTsMemberName(node);
   if (property === undefined) {
     return undefined;

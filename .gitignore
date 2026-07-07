@@ -14,3 +14,4 @@ specs/fp_*
 scratchpad/
 *pnpm-debug.log
 .npmrc
+.pnpm-store/

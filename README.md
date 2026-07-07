@@ -1,144 +1,122 @@
 # AI Deployment Calculator
 
-A browser-only calculator for estimating the GPU memory needed to run or train
-AI workloads. It is meant to give a practical sizing answer before choosing
-hardware, not to replace benchmark runs on a target stack.
+A static Vite + TypeScript app for estimating GPU VRAM requirements and a
+hardware memory tier for AI workloads. Calculations run in the browser; there is
+no backend report service.
 
-The calculator covers text generation, embeddings and classification,
-encoder-decoder models, vision, multimodal models, diffusion, video generation,
-speech and audio, tabular ML, and custom workloads. It gives the clearest answer
-for transformer inference, and marks rougher estimates for workloads where
-runtime memory depends heavily on implementation details.
+The app gives a heuristic sizing estimate before benchmark work on a target
+model, runtime, and GPU stack. It does not estimate cloud cost, latency under
+load, power, storage, networking, or provider availability.
 
-Use it when you need a quick usable-VRAM estimate, a recommended GPU class, and a
-plain explanation of what drove the number. It does not estimate cloud cost,
-latency under load, power, storage, networking, or provider availability.
+## Supported Workloads
 
-Project contracts live in `specs/plan.md`; frontend implementation details live
-in `specs/frontend.md`. README stays as the human entry point.
+- Text generation / chat
+- Text embeddings / reranking / classification
+- Encoder-decoder generation
+- Vision understanding
+- Vision-language / multimodal
+- Image generation / diffusion
+- Video generation
+- Speech / audio
+- Tabular / classical ML
+- Custom / unknown
 
-## Flow
+## What It Calculates
 
-```mermaid
-flowchart LR
-    workload[Workload inputs] --> estimator[Memory estimator]
-    model[Model settings] --> estimator
-    precision[Precision and batch settings] --> estimator
-    estimator --> vram[Usable VRAM estimate]
-    estimator --> gpu[GPU class recommendation]
-    estimator --> explanation[Plain-language drivers]
+The report shows:
+
+- estimated usable VRAM required
+- recommended hardware memory tier
+- minimum advertised GPU VRAM capacity
+- usable VRAM target and headroom on the selected tier
+- rough speed estimate
+- memory breakdown and assumptions
+
+The core equation is:
+
+```txt
+Required_GB = (Weights + Working_Memory + Training_State + Runtime_Overhead) * Buffer
 ```
+
+Different workload families use different working-memory estimates. Transformer
+generation uses architecture-based KV cache estimates. Encoder, diffusion,
+video, audio, tabular, and custom workloads use family-specific heuristics.
+
+## Important Limits
+
+Estimates vary with model architecture, kernels, quantization, sequence packing,
+batching, sharding, offload, framework overhead, and runtime configuration.
+
+Known model file size can override parameter-based weight memory. MoE active
+parameters affect rough speed, but they do not reduce resident model weight
+memory by default. Aggregate sharded hardware tiers are considered only when
+Memory Sharding is enabled in Advanced assumptions.
+
+## Source Of Truth
+
+- UI: `frontend/index.html` and `frontend/src/app.ts`
+- State normalization: `frontend/src/state.ts`
+- Calculation core: `frontend/src/calculator-core.ts`
+- Workload memory and speed: `frontend/src/workload-memory.ts`
+- Hardware tiers: `frontend/src/hardware.ts`
+- Report assembly: `frontend/src/report.ts`
+- Product/spec notes: `specs/plan.md` and `specs/frontend.md`
+
+## Requirements
+
+- Node.js matching `package.json`: `^22.16.0 || >=24.8.0`
+- pnpm `>=10`
+
+The repository package manager is declared as `pnpm@11.9.0`.
 
 ## Install
 
-On a fresh drop-in, bootstrap by invoking the harness directly (the `pnpm
-setup` script does not exist yet — `setup` is what creates it):
-
 ```sh
-node harness/harness.mjs setup
+pnpm install
 ```
 
-`setup` installs harness dependencies, installs discovered package directories,
-adds missing root harness scripts (`gate`, `loop`, `status`, `setup`, ...), sets
-Git hooks, and rewrites harness commands to use any existing user config file,
-even if that file is empty. Setup checks for config file presence only; the
-check command validates the config later ([harness/cli.ts](harness/cli.ts#L263)).
+The repository also has a setup script:
 
-After setup, the added root scripts work from the repository root: `pnpm
-gate`, `pnpm loop`, `pnpm status`, and re-running setup via `pnpm
-setup`.
+```sh
+pnpm setup
+```
 
 ## Run
 
 ```sh
-cd frontend && pnpm dev -- --port 5173
+pnpm dev
 ```
 
-`http://127.0.0.1:5173`.
+The frontend dev server binds to `127.0.0.1`.
 
-Build:
+## Build And Preview
 
 ```sh
-cd frontend && pnpm build
+pnpm build
+pnpm preview
 ```
 
-Preview:
+## Checks
 
-```sh
-cd frontend && pnpm preview
-```
-
-## Faster checks
+Fast checks:
 
 ```sh
 pnpm preflight
 ```
 
-## Full checks (lint, tests, security, type-checking, etc.)
+Full gate:
 
 ```sh
-pnpm preflight
+pnpm gate
 ```
 
-## Harness behavior
-
-`preflight` runs only the fast commit checks in `COMMIT_CHECKS`
-([harness/gate.ts](harness/gate.ts#L124),
-[harness/gate.ts](harness/gate.ts#L660)). `gate` runs `FULL_CHECKS`, which
-adds typecheck, security, build, coverage, browser, size, and Lighthouse checks
-([harness/gate.ts](harness/gate.ts#L156),
-[harness/gate.ts](harness/gate.ts#L692)).
-
-Gate-only security policy:
-
-- Semgrep should run as diff-aware SAST only on `gate`.
-- OSV should run as a PR scan for newly introduced dependency vulnerabilities
-  only on `gate`.
-- Keep slow/noisy checks out of `preflight`; the full `gate` remains strict:
-  - Lighthouse runs only in `gate`; scheduled/release perf runs can add coverage.
-  - Full Playwright runs only in `gate`; a PR smoke subset may be added without
-    replacing the gate suite.
-  - Full Semgrep/SCA and full OSV run only in `gate`; scheduled runs should add
-    post-merge advisory coverage.
-  - Dependency audit/signature network checks run only in `gate`; scheduled or
-    release runs can add coverage without making local preflight slow.
-- Cache aggressively in CI:
-  - pnpm cache keyed by lockfiles.
-  - Playwright browser cache keyed by the Playwright package/lockfile version.
-  - Vitest/Vite cache if the harness persists their cache directories.
-  - TypeScript incremental cache if the harness permits `.tsbuildinfo` reuse.
-- TODO: Schedule full OSV and full Semgrep/SCA daily or weekly, because new
-  advisories appear after merges.
-- TODO: Add a release gate that blocks critical/high dependency or SAST findings
-  unless there is an expiring documented exception.
-
-Only loop preflight (`RALPH_LOOP=1`) unstages forbidden paths or files that add
-forbidden patterns. It warns on stderr when it unstages files
-([harness/gate.ts](harness/gate.ts#L569)). Normal preflight and gate leave
-staged files alone.
-
-## Known loopholes (not yet closed)
-
-Local hooks are advisory. A determined agent can still:
-
-- **Skip enforcement by not setting `RALPH_LOOP=1`** — all path/pattern/preference/empty-commit guards are opt-in.
-- **`--no-verify` / `core.hooksPath`** — bypasses local hooks entirely.
-- **Edit the gate and be judged by it** — hooks and CI run `harness/` from the working tree/PR, not a trusted copy.
-- **CI self-judges** — the workflow runs the PR's own `gate.ts`; no branch protection or CODEOWNERS on `harness/**`.
-- **`runGate` has no containment** — no forbidden-path/pattern/preference scan over the pushed diff.
-- **Fake work** — delete `expect()` assertions (only added lines are scanned) or call-everything/assert-nothing to keep 100% coverage green.
-- **Supply chain** — `harness/package.json` pins many deps to `latest`; CI installs and executes them as the judge.
-- **`.gitignore` a referenced-but-untracked payload** to hide it from review.
-
-Closed: skip-by-`package.json`-deletion, case-fold/normalized forbidden paths, missing referenced-config landmine, `NODE_OPTIONS` env injection. See `scratchpad/containment-hardening-plan.md` for the full catalog and fixes.
-
-## Loop
+Frontend-only commands:
 
 ```sh
-pnpm loop <agent> <#> <$>
+pnpm --prefix frontend run build
+pnpm --prefix frontend run test:coverage
+pnpm --prefix frontend run test:e2e
 ```
-
-For any other harness command [status|setup|preflight|gate|loop], use `pnpm <command>`.
 
 > do NOT DELETE!:
 

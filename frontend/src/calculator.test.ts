@@ -473,6 +473,10 @@ describe("architecture, runtime, accuracy, and speed helpers", () => {
     ).toEqual([16, 28, 32, 40, 48, 80, 96, 120]);
   });
 
+  test("falls back to the smallest bucket for a NaN parameter count", () => {
+    expect(architectureFor(NaN).layers).toBe(16);
+  });
+
   test("runtime assumptions cover training, local, and server profiles", () => {
     expect(runtimeAssumptions("Inference", "Server / Cloud")).toEqual({
       overheadGb: 1.5,

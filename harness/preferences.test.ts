@@ -90,6 +90,21 @@ describe("preferencesViolations", () => {
     ]);
   });
 
+  test("flags optional-chained element and property layout reads", () => {
+    // A longer optional chain produces PropertyAccessChain / ElementAccessChain inner nodes
+    // (distinct AST kinds from the plain access above); a?.b?.x is a property-access chain and
+    // a?.b?.["x"] an element-access chain.
+    const source = [
+      "void a?.b?.offsetWidth;",
+      'void a?.b?.["scrollHeight"];',
+    ].join("\n");
+
+    expect(preferencesViolations("m.ts", source)).toEqual([
+      "m.ts:1: direct layout read 'offsetWidth'; use CSS or a human-approved layout utility",
+      "m.ts:2: direct layout read 'scrollHeight'; use CSS or a human-approved layout utility",
+    ]);
+  });
+
   test("flags direct viewport reads from window", () => {
     const source = [
       "void window.innerWidth;",
@@ -116,5 +131,52 @@ describe("preferencesViolations", () => {
     const source =
       'export function output(root: ParentNode): Element | null {\n  return root.querySelector("[data-out]");\n}\n';
     expect(preferencesViolations("m.ts", source)).toEqual([]);
+  });
+
+  test("treats a data-* name with non lowercase/digit characters as complex", () => {
+    // isSimpleDataAttributeName rejects uppercase/underscore in the suffix, so the selector
+    // falls through to the generic "complex DOM selector" branch rather than being normalized.
+    const source = [
+      'document.querySelector("[data-Foo]");',
+      'document.querySelector("[data-x_y]");',
+    ].join("\n");
+
+    expect(preferencesViolations("m.ts", source)).toEqual([
+      "m.ts:1: complex DOM selector; use one allowed data-* selector",
+      "m.ts:2: complex DOM selector; use one allowed data-* selector",
+    ]);
+  });
+
+  test("treats a data-* selector with an empty or unquoted value as complex", () => {
+    // rawValue.length < 2 (empty value) and a value without matching quotes both cause
+    // normalizeSingleDataAttributeSelector to bail, so the selector is reported as complex.
+    const source = [
+      'document.querySelector("[data-out=]");',
+      'document.querySelector("[data-out=total]");',
+      String.raw`document.querySelector("[data-out='total\"]");`,
+    ].join("\n");
+
+    expect(preferencesViolations("m.ts", source)).toEqual([
+      "m.ts:1: complex DOM selector; use one allowed data-* selector",
+      "m.ts:2: complex DOM selector; use one allowed data-* selector",
+      "m.ts:3: complex DOM selector; use one allowed data-* selector",
+    ]);
+  });
+
+  test("ignores a selector method call with no arguments", () => {
+    // firstArgument === undefined: querySelector() with no args is not a preference problem.
+    expect(
+      preferencesViolations("m.ts", "document.querySelector();\n"),
+    ).toEqual([]);
+  });
+
+  test("treats a bare [data-] selector (empty suffix) as complex", () => {
+    // isSimpleDataAttributeName rejects a name of exactly "data-" (no suffix), so [data-]
+    // is not normalized and falls through to the generic complex-selector branch.
+    expect(
+      preferencesViolations("m.ts", 'document.querySelector("[data-]");\n'),
+    ).toEqual([
+      "m.ts:1: complex DOM selector; use one allowed data-* selector",
+    ]);
   });
 });

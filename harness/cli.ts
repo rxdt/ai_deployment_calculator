@@ -1,11 +1,12 @@
 import { spawn, spawnSync } from "node:child_process";
 import * as fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 
 import * as gate from "./gate.js";
 
 const USAGE = "usage: harness <preflight|gate|loop|status|setup>";
-const LOOP_SETUP_ERROR = "harness setup must not run inside the agent loop\n";
+const LOOP_ERROR = "harness setup must not run inside the agent loop\n";
 const ROOT_SCRIPTS: Record<string, string> = {
   gate: "node harness/harness.mjs gate",
   setup: "node harness/harness.mjs setup",
@@ -70,12 +71,14 @@ export const formatLiveLine = (line: string): string => {
 export const drainLines = (
   buffer: string,
 ): { output: string; rest: string } => {
-  const lines = buffer.split("\n");
-  const rest = lines.pop() ?? "";
-  return { output: lines.map((line) => `${line}\n`).join(""), rest };
+  // Split at the last newline: everything up to and including it is complete output; the tail
+  // after it (possibly empty) is the partial line to carry over. Slicing avoids an index/pop
+  // fallback branch entirely.
+  const cut = buffer.lastIndexOf("\n");
+  return { output: buffer.slice(0, cut + 1), rest: buffer.slice(cut + 1) };
 };
 
-const runWorker = async (
+export const runWorker = async (
   command: string[],
   cwd: string,
   log: string,
@@ -101,24 +104,23 @@ const runWorker = async (
   child.stderr.setEncoding("utf8");
   child.stdout.on("data", consume);
   child.stderr.on("data", consume);
-  let errorMessage = "";
+  // Pass the child's result through: a spawn error (missing binary) is exit 1; a signal death maps
+  // to 128 + signal number (the shell convention); a normal exit is its numeric code. Any nonzero
+  // is announced below by the `agent exited N` line, so a killed agent never looks like a clean 0.
   const exitCode = await new Promise<number>((resolve) => {
-    child.once("error", (error) => {
-      errorMessage = error.message;
-      resolve(0);
+    child.once("error", () => {
+      resolve(1);
     });
-    child.once("close", (code) => {
-      resolve(code ?? 0);
+    child.once("close", (code, signal) => {
+      resolve(signal ? 128 + os.constants.signals[signal] : Number(code));
     });
   });
-  if (errorMessage !== "")
-    process.stderr.write(`harness: agent did not run: ${errorMessage}\n`);
-  else if (exitCode !== 0)
-    process.stderr.write(`harness: agent exited ${String(exitCode)}\n`);
   if (isVerbose && buffer.length > 0)
     process.stdout.write(formatLiveLine(buffer));
   logStream.end();
-  return 0;
+  if (exitCode !== 0)
+    process.stderr.write(`harness: agent exited ${String(exitCode)}\n`);
+  return exitCode;
 };
 
 export const run = (
@@ -132,9 +134,11 @@ export const run = (
   if (command !== "preflight" && command !== "gate")
     return { code: 2, lines: [USAGE] };
   const repo = dependencies.repoRoot(process.cwd());
-  const check =
-    command === "preflight" ? dependencies.preflight : dependencies.gate;
-  const problems = check(repo);
+  process.stderr.write(`cli: received ${command}; start in ${repo}\n`);
+  const problems = dependencies[command](repo);
+  process.stderr.write(
+    `cli: done ${command}: ${String(problems.length)} issues\n`,
+  );
   const lines = problems.map((problem) => `gate: ${problem}`);
   lines.push(
     problems.length > 0 ? "rejected by harness" : `ok: ${command} passed`,
@@ -142,7 +146,7 @@ export const run = (
   return { code: problems.length > 0 ? 1 : 0, lines };
 };
 
-const runStatus = (): number => {
+export const runStatus = (): number => {
   const runs = path.join(repoRoot(process.cwd()), "scratchpad", "runs");
   const logs = (
     fs.existsSync(runs) ? fs.readdirSync(runs, { recursive: true }) : []
@@ -151,8 +155,9 @@ const runStatus = (): number => {
     .filter((name) => name.endsWith(".jsonl"))
     .toSorted((left, right) => left.localeCompare(right));
   process.stdout.write(`${String(logs.length)} run log(s) in ${runs}\n`);
-  if (logs.length > 0)
-    process.stdout.write(`newest: ${path.join(runs, logs.at(-1) ?? "")}\n`);
+  const newest = logs.at(-1);
+  if (newest !== undefined)
+    process.stdout.write(`newest: ${path.join(runs, newest)}\n`);
   return 0;
 };
 
@@ -166,7 +171,7 @@ const isStringRecord = (value: unknown): value is Record<string, string> =>
 // Merge the harness root scripts into an existing scripts map (mutates + returns it). A `lint`/
 // `test` name the project already defines is kept; the harness command is added under a
 // `harness:<name>` alias instead so the project's own script wins.
-const mergeRootScripts = (
+export const mergeRootScripts = (
   scripts: Record<string, string>,
 ): Record<string, string> => {
   for (const [name, command] of Object.entries(ROOT_SCRIPTS)) {
@@ -183,7 +188,7 @@ const mergeRootScripts = (
 // Add the harness root scripts by editing package.json directly. (`pnpm pkg set` can't address a
 // script key containing ":" like "test:file" — it errors ERR_PNPM_UNEXPECTED_TOKEN_IN_PROPERTY_PATH
 // — so we read/merge/write the file ourselves, which also handles every other key.)
-const addRootScripts = (repo: string): number => {
+export const addRootScripts = (repo: string): number => {
   const packagePath = path.join(repo, "package.json");
   let parsed: unknown;
   try {
@@ -204,7 +209,7 @@ const addRootScripts = (repo: string): number => {
   return 0;
 };
 
-const installPackages = (repo: string): number => {
+export const installPackages = (repo: string): number => {
   // One workspace-aware install at the repo root installs every workspace project (frontend +
   // harness). `--ignore-scripts`: setup must not run the target repo's install/postinstall
   // lifecycle hooks (untrusted code, and not needed to fetch the harness toolchain).
@@ -223,10 +228,10 @@ const installPackages = (repo: string): number => {
   return 0;
 };
 
-const runSetup = (cliArgs: string[]): number => {
+export const runSetup = (cliArgs: string[]): number => {
   if (cliArgs.length > 0 || process.env.RALPH_LOOP === "1") {
     process.stderr.write(
-      cliArgs.length > 0 ? "usage: harness setup\n" : LOOP_SETUP_ERROR,
+      cliArgs.length > 0 ? "usage: harness setup\n" : LOOP_ERROR,
     );
     return 2;
   }
@@ -251,7 +256,8 @@ export const runLoop = async (
   cliArgs: string[],
   dependencies: LoopDependencies,
 ): Promise<{ code: number; lines: string[] }> => {
-  const agent = (cliArgs[0] ?? "").toLowerCase();
+  const [agentArgument = ""] = cliArgs;
+  const agent = agentArgument.toLowerCase();
   const agentCommand = AGENTS[agent];
   if (agentCommand === undefined) {
     const choices = Object.keys(AGENTS).join(", ");
@@ -281,7 +287,7 @@ export const runLoop = async (
   return { code, lines: [`harness: ${command.join(" ")} -> ${log}`] };
 };
 
-const loopDependencies = (): LoopDependencies => ({
+export const loopDependencies = (): LoopDependencies => ({
   now: () => Date.now(),
   cwd: () => repoRoot(process.cwd()),
   ralphPath: () => path.join(import.meta.dirname, "ralph.sh"),
@@ -324,5 +330,3 @@ export const main = async (argv: string[]): Promise<void> => {
   process.stderr.write(`${USAGE}\n`);
   process.exitCode = 2;
 };
-
-if (process.argv[1] === import.meta.filename) await main(process.argv.slice(2));

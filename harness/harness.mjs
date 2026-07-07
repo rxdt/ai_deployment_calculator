@@ -9,6 +9,13 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const cli = path.join(here, "cli.ts");
 const args = process.argv.slice(2);
 
+// Invoke cli.ts's main() from here (this launcher is outside coverage) so cli.ts stays a pure,
+// fully-tested module with no untestable "am I the entry module?" guard of its own.
+const runCli =
+  `import { pathToFileURL } from "node:url";` +
+  `const { main } = await import(pathToFileURL(${JSON.stringify(cli)}).href);` +
+  `await main(process.argv.slice(1));`;
+
 let tsxLoader;
 try {
   tsxLoader = require.resolve("tsx");
@@ -28,10 +35,14 @@ try {
   tsxLoader = require.resolve("tsx");
 }
 
-const child = spawn(process.execPath, ["--import", tsxLoader, cli, ...args], {
-  cwd: process.cwd(),
-  stdio: "inherit",
-});
+const child = spawn(
+  process.execPath,
+  ["--import", tsxLoader, "--eval", runCli, "--", ...args],
+  {
+    cwd: process.cwd(),
+    stdio: "inherit",
+  },
+);
 
 child.on("error", (error) => {
   process.stderr.write(`harness: failed to launch JS CLI: ${error.message}\n`);

@@ -16,17 +16,25 @@ import path from "node:path";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
 import {
+  addRootScripts,
   AGENTS,
   drainLines,
   formatDate,
   formatLiveLine,
+  installPackages,
+  mergeRootScripts,
   nextSequence,
   parseCount,
   repoRoot,
+  loopDependencies,
   run,
   runLoop,
+  runSetup,
+  runStatus,
+  runWorker,
   main,
 } from "./cli.js";
+import * as gate from "./gate.js";
 import { gitSafeEnvironment } from "./gate.js";
 
 const isPlainObject = (value: unknown): value is Record<string, unknown> =>
@@ -146,9 +154,565 @@ const harnessCli = (
     },
   );
 
+// Write an executable stub script into a repo's bin dir and return its path.
+const writeStub = (repo: string, name: string, body: string): string => {
+  const bin = path.join(repo, "bin");
+  mkdirSync(bin, { recursive: true });
+  const file = path.join(bin, name);
+  writeFileSync(file, body, { mode: 0o755 });
+  return file;
+};
+
 afterEach(() => {
   vi.restoreAllMocks();
   process.exitCode = undefined;
+});
+
+describe("runWorker (in-process, mocked agent)", () => {
+  test("streams JSON lines, logs them, and returns the agent exit code", async () => {
+    const repo = makeRepo();
+    const agent = writeStub(
+      repo,
+      "agent",
+      [
+        "#!/bin/sh",
+        String.raw`printf '%s\n' '{"b":2, "a":1}'`,
+        // No trailing newline: leaves a partial line in the buffer that must be flushed at close.
+        `printf '%s' 'partial-no-newline'`,
+        String.raw`printf 'to-stderr\n' >&2`,
+        "exit 0",
+      ].join("\n"),
+    );
+    const log = path.join(repo, "run.jsonl");
+    const out: string[] = [];
+    vi.spyOn(process.stdout, "write").mockImplementation((chunk) => {
+      out.push(String(chunk));
+      return true;
+    });
+
+    const code = await runWorker([agent], repo, log, true);
+
+    expect(code).toBe(0);
+    // JSON is compacted; the trailing partial line (no newline) is flushed too.
+    expect(out.join("")).toContain('{"b":2,"a":1}');
+    expect(out.join("")).toContain("partial-no-newline");
+    expect(readFileSync(log, "utf8")).toContain("to-stderr");
+  });
+
+  test("flushes a trailing partial line to stdout when verbose", async () => {
+    const repo = makeRepo();
+    // Emit a single line with no trailing newline: it never completes a line during streaming,
+    // so it stays buffered and is only surfaced by the end-of-stream flush.
+    const agent = writeStub(
+      repo,
+      "agent",
+      "#!/bin/sh\nprintf '%s' 'only-partial-line'\nexit 0\n",
+    );
+    const out: string[] = [];
+    vi.spyOn(process.stdout, "write").mockImplementation((chunk) => {
+      out.push(String(chunk));
+      return true;
+    });
+
+    await runWorker([agent], repo, path.join(repo, "run.jsonl"), true);
+
+    expect(out.join("")).toContain("only-partial-line");
+  });
+
+  test("does not echo to stdout when not verbose, but still logs", async () => {
+    const repo = makeRepo();
+    const agent = writeStub(
+      repo,
+      "agent",
+      ["#!/bin/sh", String.raw`printf 'quiet\n'`, "exit 0"].join("\n"),
+    );
+    const log = path.join(repo, "run.jsonl");
+    const out: string[] = [];
+    vi.spyOn(process.stdout, "write").mockImplementation((chunk) => {
+      out.push(String(chunk));
+      return true;
+    });
+
+    const code = await runWorker([agent], repo, log, false);
+
+    expect(code).toBe(0);
+    expect(out.join("")).not.toContain("quiet");
+    expect(readFileSync(log, "utf8")).toContain("quiet");
+  });
+
+  test("returns the nonzero exit code of a failing agent", async () => {
+    const repo = makeRepo();
+    const agent = writeStub(repo, "agent", "#!/bin/sh\nexit 5\n");
+    const stderr: string[] = [];
+    vi.spyOn(process.stderr, "write").mockImplementation((chunk) => {
+      stderr.push(String(chunk));
+      return true;
+    });
+
+    const code = await runWorker(
+      [agent],
+      repo,
+      path.join(repo, "run.jsonl"),
+      false,
+    );
+
+    expect(code).toBe(5);
+    expect(stderr.join("")).toContain("agent exited 5");
+  });
+
+  test("treats a signal-killed agent as a failure, not a clean 0", async () => {
+    const repo = makeRepo();
+    const stderr: string[] = [];
+    vi.spyOn(process.stderr, "write").mockImplementation((chunk) => {
+      stderr.push(String(chunk));
+      return true;
+    });
+    // The agent kills itself with SIGTERM, so `close` reports a null exit code. A signal death
+    // is a crash, not success: it must surface as a nonzero code (128 + 15 = 143) and be announced
+    // so the loop reports/stops instead of a killed agent looking clean.
+    const agent = writeStub(repo, "agent", "#!/bin/sh\nkill -TERM $$\n");
+
+    const code = await runWorker(
+      [agent],
+      repo,
+      path.join(repo, "run.jsonl"),
+      false,
+    );
+
+    expect(code).toBe(143);
+    expect(stderr.join("")).toContain("agent exited 143");
+  });
+
+  test("returns 1 and reports when the agent binary cannot be spawned", async () => {
+    const repo = makeRepo();
+    const stderr: string[] = [];
+    vi.spyOn(process.stderr, "write").mockImplementation((chunk) => {
+      stderr.push(String(chunk));
+      return true;
+    });
+
+    const code = await runWorker(
+      [path.join(repo, "bin", "does-not-exist")],
+      repo,
+      path.join(repo, "run.jsonl"),
+      false,
+    );
+
+    expect(code).toBe(1);
+    expect(stderr.join("")).toContain("agent exited 1");
+  });
+});
+
+describe("setup helpers (in-process)", () => {
+  test("mergeRootScripts adds missing scripts and aliases existing lint/test", () => {
+    const merged = mergeRootScripts({ lint: "existing-lint" });
+
+    expect(merged.gate).toBe("node harness/harness.mjs gate");
+    // An existing `lint` is preserved; the harness command lands under `harness:lint`.
+    expect(merged.lint).toBe("existing-lint");
+    expect(merged["harness:lint"]).toBe("pnpm --prefix harness run lint");
+  });
+
+  test("mergeRootScripts aliases an existing test script too", () => {
+    const merged = mergeRootScripts({ test: "vitest" });
+
+    // The existing `test` is preserved; the harness command lands under `harness:test`.
+    expect(merged.test).toBe("vitest");
+    expect(merged["harness:test"]).toBe(
+      "pnpm --prefix harness run test:coverage",
+    );
+  });
+
+  test("mergeRootScripts leaves a non-lint/test conflict as-is (no alias)", () => {
+    // An existing `gate` is neither lint nor test, so it is kept and gets no harness: alias.
+    const merged = mergeRootScripts({ gate: "custom-gate" });
+
+    expect(merged.gate).toBe("custom-gate");
+    expect(merged["harness:gate"]).toBeUndefined();
+  });
+
+  test("addRootScripts writes merged scripts into the root package.json", () => {
+    const repo = makeRepo();
+    writeFileSync(
+      path.join(repo, "package.json"),
+      '{ "name": "demo", "private": true, "scripts": { "lint": "x" } }\n',
+    );
+
+    expect(addRootScripts(repo)).toBe(0);
+    const parsed: unknown = JSON.parse(
+      readFileSync(path.join(repo, "package.json"), "utf8"),
+    );
+    if (!isPlainObject(parsed) || !isPlainObject(parsed.scripts)) {
+      throw new Error("expected package.json with scripts");
+    }
+    expect(parsed.scripts.gate).toBe("node harness/harness.mjs gate");
+    expect(parsed.scripts["harness:lint"]).toBe(
+      "pnpm --prefix harness run lint",
+    );
+  });
+
+  test("addRootScripts fails when the root package.json is unreadable", () => {
+    const repo = makeRepo();
+    const stderr: string[] = [];
+    vi.spyOn(process.stderr, "write").mockImplementation((chunk) => {
+      stderr.push(String(chunk));
+      return true;
+    });
+
+    // No package.json in a fresh repo -> read fails.
+    expect(addRootScripts(repo)).toBe(1);
+    expect(stderr.join("")).toContain("cannot read root package.json");
+  });
+
+  test("addRootScripts fails when package.json is not an object", () => {
+    const repo = makeRepo();
+    writeFileSync(path.join(repo, "package.json"), "[1, 2, 3]\n");
+    const stderr: string[] = [];
+    vi.spyOn(process.stderr, "write").mockImplementation((chunk) => {
+      stderr.push(String(chunk));
+      return true;
+    });
+
+    expect(addRootScripts(repo)).toBe(1);
+    expect(stderr.join("")).toContain("not an object");
+  });
+
+  test("installPackages reports a spawn error (pnpm not found)", () => {
+    const repo = makeRepo();
+    const stderr: string[] = [];
+    vi.spyOn(process.stderr, "write").mockImplementation((chunk) => {
+      stderr.push(String(chunk));
+      return true;
+    });
+    // No pnpm on PATH -> spawnSync sets result.error; installPackages must report it as failure.
+    const priorPath = process.env.PATH;
+    process.env.PATH = "/nonexistent-harness-install-path";
+    try {
+      expect(installPackages(repo)).not.toBe(0);
+    } finally {
+      if (priorPath !== undefined) process.env.PATH = priorPath;
+    }
+    expect(stderr.join("")).toContain("pnpm install failed");
+  });
+
+  test("installPackages surfaces a nonzero pnpm exit as failure", () => {
+    const repo = makeRepo();
+    const stderr: string[] = [];
+    vi.spyOn(process.stderr, "write").mockImplementation((chunk) => {
+      stderr.push(String(chunk));
+      return true;
+    });
+    // Stub `pnpm` on PATH to fail, so installPackages returns its nonzero status.
+    writeStub(repo, "pnpm", "#!/bin/sh\necho boom >&2\nexit 4\n");
+    const priorPath = process.env.PATH;
+    process.env.PATH = `${path.join(repo, "bin")}${path.delimiter}${priorPath ?? ""}`;
+    try {
+      expect(installPackages(repo)).toBe(4);
+    } finally {
+      if (priorPath !== undefined) process.env.PATH = priorPath;
+    }
+    expect(stderr.join("")).toContain("pnpm install failed");
+  });
+});
+
+describe("runSetup guards (in-process)", () => {
+  test("rejects setup arguments before doing any work", () => {
+    const stderr: string[] = [];
+    vi.spyOn(process.stderr, "write").mockImplementation((chunk) => {
+      stderr.push(String(chunk));
+      return true;
+    });
+
+    expect(runSetup(["new-project"])).toBe(2);
+    expect(stderr.join("")).toBe("usage: harness setup\n");
+  });
+
+  test("refuses to run inside the agent loop", () => {
+    const stderr: string[] = [];
+    vi.spyOn(process.stderr, "write").mockImplementation((chunk) => {
+      stderr.push(String(chunk));
+      return true;
+    });
+    const prior = process.env.RALPH_LOOP;
+    process.env.RALPH_LOOP = "1";
+    try {
+      expect(runSetup([])).toBe(2);
+    } finally {
+      if (prior === undefined) delete process.env.RALPH_LOOP;
+      else process.env.RALPH_LOOP = prior;
+    }
+    expect(stderr.join("")).toContain("must not run inside the agent loop");
+  });
+
+  test("completes: merges scripts, installs, and wires the git hooks path", () => {
+    const repo = makeRepo();
+    writeFileSync(
+      path.join(repo, "package.json"),
+      '{ "name": "demo", "private": true }\n',
+    );
+    // Stub pnpm to succeed so installPackages returns 0 without a real network install.
+    writeStub(repo, "pnpm", "#!/bin/sh\nexit 0\n");
+    const stderr: string[] = [];
+    vi.spyOn(process.stderr, "write").mockImplementation((chunk) => {
+      stderr.push(String(chunk));
+      return true;
+    });
+    const restore = process.cwd();
+    const priorPath = process.env.PATH;
+    process.chdir(repo);
+    process.env.PATH = `${path.join(repo, "bin")}${path.delimiter}${priorPath ?? ""}`;
+    try {
+      expect(runSetup([])).toBe(0);
+    } finally {
+      process.chdir(restore);
+      if (priorPath !== undefined) process.env.PATH = priorPath;
+    }
+    expect(runCommand(["git", "config", "core.hooksPath"], repo).trim()).toBe(
+      ".githooks",
+    );
+    expect(stderr.join("")).toContain("git hooks path: .githooks");
+  });
+
+  test("leaves an existing custom git hooks path untouched", () => {
+    const repo = makeRepo();
+    writeFileSync(
+      path.join(repo, "package.json"),
+      '{ "name": "demo", "private": true }\n',
+    );
+    writeStub(repo, "pnpm", "#!/bin/sh\nexit 0\n");
+    // A pre-set, non-default hooksPath must be preserved (setup only sets it when unset/default).
+    runCommand(["git", "config", "core.hooksPath", "custom-hooks"], repo);
+    vi.spyOn(process.stderr, "write").mockReturnValue(true);
+    const restore = process.cwd();
+    const priorPath = process.env.PATH;
+    process.chdir(repo);
+    process.env.PATH = `${path.join(repo, "bin")}${path.delimiter}${priorPath ?? ""}`;
+    try {
+      expect(runSetup([])).toBe(0);
+    } finally {
+      process.chdir(restore);
+      if (priorPath !== undefined) process.env.PATH = priorPath;
+    }
+    expect(runCommand(["git", "config", "core.hooksPath"], repo).trim()).toBe(
+      "custom-hooks",
+    );
+  });
+
+  test("stops with the script-merge failure code before installing", () => {
+    const repo = makeRepo();
+    // No package.json -> addRootScripts fails, so setup returns its code without installing.
+    vi.spyOn(process.stderr, "write").mockReturnValue(true);
+    const restore = process.cwd();
+    process.chdir(repo);
+    try {
+      expect(runSetup([])).toBe(1);
+    } finally {
+      process.chdir(restore);
+    }
+  });
+
+  test("stops with the install failure code", () => {
+    const repo = makeRepo();
+    writeFileSync(
+      path.join(repo, "package.json"),
+      '{ "name": "demo", "private": true }\n',
+    );
+    // pnpm stub fails, so installPackages returns nonzero and setup stops there.
+    writeStub(repo, "pnpm", "#!/bin/sh\nexit 7\n");
+    vi.spyOn(process.stderr, "write").mockReturnValue(true);
+    const restore = process.cwd();
+    const priorPath = process.env.PATH;
+    process.chdir(repo);
+    process.env.PATH = `${path.join(repo, "bin")}${path.delimiter}${priorPath ?? ""}`;
+    try {
+      expect(runSetup([])).toBe(7);
+    } finally {
+      process.chdir(restore);
+      if (priorPath !== undefined) process.env.PATH = priorPath;
+    }
+  });
+});
+
+describe("main dispatch (in-process)", () => {
+  test("status writes the run-log summary and sets exit 0", async () => {
+    const out: string[] = [];
+    vi.spyOn(process.stdout, "write").mockImplementation((chunk) => {
+      out.push(String(chunk));
+      return true;
+    });
+    const restore = process.cwd();
+    process.chdir(makeRepo());
+    try {
+      await main(["status"]);
+    } finally {
+      process.chdir(restore);
+    }
+    expect(process.exitCode).toBe(0);
+    expect(out.join("")).toContain("run log(s)");
+  });
+
+  test("setup with an argument dispatches to runSetup and exits 2", async () => {
+    const stderr: string[] = [];
+    vi.spyOn(process.stderr, "write").mockImplementation((chunk) => {
+      stderr.push(String(chunk));
+      return true;
+    });
+
+    await main(["setup", "extra-arg"]);
+
+    expect(process.exitCode).toBe(2);
+    expect(stderr.join("")).toContain("usage: harness setup");
+  });
+
+  test("preflight dispatches through run and reports the banner", async () => {
+    const stderr: string[] = [];
+    vi.spyOn(process.stderr, "write").mockImplementation((chunk) => {
+      stderr.push(String(chunk));
+      return true;
+    });
+    // Stub the gate so this exercises main's preflight dispatch, not the real (slow) checks.
+    vi.spyOn(gate, "runPreflight").mockReturnValue([]);
+    vi.spyOn(gate, "runGit").mockReturnValue("/repo\n");
+
+    await main(["preflight"]);
+
+    expect(process.exitCode).toBe(0);
+    expect(stderr.join("")).toContain("ok: preflight passed");
+  });
+
+  test("gate dispatch reports rejection and sets exit 1", async () => {
+    const stderr: string[] = [];
+    vi.spyOn(process.stderr, "write").mockImplementation((chunk) => {
+      stderr.push(String(chunk));
+      return true;
+    });
+    vi.spyOn(gate, "runGate").mockReturnValue(["boom failed"]);
+    vi.spyOn(gate, "runGit").mockReturnValue("/repo\n");
+
+    await main(["gate"]);
+
+    expect(process.exitCode).toBe(1);
+    expect(stderr.join("")).toContain("rejected by harness");
+  });
+
+  test("loop dispatches through runLoop with the real dependencies", async () => {
+    const repo = makeRepo();
+    writeStub(repo, "agy", "#!/bin/sh\nexit 0\n");
+    // Pre-seed an existing run log so the real listSequences closure parses it and the next
+    // sequence increments past it.
+    const seeded = path.join(
+      repo,
+      "scratchpad",
+      "runs",
+      "agy",
+      formatDate(Date.now()),
+    );
+    mkdirSync(seeded, { recursive: true });
+    writeFileSync(path.join(seeded, "0001.jsonl"), "{}\n");
+    const stderr: string[] = [];
+    vi.spyOn(process.stderr, "write").mockImplementation((chunk) => {
+      stderr.push(String(chunk));
+      return true;
+    });
+    const restore = process.cwd();
+    const priorPath = process.env.PATH;
+    process.chdir(repo);
+    process.env.PATH = `${path.join(repo, "bin")}${path.delimiter}${priorPath ?? ""}`;
+    try {
+      await main(["loop", "agy", "1", "1"]);
+    } finally {
+      process.chdir(restore);
+      if (priorPath !== undefined) process.env.PATH = priorPath;
+    }
+    expect(process.exitCode).toBe(0);
+    expect(stderr.join("")).toContain("ralph.sh");
+  }, 60_000);
+
+  test("feeds PROMPT.md to the agent on stdin", async () => {
+    const repo = makeRepo();
+    // The agent stub records its stdin so we can prove ralph delivered the prompt (not that the
+    // test passes only because PROMPT.md is absent and ralph tolerates a missing file).
+    const captured = path.join(repo, "stdin.txt");
+    writeStub(repo, "agy", `#!/bin/sh\ncat > "${captured}"\n`);
+    const marker = "PROMPT_MARKER_do_the_work";
+    writeFileSync(path.join(repo, "PROMPT.md"), `${marker}\n`);
+    vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    const restore = process.cwd();
+    const priorPath = process.env.PATH;
+    process.chdir(repo);
+    process.env.PATH = `${path.join(repo, "bin")}${path.delimiter}${priorPath ?? ""}`;
+    try {
+      await main(["loop", "agy", "1", "1"]);
+    } finally {
+      process.chdir(restore);
+      if (priorPath !== undefined) process.env.PATH = priorPath;
+    }
+    expect(process.exitCode).toBe(0);
+    const stdin = readFileSync(captured, "utf8");
+    expect(stdin).toContain(marker);
+    expect(stdin).toContain("RALPH_ITERATION=1/1");
+  }, 60_000);
+});
+
+describe("loopDependencies (in-process)", () => {
+  test("listSequences returns [] for a directory that does not exist", () => {
+    const missing = path.join(tmpdir(), "harness-no-such-dir-xyz");
+    expect(loopDependencies().listSequences(missing)).toEqual([]);
+  });
+
+  test("listSequences parses numeric .jsonl names and ignores others", () => {
+    const directory = mkdtempSync(path.join(tmpdir(), "harness-seq-"));
+    writeFileSync(path.join(directory, "0003.jsonl"), "{}\n");
+    writeFileSync(path.join(directory, "0007.jsonl"), "{}\n");
+    writeFileSync(path.join(directory, "notes.txt"), "x\n");
+
+    expect(
+      loopDependencies()
+        .listSequences(directory)
+        .toSorted((a, b) => a - b),
+    ).toEqual([3, 7]);
+  });
+});
+
+describe("runStatus (in-process)", () => {
+  test("reports zero logs for a fresh repo", () => {
+    const repo = makeRepo();
+    const out: string[] = [];
+    vi.spyOn(process.stdout, "write").mockImplementation((chunk) => {
+      out.push(String(chunk));
+      return true;
+    });
+    const restore = process.cwd();
+    process.chdir(repo);
+    try {
+      expect(runStatus()).toBe(0);
+    } finally {
+      process.chdir(restore);
+    }
+    expect(out.join("")).toContain("0 run log(s)");
+  });
+
+  test("reports and names the newest log when runs exist", () => {
+    const repo = makeRepo();
+    const runs = path.join(repo, "scratchpad", "runs", "codex", "2026-06-26");
+    mkdirSync(runs, { recursive: true });
+    writeFileSync(path.join(runs, "0001.jsonl"), "{}\n");
+    writeFileSync(path.join(runs, "0002.jsonl"), "{}\n");
+    const out: string[] = [];
+    vi.spyOn(process.stdout, "write").mockImplementation((chunk) => {
+      out.push(String(chunk));
+      return true;
+    });
+    const restore = process.cwd();
+    process.chdir(repo);
+    try {
+      expect(runStatus()).toBe(0);
+    } finally {
+      process.chdir(restore);
+    }
+    expect(out.join("")).toContain("2 run log(s)");
+    expect(out.join("")).toContain("0002.jsonl");
+  });
 });
 
 describe("run", () => {
@@ -330,6 +894,25 @@ describe("runLoop", () => {
     });
   });
 
+  test("rejects an empty agent argument", async () => {
+    await expect(
+      runLoop([], {
+        now: () => FIXED_NOW,
+        cwd: () => "/repo",
+        ralphPath: () => "/repo/harness/ralph.sh",
+        listSequences: () => [],
+        ensureDirectory: (directory) => directory.length,
+        worker: async () => {
+          const code = await Promise.resolve(0);
+          return code;
+        },
+      }),
+    ).resolves.toEqual({
+      code: 2,
+      lines: ["unknown agent ''; choose from claude, codex, agy, copilot"],
+    });
+  });
+
   test("rejects invalid iteration or minute counts", async () => {
     await expect(
       runLoop(["codex", "0"], {
@@ -406,12 +989,44 @@ describe("harness command", () => {
   }, 60_000);
 
   // Spawns a real agent subprocess; the default 5s timeout is too tight under the coverage run.
-  test("loop", () => {
+  // Stub the agent on PATH so the success path is deterministic (a real `agy` may be absent).
+  test("loop returns 0 when the agent exits cleanly", () => {
+    const repo = makeRepo();
+    const bin = path.join(repo, "bin");
+    mkdirSync(bin);
+    writeFileSync(path.join(bin, "agy"), "#!/bin/sh\nexit 0\n", {
+      mode: 0o755,
+    });
+
     const result = harnessCli(["loop", "agy", "1", "1"], {
-      cwd: makeRepo(),
+      cwd: repo,
+      env: {
+        ...process.env,
+        PATH: `${bin}${path.delimiter}${process.env.PATH ?? ""}`,
+      },
     });
 
     expect(result.status).toBe(0);
+  }, 60_000);
+
+  test("loop propagates a nonzero agent exit code", () => {
+    const repo = makeRepo();
+    const bin = path.join(repo, "bin");
+    mkdirSync(bin);
+    writeFileSync(path.join(bin, "agy"), "#!/bin/sh\nexit 3\n", {
+      mode: 0o755,
+    });
+
+    const result = harnessCli(["loop", "agy", "1", "1"], {
+      cwd: repo,
+      env: {
+        ...process.env,
+        PATH: `${bin}${path.delimiter}${process.env.PATH ?? ""}`,
+      },
+    });
+
+    expect(result.status).toBe(3);
+    expect(result.stderr).toContain("agent exited 3");
   }, 60_000);
 
   test("loop streams and logs agent JSON from stdout and stderr", () => {
@@ -510,6 +1125,21 @@ describe("harness command", () => {
     });
 
     await main(["nope"]);
+
+    expect(process.exitCode).toBe(2);
+    expect(chunks).toEqual([
+      "usage: harness <preflight|gate|loop|status|setup>\n",
+    ]);
+  });
+
+  test("main with no arguments prints usage and exits 2", async () => {
+    const chunks: string[] = [];
+    vi.spyOn(process.stderr, "write").mockImplementation((chunk) => {
+      chunks.push(String(chunk));
+      return true;
+    });
+
+    await main([]);
 
     expect(process.exitCode).toBe(2);
     expect(chunks).toEqual([

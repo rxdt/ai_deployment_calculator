@@ -135,10 +135,15 @@ export function roundTo(value: number, digits: number): number {
 
 // Transformer shape by parameter count (billions). Ordered ascending by the inclusive upper bound;
 // the last entry (Infinity) is the fallback for the largest models.
-const ARCHITECTURE_BUCKETS: readonly {
+interface ArchitectureBucket {
   readonly maxB: number;
   readonly architecture: TransformerArchitecture;
-}[] = [
+}
+
+const ARCHITECTURE_BUCKETS: readonly [
+  ArchitectureBucket,
+  ...ArchitectureBucket[],
+] = [
   {
     maxB: 1,
     architecture: {
@@ -221,19 +226,15 @@ const ARCHITECTURE_BUCKETS: readonly {
   },
 ];
 
+// The final bucket has maxB: Infinity, so it matches every finite input. Only NaN matches
+// nothing (all comparisons are false); it then falls back to the first (smallest) bucket.
 /**
 
 @param parametersB
 */
 export function architectureFor(parametersB: number): TransformerArchitecture {
-  const fallbackBucket = ARCHITECTURE_BUCKETS.at(-1);
-  if (fallbackBucket === undefined) {
-    throw new Error("architecture buckets must not be empty");
-  }
-  const bucket =
-    ARCHITECTURE_BUCKETS.find(({ maxB }) => parametersB <= maxB) ??
-    fallbackBucket;
-  return bucket.architecture;
+  const bucket = ARCHITECTURE_BUCKETS.find(({ maxB }) => parametersB <= maxB);
+  return (bucket ?? ARCHITECTURE_BUCKETS[0]).architecture;
 }
 
 /**

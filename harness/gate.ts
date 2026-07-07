@@ -149,6 +149,8 @@ function runOneCheck(
   if (executable === undefined || executable.length === 0) {
     return `${name} failed:\nempty command`;
   }
+  const started = Date.now();
+  process.stderr.write(`gate: starting ${name}: ${command.join(" ")}\n`);
   const result = spawnSync(executable, rest, {
     cwd: context.repo,
     encoding: "utf8",
@@ -156,6 +158,12 @@ function runOneCheck(
     // 0 => undefined => no timeout: the full gate must run long browser/build checks.
     timeout: context.timeoutMs > 0 ? context.timeoutMs : undefined,
   });
+  const elapsedMs = Date.now() - started;
+  process.stderr.write(
+    `gate: finished ${name} in ${String(elapsedMs)}ms ` +
+      `status=${String(result.status)} signal=${String(result.signal)} ` +
+      `error=${result.error === undefined ? "none" : String(result.error)}\n`,
+  );
   if (isToolMissing(result, executable)) {
     return undefined;
   }
@@ -178,8 +186,8 @@ function stagedNames(repo: string): string[] {
     .filter((line) => line.length > 0);
 }
 
-// Staged symlinks (Git mode 120000). A symlink's path may look like ordinary source while it
-// points at a protected file or outside the repo, so the loop must eject it, not read it as text.
+// Staged symlinks (Git mode 120000). A symlink's path may look like ordinary source but
+// point at a protected file or outside the repo, so the loop must unstage it, not read it
 /**
 
 * @param repo
@@ -195,8 +203,18 @@ function stagedSymlinks(repo: string): string[] {
 }
 
 interface StagedChange {
-  paths: string[];
+  // Non-empty by construction (a record always has at least its primary path), so consumers
+  // can read paths[0] / at(-1) without an undefined fallback branch.
+  paths: [string, ...string[]];
   status: string;
+}
+
+// How many path fields follow a `-z` status token: 2 for a rename/copy (R/C), else 1.
+/**
+@param status
+*/
+function pathCountFor(status: string): number {
+  return status.startsWith("R") || status.startsWith("C") ? 2 : 1;
 }
 
 /**
@@ -215,15 +233,24 @@ function stagedChanges(repo: string): StagedChange[] {
   ])
     .split("\0")
     .filter((field) => field.length > 0);
+  // Walk the `-z` fields by value (never by index, so no `?? ""` undefined branch). State moves
+  // status -> first path -> (extra path) -> emit. Seeding `paths` with the first path field
+  // types it as a non-empty tuple; the record is emitted once it holds all its paths.
   const changes: StagedChange[] = [];
-  for (let index = 0; index < fields.length;) {
-    const status = fields.at(index) ?? "";
-    index += 1;
-    const pathCount = status.startsWith("R") || status.startsWith("C") ? 2 : 1;
-    const paths = fields.slice(index, index + pathCount);
-    index += pathCount;
-    if (status.length > 0 && paths.length === pathCount) {
-      changes.push({ paths, status });
+  let status: string | undefined;
+  let change: StagedChange | undefined;
+  for (const field of fields) {
+    if (status === undefined) {
+      status = field;
+    } else if (change === undefined) {
+      change = { status, paths: [field] };
+    } else {
+      change.paths.push(field);
+    }
+    if (change?.paths.length === pathCountFor(status)) {
+      changes.push(change);
+      status = undefined;
+      change = undefined;
     }
   }
   return changes;
@@ -256,9 +283,6 @@ function stagedDiffAddedLines(
   repo: string,
   paths: readonly string[],
 ): string[] {
-  if (paths.length === 0) {
-    return [];
-  }
   return runGit(repo, ["diff", "--cached", "--unified=0", "--", ...paths])
     .split("\n")
     .filter((line) => line.startsWith("+") && !line.startsWith("+++"));
@@ -285,7 +309,12 @@ function stagedContent(repo: string, file: string): string | undefined {
 @param change
 */
 function bannedPatternProblems(repo: string, change: StagedChange): string[] {
-  const file = change.paths.at(-1) ?? "";
+  // For a rename/copy, Git emits [source, destination]; the added lines live in the
+  // destination, so report against it (the last path). For an add/modify there is one path.
+  // `paths` is a non-empty tuple, so the first element is the fallback and destructuring the
+  // rest yields the destination when present.
+  const [first, ...rest] = change.paths;
+  const file = rest.at(-1) ?? first;
   return stagedDiffAddedLines(repo, change.paths).flatMap((line) => {
     const lower = line.toLowerCase();
     return FORBIDDEN_PATTERNS.filter((pattern) =>

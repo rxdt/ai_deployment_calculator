@@ -6,3 +6,11 @@ allowBuilds:
   esbuild: true
   "@scarf/scarf": false
   unrs-resolver: false
+
+# Force patched versions of vulnerable dev/transitive deps flagged by the audit + osv checks.
+# All are pulled in by tooling (lhci, ajv-cli, telemetry), not shipped to consumers.
+overrides:
+  tmp: ">=0.2.6"
+  uuid: ">=11.1.1"
+  fast-json-patch: ">=3.1.1"
+  "@opentelemetry/core": ">=2.8.0"

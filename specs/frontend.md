@@ -1,11 +1,11 @@
 # Frontend Refactor Spec
 
-PRIORITY 1 - frontend parity and UI compaction implemented; keep green.
+PRIORITY 1 - frontend parity and UI compaction implemented; keep green. Responsive standards met. Frontend best practices implemented.
+**Styling is the very LAST thing implemented.**
 
 ## Current Contract
 
-- The Vite app is static. There is no required report-service route, Python
-  formula source, or fetch mock.
+- The Vite app is static.
 - `CalculatorApp` normalizes form state, calls local TypeScript
   `buildReport(state)`, and renders synchronously.
 - Public UI names follow the Naming Contract in `specs/plan.md`; do not redefine
@@ -23,6 +23,7 @@ PRIORITY 1 - frontend parity and UI compaction implemented; keep green.
   multimodal, and custom. `Active Parameters` appears only when checked.
 - Changing workload family or execution mode rerenders adaptive controls without
   waiting for form submit.
+-  ZERO styling until all Javascript and HTML work is complete.
 
 ## Calculation State
 
@@ -88,12 +89,10 @@ code review (expected values hand-recomputed from `docs/plan.md`). Remaining:
 
 ## Formulas
 
-This is the canonical, implemented formula reference. It supersedes any older
-`/api/report` migration language or legacy heuristic examples (those are gone).
-Variable names and constants below match `frontend/src/calculator-core.ts`,
+This is the canonical, implemented formula reference. Variable names and constants below match `frontend/src/calculator-core.ts`,
 `workload-memory.ts`, and `hardware.ts`.
 
-````md
+
 ## Canonical VRAM Formula
 
 There is one base equation:
@@ -200,7 +199,7 @@ Estimated transformer architecture by total parameter count:
 <= 160B: layers 96, hidden 10240, heads 80, kv_heads 8, head_dim 128
 > 160B:  layers 120, hidden 12288, heads 96, kv_heads 8, head_dim 128
 ```
-````
+
 
 Also compute `conservative_kv_heads = attention_heads` and show it in advanced
 output.
@@ -565,10 +564,7 @@ Do not use:
 
 `Required_GB = (Weights + KV + Task_Overhead + Runtime_Tax) * Buffer` as the real internal model
 
-The old display equation can appear only as a simplified explanation if its labels map to the canonical terms.
-
-```
-
+The simpler equation can appear only as a simplified explanation if its labels map to the canonical terms.
 
 ## Canonical test cases
 
@@ -663,4 +659,3 @@ Accessibility:
   Playwright suite asserts. The styling pass must keep axe violations at zero and
   meet the touch-target (>=40px) and readable-text (>=13px) checks in
   `tests/responsive.spec.ts`.
-```

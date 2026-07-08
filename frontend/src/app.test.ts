@@ -419,6 +419,46 @@ describe("mounted calculator", () => {
     }
   });
 
+  test("renders only first-glance results outside the collapsed detail panels", () => {
+    loadDom();
+    mountCalculator(document);
+    const firstGlanceSlots = ["total", "vram-say", "confidence", "gpu-class"];
+    const detailSlots = [
+      "why",
+      "min-cap",
+      "usable-target",
+      "usable-on-class",
+      "fit-headroom",
+      "speed",
+      "breakdown",
+      "calc-formula",
+      "assumptions",
+    ];
+
+    expect(out("total")).toBe("19.0 GB");
+    expect(out("vram-say")).toBe("The workload needs 19.0 GB usable VRAM.");
+    expect(out("confidence")).toBe("Estimated");
+    expect(out("gpu-class")).toBe("24 GB GPU hardware tier");
+    for (const name of firstGlanceSlots) {
+      expect(() => containingDetails(outSlot(name))).toThrow(
+        "Missing containing details panel",
+      );
+    }
+
+    expect(out("why")).toContain("advertised VRAM");
+    expect(out("min-cap")).toBe("22.4 GB");
+    expect(out("usable-target")).toBe("85%");
+    expect(out("usable-on-class")).toBe("20.4 GB");
+    expect(out("fit-headroom")).toBe("1.4 GB usable margin");
+    expect(out("speed")).toMatch(/tokens\/sec$/u);
+    expect(out("breakdown")).toContain("Model memory");
+    expect(out("calc-formula")).toContain("Required_GB");
+    expect(out("assumptions")).toContain("Precision16-bit");
+    for (const name of detailSlots) {
+      expect(containingDetails(outSlot(name)).open).toBe(false);
+    }
+  });
+
   test("does not restore removed accuracy or personal GPU fit outputs", () => {
     loadDom();
     mountCalculator(document);

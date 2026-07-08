@@ -25,7 +25,7 @@
 
 ## UI
 
-- [x] Only one visible form action exists, with text `Reset`.
+- [x] Only one form action exists, with text `Reset`.
 - [x] Advanced assumptions expanded section shows additional options.
 - [ ] Bare, minimal styles.css only to get tests passing until typescript/html work is complete.
 - [x] Visible form actions are not duplicated: `Reset` is the only visible
@@ -91,29 +91,29 @@
 
 ## Outputs
 
-- [ ] First glance (hero): `Estimated VRAM Required` (the total), a short
+- [x] First glance (hero): `Estimated VRAM Required` (the total), a short
       "The workload needs N GB usable VRAM." line, an always-visible
       `Estimate confidence` label (`Rough` for diffusion/video/custom, `Estimated`
       otherwise), and `Recommended GPU Class` (e.g. `24 GB GPU hardware tier`).
       Nothing else is shown by default.
-- [ ] Collapsed `<details>` panels hold the rest:
-  - [ ] `Why this recommendation` — a plain-language "why" sentence plus
+- [x] Collapsed `<details>` panels hold the rest:
+  - [x] `Why this recommendation` — a plain-language "why" sentence plus
         `Minimum GPU VRAM Capacity`, `Usable VRAM Target`,
         `Usable VRAM on Recommended Class`, `Fit Headroom`, and `Estimated Speed`
         (rendered as `tokens/sec`).
-  - [ ] `Calculation used` — the per-component breakdown rows (`Model memory` or
+  - [x] `Calculation used` — the per-component breakdown rows (`Model memory` or
         `QLoRA base model memory`, `Context memory`, `Activation memory`,
         `Training memory`, `Runtime reserve`, `Safety margin`). Rows that round to
         `0.0 GB` are hidden.
-  - [ ] `Formula used` — the inline canonical equation substitution.
-  - [ ] `Assumptions used` — visible precision, runtime, execution, and KV
+  - [x] `Formula used` — the inline canonical equation substitution.
+  - [x] `Assumptions used` — visible precision, runtime, execution, and KV
         assumptions.
-- [ ] The hardware-recommendation and fit math (usable VRAM on class, fit headroom,
+- [x] The hardware-recommendation and fit math (usable VRAM on class, fit headroom,
       overflow `n/a`, speed) is defined in the Formulas section below.
-- [ ] Warnings are conditional only: training, MoE, and sharded-tier speed guidance.
+- [x] Warnings are conditional only: training, MoE, and sharded-tier speed guidance.
       Family-specific caveats stay out of warnings; default inference renders no
       warnings.
-- [ ] There is no `Accuracy` output and no separate `Your GPU Fit` panel; both were
+- [x] There is no `Accuracy` output and no separate `Your GPU Fit` panel; both were
       removed by product decision.
 
 ## Tests And Checks
@@ -125,11 +125,11 @@
       diffusion/video/audio/tabular scaling, LoRA, QLoRA, full training, hardware
       tier matching (single-GPU vs sharded, overflow), tier-bandwidth speed, and
       legacy flag removal.
-- [ ] Playwright covers accessibility, local report rendering, adaptive controls,
+- [x] Playwright covers accessibility, local report rendering, adaptive controls,
       no generic `Batch Size`, MoE visibility, escaping, four collapsed result
       detail cards, expanded-heading cyan color, and collapsed one-viewport fit on
       desktop/mobile.
-- [ ] App unit tests cover the real HTML `KV Cache Precision` options, real HTML
+- [x] App unit tests cover the real HTML `KV Cache Precision` options, real HTML
       `Execution Mode` choices, the rendered 32-bit KV estimate, the always-visible
       `Estimate confidence` label, collapsed output panels, removed `Accuracy` /
       `Your GPU Fit` surfaces, default empty warnings, and fractional

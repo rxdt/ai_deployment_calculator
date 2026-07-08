@@ -244,6 +244,11 @@ components:
 > `docs/PROJECT_STATUS.md` say JavaScript behavior and HTML wiring are complete
 > after a fresh review of `frontend/`.
 
+## Commands
+
+Use `pnpm preflight` for the loop preflight and `pnpm gate` for the full gate.
+For visual checks, use the Playwright and Lighthouse commands in `specs/frontend.md`.
+
 # VRAM-calculator
 
 ## Overview

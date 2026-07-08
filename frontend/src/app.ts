@@ -137,7 +137,6 @@ export class CalculatorApp {
   private readonly root: ParentNode;
   private readonly form: HTMLFormElement;
   private readonly rowTemplate: HTMLTemplateElement;
-  private readonly resetButton: HTMLButtonElement;
   private readonly kvCacheRow: HTMLElement;
 
   public constructor(root: ParentNode) {
@@ -149,11 +148,9 @@ export class CalculatorApp {
     if (!(rowTemplate instanceof HTMLTemplateElement)) {
       throw new TypeError("Missing row template");
     }
-    const resetButton = root.querySelector<HTMLButtonElement>(
-      '[data-action="reset"]',
-    );
-    if (resetButton === null) {
-      throw new Error("Missing reset button");
+    const resetButton = root.querySelector('[data-action="reset"]');
+    if (!(resetButton instanceof HTMLButtonElement)) {
+      throw new TypeError("Missing reset button");
     }
     const kvCacheRow = dataSlot(root, "kv-cache-row");
     if (kvCacheRow === null) {
@@ -162,7 +159,6 @@ export class CalculatorApp {
     this.root = root;
     this.form = form;
     this.rowTemplate = rowTemplate;
-    this.resetButton = resetButton;
     this.kvCacheRow = kvCacheRow;
   }
 
@@ -176,13 +172,9 @@ export class CalculatorApp {
     this.form.addEventListener("change", () => {
       this.update();
     });
-    this.resetButton.addEventListener("click", () => {
-      this.reset();
-    });
-    // Pressing Enter in the form can submit it; the calculator is reactive, so
-    // submitting must not navigate or reload.
     this.form.addEventListener("submit", (event) => {
       event.preventDefault();
+      this.reset();
     });
     this.update();
   }

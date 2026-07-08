@@ -25,12 +25,12 @@
 
 ## UI
 
-- [x] Only one form action exists, with text `Reset`.
+- [x] Only one form action exists, with text `Reset`; it is a submit button so the
+      form has one accessible action.
 - [x] Advanced assumptions expanded section shows additional options.
 - [ ] Bare, minimal styles.css only to get tests passing until typescript/html work is complete.
-- [x] Visible form actions are not duplicated: `Reset` is the only visible
-      button; the reactive form keeps a hidden submit control only for form
-      submission/validation.
+- [x] Visible form actions are not duplicated: `Reset` is the only visible button,
+      and there is no hidden submit control.
 - [x] Main form shows `Workload Family`, `Total Model Parameters`,
       `Parameter Unit`, `Precision`, `Execution Mode`, `Runtime Profile`,
       adaptive input controls, adaptive workload size, and relevant `MoE Model`.

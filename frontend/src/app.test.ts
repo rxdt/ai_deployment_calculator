@@ -365,13 +365,16 @@ describe("mounted calculator", () => {
   test("renders reset as the only form action because estimates are reactive", () => {
     loadDom();
     mountCalculator(document);
-    const actions = [...dataSlot("form-actions").children]
-      .filter(
-        (element): element is HTMLButtonElement =>
-          element instanceof HTMLButtonElement && element.hidden === false,
-      )
-      .map((button) => button.textContent.trim());
-    expect(actions).toEqual(["Reset"]);
+    const actions = [...dataSlot("form-actions").children];
+    expect(actions).toHaveLength(1);
+    const [action] = actions;
+    if (action === undefined) {
+      throw new TypeError("Missing form action");
+    }
+    expect(action).toBe(requireButton());
+    expect(requireButton().type).toBe("submit");
+    expect(requireButton().hidden).toBe(false);
+    expect(requireButton().textContent.trim()).toBe("Reset");
   });
 
   test("keeps the confidence label visible and adapts it to the workload", () => {
@@ -533,12 +536,15 @@ describe("mounted calculator", () => {
     expect(out("why")).toContain("Enter model and workload inputs");
   });
 
-  test("prevents form submission so the page never reloads", () => {
+  test("submit resets the reactive form without allowing navigation", () => {
     loadDom();
     mountCalculator(document);
+    fireInput("total-params", "104");
     const event = new Event("submit", { bubbles: true, cancelable: true });
     const wasSubmissionAllowed = inputsForm().dispatchEvent(event);
     expect(wasSubmissionAllowed).toBe(false);
+    expect(field("total-params").value).toBe("0");
+    expect(out("total")).toBe("0.0 GB");
   });
 
   test("serializes a checked MoE box into the estimate", () => {

@@ -16,47 +16,47 @@ PRIORITY - frontend and UI compaction implemented; keep green. Responsive standa
 
 ## UI
 
-- [ ] Visible form actions are not duplicated: `Reset assumptions` is the only
+- [x] Visible form actions are not duplicated: `Reset assumptions` is the only
   visible button; the reactive form keeps a hidden submit control only for form
   submission/validation.
-- [ ] Build and run the app to "view" it as you make changes
+- [x] Build and run the app to "view" it as you make changes
 - [ ] If built and previewed the production app; `5173` was occupied, the Vite
   preview can inspected at `http://127.0.0.1:5174/`.
-- [ ] Main form shows `Workload Family`, `Total Model Parameters`,
+- [x] Main form shows `Workload Family`, `Total Model Parameters`,
   `Parameter Unit`, `Precision`, `Execution Mode`, `Runtime Profile`,
   adaptive input controls, adaptive workload size, and relevant `MoE Model`.
-- [ ] `Total Model Parameters` accepts fractional values such as `3.8` billion.
+- [x] `Total Model Parameters` accepts fractional values such as `3.8` billion.
 - Rare controls live in `<details><summary>Advanced assumptions</summary>`.
-- [ ] `QLoRA fine-tuning` visibly snaps `Precision` to `4-bit` and
+- [x] `QLoRA fine-tuning` visibly snaps `Precision` to `4-bit` and
   `Runtime Profile` to `Local / Edge`, matching the forced calculation state.
-- [ ] `KV Cache Precision` lives in advanced assumptions, is visible only for
+- [x] `KV Cache Precision` lives in advanced assumptions, is visible only for
   inference decoder-KV workloads, and offers `8-bit / FP8`, `16-bit`, and
   `32-bit`.
-- [ ] The app is responsive. Read `/scratchpad/responsive_frontend_research.md`
-- [ ] Workload size label is `Concurrent Requests` for inference and
+- [x] The app is responsive. Read `/scratchpad/responsive_frontend_research.md`
+- [x] Workload size label is `Concurrent Requests` for inference and
   `Micro Batch Size` for training; never reintroduce generic `Batch Size`.
-- [ ] `MoE Model` appears only for text generation, embeddings, encoder-decoder,
+- [x] `MoE Model` appears only for text generation, embeddings, encoder-decoder,
   multimodal, and custom. `Active Parameters` appears only when checked.
-- [ ] Changing workload family or execution mode rerenders adaptive controls without
+- [x] Changing workload family or execution mode rerenders adaptive controls without
   waiting for form submit.
-- [ ] HTML reflects clean, compact, well-organized flow. Clean, compact, well-organized examples are like `spec/calc1.png`, `~/specs/calc2.png`, `spec/calc13.png` -> do not follow those exactly, they are loose examples of what 'good' looks like to a human user.
+- [x] HTML reflects clean, compact, well-organized flow. Clean, compact, well-organized examples are like `spec/calc1.png`, `~/specs/calc2.png`, `spec/calc13.png` -> do not follow those exactly, they are loose examples of what 'good' looks like to a human user.
 - [x] Small Github logo with link to github repo is in top right
   `https://github.com/rxdt/ai_deployment_calculator/`.
-- [ ] `~VRAM-calculator` is in top left and is not a link.
-- [ ] JAVASCRIPT AND HTML WORK IS COMPLETED 100%
-- [ ] Calculator elements are not overly big.
-- [ ] Organized 'detail' cards are in HTML skeleton shape. Example is here: do not follow bad choices made, only use as a list of card to consider including. Each card should expand to contain details: `specs/this_png_shows_some_ideas_are_ok_not_all.png`
-- [ ] Small disclaimer should exist below app outputs.
+- [x] `~VRAM-calculator` is in top left and is not a link.
+- [x] JAVASCRIPT AND HTML WORK IS COMPLETED 100%
+- [x] Calculator elements are not overly big.
+- [x] Organized 'detail' cards are in HTML skeleton shape. Example is here: do not follow bad choices made, only use as a list of card to consider including. Each card should expand to contain details: `specs/this_png_shows_some_ideas_are_ok_not_all.png`
+- [x] Small disclaimer should exist below app outputs.
 
 ## STYLING
-- [ ] Iff javascript and html work are completed. styling can begin.
+- [x] Iff javascript and html work are completed. styling can begin.
   - [ ] When 'Advanced assumptions' is expanded, app fits in one viewport on desktop and mobile.
-  - [ ] The app fits in one viewport on desktop and mobile.
-  - [ ] The app is responsive ~/ai_deployment_calculator/scratchpad/responsive_frontend_research.md
-  - [ ] Styling follows `specs/DESIGN.md` -- Design system defines 24 colors, 7 typography scales, 5 rounding levels, 10 spacing tokens, 25 components.
-  - [ ] Styling honors a compact, clean calculator shape. Compact calculator examples are like `spec/calc1.png`, `~/specs/calc2.png`, `spec/calc13.png`.
+  - [x] The app fits in one viewport on desktop and mobile.
+  - [x] The app is responsive ~/ai_deployment_calculator/scratchpad/responsive_frontend_research.md
+  - [x] Styling follows `specs/DESIGN.md` -- Design system defines 24 colors, 7 typography scales, 5 rounding levels, 10 spacing tokens, 25 components.
+  - [x] Styling honors a compact, clean calculator shape. Compact calculator examples are like `spec/calc1.png`, `~/specs/calc2.png`, `spec/calc13.png`.
   - [ ] Styling is compact and has some minor similar details this app `specs/light_style_ideas_reflected_in_DESIGN.md.png`
-  - [ ] Build and run the app to "view" it as you make changes to ensure it 'looks' right
+  - [x] Build and run the app to "view" it as you make changes to ensure it 'looks' right
   - [ ] If built and previewed the production app; `5173` was occupied, the Vite
   preview can inspected at `http://127.0.0.1:5174/`.
   - The app passes lighthouse checks 100%.
@@ -112,10 +112,10 @@ PRIORITY - frontend and UI compaction implemented; keep green. Responsive standa
   diffusion/video/audio/tabular scaling, LoRA, QLoRA, full training, hardware
   tier matching (single-GPU vs sharded, overflow), tier-bandwidth speed, and
   legacy flag removal.
-- [ ] Playwright covers accessibility, local report rendering, adaptive controls,
+- [x] Playwright covers accessibility, local report rendering, adaptive controls,
   no generic `Batch Size`, MoE visibility, escaping, and collapsed one-viewport
   fit on desktop/mobile.
-- [ ] App unit tests cover the real HTML `KV Cache Precision` options, the
+- [x] App unit tests cover the real HTML `KV Cache Precision` options, the
   rendered 32-bit KV estimate, and the always-visible `Estimate confidence`
   label (outside any `<details>`, `Rough` for diffusion vs `Estimated`), plus
   fractional `Total Model Parameters` input cleanup.
@@ -124,6 +124,7 @@ PRIORITY - frontend and UI compaction implemented; keep green. Responsive standa
 - [ ] Required commands: `pnpm --dir frontend exec vitest run src/app.test.ts`,
   `npm --prefix frontend run build`,
   `npm --prefix frontend run test:coverage`,
+  `pnpm --dir frontend exec playwright test --config ../harness/playwright.config.js`,
   `npm --prefix frontend run test:e2e`, `npm --prefix frontend run gate`,
   `.venv/bin/harness gate`, `harness preflight`.
 

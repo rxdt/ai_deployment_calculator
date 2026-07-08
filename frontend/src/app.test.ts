@@ -213,9 +213,9 @@ describe("mounted calculator", () => {
   test("renders the compact product brand in the header", () => {
     loadDom();
     mountCalculator(document);
-    const brand = dataSlot("brand-link");
+    const brand = dataSlot("brand");
     expect(brand.textContent).toBe("~VRAM-calculator");
-    expect(brand.getAttribute("href")).toBe("/");
+    expect(brand).not.toBeInstanceOf(HTMLAnchorElement);
   });
 
   test("renders a labeled GitHub repository link with a logo", () => {
@@ -232,6 +232,15 @@ describe("mounted calculator", () => {
       "/github-mark.svg",
     );
     expect(link.textContent.trim()).toBe("GitHub");
+  });
+
+  test("renders the output disclaimer below the estimate", () => {
+    loadDom();
+    mountCalculator(document);
+    const disclaimer = dataSlot("output-disclaimer");
+    expect(disclaimer.textContent).toContain(
+      "validate against the target runtime",
+    );
   });
 
   test("renders the default 7B estimate on mount", () => {

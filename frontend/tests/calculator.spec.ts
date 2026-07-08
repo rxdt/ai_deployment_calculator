@@ -71,7 +71,12 @@ test("ignores reflected query values without injecting markup", async ({
     "/?total-params=%22%3E%3Cimg%20src=x%20onerror=%22window.injected=true%22%3E",
   );
 
-  await expect(page.locator("img")).toHaveCount(0);
+  await expect(page.locator('img[src="x"]')).toHaveCount(0);
+  await expect(page.locator("img")).toHaveCount(1);
+  const wasInjected = await page.evaluate(() =>
+    Boolean(Reflect.get(globalThis, "injected")),
+  );
+  expect(wasInjected).toBe(false);
   await expect(page.locator('[data-out="total"]')).toHaveText("19.0 GB");
 });
 

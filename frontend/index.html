@@ -13,7 +13,7 @@
   <body>
     <div class="app">
       <header class="topbar">
-        <a class="brand" href="/" data-slot="brand-link">~VRAM-calculator</a>
+        <span class="brand" data-slot="brand">~VRAM-calculator</span>
         <nav class="topnav">
           <a
             href="https://github.com/rxdt/ai_deployment_calculator/"
@@ -129,7 +129,7 @@
                 value="8000"
               />
             </p>
-            <p class="field" data-families="text_encoder">
+            <p class="field" data-families="text_encoder" hidden>
               <label for="sequence-tokens">Sequence Length</label>
               <input
                 id="sequence-tokens"
@@ -139,7 +139,7 @@
                 value="512"
               />
             </p>
-            <p class="field" data-families="encoder_decoder">
+            <p class="field" data-families="encoder_decoder" hidden>
               <label for="input-tokens">Input Tokens</label>
               <input
                 id="input-tokens"
@@ -149,7 +149,7 @@
                 value="1024"
               />
             </p>
-            <p class="field" data-families="encoder_decoder">
+            <p class="field" data-families="encoder_decoder" hidden>
               <label for="output-tokens">Output Tokens</label>
               <input
                 id="output-tokens"
@@ -159,7 +159,7 @@
                 value="256"
               />
             </p>
-            <p class="field" data-families="vision_language">
+            <p class="field" data-families="vision_language" hidden>
               <label for="text-context-tokens">Text Context Tokens</label>
               <input
                 id="text-context-tokens"
@@ -172,6 +172,7 @@
             <p
               class="field"
               data-families="vision vision_language image_diffusion"
+              hidden
             >
               <label for="image-width">Image Width (px)</label>
               <input
@@ -185,6 +186,7 @@
             <p
               class="field"
               data-families="vision vision_language image_diffusion"
+              hidden
             >
               <label for="image-height">Image Height (px)</label>
               <input
@@ -195,7 +197,7 @@
                 value="1024"
               />
             </p>
-            <p class="field" data-families="vision_language">
+            <p class="field" data-families="vision_language" hidden>
               <label for="image-count">Image Count</label>
               <input
                 id="image-count"
@@ -205,14 +207,14 @@
                 value="1"
               />
             </p>
-            <p class="field" data-families="video_generation">
+            <p class="field" data-families="video_generation" hidden>
               <label for="video-resolution">Output Resolution</label>
               <select id="video-resolution" name="video-resolution">
                 <option value="720p">720p</option>
                 <option value="1080p">1080p</option>
               </select>
             </p>
-            <p class="field" data-families="video_generation">
+            <p class="field" data-families="video_generation" hidden>
               <label for="video-frames">Frames</label>
               <input
                 id="video-frames"
@@ -222,7 +224,7 @@
                 value="81"
               />
             </p>
-            <p class="field" data-families="audio">
+            <p class="field" data-families="audio" hidden>
               <label for="audio-seconds">Audio Length</label>
               <input
                 id="audio-seconds"
@@ -232,7 +234,7 @@
                 value="30"
               />
             </p>
-            <p class="field" data-families="tabular">
+            <p class="field" data-families="tabular" hidden>
               <label for="rows-per-batch">Rows per Batch</label>
               <input
                 id="rows-per-batch"
@@ -242,7 +244,7 @@
                 value="10000"
               />
             </p>
-            <p class="field" data-families="tabular">
+            <p class="field" data-families="tabular" hidden>
               <label for="features">Features</label>
               <input
                 id="features"
@@ -252,7 +254,7 @@
                 value="100"
               />
             </p>
-            <p class="field" data-families="custom">
+            <p class="field" data-families="custom" hidden>
               <label for="input-size-multiplier">Input Size Preset</label>
               <input
                 id="input-size-multiplier"
@@ -285,7 +287,7 @@
                 MoE Model
               </label>
             </p>
-            <p class="field" data-active>
+            <p class="field" data-active hidden>
               <label for="active-params">Active Parameters</label>
               <input
                 id="active-params"
@@ -445,6 +447,10 @@
           </details>
 
           <ul class="warnings" data-out="warnings" aria-busy="true"></ul>
+          <p class="disclaimer" data-slot="output-disclaimer">
+            Estimates are planning guidance; validate against the target runtime
+            before purchase or deployment.
+          </p>
         </section>
       </main>
     </div>

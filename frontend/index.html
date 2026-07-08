@@ -266,9 +266,11 @@
             </p>
 
             <p class="field">
-              <label for="workload-size"
-                ><span data-workload-label>Concurrent Requests</span></label
-              >
+              <label for="workload-size">
+                <span data-slot="workload-label" data-workload-label>
+                  Concurrent Requests
+                </span>
+              </label>
               <input
                 id="workload-size"
                 name="workload-size"
@@ -299,7 +301,7 @@
             </p>
           </fieldset>
 
-          <details class="advanced">
+          <details class="advanced" data-slot="advanced-assumptions">
             <summary>Advanced assumptions</summary>
             <div class="group">
               <p

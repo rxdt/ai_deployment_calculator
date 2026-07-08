@@ -26,38 +26,38 @@
 ## UI
 
 - [x] Only one visible form action exists, with text `Reset`.
-- [ ] Advanced assumptions expanded section shows additional options
+- [x] Advanced assumptions expanded section shows additional options.
 - [ ] Bare, minimal styles.css only to get tests passing until typescript/html work is complete.
 - [x] Visible form actions are not duplicated: `Reset` is the only visible
       button; the reactive form keeps a hidden submit control only for form
       submission/validation.
-- [ ] Main form shows `Workload Family`, `Total Model Parameters`,
+- [x] Main form shows `Workload Family`, `Total Model Parameters`,
       `Parameter Unit`, `Precision`, `Execution Mode`, `Runtime Profile`,
       adaptive input controls, adaptive workload size, and relevant `MoE Model`.
-- [ ] `Total Model Parameters` accepts fractional values such as `3.8` billion.
-- Rare controls live in `<details><summary>Advanced assumptions</summary>`.
-- [ ] `QLoRA fine-tuning` visibly snaps `Precision` to `4-bit` and
+- [x] `Total Model Parameters` accepts fractional values such as `3.8` billion.
+- [x] Rare controls live in `<details><summary>Advanced assumptions</summary>`.
+- [x] `QLoRA fine-tuning` visibly snaps `Precision` to `4-bit` and
       `Runtime Profile` to `Local / Edge`, matching the forced calculation state.
-- [ ] `KV Cache Precision` lives in advanced assumptions, is visible only for
+- [x] `KV Cache Precision` lives in advanced assumptions, is visible only for
       inference decoder-KV workloads, and offers `8-bit / FP8`, `16-bit`, and
       `32-bit`.
 - [ ] The app is responsive according to `/scratchpad/responsive_frontend_research.md`
-- [ ] Workload size label is `Concurrent Requests` for inference and
+- [x] Workload size label is `Concurrent Requests` for inference and
       `Micro Batch Size` for training; never reintroduce generic `Batch Size`.
 - [x] `MoE Model` appears only for text generation, embeddings, encoder-decoder,
       multimodal, and custom. `Active Parameters` appears only when checked.
-- [ ] Changing workload family or execution mode rerenders adaptive controls without
+- [x] Changing workload family or execution mode rerenders adaptive controls without
       waiting for form submit.
 - [ ] HTML reflects clean, compact, well-organized flow. Clean, compact, well-organized examples are like `spec/calc1.png`, `~/specs/calc2.png`, `spec/calc13.png` -> do not follow those exactly, they are loose examples of what 'good' looks like to a human user.
-- [ ] Small Github logo with link to github repo is in top right
+- [x] Small Github logo with link to github repo is in top right
       `https://github.com/rxdt/ai_deployment_calculator/`.
-- [ ] `~VRAM-calculator` is in top left and is not a link.
+- [x] `~VRAM-calculator` is in top left and is not a link.
 - [ ] Calculator elements are not overly big.
 - [ ] Cyan is used minimally for headings and ONLY for when elements are expanded only e.g. when `Why this recommendation` is expanded its text color uses the cyan color in DESIGN.md. Otherwise text headings do not use cyan.
-- [ ] Four organized result detail cards are in HTML skeleton shape: `Why this recommendation`, `Calculation used`, `Formula used`, and `Assumptions used`.
+- [x] Four organized result detail cards are in HTML skeleton shape: `Why this recommendation`, `Calculation used`, `Formula used`, and `Assumptions used`.
 - [ ] Result cards loosely follow inspiration from `/specs/this_png_shows_some_ideas_are_ok_not_all.png`
 - [ ] Top hero result looks like a more professional version than in `specs/this_png_shows_some_ideas_are_ok_not_all.png`
-- [ ] Small disclaimer should exist below app outputs.
+- [x] Small disclaimer should exist below app outputs.
 - [ ] Complex details and formulas are hidden in expandable sections as in this app `specs/light_style_ideas_reflected_in_DESIGN.md.png`
 - [ ] **Run lighthouse and Playwright frequently. Both must pass.** Direct
       Playwright and Lighthouse pass; full `pnpm gate` remains blocked by dirty
@@ -189,7 +189,7 @@ Display:
 
 `unit_multiplier = 0.001` for millions (`M`).
 
-- [ ] The UI exposes only `B` and `M` (`ParameterUnit = "B" | "M"`).
+- [x] The UI exposes only `B` and `M` (`ParameterUnit = "B" | "M"`).
 
 ---
 

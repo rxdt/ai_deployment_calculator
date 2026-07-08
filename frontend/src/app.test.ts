@@ -286,6 +286,58 @@ describe("mounted calculator", () => {
     );
   });
 
+  test("renders the contracted main form controls before advanced assumptions", () => {
+    loadDom();
+    mountCalculator(document);
+    const mainControlNames = [
+      "workload-family",
+      "total-params",
+      "parameter-unit",
+      "precision",
+      "execution-mode",
+      "runtime-profile",
+      "context-tokens",
+      "workload-size",
+      "moe-enabled",
+    ];
+    const advanced = dataSlot("advanced-assumptions");
+    if (!(advanced instanceof HTMLDetailsElement)) {
+      throw new TypeError("Advanced assumptions must be a details element");
+    }
+
+    for (const name of mainControlNames) {
+      const control = field(name);
+      expect(advanced.contains(control)).toBe(false);
+    }
+    expect(isRowHidden("moe-enabled")).toBe(false);
+    expect(isRowHidden("active-params")).toBe(true);
+  });
+
+  test("keeps rare controls inside the advanced assumptions disclosure", () => {
+    loadDom();
+    mountCalculator(document);
+    const advanced = dataSlot("advanced-assumptions");
+    if (!(advanced instanceof HTMLDetailsElement)) {
+      throw new TypeError("Advanced assumptions must be a details element");
+    }
+    const rareControlNames = [
+      "kv-cache-precision",
+      "known-model-file-size-gb",
+      "gpu-resident-fraction",
+      "lora-trainable-percent",
+      "optimizer",
+      "gradient-checkpointing",
+      "memory-sharding-enabled",
+    ];
+
+    expect(advanced.firstElementChild?.textContent).toBe(
+      "Advanced assumptions",
+    );
+    for (const name of rareControlNames) {
+      expect(advanced.contains(field(name))).toBe(true);
+    }
+  });
+
   test("renders the output disclaimer below the estimate", () => {
     loadDom();
     mountCalculator(document);
@@ -498,6 +550,27 @@ describe("adaptive controls", () => {
     expect(isRowHidden("moe-enabled")).toBe(true);
   });
 
+  test("rerenders adaptive controls from change events without submitting", () => {
+    loadDom();
+    mountCalculator(document);
+    let submitCount = 0;
+    inputsForm().addEventListener("submit", () => {
+      submitCount += 1;
+    });
+
+    fireChange("workload-family", "vision");
+    expect(isRowHidden("context-tokens")).toBe(true);
+    expect(isRowHidden("image-width")).toBe(false);
+
+    fireChange("execution-mode", "Full training");
+    expect(dataSlot("form-actions").textContent).toContain("Reset");
+    expect(isRowHidden("kv-cache-precision")).toBe(true);
+    expect(dataSlot("workload-label").textContent.trim()).toBe(
+      "Micro Batch Size",
+    );
+    expect(submitCount).toBe(0);
+  });
+
   test("exposes the MoE control for exactly the MoE-applicable families", () => {
     const moeVisibleByFamily: readonly (readonly [string, boolean])[] = [
       ["text_generation", true],
@@ -559,10 +632,10 @@ describe("adaptive controls", () => {
   test("switches the workload size label for training", () => {
     loadDom();
     mountCalculator(document);
-    const label = document.querySelector("[data-workload-label]");
-    expect(label?.textContent).toBe("Concurrent Requests");
+    const label = dataSlot("workload-label");
+    expect(label.textContent.trim()).toBe("Concurrent Requests");
     fireChange("execution-mode", "Full training");
-    expect(label?.textContent).toBe("Micro Batch Size");
+    expect(label.textContent.trim()).toBe("Micro Batch Size");
   });
 
   test("shows KV precision only for decoder KV workloads", () => {

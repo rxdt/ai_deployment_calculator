@@ -89,6 +89,9 @@ for (const viewport of onePageViewports) {
     await expect(
       page.getByText("Calculation used", { exact: true }),
     ).toBeInViewport();
+    await expect(
+      page.getByText("Assumptions used", { exact: true }),
+    ).toBeInViewport();
   });
 }
 

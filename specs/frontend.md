@@ -45,8 +45,10 @@ PRIORITY - frontend and UI compaction implemented; keep green. Responsive standa
 - [x] `~VRAM-calculator` is in top left and is not a link.
 - [x] JAVASCRIPT AND HTML WORK IS COMPLETED 100%
 - [x] Calculator elements are not overly big.
-- [x] Organized 'detail' cards are in HTML skeleton shape. Example is here: do not follow bad choices made, only use as a list of card to consider including. Each card should expand to contain details: `specs/this_png_shows_some_ideas_are_ok_not_all.png`
+- [x] Cyan is used minimally for headings when elements are expanded only e.g. when `Why this recommendation` is expanded its text color uses the cyan color in DESIGN.md. Otherwise text headings do not use cyan.
+- [x] Four organized result detail cards are in HTML skeleton shape: `Why this recommendation`, `Calculation used`, `Formula used`, and `Assumptions used`.
 - [x] Small disclaimer should exist below app outputs.
+- [x] Complex details and formulas are hidden in expandable sections as in this app `specs/light_style_ideas_reflected_in_DESIGN.md.png`
 
 ## STYLING
 - [x] Iff javascript and html work are completed. styling can begin.
@@ -55,10 +57,9 @@ PRIORITY - frontend and UI compaction implemented; keep green. Responsive standa
   - [x] The app is responsive ~/ai_deployment_calculator/scratchpad/responsive_frontend_research.md
   - [x] Styling follows `specs/DESIGN.md` -- Design system defines 24 colors, 7 typography scales, 5 rounding levels, 10 spacing tokens, 25 components.
   - [x] Styling honors a compact, clean calculator shape. Compact calculator examples are like `spec/calc1.png`, `~/specs/calc2.png`, `spec/calc13.png`.
-  - [ ] Styling is compact and has some minor similar details this app `specs/light_style_ideas_reflected_in_DESIGN.md.png`
+  - [x] Styling keeps app compact and well-organized
   - [x] Build and run the app to "view" it as you make changes to ensure it 'looks' right
-  - [ ] If built and previewed the production app; `5173` was occupied, the Vite
-  preview can inspected at `http://127.0.0.1:5174/`.
+  - [x] Built and previewed the production app at `http://127.0.0.1:5174/`; the preview responded HTTP 200.
   - The app passes lighthouse checks 100%.
 
 
@@ -94,8 +95,11 @@ PRIORITY - frontend and UI compaction implemented; keep green. Responsive standa
     (rendered as `tokens/sec`).
   - [x] `Calculation used` — the per-component breakdown rows (`Model memory` or
     `QLoRA base model memory`, `Context memory`, `Activation memory`,
-    `Training memory`, `Runtime reserve`, `Safety margin`), the inline formula,
-    and the assumptions list. Rows that round to `0.0 GB` are hidden.
+    `Training memory`, `Runtime reserve`, `Safety margin`). Rows that round to
+    `0.0 GB` are hidden.
+  - [x] `Formula used` — the inline canonical equation substitution.
+  - [x] `Assumptions used` — visible precision, runtime, execution, and KV
+    assumptions.
 - [x] The hardware-recommendation and fit math (usable VRAM on class, fit headroom,
   overflow `n/a`, speed) is defined in the Formulas section below.
 - [x] Warnings are conditional only: training, MoE, and sharded-tier speed guidance.
@@ -115,8 +119,9 @@ PRIORITY - frontend and UI compaction implemented; keep green. Responsive standa
   tier matching (single-GPU vs sharded, overflow), tier-bandwidth speed, and
   legacy flag removal.
 - [x] Playwright covers accessibility, local report rendering, adaptive controls,
-  no generic `Batch Size`, MoE visibility, escaping, and collapsed one-viewport
-  fit on desktop/mobile.
+  no generic `Batch Size`, MoE visibility, escaping, four collapsed result
+  detail cards, expanded-heading cyan color, and collapsed one-viewport fit on
+  desktop/mobile.
 - [x] App unit tests cover the real HTML `KV Cache Precision` options, the
   rendered 32-bit KV estimate, the always-visible `Estimate confidence` label,
   collapsed output panels, removed `Accuracy` / `Your GPU Fit` surfaces, default
@@ -125,6 +130,7 @@ PRIORITY - frontend and UI compaction implemented; keep green. Responsive standa
   it or any legacy-approximation test.
 - [x] Required commands: `pnpm --dir frontend exec vitest run src/app.test.ts src/report.test.ts`,
   `npm --prefix frontend run build`,
+  `npm --prefix frontend run preview -- --port 5174`,
   `npm --prefix frontend run test:coverage`,
   `pnpm --dir frontend exec playwright test --config ../harness/playwright.config.js`,
   `./harness/node_modules/.bin/lhci autorun --config harness/lighthouserc.cjs`,

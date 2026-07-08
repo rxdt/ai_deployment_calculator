@@ -306,15 +306,29 @@ describe("mounted calculator", () => {
     mountCalculator(document);
     const whyPanel = containingDetails(outSlot("why"));
     const calculationPanel = containingDetails(outSlot("breakdown"));
+    const formulaPanel = containingDetails(outSlot("calc-formula"));
+    const assumptionsPanel = containingDetails(outSlot("assumptions"));
+    const summaries = [
+      whyPanel,
+      calculationPanel,
+      formulaPanel,
+      assumptionsPanel,
+    ].map((panel) => panel.firstElementChild?.textContent);
 
-    expect(whyPanel.firstElementChild?.textContent).toBe(
+    expect(summaries).toEqual([
       "Why this recommendation",
-    );
-    expect(calculationPanel.firstElementChild?.textContent).toBe(
       "Calculation used",
-    );
-    expect(whyPanel.open).toBe(false);
-    expect(calculationPanel.open).toBe(false);
+      "Formula used",
+      "Assumptions used",
+    ]);
+    for (const panel of [
+      whyPanel,
+      calculationPanel,
+      formulaPanel,
+      assumptionsPanel,
+    ]) {
+      expect(panel.open).toBe(false);
+    }
   });
 
   test("does not restore removed accuracy or personal GPU fit outputs", () => {

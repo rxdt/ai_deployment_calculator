@@ -423,6 +423,10 @@ summary:focus-visible,
   color: var(--color-foreground);
 }
 
+.panel[open] > summary {
+  color: var(--color-cyan-signal);
+}
+
 .advanced[open] summary {
   margin-bottom: var(--space-8);
 }
@@ -494,7 +498,6 @@ summary:focus-visible,
   color: var(--color-primary-bright);
 }
 
-.panel,
 .warnings,
 .disclaimer {
   grid-column: 1 / -1;
@@ -502,6 +505,10 @@ summary:focus-visible,
 
 .panel {
   padding: var(--space-zero) var(--space-10);
+}
+
+.panel[open] {
+  grid-column: 1 / -1;
 }
 
 .panel-body {

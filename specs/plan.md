@@ -81,6 +81,12 @@ specs/backend.md = Python report-service removal, backend-only test cleanup, bac
 
 The architectural target is Vite + frontend TypeScript calculations. No backend owns calculator formulas.
 
+## Commands
+
+Use `pnpm preflight` for the loop preflight and `pnpm gate` for the full gate.
+Frontend-specific build, coverage, Playwright, Lighthouse, and preview commands
+live in `specs/frontend.md`.
+
 ## Research Corrections
 
 These are non-negotiable:

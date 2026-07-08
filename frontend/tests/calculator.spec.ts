@@ -55,13 +55,34 @@ test("reset zeroes inputs and outputs", async ({ page }) => {
 test("expands the secondary detail panels", async ({ page }) => {
   await page.goto("/");
 
+  await expect(page.locator('[data-out="calc-formula"]')).toBeHidden();
   await page.getByText("Why this recommendation").click();
   await expect(page.locator('[data-out="usable-on-class"]')).toBeVisible();
   await expect(page.locator('[data-out="fit-headroom"]')).toBeVisible();
 
   await page.getByText("Calculation used").click();
-  await expect(page.locator('[data-out="calc-formula"]')).toBeVisible();
+  await expect(page.locator('[data-out="breakdown"]')).toBeVisible();
   await expect(page.locator('[data-out="breakdown"] li')).toHaveCount(5);
+
+  await page.getByText("Formula used").click();
+  await expect(page.locator('[data-out="calc-formula"]')).toBeVisible();
+
+  await page.getByText("Assumptions used").click();
+  await expect(page.locator('[data-out="assumptions"]')).toBeVisible();
+});
+
+test("uses cyan only for expanded result detail headings", async ({ page }) => {
+  await page.goto("/");
+  const why = page.getByText("Why this recommendation", { exact: true });
+  const formula = page.getByText("Formula used", { exact: true });
+
+  await expect(why).toHaveCSS("color", "rgb(248, 250, 252)");
+  await expect(formula).toHaveCSS("color", "rgb(248, 250, 252)");
+
+  await why.click();
+
+  await expect(why).toHaveCSS("color", "rgb(103, 232, 249)");
+  await expect(formula).toHaveCSS("color", "rgb(248, 250, 252)");
 });
 
 test("ignores reflected query values without injecting markup", async ({

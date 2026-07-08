@@ -20,6 +20,8 @@ PRIORITY - frontend and UI compaction implemented; keep green. Responsive standa
   adaptive input controls, adaptive workload size, and relevant `MoE Model`.
 - `Total Model Parameters` accepts fractional values such as `3.8` billion.
 - Rare controls live in `<details><summary>Advanced assumptions</summary>`.
+- `QLoRA fine-tuning` visibly snaps `Precision` to `4-bit` and
+  `Runtime Profile` to `Local / Edge`, matching the forced calculation state.
 - `KV Cache Precision` lives in advanced assumptions, is visible only for
   inference decoder-KV workloads, and offers `8-bit / FP8`, `16-bit`, and
   `32-bit`.

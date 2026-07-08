@@ -6,8 +6,10 @@
 - Static Vite + TypeScript calculator; frontend calculations and report
   rendering are the source of truth.
 - Styling has not started. `frontend/src/styles.css` is reset-only.
-- This iteration fixed `Total Model Parameters` so the live form preserves
-  fractional values like `3.8` instead of sanitizing them to integers.
+- This iteration synced visible `Precision` and `Runtime Profile` controls with
+  QLoRA's forced `4-bit` + `Local / Edge` calculation state.
+- `harness/cli.ts` has a pre-existing forbidden working-tree edit; leave it
+  unstaged for human review.
 
 ## Calculation Contract
 
@@ -41,19 +43,21 @@
 
 ## Open Items
 
-1. Continue the frontend JavaScript/HTML audit for remaining behavior gaps.
-2. After JavaScript and HTML work is exhausted, start styling from
+1. Review the new spec TODO about whether both `Reset assumptions` and
+   `Update estimate` are needed.
+2. Continue the frontend JavaScript/HTML audit for remaining behavior gaps.
+3. After JavaScript and HTML work is exhausted, start styling from
    `specs/DESIGN.md`.
 
 ## Checks
 
 - `pnpm --prefix frontend run test:coverage -- frontend/src/app.test.ts`
-  passed 117 tests with 100% coverage.
-- `pnpm preflight` passed after staging the allowed files.
+  passed 119 tests with 100% coverage.
+- `pnpm preflight` first failed on `unicorn/prefer-type-error`; fixed.
+- `pnpm preflight` passed after staging allowed files.
 - `pnpm gate` passed format, lint, style, html, typecheck, markup, schema,
-  dependency, spelling, workflow, audit, and build checks; `semgrep` was skipped
-  because it is not installed locally.
+  dependency, spelling, workflow, secrets, audit, and build checks; `semgrep`
+  was skipped because it is not installed locally.
 - `pnpm gate` still fails in coverage: existing forbidden
-  `harness/cli.test.ts` setup tests have 6 failures, followed by Vitest
-  `coverage/.tmp` ENOENT. Do not edit `harness/`; human-owned blocker remains.
-- No forbidden paths are staged.
+  `harness/cli.test.ts` setup tests have 6 failures. Do not edit `harness/`;
+  human-owned blocker remains.

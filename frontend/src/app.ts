@@ -223,6 +223,17 @@ export class CalculatorApp {
     this.slot(name).textContent = value;
   }
 
+  private setControlValue(name: string, value: string): void {
+    const element = this.form.elements.namedItem(name);
+    if (!(
+      element instanceof HTMLInputElement ||
+      element instanceof HTMLSelectElement
+    )) {
+      throw new TypeError(`Missing form control: ${name}`);
+    }
+    element.value = value;
+  }
+
   private fillRows(name: string, rows: readonly DisplayRow[]): void {
     const list = this.slot(name);
     list.replaceChildren();
@@ -266,6 +277,9 @@ export class CalculatorApp {
   }
 
   private syncControls(state: Readonly<FormState>): void {
+    this.setControlValue("precision", state.precision);
+    this.setControlValue("runtime-profile", state.runtimeProfile);
+
     const family = state.workloadFamily;
     for (const node of this.root.querySelectorAll<HTMLElement>(
       "[data-families]",

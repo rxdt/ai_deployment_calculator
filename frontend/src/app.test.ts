@@ -194,6 +194,14 @@ describe("CalculatorApp construction", () => {
     expect(() => mountCalculator(document)).toThrow("Missing KV cache row");
   });
 
+  test("throws when a required synchronized form control is missing", () => {
+    loadDom();
+    field("precision").remove();
+    expect(() => mountCalculator(document)).toThrow(
+      "Missing form control: precision",
+    );
+  });
+
   test("keeps rendering when the KV precision select is missing from its row", () => {
     loadDom();
     field("kv-cache-precision").remove();
@@ -255,6 +263,24 @@ describe("mounted calculator", () => {
     fireInput("precision", "4-bit");
     fireChange("precision", "4-bit");
     expect(out("total")).not.toBe("19.0 GB");
+  });
+
+  test("reflects QLoRA forced precision and runtime in the form controls", () => {
+    loadDom();
+    mountCalculator(document);
+
+    fireChange("execution-mode", "QLoRA fine-tuning");
+
+    expect(field("precision").value).toBe("4-bit");
+    expect(field("runtime-profile").value).toBe("Local / Edge");
+    expect(out("assumptions")).toContain("4-bit");
+    expect(out("assumptions")).toContain("Local / Edge");
+
+    fireChange("precision", "16-bit");
+    fireChange("runtime-profile", "Server / Cloud");
+
+    expect(field("precision").value).toBe("4-bit");
+    expect(field("runtime-profile").value).toBe("Local / Edge");
   });
 
   test("sanitizes negatives, exponents, and clamps the maximum", () => {

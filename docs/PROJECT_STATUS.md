@@ -5,8 +5,8 @@
 - Current branch: `harness-setup-config-overrides`.
 - Static Vite + TypeScript calculator; frontend calculations and report
   rendering are the source of truth.
-- Initial `DESIGN.md` styling is in `frontend/src/styles.css`: dark compact
-  calculator layout, tokenized CSS, and collapsed desktop/mobile one-page fit.
+- `frontend/src/styles.css` is currently an unstaged pre-existing blank/stub
+  edit; responsive and Lighthouse gates fail until styling is restored/finished.
 - Default outputs now match the first-glance contract: total, confidence, GPU
   class, and collapsed details only; the old visible heuristics note is gone.
 - `harness/cli.ts`, `harness/vitest.config.js`, `.gitignore`, `specs/plan.md`,
@@ -29,6 +29,8 @@
 
 - `frontend/index.html` contains the current form, advanced assumptions, output
   slots, and template markup. Styled class names are hyphenated for lint.
+- Header now shows `~VRAM-calculator` at top left and a labeled GitHub
+  repository link with a local logo asset at top right.
 - `frontend/src/app.ts` handles form normalization, numeric input cleanup, reset,
   adaptive control visibility, and report rendering.
 - `Total Model Parameters` uses decimal input cleanup; app tests pin `3.8B`
@@ -45,8 +47,10 @@
 
 ## Open Items
 
-1. Continue visual polish only after keeping `pnpm preflight` green.
-2. Confirm whether unrelated docs image and `.gitignore` changes should stay.
+1. Restore or finish `frontend/src/styles.css` before expecting e2e/Lighthouse
+   to pass.
+2. Confirm whether unrelated harness, package, docs image, and `.gitignore`
+   changes should stay.
 
 ## Checks
 
@@ -57,7 +61,12 @@
 - `pnpm --prefix frontend run test:coverage` passed 120 tests, 100% coverage.
 - Responsive Playwright spec passed against preview via temporary scratchpad
   config: 6 tests.
-- `pnpm preflight` passed after tokenizing CSS and staging only this iteration's
-  files.
-- `pnpm gate` passed through build but failed in coverage on the existing
-  forbidden `harness/cli.test.ts` setup failures (`runSetup`/`setup` return 2).
+- `pnpm --dir frontend exec vitest run src/app.test.ts` passed 32 tests for the
+  header contract and app behavior.
+- `pnpm --prefix frontend run test:file ../frontend/src/app.test.ts` passed the
+  new app assertions but failed overall because it also ran existing harness CLI
+  setup tests.
+- `pnpm preflight` passed.
+- `pnpm gate` failed on existing dirty-worktree blockers: `knip` deadcode,
+  `harness/cli.test.ts` setup coverage failures, responsive e2e failures from
+  the blank stylesheet, and Lighthouse target-size/CLS/network assertions.

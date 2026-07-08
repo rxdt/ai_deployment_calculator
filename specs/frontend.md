@@ -41,8 +41,9 @@ PRIORITY - frontend and UI compaction implemented; keep green. Responsive standa
 - [ ] Changing workload family or execution mode rerenders adaptive controls without
   waiting for form submit.
 - [ ] HTML reflects clean, compact, well-organized flow. Clean, compact, well-organized examples are like `spec/calc1.png`, `~/specs/calc2.png`, `spec/calc13.png` -> do not follow those exactly, they are loose examples
-- [ ] Small Github logo with link to github repo are in top right `http://github.com/rxdt/ai_deployment_calculator/`
-- [ ] `~VRAM-calculator` in in top right
+- [x] Small Github logo with link to github repo is in top right
+  `https://github.com/rxdt/ai_deployment_calculator/`.
+- [x] `~VRAM-calculator` is in top left.
 - [ ] JAVASCRIPT AND HTML WORK IS COMPLETED 100%
 - [ ] Calculator elements are not overly big.
 - [ ] Organized 'detail' cards are in HTML skeleton shape. Example is here: do not follow bad choices made, only use as a list of card to consider including. Each card should expand to contain details: `specs/this_png_shows_some_ideas_are_ok_not_all.png`
@@ -117,7 +118,8 @@ PRIORITY - frontend and UI compaction implemented; keep green. Responsive standa
   fractional `Total Model Parameters` input cleanup.
 - [ ] `frontend/src/legacy-approximations.test.ts` was deleted; do not reintroduce
   it or any legacy-approximation test.
-- [ ] Required commands: `npm --prefix frontend run build`,
+- [ ] Required commands: `pnpm --dir frontend exec vitest run src/app.test.ts`,
+  `npm --prefix frontend run build`,
   `npm --prefix frontend run test:coverage`,
   `npm --prefix frontend run test:e2e`, `npm --prefix frontend run gate`,
   `.venv/bin/harness gate`, `harness preflight`.

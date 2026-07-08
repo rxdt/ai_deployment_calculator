@@ -210,6 +210,30 @@ describe("CalculatorApp construction", () => {
 });
 
 describe("mounted calculator", () => {
+  test("renders the compact product brand in the header", () => {
+    loadDom();
+    mountCalculator(document);
+    const brand = dataSlot("brand-link");
+    expect(brand.textContent).toBe("~VRAM-calculator");
+    expect(brand.getAttribute("href")).toBe("/");
+  });
+
+  test("renders a labeled GitHub repository link with a logo", () => {
+    loadDom();
+    mountCalculator(document);
+    const link = dataSlot("github-link");
+    if (!(link instanceof HTMLAnchorElement)) {
+      throw new TypeError("GitHub link must be an anchor");
+    }
+    expect(link.href).toBe("https://github.com/rxdt/ai_deployment_calculator/");
+    expect(link.getAttribute("aria-label")).toBe("GitHub repository");
+    expect(link.firstElementChild).toBeInstanceOf(HTMLImageElement);
+    expect(link.firstElementChild?.getAttribute("src")).toBe(
+      "/github-mark.svg",
+    );
+    expect(link.textContent.trim()).toBe("GitHub");
+  });
+
   test("renders the default 7B estimate on mount", () => {
     loadDom();
     mountCalculator(document);

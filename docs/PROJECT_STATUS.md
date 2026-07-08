@@ -13,11 +13,15 @@
 - Submit is the canonical reset path: it prevents navigation, zeroes inputs, and
   renders the empty estimate.
 - `specs/frontend.md` marks the single-action UI contract complete.
+- Overflow reports now include the sharded-tier speed warning whenever the speed
+  estimate falls back to the top sharded tier.
 
 ## Commands
 
 - Focused app/report unit tests:
   `pnpm --dir frontend exec vitest run src/app.test.ts src/report.test.ts`
+- Focused report unit tests:
+  `pnpm --dir frontend exec vitest run src/report.test.ts`
 - Full unit + coverage: `pnpm --prefix frontend run test:coverage`
 - Build: `pnpm --prefix frontend run build`
 - Preview: `pnpm --prefix frontend run preview -- --port 5174`
@@ -32,8 +36,9 @@
 
 - `pnpm --dir frontend exec vitest run src/app.test.ts src/report.test.ts`
   passes: 60 tests.
-- `pnpm preflight` first failed on two lint issues in this change; both were
-  fixed before staging.
+- `pnpm --dir frontend exec vitest run src/report.test.ts` passes: 16 tests.
+- `pnpm preflight` first failed only because no real work was staged; rerun
+  after staging passed.
 - Final `pnpm preflight` passes.
 - Final `pnpm gate` passes format, eslint, style, html, typecheck, harness
   types, schema, dependency-cruiser, deadcode, spelling, workflow lint, secrets,
@@ -51,4 +56,3 @@
 ## Next
 
 - Human fix or approve the forbidden harness setup-status failures.
-- Continue the next focused frontend spec item after the gate result is current.

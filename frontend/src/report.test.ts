@@ -145,6 +145,9 @@ describe("buildReport", () => {
     expect(report.recommendedHardware.usableVramOnClass).toBe("n/a");
     expect(report.recommendedHardware.fitHeadroom).toBe("n/a");
     expect(report.speed).toMatch(/tokens\/second/u);
+    expect(report.warnings).toContain(
+      "Rough sharded-tier speed estimate. Assumes memory sharding / model parallelism works.",
+    );
   });
 
   test("uses the known file size for local runtime", () => {

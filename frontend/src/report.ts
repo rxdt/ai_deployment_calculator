@@ -142,16 +142,17 @@ export function buildReport(state: Readonly<FormState>): ReportPayload {
   const tier = hardware(minimumRawVramGb(required, utilization), {
     allowSharding: canShard,
   });
+  const speedTier = speedTierFor(tier);
   const warnings = warningsFor(state);
-  if (tier !== "overflow" && tier.requiresSharding) {
-    warnings.push(speedLabel(tier));
+  if (speedTier.requiresSharding) {
+    warnings.push(speedLabel(speedTier));
   }
   return {
     totalRequiredMemory: formatGb(required),
     recommendedHardware: recommendation,
     minimumRawVramNeeded: recommendation.minimumRawVram,
     confidence: confidenceLabel(state.workloadFamily),
-    speed: speedEstimate(spec, weights, speedTierFor(tier)),
+    speed: speedEstimate(spec, weights, speedTier),
     breakdown: compactRows([
       row(weightsLabel(state), breakdown.weightsGb),
       row("Context memory", breakdown.kvCacheGb),

@@ -112,7 +112,8 @@
       overflow `n/a`, speed) is defined in the Formulas section below.
 - [x] Warnings are conditional only: training, MoE, and sharded-tier speed guidance.
       Family-specific caveats stay out of warnings; default inference renders no
-      warnings.
+      warnings. Sharded-tier speed guidance also appears when an overflow report's
+      speed estimate falls back to the top sharded tier.
 - [x] There is no `Accuracy` output and no separate `Your GPU Fit` panel; both were
       removed by product decision.
 
@@ -134,9 +135,12 @@
       `Estimate confidence` label, collapsed output panels, removed `Accuracy` /
       `Your GPU Fit` surfaces, default empty warnings, and fractional
       `Total Model Parameters` input cleanup.
+- [x] Report unit tests cover overflow guidance plus the sharded-tier warning used
+      for the fallback speed estimate.
 - [ ] `frontend/src/legacy-approximations.test.ts` was deleted; do not reintroduce
       it or any legacy-approximation test.
-- [ ] Required commands: `pnpm --dir frontend exec vitest run src/app.test.ts src/report.test.ts`,
+- [ ] Required commands: `pnpm --dir frontend exec vitest run src/report.test.ts`,
+      `pnpm --dir frontend exec vitest run src/app.test.ts src/report.test.ts`,
       `pnpm --prefix frontend run build`,
       `pnpm --prefix frontend run preview -- --port 5174`,
       `pnpm --prefix frontend run test:coverage`,

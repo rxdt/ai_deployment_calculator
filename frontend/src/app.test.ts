@@ -377,6 +377,14 @@ describe("mounted calculator", () => {
     expect(warnings).not.toContain("vendor guarantee");
   });
 
+  test("renders no warnings by default and keeps the warning list hidden", () => {
+    loadDom();
+    mountCalculator(document);
+    const warnings = outSlot("warnings");
+    expect(warnings.hidden).toBe(true);
+    expect(warnings.textContent).toBe("");
+  });
+
   test("renders the why detail outputs", () => {
     loadDom();
     mountCalculator(document);

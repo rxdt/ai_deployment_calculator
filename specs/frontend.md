@@ -98,7 +98,7 @@ PRIORITY - frontend and UI compaction implemented; keep green. Responsive standa
     and the assumptions list. Rows that round to `0.0 GB` are hidden.
 - [ ] The hardware-recommendation and fit math (usable VRAM on class, fit headroom,
   overflow `n/a`, speed) is defined in the Formulas section below.
-- [ ] Warnings are conditional only: training, MoE, and sharded-tier speed guidance.
+- [x] Warnings are conditional only: training, MoE, and sharded-tier speed guidance.
   Family-specific caveats stay out of warnings; default inference renders no
   warnings.
 - [ ] There is no `Accuracy` output and no separate `Your GPU Fit` panel; both were
@@ -119,8 +119,8 @@ PRIORITY - frontend and UI compaction implemented; keep green. Responsive standa
   fit on desktop/mobile.
 - [x] App unit tests cover the real HTML `KV Cache Precision` options, the
   rendered 32-bit KV estimate, and the always-visible `Estimate confidence`
-  label (outside any `<details>`, `Rough` for diffusion vs `Estimated`), plus
-  fractional `Total Model Parameters` input cleanup.
+  label (outside any `<details>`, `Rough` for diffusion vs `Estimated`), default
+  empty warnings, plus fractional `Total Model Parameters` input cleanup.
 - [x] `frontend/src/legacy-approximations.test.ts` was deleted; do not reintroduce
   it or any legacy-approximation test.
 - [x] Required commands: `pnpm --dir frontend exec vitest run src/app.test.ts`,
@@ -250,7 +250,7 @@ Estimated transformer architecture by total parameter count:
 ```
 
 
-- [ ] Also compute `conservative_kv_heads = attention_heads` and show it in advanced
+- [x] Also compute `conservative_kv_heads = attention_heads` and show it in advanced
 output.
 
 ---

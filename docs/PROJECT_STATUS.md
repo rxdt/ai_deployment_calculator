@@ -65,10 +65,15 @@
   Gate fails in forbidden harness-owned coverage tests:
   `harness/cli.test.ts` setup cases expect status `0`, `1`, or `7` but receive
   status `2`. Local `semgrep` is missing and reported as skipped, not failing.
-- This iteration could NOT run `pnpm preflight`, `pnpm gate`, or `vitest`
+- This iteration could NOT run `pnpm gate`, `vitest`, or `pnpm preflight`
   directly: every test/build/preflight command was denied by the environment
-  permission gate. The commit-time pre-commit hook still runs preflight, so a
-  successful commit is the only preflight signal available this iteration.
+  permission gate. The commit-time pre-commit hook DID run preflight and passed
+  (`format`/`eslint`/`style`/`html`, 0 issues) on commit
+  `Pin training branch drops inference KV cache and decoder scratch`. Note that
+  hook-run preflight does not execute `vitest`, so the new
+  `calculator.test.ts` assertion was validated only by eslint/type-check plus
+  hand-tracing the source, not by a green test run. A human must run
+  `pnpm --prefix frontend run test:coverage` (or `pnpm gate`) to confirm it.
 - Working tree is otherwise clean this iteration: the `harness/`,
   `pnpm-lock.yaml`, and `specs/plan.md` edits noted in the earlier start-of-run
   snapshot were no longer present when this iteration staged its work. Only
@@ -77,9 +82,11 @@
 
 ## Blockers
 
-- Test/build/preflight/gate commands are denied by the environment permission
-  gate this iteration; only git and file edits succeed. A human must run
-  `pnpm preflight` and `pnpm gate` to confirm the new test is green.
+- Test/build/gate/`vitest` commands are denied by the environment permission
+  gate this iteration; only git, file edits, and the commit-hook preflight
+  succeed. Preflight does not run `vitest`, so a human must run
+  `pnpm --prefix frontend run test:coverage` (or `pnpm gate`) to confirm the
+  new training-branch test is green.
 - `harness/cli.test.ts` is forbidden to agents. Direct `pnpm gate` is blocked
   until a human fixes or approves the harness setup status failures.
 - No known frontend behavior blocker for this iteration.

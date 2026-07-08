@@ -1,4 +1,8 @@
-import { specFromState, weightsGb } from "./calculator-core";
+import {
+  specFromState,
+  weightsGb,
+  type MemoryBreakdown,
+} from "./calculator-core";
 import { confidenceLabel } from "./confidence";
 import {
   formatGb,
@@ -102,6 +106,27 @@ function weightsLabel(state: Readonly<FormState>): string {
 
 /**
  
+@param breakdown
+@param required
+@param buffer
+*/
+function formulaText(
+  breakdown: Readonly<MemoryBreakdown>,
+  required: number,
+  buffer: number,
+): string {
+  const working = breakdown.kvCacheGb + breakdown.inputActivationGb;
+  const terms = [
+    `Weights_GB ${formatGb(breakdown.weightsGb)}`,
+    `Working_Memory_GB ${formatGb(working)}`,
+    `Training_State_GB ${formatGb(breakdown.trainingStateGb)}`,
+    `Runtime_Overhead_GB ${formatGb(breakdown.runtimeOverheadGb)}`,
+  ].join(" + ");
+  return `Required_GB = (${terms}) * Buffer ${buffer.toFixed(2)} = ${formatGb(required)}; Safety_Buffer_GB = ${formatGb(breakdown.safetyBufferGb)}`;
+}
+
+/**
+ 
 @param state
 */
 export function buildReport(state: Readonly<FormState>): ReportPayload {
@@ -137,6 +162,6 @@ export function buildReport(state: Readonly<FormState>): ReportPayload {
     ]),
     assumptions: assumptionRows(state),
     warnings,
-    calculation: `(${breakdown.weightsGb.toFixed(1)} + ${breakdown.kvCacheGb.toFixed(1)} + ${breakdown.inputActivationGb.toFixed(1)} + ${breakdown.trainingStateGb.toFixed(1)} + ${breakdown.runtimeOverheadGb.toFixed(1)}) * ${spec.runtime.buffer.toFixed(2)} = ${formatGb(required)}`,
+    calculation: formulaText(breakdown, required, spec.runtime.buffer),
   };
 }

@@ -38,8 +38,9 @@ describe("buildReport", () => {
       expect.objectContaining({ label: "Task overhead" }),
     );
     expect(report.calculation).toBe(
-      "(16.0 + 1.0 + 0.8 + 0.0 + 1.5) * 1.10 = 21.3 GB",
+      "Required_GB = (Weights_GB 16.0 GB + Working_Memory_GB 1.8 GB + Training_State_GB 0.0 GB + Runtime_Overhead_GB 1.5 GB) * Buffer 1.10 = 21.3 GB; Safety_Buffer_GB = 1.9 GB",
     );
+    expect(report.calculation).not.toContain("Task_Overhead");
   });
 
   test("sizes a 47B MoE high-context high-concurrency server stress case", () => {
@@ -71,7 +72,7 @@ describe("buildReport", () => {
       { label: "Safety margin", value: "7.2 GB" },
     ]);
     expect(report.calculation).toBe(
-      "(27.0 + 41.9 + 1.4 + 0.0 + 1.5) * 1.10 = 79.0 GB",
+      "Required_GB = (Weights_GB 27.0 GB + Working_Memory_GB 43.3 GB + Training_State_GB 0.0 GB + Runtime_Overhead_GB 1.5 GB) * Buffer 1.10 = 79.0 GB; Safety_Buffer_GB = 7.2 GB",
     );
   });
 

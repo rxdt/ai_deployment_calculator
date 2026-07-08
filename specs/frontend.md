@@ -618,7 +618,7 @@ Do not use:
 
 `Required_GB = (Weights + KV + Task_Overhead + Runtime_Tax) * Buffer` as the real internal model
 
-- [ ] The simpler equation can appear only as a simplified explanation if its labels map to the canonical terms.
+- [x] The simpler equation can appear only as a simplified explanation if its labels map to the canonical terms.
 
 ## Canonical test cases
 

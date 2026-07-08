@@ -14,6 +14,9 @@
 - Output contract is unit-pinned: hero glance first, `Why this recommendation`,
   `Calculation used`, `Formula used`, and `Assumptions used` details collapsed,
   overflow fit fields `n/a`, and no `Accuracy` / `Your GPU Fit` output.
+- `Formula used` now shows labeled canonical terms: `Required_GB`,
+  `Weights_GB`, `Working_Memory_GB`, `Training_State_GB`,
+  `Runtime_Overhead_GB`, `Buffer`, and `Safety_Buffer_GB`.
 - Expanded result detail headings use cyan; collapsed headings do not.
 - Default inference renders no warnings; training, MoE, and sharded-tier guidance
   remain conditional.
@@ -41,6 +44,8 @@
 - Latest app/report unit:
   `pnpm --dir frontend exec vitest run src/app.test.ts src/report.test.ts`
   passes: 52 tests.
+- Latest report unit:
+  `pnpm --dir frontend exec vitest run src/report.test.ts` passes: 16 tests.
 - Latest app unit:
   `pnpm --dir frontend exec vitest run src/app.test.ts` passes: 36 tests.
 - `npm --prefix frontend run test:coverage` passes: 124 tests, 100% coverage.
@@ -52,10 +57,9 @@
 - Targeted stylelint passes:
   `pnpm --prefix harness exec stylelint '../frontend/**/*.css' --config stylelint.config.js --ignore-path .stylelintignore --max-warnings=0 --allow-empty-input`.
 - Latest `pnpm preflight` passes: 0 issues.
-- Latest `pnpm gate` passes format, lint, style, html, build, and Lighthouse;
-  semgrep is skipped because it is not installed. Gate fails typecheck on
-  `frontend/vite.config.ts:184`, coverage on forbidden harness setup tests, and
-  root-level e2e because the served page lacks the expected frontend CSS sizing.
+- Latest `pnpm gate` passes format, lint, typecheck, build, e2e, and
+  Lighthouse; semgrep is skipped because it is not installed. Gate fails
+  coverage on forbidden harness setup tests.
 
 ## Blockers
 
@@ -63,10 +67,6 @@
   pre-existing edits under `harness/`.
 - `pnpm gate` coverage fails in forbidden `harness/cli.test.ts`: six setup
   assertions receive status `2` instead of the expected setup result.
-- `pnpm gate` typecheck fails on untracked `frontend/vite.config.ts`: TS2367
-  comparing `InternalModuleFormat` to `"system"`.
-- `pnpm gate` root-level e2e fails responsive CSS assertions; the direct
-  frontend-dir Playwright command above passes.
 - `frontend/package.json` has unstaged human-owned changes, including Vite
   scripts and CSS budget edits; do not stage them without review.
 - Current dirty tree still includes human-owned `.htmlvalidateignore` changes,

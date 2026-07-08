@@ -126,7 +126,7 @@ Look up an element by its data-slot value.
 */
 function dataSlot(root: ParentNode, name: string): HTMLElement | null {
   for (const node of root.querySelectorAll<HTMLElement>("[data-slot]")) {
-    if (node.dataset["slot"] === name) {
+    if (node.dataset.slot === name) {
       return node;
     }
   }
@@ -212,7 +212,7 @@ export class CalculatorApp {
 
   private slot(name: string): HTMLElement {
     for (const node of this.root.querySelectorAll<HTMLElement>("[data-out]")) {
-      if (node.dataset["out"] === name) {
+      if (node.dataset.out === name) {
         return node;
       }
     }
@@ -284,9 +284,7 @@ export class CalculatorApp {
     for (const node of this.root.querySelectorAll<HTMLElement>(
       "[data-families]",
     )) {
-      node.hidden = !String(node.dataset["families"])
-        .split(" ")
-        .includes(family);
+      node.hidden = !(node.dataset.families ?? "").split(" ").includes(family);
     }
     const isMoeApplicable = hasMoeControl(family);
     for (const node of this.root.querySelectorAll<HTMLElement>(

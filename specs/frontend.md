@@ -138,12 +138,12 @@
 - [ ] `frontend/src/legacy-approximations.test.ts` was deleted; do not reintroduce
       it or any legacy-approximation test.
 - [ ] Required commands: `pnpm --dir frontend exec vitest run src/app.test.ts src/report.test.ts`,
-      `npm --prefix frontend run build`,
-      `npm --prefix frontend run preview -- --port 5174`,
-      `npm --prefix frontend run test:coverage`,
+      `pnpm --prefix frontend run build`,
+      `pnpm --prefix frontend run preview -- --port 5174`,
+      `pnpm --prefix frontend run test:coverage`,
       `pnpm --dir frontend exec playwright test --config ../harness/playwright.config.js`,
       `./harness/node_modules/.bin/lhci autorun --config harness/lighthouserc.cjs`,
-      `npm --prefix frontend run test:e2e`, `pnpm gate`, `pnpm preflight`.
+      `pnpm --prefix frontend run test:e2e`, `pnpm gate`, `pnpm preflight`.
 
 ## Open Parity Gaps (code review)
 
@@ -263,7 +263,7 @@ Estimated transformer architecture by total parameter count:
 > 160B:  layers 120, hidden 12288, heads 96, kv_heads 8, head_dim 128
 ```
 
-- [ ] Also compute `conservative_kv_heads = attention_heads` and show it in advanced
+- [x] Also compute `conservative_kv_heads = attention_heads` and show it in advanced
       output.
 
 ---

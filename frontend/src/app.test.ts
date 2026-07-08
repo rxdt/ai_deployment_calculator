@@ -19,7 +19,7 @@ function loadDom(): void {
 function makeForm(): HTMLFormElement {
   const form = document.createElement("form");
   form.classList.add("inputs");
-  form.dataset["slot"] = "inputs-form";
+  form.dataset.slot = "inputs-form";
   return form;
 }
 
@@ -29,7 +29,7 @@ function makeForm(): HTMLFormElement {
 */
 function makeTemplate(): HTMLTemplateElement {
   const template = document.createElement("template");
-  template.dataset["slot"] = "row-template";
+  template.dataset.slot = "row-template";
   return template;
 }
 
@@ -40,7 +40,7 @@ function makeTemplate(): HTMLTemplateElement {
 */
 function outSlot(name: string): HTMLElement {
   const nodes = [...document.querySelectorAll<HTMLElement>("[data-out]")];
-  const slot = nodes.find((node) => node.dataset["out"] === name);
+  const slot = nodes.find((node) => node.dataset.out === name);
   if (slot === undefined) {
     throw new TypeError(`Missing output slot: ${name}`);
   }
@@ -79,7 +79,7 @@ function containingDetails(slot: HTMLElement): HTMLDetailsElement {
 */
 function dataSlot(name: string): HTMLElement {
   const nodes = [...document.querySelectorAll<HTMLElement>("[data-slot]")];
-  const slot = nodes.find((node) => node.dataset["slot"] === name);
+  const slot = nodes.find((node) => node.dataset.slot === name);
   if (slot === undefined) {
     throw new TypeError(`Missing data slot: ${name}`);
   }
@@ -583,6 +583,16 @@ describe("adaptive controls", () => {
 
     expect(out("total")).toBe("20.1 GB");
     expect(out("assumptions")).toContain("32-bit");
+  });
+
+  test("renders resolved KV head assumptions in the real HTML output", () => {
+    loadDom();
+    mountCalculator(document);
+
+    const assumptions = out("assumptions");
+
+    expect(assumptions).toContain("KV heads used8");
+    expect(assumptions).toContain("Conservative KV heads32");
   });
 });
 

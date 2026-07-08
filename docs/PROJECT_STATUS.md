@@ -21,6 +21,8 @@
 - This iteration strengthened app coverage that hidden MoE state for
   non-MoE workload families cannot change the rendered VRAM total, speed, or
   warnings, and marked that frontend spec item complete.
+- Agent commit `Verify hidden MoE rendering stays inert` is on `main`;
+  commit-time preflight passed.
 
 ## Commands
 
@@ -43,26 +45,19 @@
 - `pnpm preflight` passes after staging only allowed files:
   `docs/PROJECT_STATUS.md`, `frontend/src/app.test.ts`, and
   `specs/frontend.md`.
-- Direct `pnpm preflight` reached eslint/stylelint/html clean, then failed
-  format while forbidden `harness/tsconfig.app.json` was dirty. The same
-  preflight passed in the successful commit hook after harness exclusion.
-- `pnpm gate` typecheck/build/e2e/Lighthouse pass, but the gate fails on
-  forbidden harness-owned checks: `harness/tsconfig.app.json` formatting,
-  dependency-cruiser `TS18003` from that tsconfig include set, and harness
-  coverage tests for setup/include expectations. Local `semgrep`/`osv-scanner`
-  are missing and reported as skipped, not failing.
-- Current working tree has only forbidden `harness/tsconfig.app.json` dirty.
+- `pnpm gate` format/eslint/style/html/typecheck/build/e2e/Lighthouse pass.
+  Gate fails in forbidden harness-owned coverage tests:
+  `harness/cli.test.ts` setup cases expect status `0`, `1`, or `7` but receive
+  status `2`. Local `semgrep` is missing and reported as skipped, not failing.
+- Current working tree is clean.
 
 ## Blockers
 
-- `harness/tsconfig.app.json` is forbidden to agents. Preflight formats
-  `harness/` and reports that file as non-Prettier-compliant; gate also depends
-  on its include set for dependency-cruiser and harness coverage expectations.
-  Direct `pnpm gate` is blocked until a human fixes or approves that
-  harness-owned file.
+- `harness/cli.test.ts` is forbidden to agents. Direct `pnpm gate` is blocked
+  until a human fixes or approves the harness setup status failures.
 - No known frontend behavior blocker for this iteration; focused tests pass.
 
 ## Next
 
-- Human fix/approve the forbidden harness formatting issue.
+- Human fix/approve the forbidden harness setup status issue.
 - Then run `pnpm gate` and continue the next focused frontend spec item.

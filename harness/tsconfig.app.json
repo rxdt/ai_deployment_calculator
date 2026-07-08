@@ -32,7 +32,6 @@
     "../**/node_modules/**",
     "../**/scratchpad/**",
     "../**/test-results/**",
-    "../harness/**",
-    "../frontend/tests/**"
+    "../harness/**"
   ]
 }

@@ -11,7 +11,7 @@
     "npm": ">=10"
   },
   "scripts": {
-    "format": "cd .. && prettier . --check --ignore-path harness/.prettierignore",
+    "format": "cd .. && prettier frontend/ harness/ --check --ignore-path harness/.prettierignore",
     "gate": "node harness.mjs gate",
     "harness": "node harness.mjs",
     "html": "cd .. && html-validate --config harness/.htmlvalidate.json \"**/*.html\"",

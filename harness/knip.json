@@ -5,6 +5,7 @@
   "include": ["files", "exports", "nsExports", "types", "nsTypes"],
   "workspaces": {
     "frontend": {
+      "entry": ["src/**/*.test.ts"],
       "project": ["src/**/*.ts"]
     },
     "harness": {

@@ -361,24 +361,22 @@ const REQUIRED_INSTALLED_GATE_TOOLS: readonly {
     check: "coverage",
     commandFragment: "--coverage",
   },
-  // Disabled with the e2e check (see FULL_CHECKS in gate-data.ts):
-  // {
-  //   dependency: "@playwright/test",
-  //   check: "e2e",
-  //   commandFragment: harnessTool("playwright"),
-  // },
-  // {
-  //   dependency: "@axe-core/playwright",
-  //   check: "e2e",
-  //   commandFragment: "harness/playwright.config.js",
-  // },
-  // Disabled with the lighthouse check (see FULL_CHECKS in gate-data.ts):
-  // {
-  //   dependency: "@lhci/cli",
-  //   check: "lighthouse",
-  //   commandFragment: harnessTool("lhci"),
-  // },
-  // { dependency: "lighthouse", check: "lighthouse" },
+  {
+    dependency: "@playwright/test",
+    check: "e2e",
+    commandFragment: harnessTool("playwright"),
+  },
+  {
+    dependency: "@axe-core/playwright",
+    check: "e2e",
+    commandFragment: "harness/playwright.config.js",
+  },
+  {
+    dependency: "@lhci/cli",
+    check: "lighthouse",
+    commandFragment: harnessTool("lhci"),
+  },
+  { dependency: "lighthouse", check: "lighthouse" },
 ];
 
 const REQUIRED_CHECK_POLICIES: readonly {
@@ -389,7 +387,8 @@ const REQUIRED_CHECK_POLICIES: readonly {
     check: "format",
     fragments: [
       harnessTool("prettier"),
-      ".",
+      "frontend/",
+      "harness/",
       "--check",
       "harness/.prettierignore",
       "--cache",
@@ -532,20 +531,18 @@ const REQUIRED_CHECK_POLICIES: readonly {
       "--coverage",
     ],
   },
-  // Disabled with the e2e check (see FULL_CHECKS in gate-data.ts):
-  // {
-  //   check: "e2e",
-  //   fragments: [
-  //     harnessTool("playwright"),
-  //     "test",
-  //     "harness/playwright.config.js",
-  //   ],
-  // },
-  // Disabled with the lighthouse check (see FULL_CHECKS in gate-data.ts):
-  // {
-  //   check: "lighthouse",
-  //   fragments: [harnessTool("lhci"), "autorun", "harness/lighthouserc.cjs"],
-  // },
+  {
+    check: "e2e",
+    fragments: [
+      harnessTool("playwright"),
+      "test",
+      "harness/playwright.config.js",
+    ],
+  },
+  {
+    check: "lighthouse",
+    fragments: [harnessTool("lhci"), "autorun", "harness/lighthouserc.cjs"],
+  },
 ];
 
 const COMMIT_POLICY_CHECKS = new Set(["format", "eslint", "style", "html"]);
@@ -2078,8 +2075,8 @@ describe("frontend gate shape", () => {
         "audit",
         "build",
         "coverage",
-        // "e2e", // disabled in gate-data.ts
-        // "lighthouse", // disabled in gate-data.ts
+        "e2e",
+        "lighthouse",
         // "osv", // disabled in gate-data.ts
         "sast",
       ]);
@@ -2095,8 +2092,8 @@ describe("frontend gate shape", () => {
       "audit",
       "build",
       "coverage",
-      // "e2e", // disabled in gate-data.ts
-      // "lighthouse", // disabled in gate-data.ts
+      "e2e",
+      "lighthouse",
       // "osv", // disabled in gate-data.ts
       "sast",
     ]);
@@ -2106,13 +2103,12 @@ describe("frontend gate shape", () => {
     expect(commandText(checkCommand(chosen, "coverage"))).toContain(
       "harness/vitest.config.js --cache --coverage",
     );
-    // Disabled in gate-data.ts:
-    // expect(commandText(checkCommand(chosen, "e2e"))).toContain(
-    //   "harness/playwright.config.js",
-    // );
-    // expect(commandText(checkCommand(chosen, "lighthouse"))).toContain(
-    //   "harness/lighthouserc.cjs",
-    // );
+    expect(commandText(checkCommand(chosen, "e2e"))).toContain(
+      "harness/playwright.config.js",
+    );
+    expect(commandText(checkCommand(chosen, "lighthouse"))).toContain(
+      "harness/lighthouserc.cjs",
+    );
     expect(commandText(checkCommand(chosen, "audit"))).toBe(
       "pnpm --dir frontend audit --audit-level high",
     );
@@ -2130,7 +2126,8 @@ describe("frontend gate shape", () => {
       check: "format",
       tool: "prettier",
       required: [
-        ".",
+        "frontend/",
+        "harness/",
         "--check",
         "harness/.prettierignore",
         "--cache",
@@ -2239,8 +2236,11 @@ describe("frontend gate shape", () => {
     ]);
     // knip maps each pnpm workspace so imports resolve to the right package.json; the harness
     // workspace names cli.ts, its configs, tests, and the lighthouse config as entrypoints.
+    // The frontend workspace names its unit tests as entrypoints so knip does not report
+    // test-only exports (or the test files themselves) as unused.
     expect(config.workspaces).toEqual({
       frontend: {
+        entry: ["src/**/*.test.ts"],
         project: ["src/**/*.ts"],
       },
       harness: {

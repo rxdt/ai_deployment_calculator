@@ -96,7 +96,12 @@ const tool = (name: string): string => name;
 export const COMMIT_CHECKS: Record<string, string[]> = {
   format: [
     tool("prettier"),
-    ".",
+    // Scope to the two source packages — app code and harness tooling — so the
+    // glob never walks node_modules (~19k dirs) and hangs past the preflight
+    // timeout, while still formatting harness/. The --ignore-path is defense in
+    // depth (node_modules, dist, scratchpad…); the rooted targets bound the walk.
+    "frontend/",
+    "harness/",
     "--check",
     "--ignore-path",
     "harness/.prettierignore",
@@ -254,8 +259,6 @@ export const FULL_CHECKS: Record<string, string[]> = {
     "--cache",
     "--coverage",
   ],
-  // Disabled: e2e/playwright not needed for this workflow.
-  // e2e: [tool("playwright"), "test", "--config", "harness/playwright.config.js"],
-  // Disabled: nothing to audit yet, and lhci autorun spins up a server/browser that hangs the gate.
-  // lighthouse: [tool("lhci"), "autorun", "--config", "harness/lighthouserc.cjs"],
+  e2e: [tool("playwright"), "test", "--config", "harness/playwright.config.js"],
+  lighthouse: [tool("lhci"), "autorun", "--config", "harness/lighthouserc.cjs"],
 };

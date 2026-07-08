@@ -58,19 +58,19 @@
 - [ ] Top hero result looks like a more professional version than in `specs/this_png_shows_some_ideas_are_ok_not_all.png`
 - [ ] Small disclaimer should exist below app outputs.
 - [ ] Complex details and formulas are hidden in expandable sections as in this app `specs/light_style_ideas_reflected_in_DESIGN.md.png`
-- [x] **Run lighthouse and Playwright frequently. Both must pass.** Direct
+- [ ] **Run lighthouse and Playwright frequently. Both must pass.** Direct
       Playwright and Lighthouse pass; full `pnpm gate` remains blocked by dirty
       human-owned harness changes.
   - The app passes lighthouse checks 100%. review `scratchpad/research-lighthouse.md`
 
 ## STYLING
 
-- [x] Iff javascript and html work are completed. styling can begin.
+- [ ] Iff javascript and html work are completed. styling can begin.
   - [ ] When 'Advanced assumptions' is expanded, app fits in one viewport on desktop and mobile.
-  - [x] The app fits in one viewport on desktop and mobile in the collapsed
+  - [ ] The app fits in one viewport on desktop and mobile in the collapsed
         default state; `frontend/tests/responsive.spec.ts:75` passes on all
         Playwright projects.
-  - [x] The app is responsive ~/ai_deployment_calculator/scratchpad/responsive_frontend_research.md
+  - [ ] The app is responsive ~/ai_deployment_calculator/scratchpad/responsive_frontend_research.md
   - [ ] Styling follows `specs/DESIGN.md` -- Design system defines 24 colors, 7 typography scales, 5 rounding levels, 10 spacing tokens, 25 components.
   - [ ] Styling honors a compact, clean calculator shape. Compact calculator examples are like `spec/calc1.png`, `~/specs/calc2.png`, `spec/calc13.png`.
   - [ ] Styling keeps app compact and well-organized
@@ -126,11 +126,11 @@
       diffusion/video/audio/tabular scaling, LoRA, QLoRA, full training, hardware
       tier matching (single-GPU vs sharded, overflow), tier-bandwidth speed, and
       legacy flag removal.
-- [x] Playwright covers accessibility, local report rendering, adaptive controls,
+- [ ] Playwright covers accessibility, local report rendering, adaptive controls,
       no generic `Batch Size`, MoE visibility, escaping, four collapsed result
       detail cards, expanded-heading cyan color, and collapsed one-viewport fit on
       desktop/mobile.
-- [x] App unit tests cover the real HTML `KV Cache Precision` options, real HTML
+- [ ] App unit tests cover the real HTML `KV Cache Precision` options, real HTML
       `Execution Mode` choices, the rendered 32-bit KV estimate, the always-visible
       `Estimate confidence` label, collapsed output panels, removed `Accuracy` /
       `Your GPU Fit` surfaces, default empty warnings, and fractional
@@ -656,7 +656,7 @@ Case Status Scratch-included expected (implemented) Scratch-zero comparison
 104B, 32000 ctx, 32-bit KV, local, parameter-derived precision comparison Done. Replaces the underspecified gguf-exact sweep (which required one known file size per precision). Generic parameter-derived sweep instead. 454.1 / 239.9 / 138.1 / 87.3 GB n/a (no scratch-zero variant tested)
 70B, 8000 ctx, 4-bit, 8-bit KV, QLoRA 2% (replaces trained=on&use_adapter=on) Done. Booleans replaced by Execution Mode. 115.6 GB 115.6 GB
 
-- [x] Ensure frontend has:
+- [ ] Ensure frontend has:
 
 execution mode = inference | lora finetune | qlora finetune | full training
 

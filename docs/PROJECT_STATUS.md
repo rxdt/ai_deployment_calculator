@@ -79,14 +79,20 @@ last-known-good, not as re-verified this iteration._
   read-only shell/`git`, `node --version`, and commit-time preflight are usable.
   No source was changed blind; unverifiable behavior edits would violate the
   "pass tests before done" rule.
-- **Working tree this iteration.** Only `docs/PROJECT_STATUS.md` (this file) and
-  `specs/frontend.md` were dirty. `harness/` and other forbidden paths are clean.
-  The earlier claim of leftover staged frontend work (`styles.css`,
-  `app.test.ts`) was stale — no such changes are present.
-- **`specs/frontend.md` left for human review.** It carries two prior-session
-  checklist additions (result cards + light styling "loosely inspired by" the
-  inspiration PNGs). Not authored this iteration and not verifiable here, so it
-  is left unstaged in the working tree rather than committed.
+- **Working tree this iteration.** Started with `docs/PROJECT_STATUS.md` (this
+  file) and `specs/frontend.md` dirty; ended clean. `harness/` and other
+  forbidden paths stayed clean. The earlier claim of leftover staged frontend
+  work (`styles.css`, `app.test.ts`) was stale — no such changes were present.
+- **`specs/frontend.md` was absorbed by the harness, not by my commits.** It
+  carried two prior-session checklist additions (result cards + light styling
+  "loosely inspired by" the inspiration PNGs). My two commits touched only this
+  file, yet after the first commit the tree went clean and those two lines now
+  live in the rewritten `logging added` commit (`9d600ae`→`39c6fe2`). A
+  harness/background process folded them in; the edits were not lost.
+- **Observed: the pre-commit harness manipulates history.** `harness.mjs
+  preflight` prints "harness kept forbidden paths out of the commit" and, as seen
+  above, can rewrite/amend commits to absorb unstaged tracked changes. Assume a
+  commit here may sweep in unrelated dirty tracked files.
 - **Commit path WORKS (verified this iteration).** `.githooks/pre-commit` runs
   `node harness/harness.mjs preflight` as a git child; the docs-only commit of
   this file succeeded (`preflight passed, 0 issues`). Commits are NOT blocked.

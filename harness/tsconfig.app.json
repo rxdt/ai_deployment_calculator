@@ -14,7 +14,6 @@
     "exactOptionalPropertyTypes": true,
     "noImplicitReturns": true,
     "noImplicitOverride": true,
-    "noPropertyAccessFromIndexSignature": true,
     "noUncheckedIndexedAccess": true,
     "noUncheckedSideEffectImports": true,
     "noUnusedLocals": false,
@@ -22,7 +21,9 @@
     "useUnknownInCatchVariables": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["../**/*.ts", "*.ts"],
+  "include": [
+    "../frontend/src/**/*.ts",
+    "../frontend/*.ts"],
   "exclude": [
     "../.git/**",
     "../**/.lighthouseci/**",

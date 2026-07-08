@@ -18,6 +18,7 @@ PRIORITY - frontend and UI compaction implemented; keep green. Responsive standa
 - Main form shows `Workload Family`, `Total Model Parameters`,
   `Parameter Unit`, `Precision`, `Execution Mode`, `Runtime Profile`,
   adaptive input controls, adaptive workload size, and relevant `MoE Model`.
+- `Total Model Parameters` accepts fractional values such as `3.8` billion.
 - Rare controls live in `<details><summary>Advanced assumptions</summary>`.
 - `KV Cache Precision` lives in advanced assumptions, is visible only for
   inference decoder-KV workloads, and offers `8-bit / FP8`, `16-bit`, and
@@ -81,7 +82,8 @@ PRIORITY - frontend and UI compaction implemented; keep green. Responsive standa
   no generic `Batch Size`, MoE visibility, and escaping.
 - App unit tests cover the real HTML `KV Cache Precision` options, the
   rendered 32-bit KV estimate, and the always-visible `Estimate confidence`
-  label (outside any `<details>`, `Rough` for diffusion vs `Estimated`).
+  label (outside any `<details>`, `Rough` for diffusion vs `Estimated`), plus
+  fractional `Total Model Parameters` input cleanup.
 - `frontend/src/legacy-approximations.test.ts` was deleted; do not reintroduce
   it or any legacy-approximation test.
 - Required commands: `npm --prefix frontend run build`,

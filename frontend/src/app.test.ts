@@ -239,6 +239,14 @@ describe("mounted calculator", () => {
     expect(out("total")).toBe("245.4 GB");
   });
 
+  test("preserves fractional model parameter inputs", () => {
+    loadDom();
+    mountCalculator(document);
+    fireInput("total-params", "3.8");
+    expect(field("total-params").value).toBe("3.8");
+    expect(out("total")).toBe("11.4 GB");
+  });
+
   test("recomputes on input and change from a select", () => {
     loadDom();
     mountCalculator(document);

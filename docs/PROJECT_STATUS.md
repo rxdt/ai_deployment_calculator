@@ -6,9 +6,8 @@
 - Static Vite + TypeScript calculator; frontend calculations and report
   rendering are the source of truth.
 - Styling has not started. `frontend/src/styles.css` is reset-only.
-- This iteration added an always-visible `Estimate confidence` hero label
-  (`Rough` for diffusion/video/custom, `Estimated` otherwise) via
-  `frontend/src/confidence.ts`, closing plan acceptance criteria #14 and #25.
+- This iteration fixed `Total Model Parameters` so the live form preserves
+  fractional values like `3.8` instead of sanitizing them to integers.
 
 ## Calculation Contract
 
@@ -28,6 +27,8 @@
   slots, and template markup. Treat it as minimal, not styled.
 - `frontend/src/app.ts` handles form normalization, numeric input cleanup, reset,
   adaptive control visibility, and report rendering.
+- `Total Model Parameters` uses decimal input cleanup; app tests pin `3.8B`
+  rendering to `11.4 GB`.
 - `KV Cache Precision` is gated by `hasDecoderKvCache`, appears only for
   inference decoder-KV families, and offers `8-bit / FP8`, `16-bit`, `32-bit`.
 - MoE visibility and calculation impact are gated by `hasMoeControl`; non-MoE
@@ -46,19 +47,13 @@
 
 ## Checks
 
-- Direct `pnpm`/`node`/harness commands require interactive approval
-  unavailable in this session, but the git pre-commit hook runs preflight, so
-  the confidence-label commit was gated through it.
-- Preflight (pre-commit hook: prettier, eslint, stylelint, html-validate, plus
-  the Ralph banned-pattern and data-* selector preference checks) PASSED for
-  this commit. It rejected the prior iteration's `.closest("details")` selector
-  and a prettier break, both fixed here (ancestor walk; table-driven test).
-- NOT run this session: `tsc` typecheck, `frontend` build, and vitest coverage
-  (all gate-only, `pnpm gate`). A human must run `pnpm gate` to confirm types,
-  build, and 100% coverage before push.
-- The unrelated working-tree edit to forbidden `PROMPT.md` was left unstaged for
-  human review.
-- Last verified (prior iteration): `pnpm --prefix frontend run test:coverage`
-  passed 114 tests, 100% coverage; `pnpm preflight` passed after staging.
-- `pnpm gate` passes static/type/build/audit/frontend checks, then fails in
-  existing forbidden `harness/cli.test.ts` setup tests returning status 2.
+- `pnpm --prefix frontend run test:coverage -- frontend/src/app.test.ts`
+  passed 117 tests with 100% coverage.
+- `pnpm preflight` passed after staging the allowed files.
+- `pnpm gate` passed format, lint, style, html, typecheck, markup, schema,
+  dependency, spelling, workflow, audit, and build checks; `semgrep` was skipped
+  because it is not installed locally.
+- `pnpm gate` still fails in coverage: existing forbidden
+  `harness/cli.test.ts` setup tests have 6 failures, followed by Vitest
+  `coverage/.tmp` ENOENT. Do not edit `harness/`; human-owned blocker remains.
+- No forbidden paths are staged.

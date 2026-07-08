@@ -19,20 +19,27 @@
 - Coverage: `npm --prefix frontend run test:coverage`
 - Playwright direct:
   `pnpm --dir frontend exec playwright test --config ../harness/playwright.config.js`
+- Lighthouse direct:
+  `./harness/node_modules/.bin/lhci autorun --config harness/lighthouserc.cjs`
 - Preflight: `pnpm preflight`
 - Gate: `pnpm gate`
 
 ## Checks
 
-- `pnpm --dir frontend exec vitest run src/app.test.ts` passes: 33 tests.
+- Targeted unit:
+  `pnpm --dir frontend exec vitest run src/state.test.ts src/report.test.ts src/calculator.test.ts`
+  passes: 75 tests.
+- `npm --prefix frontend run test:coverage` passes: 124 tests, 100% coverage.
 - `npm --prefix frontend run build` passes.
 - Direct Playwright passes: 96 tests across desktop, mobile, small, and tablet
   projects.
+- Direct Lighthouse passes in the current dirty tree, but the config change is
+  not committable because it lives in human-owned harness/package edits.
 - Targeted stylelint passes:
   `pnpm --prefix harness exec stylelint '../frontend/**/*.css' --config stylelint.config.js --ignore-path .stylelintignore --max-warnings=0 --allow-empty-input`.
 - Latest `pnpm preflight` passes: 0 issues.
-- Latest `pnpm gate` passes static checks, build, and e2e, but fails on
-  forbidden harness coverage and Lighthouse assertions.
+- Latest `pnpm gate` passes static checks, build, e2e, and Lighthouse, but
+  fails on dirty harness/package config ownership and forbidden coverage.
 
 ## Blockers
 
@@ -40,11 +47,12 @@
   pre-existing edits under `harness/`.
 - `pnpm gate` coverage fails in forbidden `harness/cli.test.ts`: six setup
   assertions receive status `2` instead of the expected setup result.
-- `frontend/package.json` has an unstaged CSS budget update (`6 B` -> `13 kB`);
-  preflight keeps that path out of the commit, so a human should decide how to
-  land the budget change.
+- `frontend/package.json` has unstaged human-owned changes, including Vite
+  scripts and CSS budget edits; do not stage them without review.
+- A gate run left `harness/vite.config.js` untracked,
+  `frontend/.syncpackrc.json`, `frontend/pnpm-lock.yaml`, and
+  `harness/pnpm-lock.yaml` deleted, plus `.htmlvalidateignore` /
+  `harness/.htmlvalidateignore` changes; leave these for human review.
 - `npm --prefix frontend run test:e2e` currently resolves
   `harness/harness/playwright.config.js` and fails; use the direct Playwright
   command above until the human-owned harness script is fixed.
-- Lighthouse CLS is fixed, but Lighthouse still fails
-  `network-dependency-tree-insight` and reports one render-blocking resource.

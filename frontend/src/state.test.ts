@@ -135,6 +135,16 @@ describe("normalizedState", () => {
     expect(state.runtimeProfile).toBe("Local / Edge");
   });
 
+  test("ignores legacy training query flags", () => {
+    const state = normalizedState(
+      new URLSearchParams("trained=on&use_adapter=on"),
+    );
+
+    expect(state.executionMode).toBe("Inference");
+    expect(state.precision).toBe(defaultState().precision);
+    expect(state.runtimeProfile).toBe(defaultState().runtimeProfile);
+  });
+
   test("uses the last value when a key repeats", () => {
     const search = new URLSearchParams();
     search.append("total-params", "3");

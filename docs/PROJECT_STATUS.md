@@ -18,6 +18,9 @@
   pnpm commands for frontend tools.
 - Agent commit `Verify conservative KV assumptions render` is on `main`;
   commit-time preflight passed after the hook kept forbidden harness dirt out.
+- This iteration strengthened app coverage that hidden MoE state for
+  non-MoE workload families cannot change the rendered VRAM total, speed, or
+  warnings, and marked that frontend spec item complete.
 
 ## Commands
 
@@ -37,6 +40,9 @@
 
 - `pnpm --dir frontend exec vitest run src/app.test.ts src/report.test.ts`
   passes: 55 tests.
+- `pnpm preflight` passes after staging only allowed files:
+  `docs/PROJECT_STATUS.md`, `frontend/src/app.test.ts`, and
+  `specs/frontend.md`.
 - Direct `pnpm preflight` reached eslint/stylelint/html clean, then failed
   format while forbidden `harness/tsconfig.app.json` was dirty. The same
   preflight passed in the successful commit hook after harness exclusion.

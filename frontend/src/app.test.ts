@@ -515,6 +515,7 @@ describe("adaptive controls", () => {
     loadDom();
     mountCalculator(document);
     fireChange("workload-family", "vision");
+    const visionTotal = out("total");
     const visionSpeed = out("speed");
 
     fireChange("workload-family", "text_generation");
@@ -527,6 +528,7 @@ describe("adaptive controls", () => {
 
     fireChange("workload-family", "vision");
     expect(isRowHidden("moe-enabled")).toBe(true);
+    expect(out("total")).toBe(visionTotal);
     expect(out("speed")).toBe(visionSpeed);
     expect(outSlot("warnings").textContent).not.toContain(
       "MoE active parameters",

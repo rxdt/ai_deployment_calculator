@@ -86,7 +86,7 @@
       parameters affect speed/KV only, not resident weight memory; training modes use
       adapter/full-training state plus checkpointed activations; legacy
       `trained=on&use_adapter=on` query flags are ignored.
-- [ ] MoE state is honored only for MoE-applicable workload families. Hidden or
+- [x] MoE state is honored only for MoE-applicable workload families. Hidden or
       query-supplied MoE values for other families do not affect speed or warnings.
 
 ## Outputs

@@ -412,8 +412,6 @@ const REQUIRED_CHECK_POLICIES: readonly {
       "harness/stylelint.config.js",
       "--ignore-path",
       "harness/.stylelintignore",
-      "--cache",
-      ".cache_stylelint",
       "--max-warnings=0",
       "--allow-empty-input",
     ],
@@ -2143,10 +2141,8 @@ describe("frontend gate shape", () => {
       check: "style",
       tool: "stylelint",
       required: [
-        "**/*.css",
+        "frontend/**/*.css",
         "--config harness/stylelint.config.js",
-        "--cache",
-        ".cache_stylelint",
         "--max-warnings=0",
         "--allow-empty-input",
       ],
@@ -2282,7 +2278,7 @@ describe("frontend gate shape", () => {
     expect(scripts.preflight).toBe("node harness/harness.mjs preflight");
   });
 
-  test("harness package scripts use generic repo-wide file targets", () => {
+  test("harness package scripts use bounded repo file targets", () => {
     const scripts = readPackageScripts("harness/package.json");
     // Harness npm scripts run via `pnpm run`, which puts the workspace node_modules/.bin on PATH,
     // so tools are invoked by bare name (the pnpm-idiomatic form) — no hard-coded .bin path.
@@ -2290,7 +2286,7 @@ describe("frontend gate shape", () => {
       "cd .. && eslint . --config harness/eslint.config.js --cache --cache-location . --max-warnings=0 --debug",
     );
     expect(scripts.style).toBe(
-      'cd .. && stylelint "**/*.css" --config harness/stylelint.config.js --max-warnings=0 --allow-empty-input --formatter verbose',
+      'cd .. && stylelint "frontend/**/*.css" --config harness/stylelint.config.js --ignore-path harness/.stylelintignore --max-warnings=0 --allow-empty-input --formatter verbose',
     );
     expect(scripts.html).toBe(
       'cd .. && html-validate --config harness/.htmlvalidate.json "**/*.html"',

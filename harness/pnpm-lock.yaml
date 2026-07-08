@@ -140,6 +140,9 @@ importers:
       stylelint-declaration-strict-value:
         specifier: latest
         version: 1.11.1(stylelint@17.14.0(typescript@6.0.3))
+      stylelint-media-use-custom-media:
+        specifier: ^4.1.0
+        version: 4.1.0(stylelint@17.14.0(typescript@6.0.3))
       tsx:
         specifier: latest
         version: 4.23.0
@@ -5089,6 +5092,12 @@ packages:
     engines: {node: '>=20.19.0'}
     peerDependencies:
       stylelint: '>=16 <=17'
+
+  stylelint-media-use-custom-media@4.1.0:
+    resolution: {integrity: sha512-KmrROVhMXd217NM+9PciFp9wu4pNQNx9lpPCqYMBLOVJREi3MbziYJRMP9X5FlaCLfQmbk6so5KdGEzG+4Oe5Q==}
+    engines: {node: '>=18.12.0'}
+    peerDependencies:
+      stylelint: '>=16'
 
   stylelint@17.14.0:
     resolution: {integrity: sha512-8xkHPpdqYryeIsOgfsYTmr6cIeC4nLYWk5S8BPxpodq8mIuepggkMljsHewWfuAjj/+qpRKou2QerhjMH3iasg==}
@@ -11404,6 +11413,10 @@ snapshots:
       stylelint-config-recommended: 18.0.0(stylelint@17.14.0(typescript@6.0.3))
 
   stylelint-declaration-strict-value@1.11.1(stylelint@17.14.0(typescript@6.0.3)):
+    dependencies:
+      stylelint: 17.14.0(typescript@6.0.3)
+
+  stylelint-media-use-custom-media@4.1.0(stylelint@17.14.0(typescript@6.0.3)):
     dependencies:
       stylelint: 17.14.0(typescript@6.0.3)
 

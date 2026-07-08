@@ -21,9 +21,7 @@
     "useUnknownInCatchVariables": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": [
-    "../frontend/src/**/*.ts",
-    "../frontend/*.ts"],
+  "include": ["../frontend/src/**/*.ts", "../frontend/*.ts"],
   "exclude": [
     "../.git/**",
     "../**/.lighthouseci/**",
@@ -33,7 +31,6 @@
     "../**/node_modules/**",
     "../**/scratchpad/**",
     "../**/test-results/**",
-    "../**/scratchpad/**",
     "../frontend/tests/**"
   ]
 }

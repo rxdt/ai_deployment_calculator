@@ -1,0 +1,1 @@
+{ "extends": "./harness/tsconfig.app.json" }

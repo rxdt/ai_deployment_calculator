@@ -30,6 +30,7 @@ export const FORBIDDEN_FILES = new Set([
   "harness/pnpm-lock.yaml",
   "harness/tsconfig.json",
   "harness/tsconfig.app.json",
+  "tsconfig.cruise.json",
   "harness/tsconfig.harness.json",
   "harness/vitest.config.js",
   "harness/eslint.config.js",
@@ -150,8 +151,12 @@ export const COMMIT_CHECKS: Record<string, string[]> = {
 // here plus its tests (removed from gate.test.ts — recover the shape from Git history at a721b9a).
 export const FULL_CHECKS: Record<string, string[]> = {
   ...COMMIT_CHECKS,
-  // The harness-owned app tsconfig governs the typecheck (browser types, strict flags); pinned
-  // with -p so an agent can't repoint it at a weaker project tsconfig.
+  // The forbidden app tsconfig governs the typecheck (browser types, strict flags); pinned
+  // with -p so an agent can't repoint it at a weaker project tsconfig. It lives in harness/
+  // so tsc and typescript-eslint resolve `vite/client` from harness/node_modules (Vite is not
+  // installed at the repo root). dependency-cruiser cannot use it directly — it resolves the
+  // tsconfig include from its repo-root cwd, so a harness/-relative ../frontend include trips
+  // TS18003 — so cruise gets its own root-level tsconfig.cruise.json (extends this) instead.
   typecheck: [
     tool("tsc"),
     "-p",

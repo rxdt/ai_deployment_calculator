@@ -35,7 +35,7 @@ function controlEntry(element: Element): [string, string] | null {
 }
 
 /**
- 
+
 @param form
 */
 function searchFromForm(form: HTMLFormElement): URLSearchParams {
@@ -50,7 +50,7 @@ function searchFromForm(form: HTMLFormElement): URLSearchParams {
 }
 
 /**
- 
+
 @param input
 */
 export function sanitizeNumberInput(input: HTMLInputElement): void {
@@ -69,7 +69,7 @@ export function sanitizeNumberInput(input: HTMLInputElement): void {
 }
 
 /**
- 
+
 @param value
 */
 function shortHardwareClass(value: string): string {
@@ -80,7 +80,7 @@ function shortHardwareClass(value: string): string {
 // "24 GB high-end consumer class" -> "24 GB"; "" when there is no GB capacity
 // prefix (e.g. "No model loaded", overflow guidance).
 /**
- 
+
 @param value
 */
 function leadingCapacity(value: string): string {
@@ -89,7 +89,7 @@ function leadingCapacity(value: string): string {
 }
 
 /**
- 
+
 @param tier
 */
 function recommendedGpuClass(tier: string): string {
@@ -99,7 +99,7 @@ function recommendedGpuClass(tier: string): string {
 }
 
 /**
- 
+
 @param report
 */
 function whyText(report: Readonly<ReportPayload>): string {
@@ -112,7 +112,7 @@ function whyText(report: Readonly<ReportPayload>): string {
 }
 
 /**
- 
+
 @param speed
 */
 function formatSpeed(speed: string): string {
@@ -284,7 +284,10 @@ export class CalculatorApp {
     for (const node of this.root.querySelectorAll<HTMLElement>(
       "[data-families]",
     )) {
-      node.hidden = !(node.dataset.families ?? "").split(" ").includes(family);
+      // The [data-families] selector guarantees the attribute is present, so String()
+      // only ever wraps a real value; it avoids a nullish-default branch that no real
+      // DOM state could exercise.
+      node.hidden = !String(node.dataset.families).split(" ").includes(family);
     }
     const isMoeApplicable = hasMoeControl(family);
     for (const node of this.root.querySelectorAll<HTMLElement>(
@@ -312,7 +315,7 @@ export class CalculatorApp {
 }
 
 /**
- 
+
 @param root
 */
 export function mountCalculator(root: ParentNode = document): CalculatorApp {

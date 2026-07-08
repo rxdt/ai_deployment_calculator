@@ -36,7 +36,12 @@ module.exports = {
     doNotFollow: { path: "node_modules" },
     tsPreCompilationDeps: true,
     tsConfig: {
-      fileName: "harness/tsconfig.app.json",
+      // Root-level config (extends harness/tsconfig.app.json) so dependency-cruiser,
+      // which resolves the tsconfig include relative to its repo-root cwd, finds the
+      // frontend sources. It has no include of its own, so TypeScript raises no TS18003;
+      // cruise only needs the inherited compilerOptions. tsc/eslint use the harness config
+      // directly because they need `vite/client` to resolve from harness/node_modules.
+      fileName: "tsconfig.cruise.json",
     },
   },
 };

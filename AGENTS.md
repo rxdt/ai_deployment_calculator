@@ -1,4 +1,8 @@
-# FUNCTIONALITY
+- Do NOT output conversational filler, step-by-step reasoning, or explanations.
+- Only output the final requested code.
+- Keep all terminal responses minimal.
+- Say less, work more
+- do NOT write outside the repo
 
 ## Repository boundary
 

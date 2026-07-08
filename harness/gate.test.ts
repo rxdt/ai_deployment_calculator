@@ -986,6 +986,7 @@ describe("gate constants", () => {
         "harness/package.json",
         "harness/eslint.config.js",
         "harness/tsconfig.app.json",
+        "tsconfig.cruise.json",
       ]),
     );
     // A package.json anywhere is forbidden by basename.
@@ -1077,6 +1078,7 @@ describe("gate constants", () => {
     expect(command).not.toContain("frontend/tsconfig.json");
     expect(FORBIDDEN_FILES.has("frontend/tsconfig.json")).toBe(true);
     expect(FORBIDDEN_FILES.has("harness/tsconfig.app.json")).toBe(true);
+    expect(FORBIDDEN_FILES.has("tsconfig.cruise.json")).toBe(true);
   });
 
   test("installed gate tooling has a concrete full-gate policy owner", () => {
@@ -2098,6 +2100,7 @@ describe("frontend gate shape", () => {
       "frontend/pnpm-lock.yaml",
       "frontend/package.json",
       "harness/tsconfig.app.json",
+      "tsconfig.cruise.json",
     ]) {
       expect(existsSync(path.join(REPO, target)), target).toBe(true);
     }
@@ -2344,13 +2347,17 @@ describe("frontend gate shape", () => {
     expect(scripts["lint:design"]).toBe("cd .. && designmd lint DESIGN.md");
   });
 
-  test("harness app tsconfig owns the repo TypeScript include set and strict flags", () => {
+  test("harness app tsconfig owns the frontend TypeScript include set and strict flags", () => {
     const config = parseJsonObject("harness/tsconfig.app.json") as {
       compilerOptions?: Record<string, unknown>;
       exclude?: unknown;
       include?: unknown;
     };
-    expect(config.include).toEqual(["../**/*.ts", "*.ts"]);
+    // Paths are ../-prefixed because the config lives in harness/ but governs frontend/ source.
+    expect(config.include).toEqual([
+      "../frontend/src/**/*.ts",
+      "../frontend/*.ts",
+    ]);
     expect(config.exclude).toEqual(
       expect.arrayContaining([
         "../**/node_modules/**",
@@ -2368,6 +2375,23 @@ describe("frontend gate shape", () => {
         exactOptionalPropertyTypes: true,
       }),
     );
+  });
+
+  test("cruise-only root tsconfig extends the app config without its own include", () => {
+    // dependency-cruiser resolves the tsconfig include from its repo-root cwd, so it gets this
+    // root-level config that inherits the app compilerOptions via extends but adds no include
+    // (an include here would trip TS18003). tsc/eslint keep using harness/tsconfig.app.json.
+    const config = parseJsonObject("tsconfig.cruise.json") as {
+      extends?: unknown;
+      include?: unknown;
+      compilerOptions?: unknown;
+    };
+    expect(config.extends).toBe("./harness/tsconfig.app.json");
+    expect(config.include).toBeUndefined();
+    expect(config.compilerOptions).toBeUndefined();
+
+    const cruiseConfig = readRepo("harness/.dependency-cruiser.cjs");
+    expect(cruiseConfig).toContain('fileName: "tsconfig.cruise.json"');
   });
 
   test("harness leaf tsconfig keeps the required harness compiler settings", () => {

@@ -4,7 +4,9 @@
 import { spawnSync } from "node:child_process";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import {
+  appendFileSync,
   copyFileSync,
+  cpSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
@@ -181,17 +183,37 @@ function runCommand(argv: string[], cwd: string): string {
   return result.stdout;
 }
 
+// Memoize a zero-arg factory: first call runs, later calls return the cached value.
+const once = <T>(factory: () => T): (() => T) => {
+  let cache: { value: T } | undefined;
+  return () => {
+    cache ??= { value: factory() };
+    return cache.value;
+  };
+};
+
+// Seed one Git repo once; each test gets a filesystem copy of it (a real, independent repo — far
+// cheaper than re-running init + commit per test).
+const seededTemplate = once((): string => {
+  const template = mkdtempSync(path.join(tmpdir(), "harness-template-"));
+  runCommand(["git", "init", "-q"], template);
+  appendFileSync(
+    path.join(template, ".git", "config"),
+    "[user]\n\temail = harness@test.local\n\tname = harness-test\n",
+  );
+  writeFileSync(path.join(template, "README.md"), "seed\n");
+  runCommand(["git", "add", "README.md"], template);
+  runCommand(["git", "commit", "-q", "-m", "seed"], template);
+  return template;
+});
+
 /**
 
+A fresh Git repo for a test: a filesystem copy of the seeded template (see `seededTemplate`).
 */
 function makeRepo(): string {
   const repo = mkdtempSync(path.join(tmpdir(), "harness-"));
-  runCommand(["git", "init", "-q"], repo);
-  runCommand(["git", "config", "user.email", "harness@test.local"], repo);
-  runCommand(["git", "config", "user.name", "harness-test"], repo);
-  writeFileSync(path.join(repo, "README.md"), "seed\n");
-  runCommand(["git", "add", "README.md"], repo);
-  runCommand(["git", "commit", "-q", "-m", "seed"], repo);
+  cpSync(seededTemplate(), repo, { recursive: true });
   return repo;
 }
 
@@ -207,6 +229,31 @@ function stageFile(repo: string, relpath: string, content: string): void {
   writeFileSync(target, content);
   runCommand(["git", "add", "--", relpath], repo);
 }
+
+/**
+
+Stage a batch of files with a single `git add` (one spawn, not one per file).
+* @param repo
+* @param files
+*/
+function stageFiles(repo: string, files: Record<string, string>): void {
+  const relpaths = Object.keys(files);
+  for (const relpath of relpaths) {
+    const target = path.join(repo, relpath);
+    mkdirSync(path.dirname(target), { recursive: true });
+    writeFileSync(target, files[relpath] ?? "");
+  }
+  runCommand(["git", "add", "--", ...relpaths], repo);
+}
+
+// A distinct staged-file path for each forbidden pattern (indexed, so patterns never collide).
+const forbiddenPatternList: readonly string[] = FORBIDDEN_PATTERNS;
+const bannedPatternFile = (pattern: string): string =>
+  `frontend/src/banned-${String(forbiddenPatternList.indexOf(pattern))}.ts`;
+
+// A plain agent-owned file inside a given forbidden directory.
+const agentFileIn = (directory: string): string =>
+  `${directory}/agent-owned-change.txt`;
 
 /**
 
@@ -640,46 +687,35 @@ const makePackageRootsRepo = (): string => {
   return repo;
 };
 
-const importedEslintConfig = (): FlatConfigBlock[] => {
+// Import the harness's own ESLint config in-process (no subprocess) and keep only the fields these
+// tests inspect. Memoized: the plugin graph loads once for the whole file.
+const importedEslintConfig = once(async (): Promise<FlatConfigBlock[]> => {
   const url = pathToFileURL(path.join(HARNESS, "eslint.config.js")).href;
-  const output = runCommand(
-    [
-      process.execPath,
-      "--input-type=module",
-      "-e",
-      `const module = await import(${JSON.stringify(url)});
-const blocks = module.default.map(({ files, linterOptions, rules }) => ({ files, linterOptions, rules }));
-console.log(JSON.stringify(blocks));`,
-    ],
-    REPO,
-  );
-  const parsed: unknown = JSON.parse(output);
-  if (Array.isArray(parsed) && parsed.every((block) => isPlainObject(block))) {
-    return parsed;
+  const module: unknown = await import(url);
+  const asRecord = (value: unknown): Record<string, unknown> | undefined =>
+    isPlainObject(value) ? value : undefined;
+  const blocks = isPlainObject(module) ? module.default : undefined;
+  if (Array.isArray(blocks) && blocks.every((block) => isPlainObject(block))) {
+    return blocks.map((block) => ({
+      files: block.files,
+      linterOptions: asRecord(block.linterOptions),
+      rules: asRecord(block.rules),
+    }));
   }
   throw new Error("eslint config is not an array of objects");
-};
+});
 
-const importedVitestConfig = (): VitestConfig => {
+const importedVitestConfig = async (): Promise<VitestConfig> => {
   const url = pathToFileURL(path.join(HARNESS, "vitest.config.js")).href;
-  const output = runCommand(
-    [
-      process.execPath,
-      "--input-type=module",
-      "-e",
-      `const module = await import(${JSON.stringify(url)});
-console.log(JSON.stringify(module.default));`,
-    ],
-    REPO,
-  );
-  const parsed: unknown = JSON.parse(output);
+  const module: unknown = await import(url);
+  const parsed = isPlainObject(module) ? module.default : undefined;
   if (isPlainObject(parsed)) {
     return parsed;
   }
   throw new Error("vitest config is not a JSON object");
 };
 
-const resolvedEslintConfig = (): EslintResolvedConfig => {
+const resolvedEslintConfig = once((): EslintResolvedConfig => {
   // This test spawns ESLint directly (not through the gate), so it needs the real binary path,
   // not the bare name the gate resolves via its PATH-prepended checkEnvironment.
   const output = runCommand(
@@ -697,7 +733,7 @@ const resolvedEslintConfig = (): EslintResolvedConfig => {
     return parsed;
   }
   throw new Error("resolved eslint config is not a JSON object");
-};
+});
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -842,22 +878,23 @@ describe("runChecks", () => {
 
   test("times out a hung check instead of waiting for normal completion", () => {
     const started = Date.now();
-    // Drive the timeout mechanism with an explicit small bound so the test stays fast and does not
-    // depend on the tuned production default (PREFLIGHT_TIMEOUT_MS).
+    // Drive the timeout mechanism with a small bound so the test stays fast and does not depend on
+    // the tuned production default (PREFLIGHT_TIMEOUT_MS). The child sleeps far longer than the
+    // bound, so the only way `runChecks` returns quickly is the timeout firing (ETIMEDOUT).
     const failures = runChecks(
       makeRepo(),
       {
         slow: [
           process.execPath,
           "-e",
-          "setTimeout(() => process.exit(0), 20000)",
+          "setTimeout(() => process.exit(0), 5000)",
         ],
       },
-      2000,
+      300,
     );
-    expect(Date.now() - started).toBeLessThan(12_000);
+    expect(Date.now() - started).toBeLessThan(2000);
     expect(failureFor(failures, "slow")).toContain("ETIMEDOUT");
-  }, 15_000);
+  }, 5000);
 
   test("fails closed for malformed empty argv", () => {
     let failures: string[] = [];
@@ -917,19 +954,10 @@ describe("runChecks", () => {
 });
 
 describe("spelling check", () => {
-  // Spelling is advisory (`--no-exit-code`): running cspell exactly as the gate's `spelling` check
-  // does must NOT error, but must still WARN. This repo has real unknown words, so cspell reports
-  // them yet exits 0. Spawns cspell directly with the real binary path (the gate resolves the bare
-  // name via its PATH-prepended checkEnvironment, which this direct spawn does not set up).
-  test("cspell warns about unknown words but does not fail the gate", () => {
-    const [, ...args] = checkCommand(FULL_CHECKS, "spelling");
-    const result = spawnSync("harness/node_modules/.bin/cspell", args, {
-      cwd: REPO,
-      encoding: "utf8",
-      env: gitSafeEnvironment(),
-    });
-    expect(result.status).toBe(0);
-    expect(result.stdout).toContain("Unknown word");
+  // The harness's job is only to keep spelling advisory (cspell run with `--no-exit-code`); cspell's
+  // own behaviour is not ours to test. Assert the flag on the gate's command data.
+  test("the gate invokes cspell in non-blocking (advisory) mode", () => {
+    expect(checkCommand(FULL_CHECKS, "spelling")).toContain("--no-exit-code");
   });
 });
 
@@ -1118,12 +1146,20 @@ describe("runGate / runPreflight wiring", () => {
     expect(isSurfaced).toBe(true);
   });
 
-  test("runGate defaults to the configured full-check tools", () => {
+  // One run proves both: runGate invokes every configured FULL_CHECK tool, and resolves them from
+  // the repo-local harness bin even with PATH entirely unset (must coalesce absent PATH to "").
+  test("runGate defaults to every configured full-check tool, resolved with PATH unset", () => {
     const repo = makeRepo();
     const log = stubCheckTools(repo, FULL_CHECKS);
     stageFile(repo, "frontend/package.json", '{"private":true}\n');
     stageFile(repo, "harness/package.json", '{"private":true}\n');
-    expect(runGate(repo)).toEqual([]);
+    const originalPath = process.env.PATH;
+    delete process.env.PATH;
+    try {
+      expect(runGate(repo)).toEqual([]);
+    } finally {
+      if (originalPath !== undefined) process.env.PATH = originalPath;
+    }
     expect(stubbedToolCalls(log)).toEqual(checkToolNames(FULL_CHECKS));
   });
 
@@ -1133,21 +1169,6 @@ describe("runGate / runPreflight wiring", () => {
     stageFile(repo, "harness/package.json", '{"private":true}\n');
     expect(runPreflight(repo)).toEqual([]);
     expect(stubbedToolCalls(log)).toEqual(checkToolNames(COMMIT_CHECKS));
-  });
-
-  test("gate resolves the repo-local harness bin when PATH is unset", () => {
-    // Not just an empty PATH dir — PATH entirely unset must still coalesce to "" and resolve the
-    // repo-local harness bin.
-    const repo = makeRepo();
-    const log = stubCheckTools(repo, FULL_CHECKS);
-    const originalPath = process.env.PATH;
-    delete process.env.PATH;
-    try {
-      expect(runGate(repo)).toEqual([]);
-    } finally {
-      if (originalPath !== undefined) process.env.PATH = originalPath;
-    }
-    expect(stubbedToolCalls(log)).toEqual(checkToolNames(FULL_CHECKS));
   });
 
   test("preflight runs commit checks while gate runs full checks", () => {
@@ -1254,36 +1275,47 @@ describe("loop containment", () => {
     expect(stagedNames(repo)).toContain("frontend/src/report.ts");
   });
 
-  test.each([...FORBIDDEN_DIRS])(
-    "ejects any staged file inside forbidden directory %s",
-    (directory) => {
-      process.env.RALPH_LOOP = "1";
-      const repo = makeRepo();
-      const target = `${directory}/agent-owned-change.txt`;
-      stageFile(repo, target, "agent edit\n");
-      stageFile(repo, "frontend/src/report.ts", "export const keep = 1;\n");
-      expect(runPreflight(repo, () => [])).toEqual([]);
-      expect(stagedNames(repo)).not.toContain(target);
-      expect(stagedNames(repo)).toContain("frontend/src/report.ts");
-    },
-  );
+  // A plain file inside any forbidden directory is ejected; one preflight covers every dir at once.
+  test("ejects any staged file inside every forbidden directory", () => {
+    process.env.RALPH_LOOP = "1";
+    const repo = makeRepo();
+    const directories = [...FORBIDDEN_DIRS];
+    stageFiles(repo, {
+      "frontend/src/report.ts": "export const keep = 1;\n",
+      ...Object.fromEntries(
+        directories.map((directory) => [
+          agentFileIn(directory),
+          "agent edit\n",
+        ]),
+      ),
+    });
 
-  test.each([...FORBIDDEN_DIRS])(
-    "ejects config-like files under forbidden directory %s by directory rule",
-    (directory) => {
-      process.env.RALPH_LOOP = "1";
-      const repo = makeRepo();
-      const targets = [
-        `${directory}/config.py`,
-        `${directory}/nested/tsconfig.json`,
-        `${directory}/nested/eslint.config.js`,
-      ];
-      for (const target of targets) stageFile(repo, target, "strict = false\n");
-      stageFile(repo, "frontend/src/report.ts", "export const keep = 1;\n");
-      expect(runPreflight(repo, () => [])).toEqual([]);
-      expect(stagedNames(repo)).toEqual(["frontend/src/report.ts"]);
-    },
-  );
+    expect(runPreflight(repo, () => [])).toEqual([]);
+    const staged = stagedNames(repo);
+    for (const directory of directories) {
+      expect(staged, directory).not.toContain(agentFileIn(directory));
+    }
+    expect(staged).toContain("frontend/src/report.ts");
+  });
+
+  // Config-like files nested under any forbidden dir are ejected by the directory rule (all dirs,
+  // one preflight).
+  test("ejects config-like files under every forbidden directory by directory rule", () => {
+    process.env.RALPH_LOOP = "1";
+    const repo = makeRepo();
+    const files: Record<string, string> = {
+      "frontend/src/report.ts": "export const keep = 1;\n",
+    };
+    for (const directory of FORBIDDEN_DIRS) {
+      files[`${directory}/config.py`] = "strict = false\n";
+      files[`${directory}/nested/tsconfig.json`] = "strict = false\n";
+      files[`${directory}/nested/eslint.config.js`] = "strict = false\n";
+    }
+    stageFiles(repo, files);
+
+    expect(runPreflight(repo, () => [])).toEqual([]);
+    expect(stagedNames(repo)).toEqual(["frontend/src/report.ts"]);
+  });
 
   test("ejects a generated mix of forbidden files and nested forbidden-dir paths", () => {
     process.env.RALPH_LOOP = "1";
@@ -1292,22 +1324,19 @@ describe("loop containment", () => {
       a.localeCompare(b),
     );
     const files = [...FORBIDDEN_FILES].toSorted((a, b) => a.localeCompare(b));
-    const generated = [
-      ...files.map((target, index) => ({
-        target,
-        content: `file-${String(index)}\n`,
-      })),
-      ...Array.from(Array.from({ length: 40 }).keys(), (index) => {
-        const directory = directories[(index * 7) % directories.length] ?? "";
-        return {
-          target: `${directory}/generated-${String(index)}/config-${String(index % 5)}.json`,
-          content: JSON.stringify({ strict: false, index }),
-        };
-      }),
-    ];
-    for (const { target, content } of generated)
-      stageFile(repo, target, content);
-    stageFile(repo, "frontend/src/report.ts", "export const keep = 1;\n");
+    const generated: Record<string, string> = {
+      "frontend/src/report.ts": "export const keep = 1;\n",
+    };
+    for (const [index, target] of files.entries()) {
+      generated[target] = `file-${String(index)}\n`;
+    }
+    for (let index = 0; index < 40; index += 1) {
+      const directory = directories[(index * 7) % directories.length] ?? "";
+      generated[
+        `${directory}/generated-${String(index)}/config-${String(index % 5)}.json`
+      ] = JSON.stringify({ strict: false, index });
+    }
+    stageFiles(repo, generated);
     expect(runPreflight(repo, () => [])).toEqual([]);
     expect(stagedNames(repo)).toEqual(["frontend/src/report.ts"]);
   });
@@ -1328,18 +1357,25 @@ describe("loop containment", () => {
     expect(stagedNames(repo)).toEqual(["frontend/src/report.ts"]);
   });
 
-  test.each([...FORBIDDEN_FILES])(
-    "ejects exact forbidden file %s",
-    (target) => {
-      process.env.RALPH_LOOP = "1";
-      const repo = makeRepo();
-      stageFile(repo, target, "agent edit\n");
-      stageFile(repo, "frontend/src/report.ts", "export const keep = 1;\n");
-      expect(runPreflight(repo, () => [])).toEqual([]);
-      expect(stagedNames(repo)).not.toContain(target);
-      expect(stagedNames(repo)).toContain("frontend/src/report.ts");
-    },
-  );
+  // Every exact FORBIDDEN_FILE is ejected while innocent work stays staged (all files, one preflight).
+  test("ejects every exact forbidden file while keeping innocent work staged", () => {
+    process.env.RALPH_LOOP = "1";
+    const repo = makeRepo();
+    const forbidden = [...FORBIDDEN_FILES];
+    stageFiles(repo, {
+      "frontend/src/report.ts": "export const keep = 1;\n",
+      ...Object.fromEntries(
+        forbidden.map((target) => [target, "agent edit\n"]),
+      ),
+    });
+
+    expect(runPreflight(repo, () => [])).toEqual([]);
+    const staged = stagedNames(repo);
+    for (const target of forbidden) {
+      expect(staged, target).not.toContain(target);
+    }
+    expect(staged).toContain("frontend/src/report.ts");
+  });
 
   test("ejects a reintroduced frontend tsconfig override", () => {
     process.env.RALPH_LOOP = "1";
@@ -1679,26 +1715,30 @@ describe("loop containment (continued)", () => {
 });
 
 describe("banned patterns and preferences under loop", () => {
-  test.each(FORBIDDEN_PATTERNS)(
-    "reports a staged file that adds banned pattern %s and keeps it staged",
-    (pattern) => {
-      process.env.RALPH_LOOP = "1";
-      const repo = makeRepo();
-      stageFile(
-        repo,
-        "frontend/src/state.ts",
-        `export const value = 1; // ${pattern}\n`,
+  // A staged add of any FORBIDDEN_PATTERN is reported but not unstaged (author removes it). One file
+  // per pattern, one preflight asserted against all.
+  test("reports every staged file that adds a banned pattern and keeps them all staged", () => {
+    process.env.RALPH_LOOP = "1";
+    const repo = makeRepo();
+    const files: Record<string, string> = {
+      "frontend/src/report.ts": "export const keep = 1;\n",
+    };
+    for (const pattern of FORBIDDEN_PATTERNS) {
+      files[bannedPatternFile(pattern)] =
+        `export const value = 1; // ${pattern}\n`;
+    }
+    stageFiles(repo, files);
+
+    const problems = runPreflight(repo, () => []);
+    const staged = stagedNames(repo);
+    for (const pattern of FORBIDDEN_PATTERNS) {
+      expect(problems).toContain(
+        `forbidden pattern '${pattern}' in ${bannedPatternFile(pattern)}`,
       );
-      stageFile(repo, "frontend/src/report.ts", "export const keep = 1;\n");
-      // Banned PATTERNS are reported (blocking the commit), not unstaged: the author must remove
-      // the escape hatch themselves; the file stays staged so they see exactly where it is.
-      expect(runPreflight(repo, () => [])).toContain(
-        `forbidden pattern '${pattern}' in frontend/src/state.ts`,
-      );
-      expect(stagedNames(repo)).toContain("frontend/src/state.ts");
-      expect(stagedNames(repo)).toContain("frontend/src/report.ts");
-    },
-  );
+      expect(staged).toContain(bannedPatternFile(pattern));
+    }
+    expect(staged).toContain("frontend/src/report.ts");
+  });
 
   test("reports a banned TypeScript suppression and keeps the file staged", () => {
     process.env.RALPH_LOOP = "1";
@@ -2312,7 +2352,11 @@ describe("frontend gate shape", () => {
     };
     expect(config.include).toEqual(["../**/*.ts", "*.ts"]);
     expect(config.exclude).toEqual(
-      expect.arrayContaining(["../harness/**", "../**/node_modules/**"]),
+      expect.arrayContaining([
+        "../**/node_modules/**",
+        "../**/scratchpad/**",
+        "../frontend/tests/**",
+      ]),
     );
     expect(config.compilerOptions).toEqual(
       expect.objectContaining({
@@ -2360,7 +2404,7 @@ describe("frontend gate shape", () => {
         "typecheck",
       ],
     );
-    expect(scripts.build).toBe("vite build");
+    expect(scripts.build).toBe("vite build --config ../harness/vite.config.ts");
     expect(scripts.dev).toContain("vite");
     expect(scripts.test).toBe("pnpm test:coverage");
     expect(scripts["test:coverage"]).toContain("../harness");
@@ -2385,8 +2429,8 @@ describe("frontend gate shape", () => {
   // enforced by pnpm itself at install time; pnpm refuses to install packages absent from
   // package.json, and pnpm-lock.yaml's shape is not the npm packages[""] map this test parsed.)
 
-  test("vitest coverage thresholds are all 100 in exported config", () => {
-    const config = importedVitestConfig();
+  test("vitest coverage thresholds are all 100 in exported config", async () => {
+    const config = await importedVitestConfig();
     // Coverage is scoped to the source roots (harness engine + frontend app src), never the
     // whole repo — a bare `**/*.ts` sweeps libraries, generated fixtures, and a local
     // .pnpm-store, which both double-runs suites and tanks the 100% thresholds.
@@ -2430,8 +2474,8 @@ describe("frontend gate shape", () => {
     expect(config.linterOptions?.reportUnusedDisableDirectives).toBe(2);
   });
 
-  test("eslint config limits directory-specific weakening to harness tooling", () => {
-    const config = importedEslintConfig();
+  test("eslint config limits directory-specific weakening to harness tooling", async () => {
+    const config = await importedEslintConfig();
     const directorySpecificBlocks = config.filter((block) =>
       Array.isArray(block.files)
         ? block.files.some((file) =>
@@ -2449,16 +2493,16 @@ describe("frontend gate shape", () => {
     );
   });
 
-  test("eslint exported config rejects unused disable comments", () => {
-    const config = importedEslintConfig();
+  test("eslint exported config rejects unused disable comments", async () => {
+    const config = await importedEslintConfig();
     const hasPolicy = config.some(
       (block) => block.linterOptions?.reportUnusedDisableDirectives === "error",
     );
     expect(hasPolicy).toBe(true);
   });
 
-  test("eslint exported config blocks production imports from tests", () => {
-    const config = importedEslintConfig();
+  test("eslint exported config blocks production imports from tests", async () => {
+    const config = await importedEslintConfig();
     const sourceBlock = config.find((block) =>
       Array.isArray(block.rules?.["no-restricted-imports"]),
     );

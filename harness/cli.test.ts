@@ -2,6 +2,7 @@
 
 import { spawnSync, type SpawnSyncReturns } from "node:child_process";
 import {
+  appendFileSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
@@ -132,8 +133,11 @@ function runCommand(argv: string[], cwd: string): string {
 function makeRepo(): string {
   const repo = mkdtempSync(path.join(tmpdir(), "harness-"));
   runCommand(["git", "init", "-q"], repo);
-  runCommand(["git", "config", "user.email", "harness@test.local"], repo);
-  runCommand(["git", "config", "user.name", "harness-test"], repo);
+  // Write identity straight into .git/config (one syscall) instead of two `git config` subprocesses.
+  appendFileSync(
+    path.join(repo, ".git", "config"),
+    "[user]\n\temail = harness@test.local\n\tname = harness-test\n",
+  );
   writeFileSync(path.join(repo, "README.md"), "seed\n");
   // ralph reads PROMPT.md up front and fails the loop if it is missing (set -e),
   // so every repo that runs the loop needs one.
@@ -1005,13 +1009,27 @@ describe("runLoop", () => {
 });
 
 describe("harness command", () => {
-  // Runs the real preflight against this repo, where the harness configs exist (a bare temp repo
-  // has no harness/ configs, so the lint checks would hard-error rather than exercise the CLI).
-  test("preflight", () => {
-    const result = harnessCli(["preflight"], { cwd: repoRoot(process.cwd()) });
+  // Exercise the real `harness.mjs preflight` entrypoint end-to-end, without linting the whole repo:
+  // the CLI runs each COMMIT_CHECK tool from `<repo>/harness/node_modules/.bin`, so stubbing those
+  // to exit 0 in a temp repo lets preflight dispatch and pass fast.
+  test("preflight dispatches through the real CLI and exits 0", () => {
+    const repo = makeRepo();
+    const bin = path.join(repo, "harness", "node_modules", ".bin");
+    mkdirSync(bin, { recursive: true });
+    for (const [tool] of Object.values(gate.COMMIT_CHECKS)) {
+      if (tool === undefined) throw new Error("check command is empty");
+      writeFileSync(path.join(bin, tool), "#!/bin/sh\nexit 0\n", {
+        mode: 0o755,
+      });
+    }
+    writeFileSync(path.join(repo, "app.ts"), "export const value = 1;\n");
+    runCommand(["git", "add", "-A"], repo);
 
+    const result = harnessCli(["preflight"], { cwd: repo });
+
+    expect(result.stderr).toContain("ok: preflight passed");
     expect(result.status).toBe(0);
-  }, 60_000);
+  }, 15_000);
 
   // Spawns a real agent subprocess; the default 5s timeout is too tight under the coverage run.
   // Stub the agent on PATH so the success path is deterministic (a real `agy` may be absent).

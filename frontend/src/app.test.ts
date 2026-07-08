@@ -264,6 +264,28 @@ describe("mounted calculator", () => {
     expect([...unit.options].map((option) => option.value)).toEqual(["B", "M"]);
   });
 
+  test("renders the canonical execution mode choices in the real form", () => {
+    loadDom();
+    mountCalculator(document);
+    const executionMode = field("execution-mode");
+    if (!(executionMode instanceof HTMLSelectElement)) {
+      throw new TypeError("Execution Mode control must be a select");
+    }
+    const choices = [
+      "Inference",
+      "LoRA fine-tuning",
+      "QLoRA fine-tuning",
+      "Full training",
+    ];
+
+    expect(
+      [...executionMode.options].map((option) => option.textContent),
+    ).toEqual(choices);
+    expect([...executionMode.options].map((option) => option.value)).toEqual(
+      choices,
+    );
+  });
+
   test("renders the output disclaimer below the estimate", () => {
     loadDom();
     mountCalculator(document);

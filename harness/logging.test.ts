@@ -114,6 +114,24 @@ describe("logging status", () => {
     expect(output).toContain("15");
   });
 
+  test("sorts equal-time logs by path and keeps no-punctuation commits", () => {
+    const repo = makeRepo();
+    runCommand(
+      ["git", "commit", "--allow-empty", "-q", "-m", "No punctuation"],
+      repo,
+    );
+    const sameTime = 1_782_500_000_000;
+    writeLog(repo, "zeta.jsonl", '{"result":"zeta"}\n', sameTime);
+    writeLog(repo, "alpha.jsonl", '{"result":"alpha"}\n', sameTime);
+
+    const output = renderStatus(repo);
+
+    expect(output.indexOf("alpha.jsonl")).toBeLessThan(
+      output.indexOf("zeta.jsonl"),
+    );
+    expect(output).toContain("No punctuation");
+  });
+
   test("handles missing logs and missing git history", () => {
     const repo = mkdtempSync(path.join(tmpdir(), "logging-no-git-"));
 
@@ -144,6 +162,57 @@ describe("logging status", () => {
     expect(parsed.usageByIteration).toHaveLength(1);
     expect(parsed.usageByIteration[0]).toBe(19);
     expect(parsed.summary).toBe("second");
+  });
+
+  test("summarizes tool use content with the best available detail", () => {
+    const described = parseLogContent(
+      '{"message":{"content":[{"type":"tool_use","name":"shell","input":{"description":"Run status"}}]}}',
+    );
+    const commanded = parseLogContent(
+      '{"message":{"content":[{"type":"tool_use","name":"shell","input":{"command":"pnpm status"}}]}}',
+    );
+    const fallback = parseLogContent(
+      '{"message":{"content":[{"type":"tool_use","name":"reader","input":null}]}}',
+    );
+
+    expect(described.summary).toBe("shell: Run status");
+    expect(commanded.summary).toBe("shell: pnpm status");
+    expect(fallback.summary).toBe("reader: tool use");
+  });
+
+  test("falls back when structured content has no readable message part", () => {
+    const parsed = parseLogContent(
+      '{"message":{"content":[{"type":"image","source":"ignored"},null]}}',
+    );
+
+    expect(parsed.summary).toBe("n/a");
+  });
+
+  test("parses empty content and one-sided usage records", () => {
+    const empty = parseLogContent("");
+    const emptyUsage = parseLogContent('{"usage":{}}');
+    const inputOnly = parseLogContent('{"usage":{"input_tokens":7}}');
+    const outputOnly = parseLogContent('{"usage":{"output_tokens":5}}');
+
+    expect(empty.lineCount).toBe(0);
+    expect(empty.summary).toBe("n/a");
+    expect(emptyUsage.usageByIteration).toEqual([]);
+    expect(inputOnly.usageByIteration).toEqual([7]);
+    expect(outputOnly.usageByIteration).toEqual([5]);
+  });
+
+  test("ignores blank plain lines without inventing a summary", () => {
+    const parsed = parseLogContent(" ".repeat(3));
+
+    expect(parsed.lineCount).toBe(1);
+    expect(parsed.summary).toBe("n/a");
+  });
+
+  test("clips overly long summaries", () => {
+    const parsed = parseLogContent(JSON.stringify({ result: "x".repeat(170) }));
+
+    expect(parsed.summary).toHaveLength(160);
+    expect(parsed.summary.endsWith("...")).toBe(true);
   });
 
   test("keeps a real summary ahead of a stray plain line", () => {

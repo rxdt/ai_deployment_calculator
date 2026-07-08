@@ -242,7 +242,8 @@ export const parseLogContent = (content: string): ParsedLog => {
 };
 
 const collect = (root: string, directory: string, logs: LogFile[]): void => {
-  for (const entry of readdirSync(directory, { withFileTypes: true })) {
+  const entries = readdirSync(directory, { withFileTypes: true });
+  for (const entry of entries) {
     const absolute = path.join(directory, entry.name);
     if (entry.isDirectory()) collect(root, absolute, logs);
     else if (entry.isFile() && entry.name.endsWith(".jsonl")) {
@@ -269,7 +270,7 @@ const discoverLogFiles = (runsRoot: string): readonly LogFile[] => {
 };
 
 const row = (cells: readonly string[], limits: readonly number[]): string =>
-  cells.map((cell, index) => clip(cell, limits[index] ?? 80)).join(" | ");
+  cells.map((cell, index) => clip(cell, Number(limits[index]))).join(" | ");
 
 const section = (
   title: string,

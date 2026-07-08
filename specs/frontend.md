@@ -6,17 +6,17 @@
 4. [ ] Frontend best practices implemented.
 5. [ ] **Styling is the very LAST thing implemented.** (The owner will revert styling changes until html/typescrpt/javascript work and items 1-4 above are done.)
 
-
 > Checkbox checked on completed items to clarify what is done
 
 ## Current Contract
 
 **Build and run the app to "view" it as you make changes.** If built and previewed the production app; `5173` was occupied, the Vite preview can be inspected at `http://127.0.0.1:5174/`.
+
 - [ ] The Vite app is static.
 - [ ] `CalculatorApp` normalizes form state, calls local TypeScript
-  `buildReport(state)`, and renders synchronously.
+      `buildReport(state)`, and renders synchronously.
 - [ ] Public UI names follow the Naming Contract in `specs/plan.md`; do not redefine
-  them here.
+      them here.
 - [ ] The app is responsive.
 - [ ] Complex underlying formulas only appear in expandable cards.
 - [ ] The app is accurate and has inputs/outputs an engineer would trust
@@ -24,137 +24,137 @@
 
 ## UI
 
+- [ ] Only on submit button exists, with text 'Reset'
+- [ ] Advanced assumptions expanded section shows additional options
 - [ ] Bare, minimal styles.css only to get tests passing until typescript/html work is complete.
 - [ ] Visible form actions are not duplicated: `Reset assumptions` is the only
-  visible button; the reactive form keeps a hidden submit control only for form
-  submission/validation.
+      visible button; the reactive form keeps a hidden submit control only for form
+      submission/validation.
 - [ ] Main form shows `Workload Family`, `Total Model Parameters`,
-  `Parameter Unit`, `Precision`, `Execution Mode`, `Runtime Profile`,
-  adaptive input controls, adaptive workload size, and relevant `MoE Model`.
+      `Parameter Unit`, `Precision`, `Execution Mode`, `Runtime Profile`,
+      adaptive input controls, adaptive workload size, and relevant `MoE Model`.
 - [ ] `Total Model Parameters` accepts fractional values such as `3.8` billion.
 - Rare controls live in `<details><summary>Advanced assumptions</summary>`.
 - [ ] `QLoRA fine-tuning` visibly snaps `Precision` to `4-bit` and
-  `Runtime Profile` to `Local / Edge`, matching the forced calculation state.
+      `Runtime Profile` to `Local / Edge`, matching the forced calculation state.
 - [ ] `KV Cache Precision` lives in advanced assumptions, is visible only for
-  inference decoder-KV workloads, and offers `8-bit / FP8`, `16-bit`, and
-  `32-bit`.
+      inference decoder-KV workloads, and offers `8-bit / FP8`, `16-bit`, and
+      `32-bit`.
 - [ ] The app is responsive according to `/scratchpad/responsive_frontend_research.md`
 - [ ] Workload size label is `Concurrent Requests` for inference and
-  `Micro Batch Size` for training; never reintroduce generic `Batch Size`.
+      `Micro Batch Size` for training; never reintroduce generic `Batch Size`.
 - [ ] `MoE Model` appears only for text generation, embeddings, encoder-decoder,
-  multimodal, and custom. `Active Parameters` appears only when checked.
+      multimodal, and custom. `Active Parameters` appears only when checked.
 - [ ] Changing workload family or execution mode rerenders adaptive controls without
-  waiting for form submit.
+      waiting for form submit.
 - [ ] HTML reflects clean, compact, well-organized flow. Clean, compact, well-organized examples are like `spec/calc1.png`, `~/specs/calc2.png`, `spec/calc13.png` -> do not follow those exactly, they are loose examples of what 'good' looks like to a human user.
 - [ ] Small Github logo with link to github repo is in top right
-  `https://github.com/rxdt/ai_deployment_calculator/`.
+      `https://github.com/rxdt/ai_deployment_calculator/`.
 - [ ] `~VRAM-calculator` is in top left and is not a link.
 - [ ] Calculator elements are not overly big.
 - [ ] Cyan is used minimally for headings and ONLY for when elements are expanded only e.g. when `Why this recommendation` is expanded its text color uses the cyan color in DESIGN.md. Otherwise text headings do not use cyan.
 - [ ] Four organized result detail cards are in HTML skeleton shape: `Why this recommendation`, `Calculation used`, `Formula used`, and `Assumptions used`.
+- [ ] Result cards loosely follow inspiration from `/specs/this_png_shows_some_ideas_are_ok_not_all.png`
+- [ ] Top hero result looks like a more professional version than in `specs/this_png_shows_some_ideas_are_ok_not_all.png`
 - [ ] Small disclaimer should exist below app outputs.
 - [ ] Complex details and formulas are hidden in expandable sections as in this app `specs/light_style_ideas_reflected_in_DESIGN.md.png`
-- [ ] **Run lighthouse and Playwright frequently. Both must pass.** Direct
-  Playwright passes; Lighthouse config ownership remains blocked by dirty
-  human-owned harness/package changes.
+- [x] **Run lighthouse and Playwright frequently. Both must pass.** Direct
+      Playwright and Lighthouse pass; full `pnpm gate` remains blocked by dirty
+      human-owned harness changes.
   - The app passes lighthouse checks 100%. review `scratchpad/research-lighthouse.md`
 
 ## STYLING
-- [ ] Iff javascript and html work are completed. styling can begin.
+
+- [x] Iff javascript and html work are completed. styling can begin.
   - [ ] When 'Advanced assumptions' is expanded, app fits in one viewport on desktop and mobile.
-  - [ ] The app fits in one viewport on desktop and mobile.
-  - [ ] VERIFY IF TRUE OR FALSE:
-  BUG (blocks `pnpm gate`): `frontend/tests/responsive.spec.ts:75`
-    (`collapsed default estimate fits one viewport`) fails on all 6 Playwright
-    projects. The `Calculation used` / `Assumptions used` result panels render
-    below the fold (`toBeInViewport` → `viewport ratio 0`) at 1280x720 and
-    390x844. Root cause is in the staged `frontend/src/styles.css` (the results
-    section grew too tall). Fix so both result-panel summaries sit within one
-    viewport in the collapsed default state; do not delete the assertions.
-  - [ ] The app is responsive ~/ai_deployment_calculator/scratchpad/responsive_frontend_research.md
+  - [x] The app fits in one viewport on desktop and mobile in the collapsed
+        default state; `frontend/tests/responsive.spec.ts:75` passes on all
+        Playwright projects.
+  - [x] The app is responsive ~/ai_deployment_calculator/scratchpad/responsive_frontend_research.md
   - [ ] Styling follows `specs/DESIGN.md` -- Design system defines 24 colors, 7 typography scales, 5 rounding levels, 10 spacing tokens, 25 components.
   - [ ] Styling honors a compact, clean calculator shape. Compact calculator examples are like `spec/calc1.png`, `~/specs/calc2.png`, `spec/calc13.png`.
   - [ ] Styling keeps app compact and well-organized
+  - [ ] Styling loosely inspired by `specs/light_style_ideas_reflected_in_DESIGN.md.png`
 
 ## Calculation
 
 - [ ] `frontend/src/calculator-core.ts`, `workload-memory.ts`, and `hardware.ts` own
-  the calculation; `report.ts` assembles the rendered report. The canonical
-  equation, presets, per-family formulas, and hardware/speed math are detailed in
-  the Formulas section below.
+      the calculation; `report.ts` assembles the rendered report. The canonical
+      equation, presets, per-family formulas, and hardware/speed math are detailed in
+      the Formulas section below.
 - [ ] `Known Model File Size` overrides parameter-based weight estimates; MoE active
-  parameters affect speed/KV only, not resident weight memory; training modes use
-  adapter/full-training state plus checkpointed activations; legacy
-  `trained=on&use_adapter=on` query flags are ignored.
+      parameters affect speed/KV only, not resident weight memory; training modes use
+      adapter/full-training state plus checkpointed activations; legacy
+      `trained=on&use_adapter=on` query flags are ignored.
 - [ ] MoE state is honored only for MoE-applicable workload families. Hidden or
-  query-supplied MoE values for other families do not affect speed or warnings.
+      query-supplied MoE values for other families do not affect speed or warnings.
 
 ## Outputs
 
 - [ ] First glance (hero): `Estimated VRAM Required` (the total), a short
-  "The workload needs N GB usable VRAM." line, an always-visible
-  `Estimate confidence` label (`Rough` for diffusion/video/custom, `Estimated`
-  otherwise), and `Recommended GPU Class` (e.g. `24 GB GPU hardware tier`).
-  Nothing else is shown by default.
+      "The workload needs N GB usable VRAM." line, an always-visible
+      `Estimate confidence` label (`Rough` for diffusion/video/custom, `Estimated`
+      otherwise), and `Recommended GPU Class` (e.g. `24 GB GPU hardware tier`).
+      Nothing else is shown by default.
 - [ ] Collapsed `<details>` panels hold the rest:
   - [ ] `Why this recommendation` — a plain-language "why" sentence plus
-    `Minimum GPU VRAM Capacity`, `Usable VRAM Target`,
-    `Usable VRAM on Recommended Class`, `Fit Headroom`, and `Estimated Speed`
-    (rendered as `tokens/sec`).
+        `Minimum GPU VRAM Capacity`, `Usable VRAM Target`,
+        `Usable VRAM on Recommended Class`, `Fit Headroom`, and `Estimated Speed`
+        (rendered as `tokens/sec`).
   - [ ] `Calculation used` — the per-component breakdown rows (`Model memory` or
-    `QLoRA base model memory`, `Context memory`, `Activation memory`,
-    `Training memory`, `Runtime reserve`, `Safety margin`). Rows that round to
-    `0.0 GB` are hidden.
+        `QLoRA base model memory`, `Context memory`, `Activation memory`,
+        `Training memory`, `Runtime reserve`, `Safety margin`). Rows that round to
+        `0.0 GB` are hidden.
   - [ ] `Formula used` — the inline canonical equation substitution.
   - [ ] `Assumptions used` — visible precision, runtime, execution, and KV
-    assumptions.
+        assumptions.
 - [ ] The hardware-recommendation and fit math (usable VRAM on class, fit headroom,
-  overflow `n/a`, speed) is defined in the Formulas section below.
+      overflow `n/a`, speed) is defined in the Formulas section below.
 - [ ] Warnings are conditional only: training, MoE, and sharded-tier speed guidance.
-  Family-specific caveats stay out of warnings; default inference renders no
-  warnings.
+      Family-specific caveats stay out of warnings; default inference renders no
+      warnings.
 - [ ] There is no `Accuracy` output and no separate `Your GPU Fit` panel; both were
-  removed by product decision.
+      removed by product decision.
 
 ## Tests And Checks
 
 - [ ] Unit tests pin corrected totals: `47B` MoE `113.1 GB`, default `8B`
-  `21.3 GB`, `7B` full training `152.9 GB`, local exact `104B` `79.2 GB`,
-  QLoRA defaults and `2%` cases, long-context GQA KV, and precision comparison.
+      `21.3 GB`, `7B` full training `152.9 GB`, local exact `104B` `79.2 GB`,
+      QLoRA defaults and `2%` cases, long-context GQA KV, and precision comparison.
 - [ ] Unit tests cover conversion, precision map, file-size override, MoE resident
-  memory, decoder KV scaling, no encoder KV, encoder-decoder memory,
-  diffusion/video/audio/tabular scaling, LoRA, QLoRA, full training, hardware
-  tier matching (single-GPU vs sharded, overflow), tier-bandwidth speed, and
-  legacy flag removal.
-- [ ] Playwright covers accessibility, local report rendering, adaptive controls,
-  no generic `Batch Size`, MoE visibility, escaping, four collapsed result
-  detail cards, expanded-heading cyan color, and collapsed one-viewport fit on
-  desktop/mobile.
-- [ ] App unit tests cover the real HTML `KV Cache Precision` options, the
-  rendered 32-bit KV estimate, the always-visible `Estimate confidence` label,
-  collapsed output panels, removed `Accuracy` / `Your GPU Fit` surfaces, default
-  empty warnings, and fractional `Total Model Parameters` input cleanup.
+      memory, decoder KV scaling, no encoder KV, encoder-decoder memory,
+      diffusion/video/audio/tabular scaling, LoRA, QLoRA, full training, hardware
+      tier matching (single-GPU vs sharded, overflow), tier-bandwidth speed, and
+      legacy flag removal.
+- [x] Playwright covers accessibility, local report rendering, adaptive controls,
+      no generic `Batch Size`, MoE visibility, escaping, four collapsed result
+      detail cards, expanded-heading cyan color, and collapsed one-viewport fit on
+      desktop/mobile.
+- [x] App unit tests cover the real HTML `KV Cache Precision` options, real HTML
+      `Execution Mode` choices, the rendered 32-bit KV estimate, the always-visible
+      `Estimate confidence` label, collapsed output panels, removed `Accuracy` /
+      `Your GPU Fit` surfaces, default empty warnings, and fractional
+      `Total Model Parameters` input cleanup.
 - [ ] `frontend/src/legacy-approximations.test.ts` was deleted; do not reintroduce
-  it or any legacy-approximation test.
+      it or any legacy-approximation test.
 - [ ] Required commands: `pnpm --dir frontend exec vitest run src/app.test.ts src/report.test.ts`,
-  `npm --prefix frontend run build`,
-  `npm --prefix frontend run preview -- --port 5174`,
-  `npm --prefix frontend run test:coverage`,
-  `pnpm --dir frontend exec playwright test --config ../harness/playwright.config.js`,
-  `./harness/node_modules/.bin/lhci autorun --config harness/lighthouserc.cjs`,
-  `npm --prefix frontend run test:e2e`, `pnpm gate`, `pnpm preflight`.
+      `npm --prefix frontend run build`,
+      `npm --prefix frontend run preview -- --port 5174`,
+      `npm --prefix frontend run test:coverage`,
+      `pnpm --dir frontend exec playwright test --config ../harness/playwright.config.js`,
+      `./harness/node_modules/.bin/lhci autorun --config harness/lighthouserc.cjs`,
+      `npm --prefix frontend run test:e2e`, `pnpm gate`, `pnpm preflight`.
 
 ## Open Parity Gaps (code review)
 
 - [ ] Gaps #1-#4 and minor parity items are closed and verified plan-conformant by
-code review (expected values hand-recomputed from `docs/plan.md`). No reviewed
-frontend calculation parity gaps remain.
+      code review (expected values hand-recomputed from `docs/plan.md`). No reviewed
+      frontend calculation parity gaps remain.
 
 ## Formulas
 
 - [ ] This is the canonical, implemented formula reference. Variable names and constants below match `frontend/src/calculator-core.ts`,
-`workload-memory.ts`, and `hardware.ts`.
-
+      `workload-memory.ts`, and `hardware.ts`.
 
 ## Canonical VRAM Formula
 
@@ -263,9 +263,8 @@ Estimated transformer architecture by total parameter count:
 > 160B:  layers 120, hidden 12288, heads 96, kv_heads 8, head_dim 128
 ```
 
-
 - [ ] Also compute `conservative_kv_heads = attention_heads` and show it in advanced
-output.
+      output.
 
 ---
 
@@ -555,10 +554,10 @@ They do not reduce weight memory unless expert offload or sharding is explicitly
 `Recommended_Tier = smallest eligible tier where Tier_VRAM_GB >= Minimum_Raw_VRAM_GB`
 
 - [ ] The single canonical tier table is `HARDWARE_TIERS` in `frontend/src/hardware.ts`.
-Each tier carries `vramGb`, `label`, `examples`, `bandwidthGbps`, `kind`,
-`gpuCount`, and `requiresSharding`. The 141 GB (H200) and 180 GB (B200) tiers are
-single-GPU; only the 160 GB and 320 GB aggregate tiers set `requiresSharding` and
-are eligible only when `memory_sharding_enabled` is on:
+      Each tier carries `vramGb`, `label`, `examples`, `bandwidthGbps`, `kind`,
+      `gpuCount`, and `requiresSharding`. The 141 GB (H200) and 180 GB (B200) tiers are
+      single-GPU; only the 160 GB and 320 GB aggregate tiers set `requiresSharding` and
+      are eligible only when `memory_sharding_enabled` is on:
 
 |    VRAM | Primary label                            | Examples                              | Speed bandwidth | Sharding |
 | ------: | ---------------------------------------- | ------------------------------------- | --------------: | -------- |
@@ -575,8 +574,8 @@ are eligible only when `memory_sharding_enabled` is on:
 | >320 GB | Distributed / offload required           | Multi-node or larger GPU pool         |             N/A | Yes      |
 
 - [ ] When nothing eligible fits, return overflow: "No single-GPU fit. Enable memory
-sharding or use offload." below 320 GB raw, otherwise "> 320 GB: distributed
-multi-node, larger GPU pool, or heavy offload".
+      sharding or use offload." below 320 GB raw, otherwise "> 320 GB: distributed
+      multi-node, larger GPU pool, or heavy offload".
 
 Display `fit headroom`.
 
@@ -633,32 +632,31 @@ Do not use:
 - [ ] TEST CASES PASS IN THE FRONTEND CALCULATOR WHEN INPUTS ARE MANIPULATED
 
 - [ ] Expected values below are **scratch-included** (the product default: inference
-totals carry `decoder_scratch_gb = weights * 0.05 server / 0.03 local`). They
-match the implemented, passing assertions in `frontend/src/calculator.test.ts`.
-The earlier scratch-zero figures (e.g. 8B = 20.4) are retained only as the
-`scratch-zero comparison` column and are exercised only by component-level unit
-tests that isolate the KV equation. Delete a row only after its scratch-included
-test exists.
+      totals carry `decoder_scratch_gb = weights * 0.05 server / 0.03 local`). They
+      match the implemented, passing assertions in `frontend/src/calculator.test.ts`.
+      The earlier scratch-zero figures (e.g. 8B = 20.4) are retained only as the
+      `scratch-zero comparison` column and are exercised only by component-level unit
+      tests that isolate the KV equation. Delete a row only after its scratch-included
+      test exists.
 
-Case	Status	Scratch-included expected (implemented)	Scratch-zero comparison
-47B, 8000 ctx, MoE active=1.3, 16-bit weights, 16-bit KV	Done. Active params drive neither KV nor weights.	113.1 GB	107.9 GB
-8B, 8000 ctx, 16-bit weights, QLoRA, 2% trainable	Done. Training mode adds no decoder scratch.	21.0 GB	21.0 GB
-8B, 8000 ctx, defaults	Done. Architecture KV + server decoder scratch.	21.3 GB	20.4 GB
-7B, 8000 ctx, full training	Done. No decoder scratch in training.	152.9 GB	152.9 GB
-104B, 32000 ctx, 4-bit, 32-bit KV, llama_cpp_gguf (52 GB exact)	Done. Local overhead + file-size override.	79.2 GB	77.7 GB
-0.0004B, 8000 ctx, 8-bit weights, 8-bit KV, full training	Done. Training overhead dominates.	7.0 GB	5.1 GB
-70B, 128000 ctx, 4-bit weights, 8-bit KV	Done. Estimated GQA KV; exact uses 35 GB resident.	71.2 GB generic, 65.1 GB exact 35 GB	69.0 / 63.2 GB
-104B, 32000 ctx, 8-bit weights, 16-bit KV	Done.	141.6 GB	135.6 GB
-7B, 1,000,000 ctx, 8-bit weights, 16-bit KV	Done. Estimated GQA at 1M context.	154.3 GB	153.9 GB
-8B, 8000 ctx, 4-bit weights, QLoRA	Done.	19.2 GB	19.2 GB
-70B, 8000 ctx, 4-bit weights, QLoRA	Done.	99.9 GB	99.9 GB
-3.8B, 8000 ctx, 4-bit weights, QLoRA	Done. <=4B architecture bucket.	13.2 GB	13.2 GB
-8B, 8000 ctx, precision comparison 32/16/8/4-bit	Done.	39.8 / 21.3 / 12.5 / 8.1 GB	38.0 / 20.4 / 12.0 / 7.9 GB
-104B, 32000 ctx, 32-bit KV, local, parameter-derived precision comparison	Done. Replaces the underspecified gguf-exact sweep (which required one known file size per precision). Generic parameter-derived sweep instead.	454.1 / 239.9 / 138.1 / 87.3 GB	n/a (no scratch-zero variant tested)
-70B, 8000 ctx, 4-bit, 8-bit KV, QLoRA 2% (replaces trained=on&use_adapter=on)	Done. Booleans replaced by Execution Mode.	115.6 GB	115.6 GB
+Case Status Scratch-included expected (implemented) Scratch-zero comparison
+47B, 8000 ctx, MoE active=1.3, 16-bit weights, 16-bit KV Done. Active params drive neither KV nor weights. 113.1 GB 107.9 GB
+8B, 8000 ctx, 16-bit weights, QLoRA, 2% trainable Done. Training mode adds no decoder scratch. 21.0 GB 21.0 GB
+8B, 8000 ctx, defaults Done. Architecture KV + server decoder scratch. 21.3 GB 20.4 GB
+7B, 8000 ctx, full training Done. No decoder scratch in training. 152.9 GB 152.9 GB
+104B, 32000 ctx, 4-bit, 32-bit KV, llama_cpp_gguf (52 GB exact) Done. Local overhead + file-size override. 79.2 GB 77.7 GB
+0.0004B, 8000 ctx, 8-bit weights, 8-bit KV, full training Done. Training overhead dominates. 7.0 GB 5.1 GB
+70B, 128000 ctx, 4-bit weights, 8-bit KV Done. Estimated GQA KV; exact uses 35 GB resident. 71.2 GB generic, 65.1 GB exact 35 GB 69.0 / 63.2 GB
+104B, 32000 ctx, 8-bit weights, 16-bit KV Done. 141.6 GB 135.6 GB
+7B, 1,000,000 ctx, 8-bit weights, 16-bit KV Done. Estimated GQA at 1M context. 154.3 GB 153.9 GB
+8B, 8000 ctx, 4-bit weights, QLoRA Done. 19.2 GB 19.2 GB
+70B, 8000 ctx, 4-bit weights, QLoRA Done. 99.9 GB 99.9 GB
+3.8B, 8000 ctx, 4-bit weights, QLoRA Done. <=4B architecture bucket. 13.2 GB 13.2 GB
+8B, 8000 ctx, precision comparison 32/16/8/4-bit Done. 39.8 / 21.3 / 12.5 / 8.1 GB 38.0 / 20.4 / 12.0 / 7.9 GB
+104B, 32000 ctx, 32-bit KV, local, parameter-derived precision comparison Done. Replaces the underspecified gguf-exact sweep (which required one known file size per precision). Generic parameter-derived sweep instead. 454.1 / 239.9 / 138.1 / 87.3 GB n/a (no scratch-zero variant tested)
+70B, 8000 ctx, 4-bit, 8-bit KV, QLoRA 2% (replaces trained=on&use_adapter=on) Done. Booleans replaced by Execution Mode. 115.6 GB 115.6 GB
 
-
-- [ ] Ensure frontend has:
+- [x] Ensure frontend has:
 
 execution mode = inference | lora finetune | qlora finetune | full training
 
@@ -688,9 +686,9 @@ Styling is deferred until TS and HTML work is verified complete; `styles.css` cu
 Hierarchy:
 
 - [ ] One dominant result (the hero VRAM number + recommended GPU class). Everything
-  else is demoted: a couple of glanceable numbers, then collapsed `<details>`
-  for the breakdown, why, assumptions, and warnings. Avoid the "debug dashboard"
-  look where every value has equal weight.
+      else is demoted: a couple of glanceable numbers, then collapsed `<details>`
+      for the breakdown, why, assumptions, and warnings. Avoid the "debug dashboard"
+      look where every value has equal weight.
 
 Layout:
 
@@ -702,13 +700,13 @@ Typography:
 
 - [ ] Sans (Geist / system-ui) for headings, result values, and body text.
 - [ ] JetBrains Mono only for HUD/section labels, formulas, code, terminal/status
-  text, and form inputs. Result numbers use `font-variant-numeric: tabular-nums`.
+      text, and form inputs. Result numbers use `font-variant-numeric: tabular-nums`.
 
 Color:
 
 - [ ] Near-black background; off-white text; muted gray-green secondary text.
 - [ ] Reserve the bright green accent for the final answer and status; use softer
-  gray-green for labels and borders. Keep any grid/glow subtle.
+      gray-green for labels and borders. Keep any grid/glow subtle.
 
 Spacing and shape:
 
@@ -718,11 +716,12 @@ Spacing and shape:
 Accessibility:
 
 - [ ] Preserve every test-pinned accessible name and the `aria-label` regions the
-  Playwright suite asserts. The styling pass must keep axe violations at zero and
-  meet the touch-target (>=40px) and readable-text (>=13px) checks in
-  `harness/tests/responsive.spec.ts`.
+      Playwright suite asserts. The styling pass must keep axe violations at zero and
+      meet the touch-target (>=40px) and readable-text (>=13px) checks in
+      `harness/tests/responsive.spec.ts`.
 
 Responsive standards met:
+
 - [ ] What Makes An App Responsive June 2026 researched
 - [ ] `scratchpad/responsive_frontend_research.md` read and updated
 - [ ] `scratchpad/responsive_frontend_research.md` reflected in frontend implementation

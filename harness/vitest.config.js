@@ -14,7 +14,12 @@ const coverageDir = `coverage/${process.pid}`;
 export default defineConfig({
   root: repoRoot,
   test: {
-    environment: "jsdom",
+    // Default to node; only the frontend DOM suite needs jsdom (it opts in per-file). Booting jsdom
+    // everywhere cost seconds for no benefit.
+    environment: "node",
+    // Suites spawn their own subprocesses and clean their globals in afterEach — no per-test module
+    // isolation needed; disabling it drops re-init overhead.
+    isolate: false,
     // Scope discovery to the real source roots. A bare `**/*.test.ts` recurses the whole
     // repo and picks up copies inside generated/installed dirs (e.g. a local .pnpm-store,
     // node_modules, gate.test.ts fixture trees), double-running suites and inflating counts.
@@ -25,7 +30,7 @@ export default defineConfig({
       "**/.claude/worktrees/**",
       "**/dist/**",
       "**/tests/**",
-      "**/scratchpad/**"
+      "**/scratchpad/**",
     ],
     coverage: {
       provider: "v8",
@@ -41,7 +46,7 @@ export default defineConfig({
         "**/*.test.ts",
         "**/*.spec.ts",
         "**/tests/**",
-        "**/scratchpad/**"
+        "**/scratchpad/**",
       ],
       thresholds: {
         branches: 100,

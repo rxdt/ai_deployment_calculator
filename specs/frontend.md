@@ -526,6 +526,13 @@ Then:
 
 `Working_Memory_GB = Family_Working_Memory_GB + Training_Activation_GB`
 
+In training modes the inference-only working memory (decoder KV cache and
+decoder scratch) is dropped, so `Family_Working_Memory_GB` reduces to
+`Training_Activation_GB`; `memoryBreakdown` reports `kvCacheGb = 0` and
+`inputActivationGb = Training_Activation_GB`. This is pinned by
+`frontend/src/calculator.test.ts` and matches the "adds no decoder scratch"
+canonical cases.
+
 Defaults:
 
 `Activation_Factor_Training = 3` if gradient checkpointing is on.

@@ -30,6 +30,13 @@
   (`text_generation`, `text_encoder`, `encoder_decoder`, `vision_language`,
   `custom`) and hidden for the other five, and marked that frontend spec item
   complete. Prior coverage only proved the `vision` case.
+- This iteration added a `calculator.test.ts` unit test isolating the training
+  branch of `memoryBreakdown` (`workload-memory.ts:292`): for a
+  `text_generation` LoRA spec it proves the inference decoder KV cache and
+  decoder scratch are dropped (`kvCacheGb = 0`,
+  `inputActivationGb = Training_Activation_GB`). Previously only exact training
+  totals pinned this indirectly. Clarified the spec's Training Activation
+  Formula to match this implemented "adds no decoder scratch" behavior.
 
 ## Commands
 
@@ -62,10 +69,11 @@
   directly: every test/build/preflight command was denied by the environment
   permission gate. The commit-time pre-commit hook still runs preflight, so a
   successful commit is the only preflight signal available this iteration.
-- Unstaged, non-agent working-tree changes exist and were left untouched for
-  human review: `harness/` edits (forbidden), a new `harness/pnpm-lock.yaml`,
-  and a large `pnpm-lock.yaml` diff. Only `frontend/src/app.test.ts`,
-  `specs/frontend.md`, and `docs/PROJECT_STATUS.md` were staged.
+- Working tree is otherwise clean this iteration: the `harness/`,
+  `pnpm-lock.yaml`, and `specs/plan.md` edits noted in the earlier start-of-run
+  snapshot were no longer present when this iteration staged its work. Only
+  `frontend/src/calculator.test.ts`, `specs/frontend.md`, and
+  `docs/PROJECT_STATUS.md` were staged this iteration.
 
 ## Blockers
 

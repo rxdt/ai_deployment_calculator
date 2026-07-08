@@ -270,6 +270,28 @@ describe("training estimates", () => {
     expect(required(overrides), scenario).toBe(expected);
   });
 
+  test("training modes drop inference KV cache and decoder scratch for the training activation term", () => {
+    // text_generation would carry both a decoder KV cache and decoder scratch
+    // as inference, so it proves the training branch replaces family working
+    // memory instead of adding to it.
+    const spec = specFromState(
+      state({
+        workloadFamily: "text_generation",
+        executionMode: "LoRA fine-tuning",
+      }),
+    );
+    const asInference = inferenceWorkingMemoryGb(spec, weightsGb(spec));
+    expect(asInference.kvCacheGb).toBeGreaterThan(0);
+    expect(asInference.inputActivationGb).toBeGreaterThan(0);
+
+    const breakdown = memoryBreakdown(spec);
+    expect(breakdown.kvCacheGb).toBe(0);
+    expect(breakdown.inputActivationGb).toBeCloseTo(
+      trainingActivationGb(spec),
+      9,
+    );
+  });
+
   test("LoRA and optimizer options affect only adapter training state", () => {
     const lora = specFromState(
       state({

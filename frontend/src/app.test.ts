@@ -498,6 +498,27 @@ describe("adaptive controls", () => {
     expect(isRowHidden("moe-enabled")).toBe(true);
   });
 
+  test("exposes the MoE control for exactly the MoE-applicable families", () => {
+    const moeVisibleByFamily: readonly (readonly [string, boolean])[] = [
+      ["text_generation", true],
+      ["text_encoder", true],
+      ["encoder_decoder", true],
+      ["vision_language", true],
+      ["custom", true],
+      ["vision", false],
+      ["image_diffusion", false],
+      ["video_generation", false],
+      ["audio", false],
+      ["tabular", false],
+    ];
+    loadDom();
+    mountCalculator(document);
+    for (const [family, isVisible] of moeVisibleByFamily) {
+      fireChange("workload-family", family);
+      expect(isRowHidden("moe-enabled")).toBe(!isVisible);
+    }
+  });
+
   test("reveals active parameters only when MoE is checked", () => {
     loadDom();
     mountCalculator(document);

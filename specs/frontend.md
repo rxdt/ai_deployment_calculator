@@ -43,7 +43,7 @@
 - [ ] The app is responsive according to `/scratchpad/responsive_frontend_research.md`
 - [ ] Workload size label is `Concurrent Requests` for inference and
       `Micro Batch Size` for training; never reintroduce generic `Batch Size`.
-- [ ] `MoE Model` appears only for text generation, embeddings, encoder-decoder,
+- [x] `MoE Model` appears only for text generation, embeddings, encoder-decoder,
       multimodal, and custom. `Active Parameters` appears only when checked.
 - [ ] Changing workload family or execution mode rerenders adaptive controls without
       waiting for form submit.

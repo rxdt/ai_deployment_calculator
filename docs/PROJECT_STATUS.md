@@ -25,6 +25,11 @@
   commit-time preflight passed.
 - This iteration changed the single visible form action label to `Reset` and
   updated app and Playwright assertions to match the frontend spec.
+- This iteration added a data-driven app test asserting the `MoE Model` control
+  is exposed for exactly the MoE-applicable families
+  (`text_generation`, `text_encoder`, `encoder_decoder`, `vision_language`,
+  `custom`) and hidden for the other five, and marked that frontend spec item
+  complete. Prior coverage only proved the `vision` case.
 
 ## Commands
 
@@ -53,13 +58,23 @@
   Gate fails in forbidden harness-owned coverage tests:
   `harness/cli.test.ts` setup cases expect status `0`, `1`, or `7` but receive
   status `2`. Local `semgrep` is missing and reported as skipped, not failing.
-- Current branch has no known user-owned working-tree changes.
+- This iteration could NOT run `pnpm preflight`, `pnpm gate`, or `vitest`
+  directly: every test/build/preflight command was denied by the environment
+  permission gate. The commit-time pre-commit hook still runs preflight, so a
+  successful commit is the only preflight signal available this iteration.
+- Unstaged, non-agent working-tree changes exist and were left untouched for
+  human review: `harness/` edits (forbidden), a new `harness/pnpm-lock.yaml`,
+  and a large `pnpm-lock.yaml` diff. Only `frontend/src/app.test.ts`,
+  `specs/frontend.md`, and `docs/PROJECT_STATUS.md` were staged.
 
 ## Blockers
 
+- Test/build/preflight/gate commands are denied by the environment permission
+  gate this iteration; only git and file edits succeed. A human must run
+  `pnpm preflight` and `pnpm gate` to confirm the new test is green.
 - `harness/cli.test.ts` is forbidden to agents. Direct `pnpm gate` is blocked
   until a human fixes or approves the harness setup status failures.
-- No known frontend behavior blocker for this iteration; focused tests pass.
+- No known frontend behavior blocker for this iteration.
 
 ## Next
 

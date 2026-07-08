@@ -23,6 +23,8 @@
   warnings, and marked that frontend spec item complete.
 - Agent commit `Verify hidden MoE rendering stays inert` is on `main`;
   commit-time preflight passed.
+- This iteration changed the single visible form action label to `Reset` and
+  updated app and Playwright assertions to match the frontend spec.
 
 ## Commands
 
@@ -40,16 +42,18 @@
 
 ## Checks
 
-- `pnpm --dir frontend exec vitest run src/app.test.ts src/report.test.ts`
-  passes: 55 tests.
+- `pnpm --dir frontend exec vitest run src/app.test.ts` passes: 39 tests.
+- `pnpm --dir frontend exec playwright test --config ../harness/playwright.config.js frontend/tests/calculator.spec.ts frontend/tests/responsive.spec.ts`
+  passes: 102 tests.
 - `pnpm preflight` passes after staging only allowed files:
-  `docs/PROJECT_STATUS.md`, `frontend/src/app.test.ts`, and
-  `specs/frontend.md`.
+  `docs/PROJECT_STATUS.md`, `frontend/index.html`,
+  `frontend/src/app.test.ts`, `frontend/tests/calculator.spec.ts`,
+  `frontend/tests/responsive.spec.ts`, and `specs/frontend.md`.
 - `pnpm gate` format/eslint/style/html/typecheck/build/e2e/Lighthouse pass.
   Gate fails in forbidden harness-owned coverage tests:
   `harness/cli.test.ts` setup cases expect status `0`, `1`, or `7` but receive
   status `2`. Local `semgrep` is missing and reported as skipped, not failing.
-- Current working tree is clean.
+- Current branch has no known user-owned working-tree changes.
 
 ## Blockers
 

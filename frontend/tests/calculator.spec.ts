@@ -47,7 +47,7 @@ test("reset zeroes inputs and outputs", async ({ page }) => {
   await page.locator("#total-params").fill("104");
   await expect(page.locator('[data-out="total"]')).not.toHaveText("0.0 GB");
 
-  await page.getByRole("button", { name: "Reset assumptions" }).click();
+  await page.getByRole("button", { name: "Reset" }).click();
   await expect(page.locator("#total-params")).toHaveValue("0");
   await expect(page.locator('[data-out="total"]')).toHaveText("0.0 GB");
 });

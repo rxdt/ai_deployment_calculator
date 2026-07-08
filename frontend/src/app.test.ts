@@ -319,7 +319,7 @@ describe("mounted calculator", () => {
           element instanceof HTMLButtonElement && element.hidden === false,
       )
       .map((button) => button.textContent.trim());
-    expect(actions).toEqual(["Reset assumptions"]);
+    expect(actions).toEqual(["Reset"]);
   });
 
   test("keeps the confidence label visible and adapts it to the workload", () => {

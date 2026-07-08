@@ -24,11 +24,11 @@
 
 ## UI
 
-- [ ] Only on submit button exists, with text 'Reset'
+- [x] Only one visible form action exists, with text `Reset`.
 - [ ] Advanced assumptions expanded section shows additional options
 - [ ] Bare, minimal styles.css only to get tests passing until typescript/html work is complete.
-- [ ] Visible form actions are not duplicated: `Reset assumptions` is the only
-      visible button; the reactive form keeps a hidden submit control only for form
+- [x] Visible form actions are not duplicated: `Reset` is the only visible
+      button; the reactive form keeps a hidden submit control only for form
       submission/validation.
 - [ ] Main form shows `Workload Family`, `Total Model Parameters`,
       `Parameter Unit`, `Precision`, `Execution Mode`, `Runtime Profile`,

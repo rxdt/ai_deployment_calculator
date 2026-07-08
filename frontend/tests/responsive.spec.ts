@@ -30,9 +30,7 @@ for (const path of pages) {
       await expect(page.getByLabel(name, { exact: true })).toBeVisible();
     }
     await expect(page.getByLabel("MoE Model", { exact: true })).toBeVisible();
-    await expect(
-      page.getByRole("button", { name: "Reset assumptions" }),
-    ).toBeVisible();
+    await expect(page.getByRole("button", { name: "Reset" })).toBeVisible();
     await expect(page.getByText("Batch Size", { exact: true })).toHaveCount(0);
   });
 
@@ -51,9 +49,10 @@ for (const path of pages) {
       "min-width",
       "40px",
     );
-    await expect(
-      page.getByRole("button", { name: "Reset assumptions" }),
-    ).toHaveCSS("min-height", "40px");
+    await expect(page.getByRole("button", { name: "Reset" })).toHaveCSS(
+      "min-height",
+      "40px",
+    );
     await expect(
       page.getByText("Advanced assumptions", { exact: true }),
     ).toHaveCSS("min-height", "40px");
@@ -81,9 +80,7 @@ for (const viewport of onePageViewports) {
     await expect(
       page.getByRole("heading", { name: "VRAM Deployment Calculator" }),
     ).toBeInViewport();
-    await expect(
-      page.getByRole("button", { name: "Reset assumptions" }),
-    ).toBeInViewport();
+    await expect(page.getByRole("button", { name: "Reset" })).toBeInViewport();
     await expect(page.locator('[data-out="total"]')).toBeInViewport();
     await expect(page.locator('[data-out="gpu-class"]')).toBeInViewport();
     await expect(

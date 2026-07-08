@@ -62,7 +62,6 @@
 - [ ] **Run lighthouse and Playwright frequently. Both must pass.** Direct
       Playwright and Lighthouse pass; full `pnpm gate` remains blocked by dirty
       human-owned harness changes.
-  - The app passes lighthouse checks 100%. review `scratchpad/research-lighthouse.md`
 
 ## STYLING
 
@@ -119,9 +118,8 @@
 
 ## Tests And Checks
 
-- [ ] Unit tests pin corrected totals: `47B` MoE `113.1 GB`, default `8B`
-      `21.3 GB`, `7B` full training `152.9 GB`, local exact `104B` `79.2 GB`,
-      QLoRA defaults and `2%` cases, long-context GQA KV, and precision comparison.
+- [ ] Unit tests pin corrected totals: `47B` MoE `113.1 GB`, default `7B`
+      `19.0 GB`. QLoRA defaults and `2%` cases, long-context GQA KV, and precision comparison.
 - [ ] Unit tests cover conversion, precision map, file-size override, MoE resident
       memory, decoder KV scaling, no encoder KV, encoder-decoder memory,
       diffusion/video/audio/tabular scaling, LoRA, QLoRA, full training, hardware
@@ -726,7 +724,7 @@ Accessibility:
 - [ ] Preserve every test-pinned accessible name and the `aria-label` regions the
       Playwright suite asserts. The styling pass must keep axe violations at zero and
       meet the touch-target (>=40px) and readable-text (>=13px) checks in
-      `harness/tests/responsive.spec.ts`.
+      `frontend/tests/responsive.spec.ts`.
 
 Responsive standards met:
 

@@ -1,5 +1,3 @@
-# Ralph loop prompt
-
 You are one fresh-context iteration of the loop. The repo is your memory.
 Specs say what to build. You decide what is the next most useful change.
 

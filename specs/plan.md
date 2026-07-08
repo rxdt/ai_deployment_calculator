@@ -74,7 +74,6 @@ Use the focused specs for implementation work:
 
 ```txt
 specs/frontend.md = frontend UI, TypeScript report building, output rendering, frontend tests.
-specs/backend.md = Python report-service removal, backend-only test cleanup, backend docs cleanup.
 ```
 
 The architectural target is Vite + frontend TypeScript calculations. No backend owns calculator formulas.
@@ -121,12 +120,6 @@ presets, training/LoRA/QLoRA/full-training formulas, the MoE rule, the hardware
 tier table, hardware-recommendation and fit math, and the speed estimate — lives
 in `specs/frontend.md` and the source modules `frontend/src/calculator-core.ts`,
 `workload-memory.ts`, and `hardware.ts`. Do not duplicate those formulas here.
-
-## Documentation Scope
-
-README should explain the product, supported workload families, estimate limitations, confidence modes, run/build/test commands, and known limitations.
-
-Backend runtime cleanup details live in `specs/backend.md`. Frontend run/build/test details live in `specs/frontend.md`.
 
 > ~~strikethrough~~ strikethrough completed items to clarify what is done
 

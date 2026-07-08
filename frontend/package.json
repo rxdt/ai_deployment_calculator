@@ -23,6 +23,8 @@
     "zod": "latest"
   },
   "devDependencies": {
+    "@axe-core/playwright": "latest",
+    "@playwright/test": "latest",
     "fast-check": "latest",
     "jsdom": "latest",
     "vite": "latest",
@@ -37,7 +39,7 @@
     {
       "name": "CSS",
       "path": "dist/assets/*.css",
-      "limit": "6 B"
+      "limit": "13 kB"
     }
   ]
 }

@@ -5,8 +5,8 @@
 - Current branch: `harness-setup-config-overrides`.
 - Static Vite + TypeScript calculator; frontend calculations and report
   rendering are the source of truth.
-- `frontend/src/styles.css` now contains the first real compact dark responsive
-  styling pass using stylelint-approved design tokens.
+- `frontend/src/styles.css` holds the compact dark responsive styling pass built
+  on stylelint-approved design tokens.
 - Header brand is `~VRAM-calculator` text, not a link; GitHub remains a labeled
   repository link with the local logo asset.
 - Default collapsed outputs fit the tested desktop and mobile viewports with four
@@ -14,23 +14,22 @@
 - Output contract is unit-pinned: hero glance first, `Why this recommendation`,
   `Calculation used`, `Formula used`, and `Assumptions used` details collapsed,
   overflow fit fields `n/a`, and no `Accuracy` / `Your GPU Fit` output.
-- `Formula used` now shows labeled canonical terms: `Required_GB`,
-  `Weights_GB`, `Working_Memory_GB`, `Training_State_GB`,
-  `Runtime_Overhead_GB`, `Buffer`, and `Safety_Buffer_GB`.
+- `Formula used` shows labeled canonical terms: `Required_GB`, `Weights_GB`,
+  `Working_Memory_GB`, `Training_State_GB`, `Runtime_Overhead_GB`, `Buffer`, and
+  `Safety_Buffer_GB`.
 - Expanded result detail headings use cyan; collapsed headings do not.
 - Default inference renders no warnings; training, MoE, and sharded-tier guidance
   remain conditional.
 - A small disclaimer is rendered below the app outputs.
-- `Parameter Unit` now exposes only the canonical `B` and `M` choices in the
-  real HTML form.
+- `Parameter Unit` exposes only the canonical `B` and `M` choices in the real
+  HTML form.
 
 ## Commands
 
-- App/report unit:
-  `pnpm --dir frontend exec vitest run src/app.test.ts src/report.test.ts`
-- Build: `npm --prefix frontend run build`
-- Preview: `npm --prefix frontend run preview -- --port 5174`
-- Coverage: `npm --prefix frontend run test:coverage`
+- Full unit + coverage: `pnpm --prefix frontend run test:coverage`
+- Single suite: `pnpm --prefix frontend run test:file src/<name>.test.ts`
+- Build: `pnpm --prefix frontend run build`
+- Preview: `pnpm --prefix frontend run preview -- --port 5174`
 - Playwright direct:
   `pnpm --dir frontend exec playwright test --config ../harness/playwright.config.js`
 - Lighthouse direct:
@@ -40,40 +39,33 @@
 
 ## Checks
 
-- Targeted unit:
-  `pnpm --dir frontend exec vitest run src/state.test.ts src/report.test.ts src/calculator.test.ts`
-  passes: 75 tests.
-- Latest app/report unit:
-  `pnpm --dir frontend exec vitest run src/app.test.ts src/report.test.ts`
-  passes: 53 tests.
-- Latest report unit:
-  `pnpm --dir frontend exec vitest run src/report.test.ts` passes: 16 tests.
-- Latest app unit:
-  `pnpm --dir frontend exec vitest run src/app.test.ts` passes: 36 tests.
-- `npm --prefix frontend run test:coverage` passes: 124 tests, 100% coverage.
-- `npm --prefix frontend run build` passes; production preview on
-  `http://127.0.0.1:5174/` responded HTTP 200.
-- Direct frontend-dir Playwright affected specs pass: 102 tests across desktop,
-  mobile, small, and tablet projects.
-- Latest `pnpm gate` Lighthouse step passes.
-- Targeted stylelint passes:
-  `pnpm --prefix harness exec stylelint '../frontend/**/*.css' --config stylelint.config.js --ignore-path .stylelintignore --max-warnings=0 --allow-empty-input`.
-- Latest `pnpm preflight` passes: 0 issues.
-- Latest `pnpm gate` passes format, lint, typecheck, build, e2e, and
-  Lighthouse; semgrep is skipped because it is not installed. Gate still fails
-  coverage on six forbidden harness setup tests.
+_Verified 2026-07-07 on this branch._
+
+- `pnpm --prefix frontend run test:coverage` passes: 128 tests, 100% coverage
+  (statements/branches/functions/lines).
+- `src/report.test.ts` passes: 16 tests. `src/app.test.ts` passes: 37 tests.
+- `pnpm --prefix frontend run build` passes: `index-*.js` 54.55 kB (gzip 16.72
+  kB), `index-*.css` 11.64 kB (gzip 2.66 kB); within the size-limit budgets.
+- `pnpm preflight` passes: 0 issues (format, eslint, style, html).
+- `pnpm gate` passes: 0 issues. All steps status=0, including coverage, e2e
+  (Playwright), and Lighthouse. `semgrep` (sast) is SKIPPED — not installed on
+  this machine.
 
 ## Blockers
 
-- Do not edit forbidden dirty harness files. Current working tree still includes
-  pre-existing edits under `harness/`.
-- `pnpm gate` coverage fails in forbidden `harness/cli.test.ts`: six setup
-  assertions receive status `2` instead of the expected setup result.
-- `frontend/package.json` has unstaged human-owned changes, including Vite
-  scripts and CSS budget edits; do not stage them without review.
-- Current dirty tree still includes human-owned `.htmlvalidateignore` changes,
-  deleted `frontend/.syncpackrc.json`, untracked `frontend/vite.config.ts`, and
-  deleted `harness/.htmlvalidateignore`; leave these for human review.
-- `npm --prefix frontend run test:e2e` currently resolves
-  `harness/harness/playwright.config.js` and fails; use the direct Playwright
-  command above until the human-owned harness script is fixed.
+- Working tree carries pre-existing, human-owned edits under `harness/` (a
+  forbidden path). Do not stage or edit them: `cli.ts`, `cli.test.ts`,
+  `package.json`, `playwright.config.js`, `ralph.sh`, `tsconfig.app.json`, and a
+  deleted `harness/.htmlvalidateignore`.
+- Dirty tree also holds human-owned changes to leave for review: modified
+  `.htmlvalidateignore` and `specs/frontend.md`, modified `frontend/package.json`
+  (Vite scripts, CSS budget), deleted `frontend/.syncpackrc.json`, untracked
+  `frontend/vite.config.ts`, and lockfile churn (`pnpm-lock.yaml`).
+- Package-scoped harness scripts double the config path when run from `harness/`:
+  `pnpm --filter ./harness coverage` resolves `harness/harness/vitest.config.js`
+  and fails (the `coverage` script lacks the `cd ..` its `test` siblings have),
+  and `pnpm --prefix frontend run test:e2e` resolves
+  `harness/harness/playwright.config.js`. `pnpm gate` is unaffected — it invokes
+  vitest/Playwright from repo root with correct relative paths. Fix lives in
+  forbidden `harness/package.json`; a human is mid-fix (working-tree edit to the
+  `e2e` script). Use `pnpm gate` or the direct commands above meanwhile.

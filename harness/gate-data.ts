@@ -174,7 +174,15 @@ export const FULL_CHECKS: Record<string, string[]> = {
     ".cache_tsbuildinfo_harness",
   ],
   // Only lint our own source HTML. Broad globs sweep vendor/built report HTML we do not ship.
-  markup: [tool("markuplint"), "frontend/index.html", "--max-warnings", "0"],
+  markup: [
+    tool("markuplint"),
+    "frontend/index.html",
+    "--config",
+    "harness/.markuplintrc.json",
+    "--no-search-config",
+    "--max-warnings",
+    "0",
+  ],
   schema: [
     tool("ajv"),
     "compile",

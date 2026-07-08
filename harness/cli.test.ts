@@ -8,6 +8,7 @@ import {
   readdirSync,
   readFileSync,
   realpathSync,
+  rmSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -134,6 +135,9 @@ function makeRepo(): string {
   runCommand(["git", "config", "user.email", "harness@test.local"], repo);
   runCommand(["git", "config", "user.name", "harness-test"], repo);
   writeFileSync(path.join(repo, "README.md"), "seed\n");
+  // ralph reads PROMPT.md up front and fails the loop if it is missing (set -e),
+  // so every repo that runs the loop needs one.
+  writeFileSync(path.join(repo, "PROMPT.md"), "do the work\n");
   runCommand(["git", "add", "README.md"], repo);
   runCommand(["git", "commit", "-q", "-m", "seed"], repo);
   return repo;
@@ -240,7 +244,7 @@ describe("runWorker (in-process, mocked agent)", () => {
     expect(readFileSync(log, "utf8")).toContain("quiet");
   });
 
-  test("returns the nonzero exit code of a failing agent", async () => {
+  test("logs a failing agent's exit code but returns 0 so the loop continues", async () => {
     const repo = makeRepo();
     const agent = writeStub(repo, "agent", "#!/bin/sh\nexit 5\n");
     const stderr: string[] = [];
@@ -256,20 +260,18 @@ describe("runWorker (in-process, mocked agent)", () => {
       false,
     );
 
-    expect(code).toBe(5);
+    expect(code).toBe(0);
     expect(stderr.join("")).toContain("agent exited 5");
   });
 
-  test("treats a signal-killed agent as a failure, not a clean 0", async () => {
+  test("logs a signal-killed agent but returns 0", async () => {
     const repo = makeRepo();
     const stderr: string[] = [];
     vi.spyOn(process.stderr, "write").mockImplementation((chunk) => {
       stderr.push(String(chunk));
       return true;
     });
-    // The agent kills itself with SIGTERM, so `close` reports a null exit code. A signal death
-    // is a crash, not success: it must surface as a nonzero code (128 + 15 = 143) and be announced
-    // so the loop reports/stops instead of a killed agent looking clean.
+    // The agent kills itself with SIGTERM. That is logged for visibility, but the loop continues.
     const agent = writeStub(repo, "agent", "#!/bin/sh\nkill -TERM $$\n");
 
     const code = await runWorker(
@@ -279,11 +281,11 @@ describe("runWorker (in-process, mocked agent)", () => {
       false,
     );
 
-    expect(code).toBe(143);
-    expect(stderr.join("")).toContain("agent exited 143");
+    expect(code).toBe(0);
+    expect(stderr.join("")).toContain("agent exited SIGTERM");
   });
 
-  test("returns 1 and reports when the agent binary cannot be spawned", async () => {
+  test("reports when the agent binary cannot be spawned but returns 0", async () => {
     const repo = makeRepo();
     const stderr: string[] = [];
     vi.spyOn(process.stderr, "write").mockImplementation((chunk) => {
@@ -298,8 +300,8 @@ describe("runWorker (in-process, mocked agent)", () => {
       false,
     );
 
-    expect(code).toBe(1);
-    expect(stderr.join("")).toContain("agent exited 1");
+    expect(code).toBe(0);
+    expect(stderr.join("")).toContain("agent did not run");
   });
 });
 
@@ -626,6 +628,29 @@ describe("main dispatch (in-process)", () => {
     }
     expect(process.exitCode).toBe(0);
     expect(stderr.join("")).toContain("ralph.sh");
+  }, 60_000);
+
+  test("aborts the iteration without running the agent when PROMPT.md is missing", () => {
+    const repo = makeRepo();
+    // ralph reads PROMPT.md up front (set -e), so a missing prompt must fail the iteration before
+    // the agent runs. The stub touches a sentinel if it runs; we assert it never does.
+    const ran = path.join(repo, "agent-ran");
+    writeStub(repo, "agy", `#!/bin/sh\ntouch "${ran}"\n`);
+    rmSync(path.join(repo, "PROMPT.md"));
+
+    const result = harnessCli(["loop", "agy", "1", "1"], {
+      cwd: repo,
+      env: {
+        ...process.env,
+        PATH: `${path.join(repo, "bin")}${path.delimiter}${process.env.PATH ?? ""}`,
+      },
+    });
+
+    // The loop never aborts the harness (always exits 0), but ralph's failure is logged and the
+    // agent never ran because the prompt could not be read.
+    expect(result.status).toBe(0);
+    expect(result.stderr).toContain("agent exited");
+    expect(existsSync(ran)).toBe(false);
   }, 60_000);
 
   test("feeds PROMPT.md to the agent on stdin", async () => {
@@ -1009,7 +1034,7 @@ describe("harness command", () => {
     expect(result.status).toBe(0);
   }, 60_000);
 
-  test("loop propagates a nonzero agent exit code", () => {
+  test("loop logs a nonzero agent exit but exits 0 so it never aborts", () => {
     const repo = makeRepo();
     const bin = path.join(repo, "bin");
     mkdirSync(bin);
@@ -1025,7 +1050,7 @@ describe("harness command", () => {
       },
     });
 
-    expect(result.status).toBe(3);
+    expect(result.status).toBe(0);
     expect(result.stderr).toContain("agent exited 3");
   }, 60_000);
 

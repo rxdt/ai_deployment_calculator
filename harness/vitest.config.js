@@ -22,8 +22,10 @@ export default defineConfig({
     exclude: [
       "**/node_modules/**",
       "**/.pnpm-store/**",
+      "**/.claude/worktrees/**",
       "**/dist/**",
       "**/tests/**",
+      "**/scratchpad/**"
     ],
     coverage: {
       provider: "v8",
@@ -39,6 +41,7 @@ export default defineConfig({
         "**/*.test.ts",
         "**/*.spec.ts",
         "**/tests/**",
+        "**/scratchpad/**"
       ],
       thresholds: {
         branches: 100,

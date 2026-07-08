@@ -1,9 +1,9 @@
 import { defineConfig, devices } from "@playwright/test";
 
-// End-to-end gate. Specs live here in harness (where @playwright/test is
-// installed) but drive the frontend app via the dev server below.
+// End-to-end gate. Specs live in frontend/tests (they exercise the calculator);
+// this harness-owned config drives the frontend app via the dev server below.
 export default defineConfig({
-  testDir: "./tests",
+  testDir: "../frontend/tests",
   webServer: {
     command: "npm --prefix ../frontend run dev -- --port 5173",
     url: "http://127.0.0.1:5173",

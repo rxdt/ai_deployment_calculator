@@ -22,7 +22,7 @@
     "test": "cd .. && vitest run --config harness/vitest.config.js --reporter=verbose",
     "test:file": "cd .. && vitest run --config harness/vitest.config.js --coverage=false --reporter=verbose",
     "coverage": "vitest run --config harness/vitest.config.js --coverage --reporter=verbose",
-    "e2e": "pnpm playwright test --config harness/playwright.config.js",
+    "e2e": "pnpm playwright test --config playwright.config.js",
     "setup:e2e": "playwright install --with-deps",
     "typecheck": "pnpm typecheck:harness && pnpm typecheck:project",
     "typecheck:frontend": "pnpm typecheck:project",

@@ -1,6 +1,5 @@
 import { spawn, spawnSync } from "node:child_process";
 import * as fs from "node:fs";
-import os from "node:os";
 import path from "node:path";
 
 import * as gate from "./gate.js";
@@ -104,27 +103,24 @@ export const runWorker = async (
   child.stderr.setEncoding("utf8");
   child.stdout.on("data", consume);
   child.stderr.on("data", consume);
-  // Pass the child's result through: a spawn error (missing binary) is exit 1; a signal death maps
-  // to 128 + signal number (the shell convention); a normal exit is its numeric code. Any nonzero
-  // is announced below by the `agent exited N` line, so a killed agent never looks like a clean 0.
-  const exitCode = await new Promise<number>((resolve) => {
-    child.once("error", () => {
-      resolve(1);
+  // Every iteration — success or not — is logged for visibility, then the loop continues; the exit
+  // is never propagated, so one nonzero iteration (e.g. a 124 timeout) can't abort the loop.
+  await new Promise<void>((resolve) => {
+    child.once("error", (error: Error) => {
+      process.stderr.write(`harness: agent did not run: ${error.message}\n`);
+      resolve();
     });
-    child.once("close", (code, signal) => {
-      resolve(signal ? 128 + os.constants.signals[signal] : Number(code));
+    child.once("close", (code: number | null, signal: string | null) => {
+      process.stderr.write(`harness: agent exited ${signal ?? String(code)}\n`);
+      resolve();
     });
   });
   if (isVerbose && buffer.length > 0)
     process.stdout.write(formatLiveLine(buffer));
-  // Wait for the log to fully flush to disk: `end()` only queues the close, so a caller reading the
-  // file synchronously right after could otherwise see a truncated (or empty) log.
   await new Promise<void>((resolve) => {
     logStream.end(resolve);
   });
-  if (exitCode !== 0)
-    process.stderr.write(`harness: agent exited ${String(exitCode)}\n`);
-  return exitCode;
+  return 0;
 };
 
 export const run = (

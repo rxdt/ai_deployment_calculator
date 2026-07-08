@@ -1,72 +1,79 @@
 # Frontend Spec
 
-PRIORITY - frontend and UI compaction implemented; keep green. Responsive standards met. Frontend best practices implemented.
-**Styling is the very LAST thing implemented.**
+1. [ ] **PRIORITY** TYPESCRPT AND HTML WORK IS COMPLETED 100%
+2. [ ] Frontend and UI implemented; keep green.
+3. [ ] Responsive standards met.
+4. [ ] Frontend best practices implemented.
+5. [ ] **Styling is the very LAST thing implemented.** (The owner will revert styling changes until html/typescrpt/javascript work and items 1-4 above are done.)
+
 
 > Checkbox checked on completed items to clarify what is done
 
 ## Current Contract
 
-- The Vite app is static.
-- `CalculatorApp` normalizes form state, calls local TypeScript
+**Build and run the app to "view" it as you make changes.** If built and previewed the production app; `5173` was occupied, the Vite preview can be inspected at `http://127.0.0.1:5174/`.
+- [ ] The Vite app is static.
+- [ ] `CalculatorApp` normalizes form state, calls local TypeScript
   `buildReport(state)`, and renders synchronously.
-- Public UI names follow the Naming Contract in `specs/plan.md`; do not redefine
+- [ ] Public UI names follow the Naming Contract in `specs/plan.md`; do not redefine
   them here.
-- The app is responsive.
+- [ ] The app is responsive.
+- [ ] Complex underlying formulas only appear in expandable cards.
+- [ ] The app is accurate and has inputs/outputs an engineer would trust
+- [ ] The app is simple enough for a non-tech user
 
 ## UI
 
-- [x] Visible form actions are not duplicated: `Reset assumptions` is the only
+- [ ] Bare, minimal styles.css only to get tests passing until typescript/html work is complete.
+- [ ] Visible form actions are not duplicated: `Reset assumptions` is the only
   visible button; the reactive form keeps a hidden submit control only for form
   submission/validation.
-- [x] Build and run the app to "view" it as you make changes
-- [ ] If built and previewed the production app; `5173` was occupied, the Vite
-  preview can inspected at `http://127.0.0.1:5174/`.
-- [x] Main form shows `Workload Family`, `Total Model Parameters`,
+- [ ] Main form shows `Workload Family`, `Total Model Parameters`,
   `Parameter Unit`, `Precision`, `Execution Mode`, `Runtime Profile`,
   adaptive input controls, adaptive workload size, and relevant `MoE Model`.
-- [x] `Total Model Parameters` accepts fractional values such as `3.8` billion.
+- [ ] `Total Model Parameters` accepts fractional values such as `3.8` billion.
 - Rare controls live in `<details><summary>Advanced assumptions</summary>`.
-- [x] `QLoRA fine-tuning` visibly snaps `Precision` to `4-bit` and
+- [ ] `QLoRA fine-tuning` visibly snaps `Precision` to `4-bit` and
   `Runtime Profile` to `Local / Edge`, matching the forced calculation state.
-- [x] `KV Cache Precision` lives in advanced assumptions, is visible only for
+- [ ] `KV Cache Precision` lives in advanced assumptions, is visible only for
   inference decoder-KV workloads, and offers `8-bit / FP8`, `16-bit`, and
   `32-bit`.
-- [x] The app is responsive. Read `/scratchpad/responsive_frontend_research.md`
-- [x] Workload size label is `Concurrent Requests` for inference and
+- [ ] The app is responsive according to `/scratchpad/responsive_frontend_research.md`
+- [ ] Workload size label is `Concurrent Requests` for inference and
   `Micro Batch Size` for training; never reintroduce generic `Batch Size`.
-- [x] `MoE Model` appears only for text generation, embeddings, encoder-decoder,
+- [ ] `MoE Model` appears only for text generation, embeddings, encoder-decoder,
   multimodal, and custom. `Active Parameters` appears only when checked.
-- [x] Changing workload family or execution mode rerenders adaptive controls without
+- [ ] Changing workload family or execution mode rerenders adaptive controls without
   waiting for form submit.
-- [x] HTML reflects clean, compact, well-organized flow. Clean, compact, well-organized examples are like `spec/calc1.png`, `~/specs/calc2.png`, `spec/calc13.png` -> do not follow those exactly, they are loose examples of what 'good' looks like to a human user.
-- [x] Small Github logo with link to github repo is in top right
+- [ ] HTML reflects clean, compact, well-organized flow. Clean, compact, well-organized examples are like `spec/calc1.png`, `~/specs/calc2.png`, `spec/calc13.png` -> do not follow those exactly, they are loose examples of what 'good' looks like to a human user.
+- [ ] Small Github logo with link to github repo is in top right
   `https://github.com/rxdt/ai_deployment_calculator/`.
-- [x] `~VRAM-calculator` is in top left and is not a link.
-- [x] JAVASCRIPT AND HTML WORK IS COMPLETED 100%
-- [x] Calculator elements are not overly big.
-- [x] Cyan is used minimally for headings when elements are expanded only e.g. when `Why this recommendation` is expanded its text color uses the cyan color in DESIGN.md. Otherwise text headings do not use cyan.
-- [x] Four organized result detail cards are in HTML skeleton shape: `Why this recommendation`, `Calculation used`, `Formula used`, and `Assumptions used`.
-- [x] Small disclaimer should exist below app outputs.
-- [x] Complex details and formulas are hidden in expandable sections as in this app `specs/light_style_ideas_reflected_in_DESIGN.md.png`
-
-## STYLING
-- [x] Iff javascript and html work are completed. styling can begin.
-  - [ ] When 'Advanced assumptions' is expanded, app fits in one viewport on desktop and mobile.
-  - [x] The app fits in one viewport on desktop and mobile.
-  - [x] The app is responsive ~/ai_deployment_calculator/scratchpad/responsive_frontend_research.md
-  - [x] Styling follows `specs/DESIGN.md` -- Design system defines 24 colors, 7 typography scales, 5 rounding levels, 10 spacing tokens, 25 components.
-  - [x] Styling honors a compact, clean calculator shape. Compact calculator examples are like `spec/calc1.png`, `~/specs/calc2.png`, `spec/calc13.png`.
-  - [x] Styling keeps app compact and well-organized
-  - [x] Build and run the app to "view" it as you make changes to ensure it 'looks' right
-  - [x] Built and previewed the production app at `http://127.0.0.1:5174/`; the preview responded HTTP 200.
-  - The app passes lighthouse checks 100%.
-
-
+- [ ] `~VRAM-calculator` is in top left and is not a link.
+- [ ] Calculator elements are not overly big.
+- [ ] Cyan is used minimally for headings and ONLY for when elements are expanded only e.g. when `Why this recommendation` is expanded its text color uses the cyan color in DESIGN.md. Otherwise text headings do not use cyan.
+- [ ] Four organized result detail cards are in HTML skeleton shape: `Why this recommendation`, `Calculation used`, `Formula used`, and `Assumptions used`.
+- [ ] Small disclaimer should exist below app outputs.
+- [ ] Complex details and formulas are hidden in expandable sections as in this app `specs/light_style_ideas_reflected_in_DESIGN.md.png`
 - [ ] **Run lighthouse and Playwright frequently. Both must pass.** Direct
   Playwright passes; Lighthouse config ownership remains blocked by dirty
   human-owned harness/package changes.
+  - The app passes lighthouse checks 100%. review `scratchpad/research-lighthouse.md`
 
+## STYLING
+- [ ] Iff javascript and html work are completed. styling can begin.
+  - [ ] When 'Advanced assumptions' is expanded, app fits in one viewport on desktop and mobile.
+  - [ ] The app fits in one viewport on desktop and mobile.
+  - [ ] BUG (blocks `pnpm gate`): `frontend/tests/responsive.spec.ts:75`
+    (`collapsed default estimate fits one viewport`) fails on all 6 Playwright
+    projects. The `Calculation used` / `Assumptions used` result panels render
+    below the fold (`toBeInViewport` → `viewport ratio 0`) at 1280x720 and
+    390x844. Root cause is in the staged `frontend/src/styles.css` (the results
+    section grew too tall). Fix so both result-panel summaries sit within one
+    viewport in the collapsed default state; do not delete the assertions.
+  - [ ] The app is responsive ~/ai_deployment_calculator/scratchpad/responsive_frontend_research.md
+  - [ ] Styling follows `specs/DESIGN.md` -- Design system defines 24 colors, 7 typography scales, 5 rounding levels, 10 spacing tokens, 25 components.
+  - [ ] Styling honors a compact, clean calculator shape. Compact calculator examples are like `spec/calc1.png`, `~/specs/calc2.png`, `spec/calc13.png`.
+  - [ ] Styling keeps app compact and well-organized
 
 ## Calculation
 
@@ -74,61 +81,61 @@ PRIORITY - frontend and UI compaction implemented; keep green. Responsive standa
   the calculation; `report.ts` assembles the rendered report. The canonical
   equation, presets, per-family formulas, and hardware/speed math are detailed in
   the Formulas section below.
-- [x] `Known Model File Size` overrides parameter-based weight estimates; MoE active
+- [ ] `Known Model File Size` overrides parameter-based weight estimates; MoE active
   parameters affect speed/KV only, not resident weight memory; training modes use
   adapter/full-training state plus checkpointed activations; legacy
   `trained=on&use_adapter=on` query flags are ignored.
-- [x] MoE state is honored only for MoE-applicable workload families. Hidden or
+- [ ] MoE state is honored only for MoE-applicable workload families. Hidden or
   query-supplied MoE values for other families do not affect speed or warnings.
 
 ## Outputs
 
-- [x] First glance (hero): `Estimated VRAM Required` (the total), a short
+- [ ] First glance (hero): `Estimated VRAM Required` (the total), a short
   "The workload needs N GB usable VRAM." line, an always-visible
   `Estimate confidence` label (`Rough` for diffusion/video/custom, `Estimated`
   otherwise), and `Recommended GPU Class` (e.g. `24 GB GPU hardware tier`).
   Nothing else is shown by default.
-- [x] Collapsed `<details>` panels hold the rest:
-  - [x] `Why this recommendation` — a plain-language "why" sentence plus
+- [ ] Collapsed `<details>` panels hold the rest:
+  - [ ] `Why this recommendation` — a plain-language "why" sentence plus
     `Minimum GPU VRAM Capacity`, `Usable VRAM Target`,
     `Usable VRAM on Recommended Class`, `Fit Headroom`, and `Estimated Speed`
     (rendered as `tokens/sec`).
-  - [x] `Calculation used` — the per-component breakdown rows (`Model memory` or
+  - [ ] `Calculation used` — the per-component breakdown rows (`Model memory` or
     `QLoRA base model memory`, `Context memory`, `Activation memory`,
     `Training memory`, `Runtime reserve`, `Safety margin`). Rows that round to
     `0.0 GB` are hidden.
   - [x] `Formula used` — the inline canonical equation substitution.
-  - [x] `Assumptions used` — visible precision, runtime, execution, and KV
+  - [ ] `Assumptions used` — visible precision, runtime, execution, and KV
     assumptions.
-- [x] The hardware-recommendation and fit math (usable VRAM on class, fit headroom,
+- [ ] The hardware-recommendation and fit math (usable VRAM on class, fit headroom,
   overflow `n/a`, speed) is defined in the Formulas section below.
-- [x] Warnings are conditional only: training, MoE, and sharded-tier speed guidance.
+- [ ] Warnings are conditional only: training, MoE, and sharded-tier speed guidance.
   Family-specific caveats stay out of warnings; default inference renders no
   warnings.
-- [x] There is no `Accuracy` output and no separate `Your GPU Fit` panel; both were
+- [ ] There is no `Accuracy` output and no separate `Your GPU Fit` panel; both were
   removed by product decision.
 
 ## Tests And Checks
 
-- [x] Unit tests pin corrected totals: `47B` MoE `113.1 GB`, default `8B`
+- [ ] Unit tests pin corrected totals: `47B` MoE `113.1 GB`, default `8B`
   `21.3 GB`, `7B` full training `152.9 GB`, local exact `104B` `79.2 GB`,
   QLoRA defaults and `2%` cases, long-context GQA KV, and precision comparison.
-- [x] Unit tests cover conversion, precision map, file-size override, MoE resident
+- [ ] Unit tests cover conversion, precision map, file-size override, MoE resident
   memory, decoder KV scaling, no encoder KV, encoder-decoder memory,
   diffusion/video/audio/tabular scaling, LoRA, QLoRA, full training, hardware
   tier matching (single-GPU vs sharded, overflow), tier-bandwidth speed, and
   legacy flag removal.
-- [x] Playwright covers accessibility, local report rendering, adaptive controls,
+- [ ] Playwright covers accessibility, local report rendering, adaptive controls,
   no generic `Batch Size`, MoE visibility, escaping, four collapsed result
   detail cards, expanded-heading cyan color, and collapsed one-viewport fit on
   desktop/mobile.
-- [x] App unit tests cover the real HTML `KV Cache Precision` options, the
+- [ ] App unit tests cover the real HTML `KV Cache Precision` options, the
   rendered 32-bit KV estimate, the always-visible `Estimate confidence` label,
   collapsed output panels, removed `Accuracy` / `Your GPU Fit` surfaces, default
   empty warnings, and fractional `Total Model Parameters` input cleanup.
-- [x] `frontend/src/legacy-approximations.test.ts` was deleted; do not reintroduce
+- [ ] `frontend/src/legacy-approximations.test.ts` was deleted; do not reintroduce
   it or any legacy-approximation test.
-- [x] Required commands: `pnpm --dir frontend exec vitest run src/app.test.ts src/report.test.ts`,
+- [ ] Required commands: `pnpm --dir frontend exec vitest run src/app.test.ts src/report.test.ts`,
   `npm --prefix frontend run build`,
   `npm --prefix frontend run preview -- --port 5174`,
   `npm --prefix frontend run test:coverage`,
@@ -256,7 +263,7 @@ Estimated transformer architecture by total parameter count:
 ```
 
 
-- [x] Also compute `conservative_kv_heads = attention_heads` and show it in advanced
+- [ ] Also compute `conservative_kv_heads = attention_heads` and show it in advanced
 output.
 
 ---

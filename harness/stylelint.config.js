@@ -1,6 +1,6 @@
 export default {
   extends: ["stylelint-config-standard"],
-  plugins: ["stylelint-declaration-strict-value"],
+  plugins: ["stylelint-declaration-strict-value", "stylelint-media-use-custom-media"],
   ignoreFiles: [
     "../**/coverage/**",
     "../**/dist/**",
@@ -19,6 +19,8 @@ export default {
     "block-no-empty": true,
     "custom-property-pattern":
       "^(color|space|font|radius|shadow|z|breakpoint)-[a-z0-9-]+$",
+    "csstools/media-use-custom-media": "always-known",
+    "custom-media-pattern": "^layout-[a-z0-9-]+$",
     "declaration-no-important": true, // Banned: Block using lazy '!important' overrides
     "declaration-property-value-disallowed-list": {
       "font-size": ["/^[0-9.]+px$/"],
@@ -28,9 +30,11 @@ export default {
       position: ["fixed"],
       transition: ["/\\ball\\b/"],
       "transition-property": ["all"],
+      "/^(width|height|min-width|max-width|min-height|max-height|grid-template-columns|inset|top|right|bottom|left)$/": ["/\\b\\d+(\\.\\d+)?(px|rem|em)\\b/"]
     },
     "import-notation": null,
     "max-nesting-depth": 2, // Stop messy CSS nesting chains
+    "media-query-no-invalid": true,
     "nesting-selector-no-missing-scoping-root": null,
     "color-named": "never", // Force hex or rgb colors, lazy words like "red"
     "selector-max-id": 0, // Force clean selectors over high-pri ID e.g. #my-header

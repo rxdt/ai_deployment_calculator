@@ -53,19 +53,4 @@ _Verified 2026-07-07 on this branch._
 
 ## Blockers
 
-- Working tree carries pre-existing, human-owned edits under `harness/` (a
-  forbidden path). Do not stage or edit them: `cli.ts`, `cli.test.ts`,
-  `package.json`, `playwright.config.js`, `ralph.sh`, `tsconfig.app.json`, and a
-  deleted `harness/.htmlvalidateignore`.
-- Dirty tree also holds human-owned changes to leave for review: modified
-  `.htmlvalidateignore` and `specs/frontend.md`, modified `frontend/package.json`
-  (Vite scripts, CSS budget), deleted `frontend/.syncpackrc.json`, untracked
-  `frontend/vite.config.ts`, and lockfile churn (`pnpm-lock.yaml`).
-- Package-scoped harness scripts double the config path when run from `harness/`:
-  `pnpm --filter ./harness coverage` resolves `harness/harness/vitest.config.js`
-  and fails (the `coverage` script lacks the `cd ..` its `test` siblings have),
-  and `pnpm --prefix frontend run test:e2e` resolves
-  `harness/harness/playwright.config.js`. `pnpm gate` is unaffected — it invokes
-  vitest/Playwright from repo root with correct relative paths. Fix lives in
-  forbidden `harness/package.json`; a human is mid-fix (working-tree edit to the
-  `e2e` script). Use `pnpm gate` or the direct commands above meanwhile.
+-

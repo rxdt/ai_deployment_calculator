@@ -30,214 +30,214 @@ colors:
 typography:
   display:
     fontFamily: Geist Variable
-    fontSize: 60px
+    fontSize: 3.75rem
     fontWeight: 600
     lineHeight: 1
     letterSpacing: 0em
   h1:
     fontFamily: Geist Variable
-    fontSize: 48px
+    fontSize: 3rem
     fontWeight: 600
     lineHeight: 1
     letterSpacing: 0em
   h2:
     fontFamily: Geist Variable
-    fontSize: 24px
+    fontSize: 1.5rem
     fontWeight: 600
     lineHeight: 1.2
     letterSpacing: 0em
   body:
     fontFamily: Geist Variable
-    fontSize: 16px
+    fontSize: 1rem
     fontWeight: 400
     lineHeight: 1.625
     letterSpacing: 0em
   body-sm:
     fontFamily: Geist Variable
-    fontSize: 14px
+    fontSize: 0.875rem
     fontWeight: 400
     lineHeight: 1.5
     letterSpacing: 0em
   mono:
     fontFamily: JetBrains Mono
-    fontSize: 14px
+    fontSize: 0.875rem
     fontWeight: 400
     lineHeight: 1.5
     letterSpacing: 0em
   hud-label:
     fontFamily: JetBrains Mono
-    fontSize: 10.4px
+    fontSize: 0.65rem
     fontWeight: 500
     lineHeight: 1
     letterSpacing: 0.12em
 rounded:
-  none: 0px
-  sm: 2px
-  md: 4px
-  lg: 6px
-  xl: 8px
+  none: 0
+  sm: 0.125rem
+  md: 0.25rem
+  lg: 0.375rem
+  xl: 0.5rem
 spacing:
-  xxs: 4px
-  xs: 8px
-  sm: 12px
-  md: 16px
-  lg: 24px
-  xl: 32px
-  section-y: 40px
-  hero-y: 56px
-  container: 1152px
-  content: 1024px
+  xxs: 0.25rem
+  xs: 0.5rem
+  sm: 0.75rem
+  md: 1rem
+  lg: 1.5rem
+  xl: 2rem
+  section-y: 2.5rem
+  hero-y: 3.5rem
+  container: 72rem
+  content: 64rem
 components:
   nav-bar:
     backgroundColor: "#09090BCC"
     textColor: "{colors.foreground}"
     typography: "{typography.hud-label}"
     rounded: "{rounded.none}"
-    height: 48px
+    height: 3rem
   hud-panel:
     backgroundColor: "{colors.card}"
     textColor: "{colors.foreground}"
     typography: "{typography.body-sm}"
     rounded: "{rounded.sm}"
-    padding: 24px
+    padding: 1.5rem
   primary-button:
     backgroundColor: "{colors.primary}"
     textColor: "{colors.primary-foreground}"
     typography: "{typography.mono}"
     rounded: "{rounded.sm}"
-    padding: 12px
+    padding: 0.75rem
   primary-button-hover:
     backgroundColor: "{colors.primary-bright}"
     textColor: "{colors.primary-foreground}"
     typography: "{typography.mono}"
     rounded: "{rounded.sm}"
-    padding: 12px
+    padding: 0.75rem
   primary-button-active:
     backgroundColor: "{colors.primary-dim}"
     textColor: "{colors.primary-foreground}"
     typography: "{typography.mono}"
     rounded: "{rounded.sm}"
-    padding: 12px
+    padding: 0.75rem
   secondary-button:
     backgroundColor: "{colors.card}"
     textColor: "{colors.secondary}"
     typography: "{typography.hud-label}"
     rounded: "{rounded.sm}"
-    padding: 8px
+    padding: 0.5rem
   raised-panel:
     backgroundColor: "{colors.card-raised}"
     textColor: "{colors.foreground}"
     typography: "{typography.body-sm}"
     rounded: "{rounded.sm}"
-    padding: 24px
+    padding: 1.5rem
   popover:
     backgroundColor: "{colors.popover}"
     textColor: "{colors.foreground}"
     typography: "{typography.body-sm}"
     rounded: "{rounded.md}"
-    padding: 16px
+    padding: 1rem
   muted-chip:
     backgroundColor: "{colors.muted}"
     textColor: "{colors.secondary}"
     typography: "{typography.hud-label}"
     rounded: "{rounded.sm}"
-    padding: 8px
+    padding: 0.5rem
   muted-text-swatch:
     backgroundColor: "{colors.muted-foreground}"
     textColor: "{colors.foreground}"
     typography: "{typography.hud-label}"
     rounded: "{rounded.sm}"
-    size: 48px
+    size: 3rem
   input-field:
     backgroundColor: "{colors.input}"
     textColor: "{colors.foreground}"
     typography: "{typography.mono}"
     rounded: "{rounded.md}"
-    padding: 12px
+    padding: 0.75rem
   divider:
     backgroundColor: "{colors.border}"
     textColor: "{colors.foreground}"
     typography: "{typography.hud-label}"
     rounded: "{rounded.none}"
-    height: 1px
+    height: 0.0625rem
   recommendation-card-top:
     backgroundColor: "{colors.card}"
     textColor: "{colors.foreground}"
     typography: "{typography.body-sm}"
     rounded: "{rounded.sm}"
-    padding: 20px
+    padding: 1.25rem
   recommendation-card-alternate:
     backgroundColor: "{colors.card}"
     textColor: "{colors.foreground}"
     typography: "{typography.body-sm}"
     rounded: "{rounded.sm}"
-    padding: 20px
+    padding: 1.25rem
   alternate-badge:
     backgroundColor: "{colors.blue-accent}"
     textColor: "{colors.primary-foreground}"
     typography: "{typography.hud-label}"
     rounded: "{rounded.sm}"
-    padding: 8px
+    padding: 0.5rem
   signal-label:
     backgroundColor: "{colors.card}"
     textColor: "{colors.cyan-signal}"
     typography: "{typography.hud-label}"
     rounded: "{rounded.none}"
-    padding: 4px
+    padding: 0.25rem
   warning-note:
     backgroundColor: "{colors.card}"
     textColor: "{colors.amber-accent}"
     typography: "{typography.body-sm}"
     rounded: "{rounded.sm}"
-    padding: 12px
+    padding: 0.75rem
   error-note:
     backgroundColor: "{colors.card}"
     textColor: "{colors.destructive}"
     typography: "{typography.body-sm}"
     rounded: "{rounded.sm}"
-    padding: 12px
+    padding: 0.75rem
   grid-swatch:
     backgroundColor: "{colors.grid-cyan}"
     textColor: "{colors.primary-foreground}"
     typography: "{typography.hud-label}"
     rounded: "{rounded.none}"
-    size: 48px
+    size: 3rem
   logo-swatch-purple:
     backgroundColor: "{colors.logo-purple}"
     textColor: "{colors.foreground}"
     typography: "{typography.hud-label}"
     rounded: "{rounded.sm}"
-    size: 48px
+    size: 3rem
   logo-swatch-purple-deep:
     backgroundColor: "{colors.logo-purple-deep}"
     textColor: "{colors.foreground}"
     typography: "{typography.hud-label}"
     rounded: "{rounded.sm}"
-    size: 48px
+    size: 3rem
   logo-swatch-cyan:
     backgroundColor: "{colors.logo-cyan}"
     textColor: "{colors.primary-foreground}"
     typography: "{typography.hud-label}"
     rounded: "{rounded.sm}"
-    size: 48px
+    size: 3rem
   logo-swatch-lavender:
     backgroundColor: "{colors.logo-lavender}"
     textColor: "{colors.primary-foreground}"
     typography: "{typography.hud-label}"
     rounded: "{rounded.sm}"
-    size: 48px
+    size: 3rem
   table:
     backgroundColor: "{colors.card}"
     textColor: "{colors.foreground}"
     typography: "{typography.mono}"
     rounded: "{rounded.sm}"
-    padding: 16px
+    padding: 1rem
   code-block:
     backgroundColor: "{colors.black-overlay}"
     textColor: "{colors.foreground}"
     typography: "{typography.mono}"
     rounded: "{rounded.sm}"
-    padding: 12px
+    padding: 0.75rem
 ---
 
 > Deferred. Do not implement styling until `specs/frontend.md` and
@@ -273,11 +273,13 @@ Display text is large and tight, but only in the hero/workbench copy. Secondary 
 
 ## Layout
 
-The layout is mobile-first and constrained. Use `1152px` as the main maximum width and `1024px` for result/deployment content. Hero content becomes a two-column workbench on wide screens; on smaller screens it stacks with centered copy and a full-width analysis panel.
+The layout is mobile-first and constrained. Hero content becomes a two-column workbench on wide screens; on smaller screens it stacks with centered copy and a full-width analysis panel.
+
+Use em-based media queries when a layout change needs a viewport breakpoint. Breakpoints are content-driven, not device-name driven. Do not use px breakpoints.
 
 Use full-width page sections with constrained inner content. Do not place section wrappers inside decorative cards. Cards are reserved for repeated result items, compact panels, deployment steps, and tables. Use flex wrapping aggressively so labels, model IDs, buttons, and platform chips do not overflow.
 
-Spacing is compact: 16px is the default panel rhythm, 24px is the standard panel padding, and 40px to 56px is enough vertical section spacing.
+Spacing is compact: 1rem is the default panel rhythm, 1.5rem is the standard panel padding, and 2.5rem to 3.5rem is enough vertical section spacing.
 
 ## Elevation & Depth
 
@@ -287,7 +289,7 @@ The background may use a faint cyan grid plus green/blue radial glow, but keep d
 
 ## Shapes
 
-Shapes are squared and utilitarian. The base radius is `6px`, but most visible panels and controls use `2px` to `4px`. Avoid pill-heavy styling except for very small badges or tags already constrained by the UI. Tables, cards, inputs, and buttons should look precise rather than soft.
+Shapes are squared and utilitarian. The base radius is `0.375rem`, but most visible panels and controls use `0.125rem` to `0.25rem`. Avoid pill-heavy styling except for very small badges or tags already constrained by the UI. Tables, cards, inputs, and buttons should look precise rather than soft.
 
 ## Components
 

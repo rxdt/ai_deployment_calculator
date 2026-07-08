@@ -8,9 +8,9 @@
     "pnpm": ">=10"
   },
   "scripts": {
-    "build": "vite build",
-    "dev": "vite --host 127.0.0.1",
-    "preview": "vite preview --host 127.0.0.1",
+    "build": "vite build --config ../harness/vite.config.ts",
+    "dev": "vite --config ../harness/vite.config.ts --host 127.0.0.1",
+    "preview": "vite preview --config ../harness/vite.config.ts --host 127.0.0.1",
     "lint": "pnpm --prefix ../harness run lint",
     "setup:e2e": "pnpm --prefix ../harness run setup:e2e",
     "test:file": "pnpm --prefix ../harness run test:file --",

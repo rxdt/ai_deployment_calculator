@@ -1,4 +1,7 @@
+import { fileURLToPath } from "node:url";
 import { defineConfig, type Plugin } from "vite";
+
+const frontendRoot = fileURLToPath(new URL("../frontend", import.meta.url));
 
 interface BundleAsset {
   readonly type: "asset";
@@ -191,5 +194,6 @@ function inlineBuildAssets(): Plugin {
 }
 
 export default defineConfig({
+  root: frontendRoot,
   plugins: [inlineBuildAssets()],
 });

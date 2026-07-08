@@ -3,6 +3,7 @@ export default {
   plugins: [
     "stylelint-declaration-strict-value",
     "stylelint-media-use-custom-media",
+    "stylelint-plugin-defensive-css",
   ],
   ignoreFiles: [
     "../**/coverage/**",
@@ -19,6 +20,11 @@ export default {
     "custom-property-pattern":
       "^(background|color|font|layout|radius|shadow|space|z)-[a-z0-9-]+$",
     "csstools/media-use-custom-media": "never",
+    // Defensive CSS: enforce responsive units + accessibility defenses
+    "defensive-css/no-fixed-sizes": true, // Flexible units on sizing + responsive at-rules
+    "defensive-css/no-unsafe-clamp-font-size": true, // WCAG-safe fluid clamp() ratios
+    "defensive-css/require-focus-visible": true, // Keyboard-visible focus, not bare :focus
+    "defensive-css/require-prefers-reduced-motion": true, // Wrap motion in reduced-motion query
     "declaration-no-important": true, // Banned: Block using lazy '!important' overrides
     "declaration-property-value-disallowed-list": {
       "font-size": ["/^[0-9.]+px$/"],
@@ -38,19 +44,23 @@ export default {
     },
     "import-notation": null,
     "max-nesting-depth": 2, // Stop messy CSS nesting chains
-    "media-query-no-invalid": true,
-    "media-feature-name-unit-allowed-list": {
-      "/width$/": ["em"],
+    "declaration-property-unit-allowed-list": {
+      "font-size": ["rem", "em"], // Never px font sizes
+      "line-height": [], // Unitless line-height only
+      "/^(width|min-width|max-width)$/": ["%", "rem", "em", "vw"],
     },
-    "media-feature-name-value-allowed-list": {
-      "/width$/": ["47.5em", "65em"],
+    "media-query-no-invalid": true,
+    "media-feature-name-no-unknown": true,
+    "media-feature-name-value-no-unknown": true,
+    "media-feature-name-unit-allowed-list": {
+      "/width$/": ["em"], // Content-driven em breakpoints; never px
     },
     "nesting-selector-no-missing-scoping-root": null,
     "color-named": "never", // Force hex or rgb colors, lazy words like "red"
     "selector-max-id": 0, // Force clean selectors over high-pri ID e.g. #my-header
     "selector-class-pattern": "^[a-z0-9\\-]+$", // force lowercase, no CSS conflicts
     "declaration-block-no-duplicate-properties": true,
-    "unit-allowed-list": ["px", "rem", "%", "ms", "deg", "em"],
+    "unit-allowed-list": ["rem", "%", "ms", "deg", "em", "vw", "vh"], // px banned globally
     "unit-no-unknown": true,
     "declaration-block-no-redundant-longhand-properties": true,
     "declaration-block-single-line-max-declarations": 1,

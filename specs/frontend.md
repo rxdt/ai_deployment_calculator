@@ -63,7 +63,8 @@
 - [ ] Iff javascript and html work are completed. styling can begin.
   - [ ] When 'Advanced assumptions' is expanded, app fits in one viewport on desktop and mobile.
   - [ ] The app fits in one viewport on desktop and mobile.
-  - [ ] BUG (blocks `pnpm gate`): `frontend/tests/responsive.spec.ts:75`
+  - [ ] VERIFY IF TRUE OR FALSE:
+  BUG (blocks `pnpm gate`): `frontend/tests/responsive.spec.ts:75`
     (`collapsed default estimate fits one viewport`) fails on all 6 Playwright
     projects. The `Calculation used` / `Assumptions used` result panels render
     below the fold (`toBeInViewport` → `viewport ratio 0`) at 1280x720 and
@@ -104,7 +105,7 @@
     `QLoRA base model memory`, `Context memory`, `Activation memory`,
     `Training memory`, `Runtime reserve`, `Safety margin`). Rows that round to
     `0.0 GB` are hidden.
-  - [x] `Formula used` — the inline canonical equation substitution.
+  - [ ] `Formula used` — the inline canonical equation substitution.
   - [ ] `Assumptions used` — visible precision, runtime, execution, and KV
     assumptions.
 - [ ] The hardware-recommendation and fit math (usable VRAM on class, fit headroom,
@@ -189,7 +190,7 @@ Display:
 
 `unit_multiplier = 0.001` for millions (`M`).
 
-- [x] The UI exposes only `B` and `M` (`ParameterUnit = "B" | "M"`).
+- [ ] The UI exposes only `B` and `M` (`ParameterUnit = "B" | "M"`).
 
 ---
 
@@ -625,7 +626,7 @@ Do not use:
 
 `Required_GB = (Weights + KV + Task_Overhead + Runtime_Tax) * Buffer` as the real internal model
 
-- [x] The simpler equation can appear only as a simplified explanation if its labels map to the canonical terms.
+- [ ] The simpler equation can appear only as a simplified explanation if its labels map to the canonical terms.
 
 ## Canonical test cases
 

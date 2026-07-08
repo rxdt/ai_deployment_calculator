@@ -1,79 +1,8 @@
 :root {
   color-scheme: dark;
-
   --color-background: #09090b;
-  --color-background-glow-green: rgb(34 197 94 / 16%);
-  --color-background-glow-blue: rgb(59 130 246 / 14%);
-  --color-background-grid: rgb(103 232 249 / 3.5%);
-  --color-background-translucent: rgb(9 9 11 / 90%);
-  --color-foreground: #f8fafc;
-  --color-card: #111117;
-  --color-card-translucent: rgb(17 17 23 / 94%);
-  --color-card-raised: #16161e;
-  --color-muted-foreground: #a1a1aa;
-  --color-quiet: #71717a;
-  --color-border: #27272a;
-  --color-input: #1c1c24;
-  --color-primary: #22c55e;
-  --color-primary-bright: #4ade80;
-  --color-primary-dim: #16a34a;
-  --color-primary-foreground: #0a0a0f;
-  --color-cyan-signal: #67e8f9;
-  --color-amber-accent: #f97316;
-  --color-warning-border: rgb(249 115 22 / 40%);
-  --color-warning-surface: rgb(249 115 22 / 8%);
-  --color-code-surface: rgb(0 0 0 / 60%);
-  --background-glow-green-size: 28rem;
-  --background-glow-blue-size: 24rem;
-  --layout-container-max: 1152px;
-  --font-family-body:
-    "Geist Variable", inter, system-ui, -apple-system, blinkmacsystemfont,
-    "Segoe UI", sans-serif;
-  --font-family-mono:
-    "JetBrains Mono", sfmono-regular, consolas, "Liberation Mono", monospace;
-  --font-size-body: 14px;
-  --font-size-label: 13px;
-  --font-size-hud: 12px;
-  --font-size-micro: 11px;
-  --font-size-title: 20px;
-  --font-size-title-wide: 24px;
-  --font-size-hero: 27px;
-  --font-size-hero-wide: 34px;
-  --font-size-hero-small: 16px;
-  --font-size-hero-small-wide: 18px;
-  --font-line-body: 1.35;
-  --font-line-tight: 1.1;
-  --font-line-solid: 1;
-  --font-line-title: 1.08;
-  --font-line-hero-small: 1.12;
-  --font-weight-semibold: 600;
-  --font-weight-bold: 700;
-  --radius-tight: 2px;
-  --radius-panel: 4px;
-  --space-zero: 0;
-  --space-hairline: 1px;
-  --space-2: 2px;
-  --space-3: 3px;
-  --space-4: 4px;
-  --space-5: 5px;
-  --space-6: 6px;
-  --space-7: 7px;
-  --space-8: 8px;
-  --space-9: 9px;
-  --space-10: 10px;
-  --space-11: 11px;
-  --space-12: 12px;
-  --space-16: 16px;
-  --space-20: 20px;
-  --space-24: 24px;
-  --space-28: 28px;
-  --space-32: 32px;
-  --space-40: 40px;
-  --space-56: 56px;
-  --z-sticky: 1;
 }
 
 html {
   min-height: 100%;
-  background: var(--color-background);
 }

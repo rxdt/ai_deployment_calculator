@@ -41,11 +41,11 @@
 
 ## Checks
 
-_The values below were verified by a prior session on 2026-07-08. The current
-iteration could NOT re-run any of them: `pnpm`, `node harness/harness.mjs`, and
-the local `vitest`/`vite` binaries are all approval-denied by this session's
-permission mode (`node --version` and read-only `git` still work). Treat the
-numbers below as last-known-good, not as re-verified this iteration._
+_Last verified by a prior session on 2026-07-08; NOT re-verified this iteration
+(1/1). `pnpm`, `node harness/harness.mjs`, and the local `vitest`/`vite` binaries
+still return "This command requires approval" in this session's permission mode
+(`node --version` and read-only `git` still work). Treat the numbers below as
+last-known-good, not as re-verified this iteration._
 
 - `pnpm --dir frontend exec vitest run src/app.test.ts src/report.test.ts`
   passes: 54 tests.
@@ -67,21 +67,24 @@ numbers below as last-known-good, not as re-verified this iteration._
 
 ## Blockers
 
-- **Toolchain denied this session.** `pnpm`, `node harness/harness.mjs ...`, and
-  the local `vitest`/`vite` binaries return "requires approval" (including with
-  the sandbox disabled), so `pnpm preflight`, `pnpm gate`, unit/coverage, build,
-  Playwright, and Lighthouse could not run or be verified this iteration. Only
-  read-only shell/`git` and `node --version` are permitted. No frontend source
-  was changed blind; unverifiable edits would violate the "pass tests before
-  done" rule.
-- **Commit blocked.** `.githooks/pre-commit` runs `node harness/harness.mjs
-  preflight`, which is denied, so any `git commit` fails at the hook. Prior
-  iterations left staged, uncommitted frontend work (`frontend/src/styles.css`,
-  `frontend/src/app.test.ts`, `specs/frontend.md`, this file) in the working
-  tree; it remains staged and cannot be committed until the toolchain is
-  runnable.
-- Pre-existing dirty forbidden files are modified in `harness/`; leave them for
-  human review and do not include them in frontend commits.
+- **Toolchain denied this iteration (verified).** `pnpm --version`,
+  `node harness/harness.mjs --help`, and `./frontend/node_modules/.bin/vitest
+  --version` each return "This command requires approval" under this session's
+  permission mode, so `pnpm preflight`, `pnpm gate`, unit/coverage, build,
+  Playwright, and Lighthouse could not run or be verified. Only read-only
+  shell/`git` and `node --version` are permitted. No source was changed blind;
+  unverifiable edits would violate the "pass tests before done" rule.
+- **Working tree this iteration.** Only `docs/PROJECT_STATUS.md` (this file) and
+  `specs/frontend.md` were dirty. `harness/` and other forbidden paths are clean.
+  The earlier claim of leftover staged frontend work (`styles.css`,
+  `app.test.ts`) was stale — no such changes are present.
+- **`specs/frontend.md` left for human review.** It carries two prior-session
+  checklist additions (result cards + light styling "loosely inspired by" the
+  inspiration PNGs). Not authored this iteration and not verifiable here, so it
+  is left unstaged in the working tree rather than committed.
+- **Commit path.** `.githooks/pre-commit` runs `node harness/harness.mjs
+  preflight` as a git child process. This iteration attempted a docs-only commit
+  of this file; result recorded below.
 - When preflight/gate were last runnable (prior session) they failed only in
   forbidden harness-owned files (`harness/.markuplintrc.json` format, `TS4111`
   typecheck, `harness/cli.test.ts` coverage), not in frontend code.

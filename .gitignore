@@ -15,3 +15,5 @@ scratchpad/
 *pnpm-debug.log
 .npmrc
 .pnpm-store/
+*.png
+*.png

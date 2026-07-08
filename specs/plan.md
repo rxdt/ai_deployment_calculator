@@ -2,6 +2,8 @@
 
 **EXECMPT FROM 100 LINE MINIMUM** Keep less than 500 lines!
 
+> ~~strikethrough~~ strikethrough completed items to clarify what is done
+
 ## Goal
 
 Build a GPU VRAM calculator that is easy enough for non-technical users and trustworthy enough for engineers.
@@ -122,6 +124,8 @@ README should explain the product, supported workload families, estimate limitat
 
 Backend runtime cleanup details live in `specs/backend.md`. Frontend run/build/test details live in `specs/frontend.md`.
 
+> ~~strikethrough~~ strikethrough completed items to clarify what is done
+>
 ## Acceptance Criteria
 
 Done means:
@@ -157,3 +161,5 @@ Done means:
 30. Build passes.
 31. E2E tests pass or exact blocker is documented.
 ```
+
+> ~~strikethrough~~ strikethrough completed items to clarify what is done

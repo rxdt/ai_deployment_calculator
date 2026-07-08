@@ -3,6 +3,12 @@ import { fileURLToPath } from "node:url";
 
 const repoRoot = fileURLToPath(new URL("..", import.meta.url));
 
+// Per-process coverage output dir, nested under `coverage/` so the existing `coverage/` ignore
+// rules (git, prettier, eslint, stylelint, cspell) still cover it. Concurrent gate runs (e.g. the
+// Ralph loop plus a manual `pnpm gate`) otherwise share `coverage/.tmp` and delete each other's
+// mid-write shards, crashing with ENOENT on `coverage/.tmp/coverage-N.json`. PID isolates them.
+const coverageDir = `coverage/${process.pid}`;
+
 // Vitest owns the unit/coverage gate. Thresholds are hard 100s by contract;
 // do not weaken them.
 export default defineConfig({
@@ -22,6 +28,7 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       reporter: ["text"],
+      reportsDirectory: coverageDir,
       // Cover only the harness engine + the frontend app source — never libraries,
       // generated fixtures, config files, or the e2e specs (run under the `e2e` check).
       include: ["harness/*.ts", "frontend/src/**/*.ts"],

@@ -117,7 +117,11 @@ export const runWorker = async (
   });
   if (isVerbose && buffer.length > 0)
     process.stdout.write(formatLiveLine(buffer));
-  logStream.end();
+  // Wait for the log to fully flush to disk: `end()` only queues the close, so a caller reading the
+  // file synchronously right after could otherwise see a truncated (or empty) log.
+  await new Promise<void>((resolve) => {
+    logStream.end(resolve);
+  });
   if (exitCode !== 0)
     process.stderr.write(`harness: agent exited ${String(exitCode)}\n`);
   return exitCode;

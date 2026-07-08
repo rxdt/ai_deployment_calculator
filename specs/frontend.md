@@ -13,6 +13,7 @@
 **Build and run the app to "view" it as you make changes.** If built and previewed the production app; `5173` was occupied, the Vite preview can be inspected at `http://127.0.0.1:5174/`.
 
 - [ ] The Vite app is static.
+- [ ] There is NO fast-api or WSGI app
 - [ ] `CalculatorApp` normalizes form state, calls local TypeScript
       `buildReport(state)`, and renders synchronously.
 - [ ] Public UI names follow the Naming Contract in `specs/plan.md`; do not redefine

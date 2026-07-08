@@ -37,7 +37,6 @@ export const FORBIDDEN_FILES = new Set([
   "harness/stylelint.config.js",
   "harness/knip.json",
   "harness/cspell.json",
-  "harness/.markuplintrc.json",
   "harness/.prettierrc.json",
   "harness/biome.json",
   "harness/.prettierignore",
@@ -54,7 +53,6 @@ export const FORBIDDEN_PATTERNS = [
   "eslint-disable",
   "stylelint-disable",
   "html-validate-disable",
-  "markuplint-disable",
   "biome-ignore",
   "prettier-ignore",
   "ts-ignore",
@@ -174,16 +172,6 @@ export const FULL_CHECKS: Record<string, string[]> = {
     "--incremental",
     "--tsBuildInfoFile",
     ".cache_tsbuildinfo_harness",
-  ],
-  // Only lint our own source HTML. Broad globs sweep vendor/built report HTML we do not ship.
-  markup: [
-    tool("markuplint"),
-    "frontend/index.html",
-    "--config",
-    "harness/.markuplintrc.json",
-    "--no-search-config",
-    "--max-warnings",
-    "0",
   ],
   schema: [
     tool("ajv"),

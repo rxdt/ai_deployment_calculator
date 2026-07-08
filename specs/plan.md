@@ -1,7 +1,5 @@
 # AI Deployment VRAM Calculator Plan
 
-**EXECMPT FROM 100 LINE MINIMUM** Keep less than 500 lines!
-
 > ~~strikethrough~~ strikethrough completed items to clarify what is done
 
 ## Goal

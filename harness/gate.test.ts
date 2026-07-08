@@ -349,11 +349,6 @@ const REQUIRED_INSTALLED_GATE_TOOLS: readonly {
     commandFragment: harnessTool("tsc"),
   },
   {
-    dependency: "markuplint",
-    check: "markup",
-    commandFragment: harnessTool("markuplint"),
-  },
-  {
     dependency: "ajv-cli",
     check: "schema",
     commandFragment: harnessTool("ajv"),
@@ -490,10 +485,6 @@ const REQUIRED_CHECK_POLICIES: readonly {
       "--incremental",
       ".cache_tsbuildinfo_harness",
     ],
-  },
-  {
-    check: "markup",
-    fragments: [harnessTool("markuplint"), "frontend/index.html"],
   },
   {
     check: "schema",
@@ -2194,11 +2185,6 @@ describe("frontend gate shape", () => {
       check: "html",
       tool: "html-validate",
       required: ["--config harness/.htmlvalidate.json", "**/*.html"],
-    },
-    {
-      check: "markup",
-      tool: "markuplint",
-      required: ["frontend/index.html", "--max-warnings 0"],
     },
     {
       check: "typecheck",

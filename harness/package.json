@@ -72,7 +72,6 @@
     "jsdom": "latest",
     "knip": "latest",
     "lighthouse": "^12.6.1",
-    "markuplint": "latest",
     "pnpm": "latest",
     "prettier": "latest",
     "secretlint": "latest",

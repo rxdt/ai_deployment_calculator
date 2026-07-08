@@ -58,22 +58,27 @@ last-known-good, not as re-verified this iteration._
   passes: 102 tests.
 - `./harness/node_modules/.bin/lhci autorun --config harness/lighthouserc.cjs`
   passes after `pnpm --prefix frontend run build`.
-- `pnpm preflight` fails only on forbidden `harness/.markuplintrc.json`
-  formatting.
-- `pnpm gate` fails on forbidden harness format/typecheck/coverage: formatter
-  wants `harness/.markuplintrc.json`; typecheck reports `TS4111` and related
-  harness errors; coverage has 6 failing `harness/cli.test.ts` setup tests.
-  Frontend build, Playwright e2e, and Lighthouse pass. `semgrep` is skipped.
+- **`preflight` PASSES (re-verified this iteration via the pre-commit hook).**
+  Committing runs `node harness/harness.mjs preflight` as a git child; it
+  reported `0 issues` with prettier (incl. `harness/`), eslint, stylelint, and
+  html-validate all `status=0`. The earlier "fails on
+  `harness/.markuplintrc.json` formatting" claim is stale and false.
+- `pnpm gate` could not be re-run directly this session (denied). The pre-commit
+  hook runs preflight only, so gate's typecheck (`TS4111`) and coverage
+  (`harness/cli.test.ts`) status is unverified this iteration; treat as
+  last-known-good. Gate's prettier/format step passed inside preflight.
 
 ## Blockers
 
-- **Toolchain denied this iteration (verified).** `pnpm --version`,
+- **Direct toolchain denied this iteration (verified).** `pnpm --version`,
   `node harness/harness.mjs --help`, and `./frontend/node_modules/.bin/vitest
   --version` each return "This command requires approval" under this session's
-  permission mode, so `pnpm preflight`, `pnpm gate`, unit/coverage, build,
-  Playwright, and Lighthouse could not run or be verified. Only read-only
-  shell/`git` and `node --version` are permitted. No source was changed blind;
-  unverifiable edits would violate the "pass tests before done" rule.
+  permission mode. So `pnpm gate`, unit tests/coverage (`vitest`), `build`,
+  Playwright, and Lighthouse cannot be run or verified here. `preflight` is the
+  exception: it runs (and passes) as the git pre-commit child — see Checks. Only
+  read-only shell/`git`, `node --version`, and commit-time preflight are usable.
+  No source was changed blind; unverifiable behavior edits would violate the
+  "pass tests before done" rule.
 - **Working tree this iteration.** Only `docs/PROJECT_STATUS.md` (this file) and
   `specs/frontend.md` were dirty. `harness/` and other forbidden paths are clean.
   The earlier claim of leftover staged frontend work (`styles.css`,
@@ -82,9 +87,13 @@ last-known-good, not as re-verified this iteration._
   checklist additions (result cards + light styling "loosely inspired by" the
   inspiration PNGs). Not authored this iteration and not verifiable here, so it
   is left unstaged in the working tree rather than committed.
-- **Commit path.** `.githooks/pre-commit` runs `node harness/harness.mjs
-  preflight` as a git child process. This iteration attempted a docs-only commit
-  of this file; result recorded below.
-- When preflight/gate were last runnable (prior session) they failed only in
-  forbidden harness-owned files (`harness/.markuplintrc.json` format, `TS4111`
-  typecheck, `harness/cli.test.ts` coverage), not in frontend code.
+- **Commit path WORKS (verified this iteration).** `.githooks/pre-commit` runs
+  `node harness/harness.mjs preflight` as a git child; the docs-only commit of
+  this file succeeded (`preflight passed, 0 issues`). Commits are NOT blocked.
+  The prior "commit is blocked / fails at the hook" claim is stale and false.
+  Behavior-changing source commits are still gated only by the inability to run
+  `vitest`/`gate` locally to prove them first.
+- Gate's remaining unverified failure surface (last-known-good, prior session):
+  `TS4111` typecheck and `harness/cli.test.ts` coverage in forbidden
+  harness-owned files, not frontend code. The `harness/.markuplintrc.json`
+  format item is resolved — preflight's prettier step now passes.

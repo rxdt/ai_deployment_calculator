@@ -179,8 +179,8 @@ export class CalculatorApp {
     this.resetButton.addEventListener("click", () => {
       this.reset();
     });
-    // The form has a submit button (accessibility); the calculator is reactive,
-    // so submitting must not navigate or reload.
+    // Pressing Enter in the form can submit it; the calculator is reactive, so
+    // submitting must not navigate or reload.
     this.form.addEventListener("submit", (event) => {
       event.preventDefault();
     });

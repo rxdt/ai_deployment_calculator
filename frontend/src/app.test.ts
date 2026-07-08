@@ -225,6 +225,18 @@ describe("mounted calculator", () => {
     expect(outSlot("breakdown").children).toHaveLength(5);
   });
 
+  test("renders reset as the only form action because estimates are reactive", () => {
+    loadDom();
+    mountCalculator(document);
+    const actions = [...dataSlot("form-actions").children]
+      .filter(
+        (element): element is HTMLButtonElement =>
+          element instanceof HTMLButtonElement && element.hidden === false,
+      )
+      .map((button) => button.textContent.trim());
+    expect(actions).toEqual(["Reset assumptions"]);
+  });
+
   test("keeps the confidence label visible and adapts it to the workload", () => {
     loadDom();
     mountCalculator(document);

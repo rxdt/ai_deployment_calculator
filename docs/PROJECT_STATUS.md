@@ -6,10 +6,11 @@
 - Static Vite + TypeScript calculator; frontend calculations and report
   rendering are the source of truth.
 - Styling has not started. `frontend/src/styles.css` is reset-only.
-- This iteration synced visible `Precision` and `Runtime Profile` controls with
-  QLoRA's forced `4-bit` + `Local / Edge` calculation state.
-- `harness/cli.ts` has a pre-existing forbidden working-tree edit; leave it
-  unstaged for human review.
+- This iteration removed the visible duplicate `Update estimate` control.
+  `Reset assumptions` is the only visible form action; a hidden submit control
+  preserves the form contract while reactive inputs keep estimates current.
+- `harness/cli.ts` and `harness/vitest.config.js` have pre-existing forbidden
+  working-tree edits; leave them unstaged for human review.
 
 ## Calculation Contract
 
@@ -43,21 +44,21 @@
 
 ## Open Items
 
-1. Review the new spec TODO about whether both `Reset assumptions` and
-   `Update estimate` are needed.
-2. Continue the frontend JavaScript/HTML audit for remaining behavior gaps.
+1. Continue the frontend JavaScript/HTML audit for remaining behavior gaps.
+2. Run build/preview and visually inspect `http://127.0.0.1:5173/`.
 3. After JavaScript and HTML work is exhausted, start styling from
    `specs/DESIGN.md`.
 
 ## Checks
 
 - `pnpm --prefix frontend run test:coverage -- frontend/src/app.test.ts`
-  passed 119 tests with 100% coverage.
-- `pnpm preflight` first failed on `unicorn/prefer-type-error`; fixed.
-- `pnpm preflight` passed after staging allowed files.
+  passed 120 tests with 100% coverage.
+- `pnpm preflight` initially failed on the new test optional chain, missing
+  submit control, and selector style; all were fixed.
+- Final `pnpm preflight` passed.
 - `pnpm gate` passed format, lint, style, html, typecheck, markup, schema,
-  dependency, spelling, workflow, secrets, audit, and build checks; `semgrep`
-  was skipped because it is not installed locally.
+  dependency, spelling, workflow, secrets, audit, and build; `semgrep` was
+  skipped because it is not installed locally.
 - `pnpm gate` still fails in coverage: existing forbidden
   `harness/cli.test.ts` setup tests have 6 failures. Do not edit `harness/`;
   human-owned blocker remains.

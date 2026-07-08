@@ -16,6 +16,8 @@
 - Frontend `data-*` helpers now use lint-approved `dataset` dot access.
 - `specs/frontend.md` now marks conservative KV-head output complete and lists
   pnpm commands for frontend tools.
+- Agent commit `Verify conservative KV assumptions render` is on `main`;
+  commit-time preflight passed after the hook kept forbidden harness dirt out.
 
 ## Commands
 
@@ -35,26 +37,26 @@
 
 - `pnpm --dir frontend exec vitest run src/app.test.ts src/report.test.ts`
   passes: 55 tests.
-- `pnpm preflight` reaches eslint/stylelint/html clean, then fails format on
-  forbidden `harness/tsconfig.app.json`.
+- Direct `pnpm preflight` reached eslint/stylelint/html clean, then failed
+  format while forbidden `harness/tsconfig.app.json` was dirty. The same
+  preflight passed in the successful commit hook after harness exclusion.
 - `pnpm gate` typecheck/build/e2e/Lighthouse pass, but the gate fails on
   forbidden harness-owned checks: `harness/tsconfig.app.json` formatting,
   dependency-cruiser `TS18003` from that tsconfig include set, and harness
   coverage tests for setup/include expectations. Local `semgrep`/`osv-scanner`
   are missing and reported as skipped, not failing.
-- Current working-tree files are allowed frontend/spec/status work only.
+- Current working tree has only forbidden `harness/tsconfig.app.json` dirty.
 
 ## Blockers
 
 - `harness/tsconfig.app.json` is forbidden to agents. Preflight formats
   `harness/` and reports that file as non-Prettier-compliant; gate also depends
   on its include set for dependency-cruiser and harness coverage expectations.
-  `pnpm preflight`, the pre-commit hook, and `pnpm gate` are blocked until a
-  human fixes or approves that harness-owned file.
+  Direct `pnpm gate` is blocked until a human fixes or approves that
+  harness-owned file.
 - No known frontend behavior blocker for this iteration; focused tests pass.
 
 ## Next
 
 - Human fix/approve the forbidden harness formatting issue.
-- Then run `pnpm preflight`, `pnpm gate`, and commit the staged frontend/spec/docs
-  work.
+- Then run `pnpm gate` and continue the next focused frontend spec item.

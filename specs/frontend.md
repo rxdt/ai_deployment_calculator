@@ -82,26 +82,26 @@ PRIORITY - frontend and UI compaction implemented; keep green. Responsive standa
 
 ## Outputs
 
-- [ ] First glance (hero): `Estimated VRAM Required` (the total), a short
+- [x] First glance (hero): `Estimated VRAM Required` (the total), a short
   "The workload needs N GB usable VRAM." line, an always-visible
   `Estimate confidence` label (`Rough` for diffusion/video/custom, `Estimated`
   otherwise), and `Recommended GPU Class` (e.g. `24 GB GPU hardware tier`).
   Nothing else is shown by default.
-- [ ] Collapsed `<details>` panels hold the rest:
-  - [ ] `Why this recommendation` — a plain-language "why" sentence plus
+- [x] Collapsed `<details>` panels hold the rest:
+  - [x] `Why this recommendation` — a plain-language "why" sentence plus
     `Minimum GPU VRAM Capacity`, `Usable VRAM Target`,
     `Usable VRAM on Recommended Class`, `Fit Headroom`, and `Estimated Speed`
     (rendered as `tokens/sec`).
-  - [ ] `Calculation used` — the per-component breakdown rows (`Model memory` or
+  - [x] `Calculation used` — the per-component breakdown rows (`Model memory` or
     `QLoRA base model memory`, `Context memory`, `Activation memory`,
     `Training memory`, `Runtime reserve`, `Safety margin`), the inline formula,
     and the assumptions list. Rows that round to `0.0 GB` are hidden.
-- [ ] The hardware-recommendation and fit math (usable VRAM on class, fit headroom,
+- [x] The hardware-recommendation and fit math (usable VRAM on class, fit headroom,
   overflow `n/a`, speed) is defined in the Formulas section below.
 - [x] Warnings are conditional only: training, MoE, and sharded-tier speed guidance.
   Family-specific caveats stay out of warnings; default inference renders no
   warnings.
-- [ ] There is no `Accuracy` output and no separate `Your GPU Fit` panel; both were
+- [x] There is no `Accuracy` output and no separate `Your GPU Fit` panel; both were
   removed by product decision.
 
 ## Tests And Checks
@@ -118,12 +118,12 @@ PRIORITY - frontend and UI compaction implemented; keep green. Responsive standa
   no generic `Batch Size`, MoE visibility, escaping, and collapsed one-viewport
   fit on desktop/mobile.
 - [x] App unit tests cover the real HTML `KV Cache Precision` options, the
-  rendered 32-bit KV estimate, and the always-visible `Estimate confidence`
-  label (outside any `<details>`, `Rough` for diffusion vs `Estimated`), default
-  empty warnings, plus fractional `Total Model Parameters` input cleanup.
+  rendered 32-bit KV estimate, the always-visible `Estimate confidence` label,
+  collapsed output panels, removed `Accuracy` / `Your GPU Fit` surfaces, default
+  empty warnings, and fractional `Total Model Parameters` input cleanup.
 - [x] `frontend/src/legacy-approximations.test.ts` was deleted; do not reintroduce
   it or any legacy-approximation test.
-- [x] Required commands: `pnpm --dir frontend exec vitest run src/app.test.ts`,
+- [x] Required commands: `pnpm --dir frontend exec vitest run src/app.test.ts src/report.test.ts`,
   `npm --prefix frontend run build`,
   `npm --prefix frontend run test:coverage`,
   `pnpm --dir frontend exec playwright test --config ../harness/playwright.config.js`,

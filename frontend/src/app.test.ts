@@ -57,6 +57,22 @@ function out(name: string): string {
 }
 
 /**
+ Find the details panel containing an output slot.
+@param slot - output slot inside the panel
+@returns the containing details panel
+*/
+function containingDetails(slot: HTMLElement): HTMLDetailsElement {
+  let parent = slot.parentElement;
+  while (parent !== null) {
+    if (parent instanceof HTMLDetailsElement) {
+      return parent;
+    }
+    parent = parent.parentElement;
+  }
+  throw new TypeError("Missing containing details panel");
+}
+
+/**
  Look up an element by its data-slot value.
 @param name - data-slot value
 @returns the matching element
@@ -283,6 +299,33 @@ describe("mounted calculator", () => {
     expect(out("confidence")).toBe("Estimated");
     fireChange("workload-family", "image_diffusion");
     expect(out("confidence")).toBe("Rough");
+  });
+
+  test("keeps secondary result sections collapsed behind contracted summaries", () => {
+    loadDom();
+    mountCalculator(document);
+    const whyPanel = containingDetails(outSlot("why"));
+    const calculationPanel = containingDetails(outSlot("breakdown"));
+
+    expect(whyPanel.firstElementChild?.textContent).toBe(
+      "Why this recommendation",
+    );
+    expect(calculationPanel.firstElementChild?.textContent).toBe(
+      "Calculation used",
+    );
+    expect(whyPanel.open).toBe(false);
+    expect(calculationPanel.open).toBe(false);
+  });
+
+  test("does not restore removed accuracy or personal GPU fit outputs", () => {
+    loadDom();
+    mountCalculator(document);
+    const text = document.body.textContent;
+
+    expect(text).not.toContain("Accuracy");
+    expect(text).not.toContain("Your GPU Fit");
+    expect(() => outSlot("accuracy")).toThrow("Missing output slot: accuracy");
+    expect(() => outSlot("gpu-fit")).toThrow("Missing output slot: gpu-fit");
   });
 
   test("recomputes when a numeric input changes", () => {

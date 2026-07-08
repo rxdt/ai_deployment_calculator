@@ -10,6 +10,9 @@
 - Header brand is `~VRAM-calculator` text, not a link; GitHub remains a labeled
   repository link with the local logo asset.
 - Default collapsed outputs fit the tested desktop and mobile viewports.
+- Output contract is unit-pinned: hero glance first, `Why this recommendation`
+  and `Calculation used` details collapsed, overflow fit fields `n/a`, and no
+  `Accuracy` / `Your GPU Fit` output.
 - Default inference renders no warnings; training, MoE, and sharded-tier guidance
   remain conditional.
 - A small disclaimer is rendered below the app outputs.
@@ -34,18 +37,18 @@
   passes: 75 tests.
 - Latest app/report unit:
   `pnpm --dir frontend exec vitest run src/app.test.ts src/report.test.ts`
-  passes: 50 tests.
+  passes: 52 tests.
 - `npm --prefix frontend run test:coverage` passes: 124 tests, 100% coverage.
 - `npm --prefix frontend run build` passes.
 - Direct Playwright passes: 96 tests across desktop, mobile, small, and tablet
   projects.
-- Direct Lighthouse previously passed in the current dirty tree, but the latest
-  `pnpm gate` Lighthouse step failed `network-dependency-tree-insight`.
+- Latest `pnpm gate` Lighthouse step passes.
 - Targeted stylelint passes:
   `pnpm --prefix harness exec stylelint '../frontend/**/*.css' --config stylelint.config.js --ignore-path .stylelintignore --max-warnings=0 --allow-empty-input`.
 - Latest `pnpm preflight` passes: 0 issues.
-- Latest `pnpm gate` passes static checks, build, and e2e; it fails during
-  coverage on forbidden harness setup tests and during Lighthouse.
+- Latest `pnpm gate` passes format, lint, style, html, build, e2e, and
+  Lighthouse; it fails typecheck on `frontend/vite.config.ts:184` and coverage
+  on forbidden harness setup tests.
 
 ## Blockers
 
@@ -53,13 +56,13 @@
   pre-existing edits under `harness/`.
 - `pnpm gate` coverage fails in forbidden `harness/cli.test.ts`: six setup
   assertions receive status `2` instead of the expected setup result.
-- `pnpm gate` Lighthouse fails `network-dependency-tree-insight` with score `0`
-  and reports render-blocking warnings.
+- `pnpm gate` typecheck fails on untracked `frontend/vite.config.ts`: TS2367
+  comparing `InternalModuleFormat` to `"system"`.
 - `frontend/package.json` has unstaged human-owned changes, including Vite
   scripts and CSS budget edits; do not stage them without review.
 - Current dirty tree still includes human-owned `.htmlvalidateignore` changes,
-  deleted `frontend/.syncpackrc.json`, and deleted `harness/.htmlvalidateignore`;
-  leave these for human review.
+  deleted `frontend/.syncpackrc.json`, untracked `frontend/vite.config.ts`, and
+  deleted `harness/.htmlvalidateignore`; leave these for human review.
 - `npm --prefix frontend run test:e2e` currently resolves
   `harness/harness/playwright.config.js` and fails; use the direct Playwright
   command above until the human-owned harness script is fixed.

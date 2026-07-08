@@ -141,6 +141,8 @@ describe("buildReport", () => {
     expect(report.recommendedHardware.recommendedTier).toBe(
       "No single-GPU fit. Enable memory sharding or use offload.",
     );
+    expect(report.recommendedHardware.usableVramOnClass).toBe("n/a");
+    expect(report.recommendedHardware.fitHeadroom).toBe("n/a");
     expect(report.speed).toMatch(/tokens\/second/u);
   });
 

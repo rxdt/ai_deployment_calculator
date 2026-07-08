@@ -21,6 +21,8 @@
 - Default inference renders no warnings; training, MoE, and sharded-tier guidance
   remain conditional.
 - A small disclaimer is rendered below the app outputs.
+- `Parameter Unit` now exposes only the canonical `B` and `M` choices in the
+  real HTML form.
 
 ## Commands
 
@@ -43,7 +45,7 @@
   passes: 75 tests.
 - Latest app/report unit:
   `pnpm --dir frontend exec vitest run src/app.test.ts src/report.test.ts`
-  passes: 52 tests.
+  passes: 53 tests.
 - Latest report unit:
   `pnpm --dir frontend exec vitest run src/report.test.ts` passes: 16 tests.
 - Latest app unit:
@@ -58,8 +60,8 @@
   `pnpm --prefix harness exec stylelint '../frontend/**/*.css' --config stylelint.config.js --ignore-path .stylelintignore --max-warnings=0 --allow-empty-input`.
 - Latest `pnpm preflight` passes: 0 issues.
 - Latest `pnpm gate` passes format, lint, typecheck, build, e2e, and
-  Lighthouse; semgrep is skipped because it is not installed. Gate fails
-  coverage on forbidden harness setup tests.
+  Lighthouse; semgrep is skipped because it is not installed. Gate still fails
+  coverage on six forbidden harness setup tests.
 
 ## Blockers
 

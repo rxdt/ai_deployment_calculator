@@ -250,6 +250,20 @@ describe("mounted calculator", () => {
     expect(link.textContent.trim()).toBe("GitHub");
   });
 
+  test("renders canonical parameter unit choices in the real form", () => {
+    loadDom();
+    mountCalculator(document);
+    const unit = field("parameter-unit");
+    if (!(unit instanceof HTMLSelectElement)) {
+      throw new TypeError("Parameter Unit control must be a select");
+    }
+    expect([...unit.options].map((option) => option.textContent)).toEqual([
+      "B",
+      "M",
+    ]);
+    expect([...unit.options].map((option) => option.value)).toEqual(["B", "M"]);
+  });
+
   test("renders the output disclaimer below the estimate", () => {
     loadDom();
     mountCalculator(document);

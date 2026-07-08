@@ -182,7 +182,7 @@ Display:
 
 `unit_multiplier = 0.001` for millions (`M`).
 
-- [ ] The UI exposes only `B` and `M` (`ParameterUnit = "B" | "M"`).
+- [x] The UI exposes only `B` and `M` (`ParameterUnit = "B" | "M"`).
 
 ---
 

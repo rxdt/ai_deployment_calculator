@@ -3,7 +3,7 @@
 PRIORITY - frontend and UI compaction implemented; keep green. Responsive standards met. Frontend best practices implemented.
 **Styling is the very LAST thing implemented.**
 
-> ~~strikethrough~ completed items to clarify what is done~~
+> ~~strikethrough~~ completed items to clarify what is done
 
 ## Current Contract
 
@@ -13,11 +13,15 @@ PRIORITY - frontend and UI compaction implemented; keep green. Responsive standa
 - Public UI names follow the Naming Contract in `specs/plan.md`; do not redefine
   them here.
 
-## UI State
+## UI
 
 - ~~Visible form actions are not duplicated: `Reset assumptions` is the only
   visible button; the reactive form keeps a hidden submit control only for form
   submission/validation.~~
+- ~~Built and previewed the production app; `5173` was occupied, so the Vite
+  preview was inspected at `http://127.0.0.1:5174/`.~~
+- The collapsed default app fits in one viewport on desktop and mobile.
+- ~~Initial styling follows `DESIGN.md` with a compact, clean calculator shape.~~
 - Main form shows `Workload Family`, `Total Model Parameters`,
   `Parameter Unit`, `Precision`, `Execution Mode`, `Runtime Profile`,
   adaptive input controls, adaptive workload size, and relevant `MoE Model`.
@@ -34,9 +38,9 @@ PRIORITY - frontend and UI compaction implemented; keep green. Responsive standa
   multimodal, and custom. `Active Parameters` appears only when checked.
 - Changing workload family or execution mode rerenders adaptive controls without
   waiting for form submit.
-- ZERO STYLING UNTIL ALL JAVASCRIPT AND HTML WORK IS EXHAUSTED!
+- JAVASCRIPT AND HTML WORK IS COMPLETED
 
-## Calculation State
+## Calculation
 
 - `frontend/src/calculator-core.ts`, `workload-memory.ts`, and `hardware.ts` own
   the calculation; `report.ts` assembles the rendered report. The canonical
@@ -84,7 +88,8 @@ PRIORITY - frontend and UI compaction implemented; keep green. Responsive standa
   tier matching (single-GPU vs sharded, overflow), tier-bandwidth speed, and
   legacy flag removal.
 - Playwright covers accessibility, local report rendering, adaptive controls,
-  no generic `Batch Size`, MoE visibility, and escaping.
+  no generic `Batch Size`, MoE visibility, escaping, and collapsed one-viewport
+  fit on desktop/mobile.
 - App unit tests cover the real HTML `KV Cache Precision` options, the
   rendered 32-bit KV estimate, and the always-visible `Estimate confidence`
   label (outside any `<details>`, `Rough` for diffusion vs `Estimated`), plus

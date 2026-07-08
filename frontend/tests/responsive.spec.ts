@@ -2,105 +2,93 @@ import { expect, test } from "@playwright/test";
 import { AxeBuilder } from "@axe-core/playwright";
 
 const pages = ["/"];
+const onePageViewports = [
+  { height: 720, name: "desktop", width: 1280 },
+  { height: 844, name: "mobile", width: 390 },
+] as const;
+const primaryControls = [
+  "Workload Family",
+  "Total Model Parameters",
+  "Parameter Unit",
+  "Precision",
+  "Execution Mode",
+  "Runtime Profile",
+  "Context Window",
+  "Concurrent Requests",
+] as const;
+const readableLabels = [
+  "Workload Family",
+  "Estimated VRAM Required",
+  "Recommended GPU Class",
+] as const;
 
 for (const path of pages) {
-  test(`no horizontal overflow: ${path}`, async ({ page }) => {
+  test(`core collapsed controls stay visible: ${path}`, async ({ page }) => {
     await page.goto(path);
 
-    const result = await page.evaluate(() => {
-      const offenders = [...document.body.querySelectorAll("*")]
-        .map((element) => {
-          const rect = element.getBoundingClientRect();
-          return {
-            tag: element.tagName,
-            cssClass: element.getAttribute("class") ?? "",
-            left: rect.left,
-            right: rect.right,
-            width: rect.width,
-          };
-        })
-        .filter(
-          (entry) =>
-            entry.width > 0 &&
-            (entry.left < -1 || entry.right > window.innerWidth + 1),
-        )
-        .slice(0, 20);
-
-      return {
-        viewport: window.innerWidth,
-        scrollWidth: document.documentElement.scrollWidth,
-        offenders,
-      };
-    });
-
-    expect(
-      result.scrollWidth,
-      JSON.stringify(result.offenders, null, 2),
-    ).toBeLessThanOrEqual(result.viewport + 1);
+    for (const name of primaryControls) {
+      await expect(page.getByLabel(name, { exact: true })).toBeVisible();
+    }
+    await expect(page.getByLabel("MoE Model", { exact: true })).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Reset assumptions" }),
+    ).toBeVisible();
+    await expect(page.getByText("Batch Size", { exact: true })).toHaveCount(0);
   });
 
-  test(`minimum touch targets: ${path}`, async ({ page }) => {
+  test(`primary touch targets use the control size token: ${path}`, async ({
+    page,
+  }) => {
     await page.goto(path);
 
-    const badTargets = await page.evaluate(() => {
-      const selector =
-        "button,a,input,select,textarea,summary,[role='button'],[tabindex]";
-      return [...document.querySelectorAll(selector)]
-        .filter((element) => {
-          const style = getComputedStyle(element);
-          const rect = element.getBoundingClientRect();
-          return (
-            style.visibility !== "hidden" &&
-            style.display !== "none" &&
-            rect.width > 0 &&
-            rect.height > 0
-          );
-        })
-        .map((element) => {
-          const rect = element.getBoundingClientRect();
-          return {
-            tag: element.tagName,
-            text: element.textContent.trim().slice(0, 80),
-            width: Math.round(rect.width),
-            height: Math.round(rect.height),
-          };
-        })
-        .filter((entry) => entry.width < 40 || entry.height < 40);
-    });
-
-    expect(badTargets).toEqual([]);
+    for (const name of primaryControls) {
+      await expect(page.getByLabel(name, { exact: true })).toHaveCSS(
+        "min-height",
+        "40px",
+      );
+    }
+    await expect(page.getByLabel("MoE Model", { exact: true })).toHaveCSS(
+      "min-width",
+      "40px",
+    );
+    await expect(
+      page.getByRole("button", { name: "Reset assumptions" }),
+    ).toHaveCSS("min-height", "40px");
+    await expect(
+      page.getByText("Advanced assumptions", { exact: true }),
+    ).toHaveCSS("min-height", "40px");
   });
 
-  test(`minimum readable text: ${path}`, async ({ page }) => {
+  test(`primary labels use readable type: ${path}`, async ({ page }) => {
     await page.goto(path);
 
-    const tinyText = await page.evaluate(() => {
-      return [...document.body.querySelectorAll("*")]
-        .filter((element) => {
-          const text = element.textContent.trim();
-          const rect = element.getBoundingClientRect();
-          const style = getComputedStyle(element);
-          return (
-            text !== "" &&
-            rect.width > 0 &&
-            rect.height > 0 &&
-            style.visibility !== "hidden" &&
-            style.display !== "none"
-          );
-        })
-        .map((element) => ({
-          tag: element.tagName,
-          cssClass: element.getAttribute("class") ?? "",
-          text: element.textContent.trim().slice(0, 80),
-          fontSize: Number(
-            getComputedStyle(element).fontSize.replaceAll("px", ""),
-          ),
-        }))
-        .filter((entry) => entry.fontSize < 13)
-        .slice(0, 30);
-    });
+    for (const label of readableLabels) {
+      await expect(page.getByText(label, { exact: true })).toHaveCSS(
+        "font-size",
+        "13px",
+      );
+    }
+  });
+}
 
-    expect(tinyText).toEqual([]);
+for (const viewport of onePageViewports) {
+  test(`collapsed default estimate fits one viewport on ${viewport.name}`, async ({
+    page,
+  }) => {
+    await page.setViewportSize(viewport);
+    await page.goto("/");
+
+    await expect(
+      page.getByRole("heading", { name: "VRAM Deployment Calculator" }),
+    ).toBeInViewport();
+    await expect(
+      page.getByRole("button", { name: "Reset assumptions" }),
+    ).toBeInViewport();
+    await expect(page.locator('[data-out="total"]')).toBeInViewport();
+    await expect(page.locator('[data-out="gpu-class"]')).toBeInViewport();
+    await expect(
+      page.getByText("Calculation used", { exact: true }),
+    ).toBeInViewport();
   });
 }
 

@@ -5,12 +5,13 @@
 - Current branch: `harness-setup-config-overrides`.
 - Static Vite + TypeScript calculator; frontend calculations and report
   rendering are the source of truth.
-- Styling has not started. `frontend/src/styles.css` is reset-only.
-- This iteration removed the visible duplicate `Update estimate` control.
-  `Reset assumptions` is the only visible form action; a hidden submit control
-  preserves the form contract while reactive inputs keep estimates current.
-- `harness/cli.ts` and `harness/vitest.config.js` have pre-existing forbidden
-  working-tree edits; leave them unstaged for human review.
+- Initial `DESIGN.md` styling is in `frontend/src/styles.css`: dark compact
+  calculator layout, tokenized CSS, and collapsed desktop/mobile one-page fit.
+- Default outputs now match the first-glance contract: total, confidence, GPU
+  class, and collapsed details only; the old visible heuristics note is gone.
+- `harness/cli.ts`, `harness/vitest.config.js`, `.gitignore`, `specs/plan.md`,
+  and docs screenshot/calc image changes are pre-existing/unrelated; leave
+  unstaged unless a human asks.
 
 ## Calculation Contract
 
@@ -27,7 +28,7 @@
 ## Frontend Reality
 
 - `frontend/index.html` contains the current form, advanced assumptions, output
-  slots, and template markup. Treat it as minimal, not styled.
+  slots, and template markup. Styled class names are hyphenated for lint.
 - `frontend/src/app.ts` handles form normalization, numeric input cleanup, reset,
   adaptive control visibility, and report rendering.
 - `Total Model Parameters` uses decimal input cleanup; app tests pin `3.8B`
@@ -44,21 +45,19 @@
 
 ## Open Items
 
-1. Continue the frontend JavaScript/HTML audit for remaining behavior gaps.
-2. Run build/preview and visually inspect `http://127.0.0.1:5173/`.
-3. After JavaScript and HTML work is exhausted, start styling from
-   `specs/DESIGN.md`.
+1. Continue visual polish only after keeping `pnpm preflight` green.
+2. Confirm whether unrelated docs image and `.gitignore` changes should stay.
 
 ## Checks
 
-- `pnpm --prefix frontend run test:coverage -- frontend/src/app.test.ts`
-  passed 120 tests with 100% coverage.
-- `pnpm preflight` initially failed on the new test optional chain, missing
-  submit control, and selector style; all were fixed.
-- Final `pnpm preflight` passed.
-- `pnpm gate` passed format, lint, style, html, typecheck, markup, schema,
-  dependency, spelling, workflow, secrets, audit, and build; `semgrep` was
-  skipped because it is not installed locally.
-- `pnpm gate` still fails in coverage: existing forbidden
-  `harness/cli.test.ts` setup tests have 6 failures. Do not edit `harness/`;
-  human-owned blocker remains.
+- `pnpm build` passed; `5173` was occupied by a dev server, so production
+  preview ran at `http://127.0.0.1:5174/`.
+- Browser measurement passed: desktop `1280x720` and mobile `390x844` both fit
+  exactly with no horizontal overflow, no small touch targets, and min text 13px.
+- `pnpm --prefix frontend run test:coverage` passed 120 tests, 100% coverage.
+- Responsive Playwright spec passed against preview via temporary scratchpad
+  config: 6 tests.
+- `pnpm preflight` passed after tokenizing CSS and staging only this iteration's
+  files.
+- `pnpm gate` passed through build but failed in coverage on the existing
+  forbidden `harness/cli.test.ts` setup failures (`runSetup`/`setup` return 2).

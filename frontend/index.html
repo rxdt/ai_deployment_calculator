@@ -378,27 +378,27 @@
         <section class="results" aria-label="Estimate">
           <!-- Tier 1: the answer, at a glance -->
           <div class="hero">
-            <p class="hero__label">Estimated VRAM Required</p>
-            <p class="hero__value"><output data-out="total">0.0 GB</output></p>
-            <p class="hero__say" data-out="vram-say"></p>
-            <p class="hero__confidence">
-              <span class="hero__label" data-slot="confidence-label"
+            <p class="hero-label">Estimated VRAM Required</p>
+            <p class="hero-value"><output data-out="total">0.0 GB</output></p>
+            <p class="hero-say" data-out="vram-say"></p>
+            <p class="hero-confidence">
+              <span class="hero-label" data-slot="confidence-label"
                 >Estimate confidence</span
               ><strong data-out="confidence"></strong>
             </p>
           </div>
 
           <div class="hero hero--secondary">
-            <p class="hero__label" data-slot="gpu-class-label">
+            <p class="hero-label" data-slot="gpu-class-label">
               Recommended GPU Class
             </p>
-            <p class="hero__value hero__value--small" data-out="gpu-class"></p>
+            <p class="hero-value hero-value-small" data-out="gpu-class"></p>
           </div>
 
           <!-- Tier 2: the reasoning and numbers, hidden until asked for -->
           <details class="panel">
             <summary>Why this recommendation</summary>
-            <div class="panel__body">
+            <div class="panel-body">
               <p data-out="why"></p>
               <ul class="fit">
                 <li>
@@ -426,7 +426,7 @@
 
           <details class="panel">
             <summary>Calculation used</summary>
-            <div class="panel__body">
+            <div class="panel-body">
               <ul class="breakdown" data-out="breakdown" aria-busy="true"></ul>
               <code data-out="calc-formula"></code>
               <ul
@@ -438,11 +438,6 @@
           </details>
 
           <ul class="warnings" data-out="warnings" aria-busy="true"></ul>
-
-          <p class="note">
-            Estimates use heuristics. Real usage varies by model architecture,
-            runtime, kernels, quantization, sharding, and offload settings.
-          </p>
         </section>
       </main>
     </div>

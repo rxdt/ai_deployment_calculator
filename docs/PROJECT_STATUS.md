@@ -2,33 +2,36 @@
 
 ## State
 
-- Branch: `main`; HEAD before this iteration: `37e5714`.
-- This iteration completed the frontend typography polish item:
-  - Body text, headings, and hero result values stay on the sans stack.
-  - Inputs/selects, section/HUD labels, status text, formulas, and code now use
-    the shared JetBrains Mono stack.
-  - Hero result numbers keep tabular numerals and remain non-monospace.
-- `frontend/tests/responsive.spec.ts` now pins the typography split across
-  browser projects.
-- `specs/frontend.md` marks the typography bullets complete.
+- Branch: `main`; HEAD before this iteration: `8b44a1b`.
+- This iteration tightened form behavior for release readiness:
+  - Inference workload size is now labeled `Concurrent Batch Requests` in the
+    form, responsive smoke tests, browser report assertions, and assumptions.
+  - `QLoRA fine-tuning` still forces `Precision` to `4-bit` and
+    `Runtime Profile` to `Local / Edge`.
+  - Choosing a non-`4-bit` precision while in QLoRA now resets numeric inputs and
+    returns `Execution Mode` to `Inference`.
+- `specs/frontend.md` marks the verified checkbox, KV precision, workload-label,
+  and QLoRA precision-switching items complete.
 
 ## Checks
 
-- Focused browser suite:
-  `pnpm --prefix frontend run test:e2e -- responsive.spec.ts` passed: 168 tests.
+- Focused unit suites passed:
+  `pnpm --dir frontend exec vitest run src/app.test.ts src/report.test.ts` and
+  `pnpm --dir frontend exec vitest run src/calculator.test.ts src/state.test.ts`.
+- Focused browser suites passed:
+  `pnpm --prefix frontend run test:e2e -- calculator.spec.ts responsive.spec.ts`
+  passed 168 tests.
 - Preflight: `pnpm preflight` passed.
-- Final gate: `pnpm gate` is RED only on the forbidden harness preset assertion
-  in `harness/cli.test.ts:798`; format, lint, style, html, typecheck,
-  harnessTypes, schema, cruise, deadcode, spelling, workflow, sast, secrets,
-  audit, build, e2e, and Lighthouse passed.
+- Final gate: `pnpm gate` is RED only on `harness/cli.test.ts:798`; format,
+  lint, style, html, typecheck, harnessTypes, schema, cruise, deadcode,
+  spelling, workflow, sast, secrets, audit, build, e2e, and Lighthouse passed.
 
 ## Blockers
 
-- Pre-existing forbidden edits remain outside this iteration:
-  `PROMPT.md`, `harness/cli.ts`, `harness/gate.ts`, `harness/gate.test.ts`.
-- `pnpm gate` fails because forbidden `harness/cli.ts` changed the `claude`
-  preset while forbidden `harness/cli.test.ts:798` still pins the old preset.
-  This iteration cannot edit those forbidden paths.
+- `pnpm gate` fails on forbidden harness-owned code: `harness/cli.test.ts:798`
+  expects the old `claude` preset, while the current preset has changed.
+- This iteration cannot edit forbidden paths: `harness/`, `tests/harness/`,
+  `.githooks/`, `.github/`, `pyproject.toml`, `AGENTS.md`, or `PROMPT.md`.
 
 ## Next
 

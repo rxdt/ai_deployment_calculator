@@ -355,7 +355,7 @@ describe("buildReport", () => {
     ).toEqual(
       expect.arrayContaining([
         { label: "Context tokens", value: "32000" },
-        { label: "Concurrent requests", value: "4" },
+        { label: "Concurrent batch requests", value: "4" },
       ]),
     );
 
@@ -370,7 +370,7 @@ describe("buildReport", () => {
     ).toEqual(
       expect.arrayContaining([
         { label: "Output tokens", value: "512" },
-        { label: "Concurrent requests", value: "2" },
+        { label: "Concurrent batch requests", value: "2" },
       ]),
     );
 
@@ -426,7 +426,7 @@ describe("buildReport", () => {
         },
         [
           { label: "Image size", value: "640 x 480" },
-          { label: "Concurrent requests", value: "2" },
+          { label: "Concurrent batch requests", value: "2" },
         ],
       ],
       [
@@ -534,7 +534,7 @@ describe("buildReport", () => {
     ).toEqual(
       expect.arrayContaining([
         { label: "Context tokens", value: "8000" },
-        { label: "Concurrent requests", value: "1" },
+        { label: "Concurrent batch requests", value: "1" },
       ]),
     );
 

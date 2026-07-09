@@ -93,7 +93,7 @@ function kvAssumptionRows(
     return [];
   }
   const workloadRow = {
-    label: "Concurrent requests",
+    label: "Concurrent batch requests",
     value: spec.workloadSize.toString(),
   };
   let scalingRows: DisplayRow[];
@@ -146,7 +146,7 @@ function workloadSizeRow(
   return {
     label:
       state.executionMode === "Inference"
-        ? "Concurrent requests"
+        ? "Concurrent batch requests"
         : "Micro batch size",
     value: spec.workloadSize.toString(),
   };

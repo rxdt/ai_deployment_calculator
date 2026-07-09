@@ -14,7 +14,7 @@ const primaryControls = [
   "Execution Mode",
   "Runtime Profile",
   "Context Window",
-  "Concurrent Requests",
+  "Concurrent Batch Requests",
 ] as const;
 const readableLabels = [
   "Workload Family",

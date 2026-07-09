@@ -61,7 +61,7 @@ const CANONICAL_BROWSER_CASES = [
       ["Runtime profile", "Server / Cloud"],
       ["Execution mode", "Inference"],
       ["Context tokens", "8000"],
-      ["Concurrent requests", "1"],
+      ["Concurrent batch requests", "1"],
       ["KV Cache precision", "16-bit"],
       ["KV heads used", "8"],
       ["Conservative KV heads", "64"],
@@ -146,7 +146,7 @@ const CANONICAL_BROWSER_CASES = [
       ["Execution mode", "Inference"],
       ["Known Model File Size", "52.0 GB"],
       ["Context tokens", "32000"],
-      ["Concurrent requests", "1"],
+      ["Concurrent batch requests", "1"],
       ["KV Cache precision", "32-bit"],
       ["KV heads used", "8"],
       ["Conservative KV heads", "80"],
@@ -252,7 +252,7 @@ test("renders the default 7B estimate consistently across the full report", asyn
     ["Runtime profile", "Server / Cloud"],
     ["Execution mode", "Inference"],
     ["Context tokens", "8000"],
-    ["Concurrent requests", "1"],
+    ["Concurrent batch requests", "1"],
     ["KV Cache precision", "16-bit"],
     ["KV heads used", "8"],
     ["Conservative KV heads", "32"],
@@ -413,7 +413,7 @@ test("switches the workload size label and never shows generic Batch Size", asyn
   await page.goto("/");
 
   await expect(page.locator("[data-workload-label]")).toHaveText(
-    "Concurrent Requests",
+    "Concurrent Batch Requests",
   );
   await page.locator("#execution-mode").selectOption("Full training");
   await expect(page.locator("[data-workload-label]")).toHaveText(

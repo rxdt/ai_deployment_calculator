@@ -208,10 +208,14 @@ export class CalculatorApp {
       if (event.target instanceof HTMLInputElement) {
         sanitizeNumberInput(event.target);
       }
-      this.update();
+      if (!this.exitQloRAOnPrecisionChange(event)) {
+        this.update();
+      }
     });
-    this.form.addEventListener("change", () => {
-      this.update();
+    this.form.addEventListener("change", (event) => {
+      if (!this.exitQloRAOnPrecisionChange(event)) {
+        this.update();
+      }
     });
     this.form.addEventListener("submit", (event) => {
       event.preventDefault();
@@ -226,10 +230,13 @@ export class CalculatorApp {
     this.render(buildReport(state));
   }
 
-  private reset(): void {
-    const values = new Map<string, string | boolean>(
-      Object.entries(zeroState()),
-    );
+  private reset(
+    overrides: Readonly<Record<string, string | boolean>> = {},
+  ): void {
+    const values = new Map<string, string | boolean>([
+      ...Object.entries(zeroState()),
+      ...Object.entries(overrides),
+    ]);
     for (const element of this.form.elements) {
       if (element instanceof HTMLInputElement && element.type === "checkbox") {
         element.checked = values.get(toStateKey(element.name)) === true;
@@ -241,6 +248,22 @@ export class CalculatorApp {
       }
     }
     this.update();
+  }
+
+  private exitQloRAOnPrecisionChange(event: Event): boolean {
+    const { target } = event;
+    const executionMode = this.form.elements.namedItem("execution-mode");
+    if (
+      !(target instanceof HTMLSelectElement) ||
+      !(executionMode instanceof HTMLSelectElement) ||
+      target.name !== "precision" ||
+      target.value === "4-bit" ||
+      executionMode.value !== "QLoRA fine-tuning"
+    ) {
+      return false;
+    }
+    this.reset({ executionMode: "Inference", precision: target.value });
+    return true;
   }
 
   private slot(name: string): HTMLElement {
@@ -352,7 +375,7 @@ export class CalculatorApp {
     setHiddenWithControls(this.kvCacheRow, !hasDecoderKvCache(state));
     const label =
       state.executionMode === "Inference"
-        ? "Concurrent Requests"
+        ? "Concurrent Batch Requests"
         : "Micro Batch Size";
     for (const node of this.root.querySelectorAll<HTMLElement>(
       "[data-workload-label]",

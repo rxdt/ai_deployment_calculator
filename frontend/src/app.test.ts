@@ -630,7 +630,6 @@ describe("mounted calculator", () => {
     expect(out("assumptions")).toContain("4-bit");
     expect(out("assumptions")).toContain("Local / Edge");
 
-    fireChange("precision", "16-bit");
     fireChange("runtime-profile", "Server / Cloud");
 
     expect(field("precision").value).toBe("4-bit");
@@ -703,6 +702,23 @@ describe("mounted calculator", () => {
     expect(out("usable-on-class")).not.toBe("");
     expect(out("fit-headroom")).not.toBe("");
     expect(out("why")).toContain("advertised VRAM");
+  });
+});
+
+describe("QLoRA precision switching", () => {
+  test("switching precision away from QLoRA resets to an inference deployment", () => {
+    loadDom();
+    mountCalculator(document);
+
+    fireInput("total-params", "8");
+    fireChange("execution-mode", "QLoRA fine-tuning");
+    fireInput("precision", "16-bit");
+
+    expect(field("execution-mode").value).toBe("Inference");
+    expect(field("precision").value).toBe("16-bit");
+    expect(field("runtime-profile").value).toBe("Server / Cloud");
+    expect(field("total-params").value).toBe("0");
+    expect(out("total")).toBe("0.0 GB");
   });
 });
 
@@ -831,7 +847,7 @@ describe("adaptive controls", () => {
     loadDom();
     mountCalculator(document);
     const label = dataSlot("workload-label");
-    expect(label.textContent.trim()).toBe("Concurrent Requests");
+    expect(label.textContent.trim()).toBe("Concurrent Batch Requests");
     fireChange("execution-mode", "Full training");
     expect(label.textContent.trim()).toBe("Micro Batch Size");
   });

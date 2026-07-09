@@ -27,21 +27,21 @@
       (`99999999` for integer-mode inputs); field caps still apply.
 - [ ] Bare, minimal styles.css only to get tests passing until typescript/html work is complete.
 - [ ] When a checkbox is selected, a styled check or X appears, confirming to the user the cacluclator is using that input
-- [ ] 'Gradient Checkpointing' and 'Memory Sharding' are actually checkable checkboxes and affect outputs to correct values
+- [x] 'Gradient Checkpointing' and 'Memory Sharding' are actually checkable checkboxes and affect outputs to correct values
 - [x] Main form shows `Workload Family`, `Total Model Parameters`,
       `Parameter Unit`, `Precision`, `Execution Mode`, `Runtime Profile`,
       adaptive input controls, adaptive workload size, and relevant `MoE Model`.
 - [x] Rare controls live in `<details><summary>Advanced assumptions</summary>`.
 - [x] `QLoRA fine-tuning` visibly snaps `Precision` to `4-bit` and
       `Runtime Profile` to `Local / Edge`, matching the forced calculation state.
-- [ ] If 'Execution Mode' is set to `QLoRA fine-tuning`, switching precision from `4-bit` in `Precision` resets inputs and `Deployment` to `Inference`
+- [x] If 'Execution Mode' is set to `QLoRA fine-tuning`, switching precision from `4-bit` in `Precision` resets inputs and `Deployment` to `Inference`
 - [x] `KV Cache Precision` lives in advanced assumptions, is visible only for
       inference decoder-KV workloads, and offers `8-bit / FP8`, `16-bit`, and
       `32-bit`.
-- [ ] Selecting a different `KV Cache Precision` in the dropdown in advanced assumptions changes outputs accurately
+- [x] Selecting a different `KV Cache Precision` in the dropdown in advanced assumptions changes outputs accurately
 - [x] The app is responsive according to `/scratchpad/responsive_frontend_research.md`; Playwright checks default,
       long workload names, and expanded advanced assumptions keep edge content in viewport.
-- [ ] Workload size label is `Concurrent Batch Requests` for inference and `Micro Batch Size` for training; never reintroduce generic `Batch Size`.
+- [x] Workload size label is `Concurrent Batch Requests` for inference and `Micro Batch Size` for training; never reintroduce generic `Batch Size`.
 - [ ] HTML reflects clean, compact, well-organized flow. Clean, compact, well-organized examples are like `spec/calc1.png`, `~/specs/calc2.png`, `spec/calc13.png` -> do not follow those exactly, they are loose examples of what 'good' looks like to a human user.
 - [ ] Calculator elements are not overly big.
 - [ ] Cyan is used minimally for headings and ONLY for when elements are expanded only e.g. when `Why this recommendation` is expanded its text color uses the cyan color in DESIGN.md. Otherwise text headings do not use cyan.

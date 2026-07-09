@@ -42,10 +42,15 @@
   shortcut across every precision — the one "Do Not Restore" formula that previously
   had only the single 7B canonical case, now generalized. `confidence.test.ts`
   pins the confidence-label mapping (diffusion/video/custom -> `Rough`, else
-  `Estimated`, always non-empty). Frontend suite: 189 tests, 100% coverage.
-  All five new invariants were mutation-verified (each fails on a broken source):
-  the `Total_Params_B * 16` guard was verified against both a dropped-activation
-  mutation and a literal shortcut mutation.
+  `Estimated`, always non-empty). Also new: `hardwareRecommendation` now has an
+  end-to-end property guard that the recommended tier's displayed fit headroom is
+  never negative (the spec's "Fit_Headroom_GB >= 0 by construction"), covering the
+  tier pick + utilization multiply + formatting and the `(required/u)*u` float path
+  (never renders "-0.0 GB"); 200 runs surfaced no undershoot. Frontend suite: 190
+  tests, 100% coverage. All six new invariants were mutation-verified (each fails on
+  a broken source): the `Total_Params_B * 16` guard against both a dropped-activation
+  and a literal shortcut mutation, the fit-headroom guard against an inverted
+  minimum-raw-VRAM derivation.
 
 ## Commands
 
@@ -66,7 +71,7 @@
   this iteration by actually running them: `node -e`, `pnpm`, `vitest`,
   `playwright`, and `lhci` all execute.
   - `pnpm preflight`: pass (prettier, eslint, stylelint, html-validate).
-  - `pnpm --prefix frontend run test:coverage`: 189 tests pass, 100%
+  - `pnpm --prefix frontend run test:coverage`: 190 tests pass, 100%
     statements/branches/functions/lines.
   - Playwright (`../harness/playwright.config.js`): 126 pass across all projects.
   - Lighthouse (`harness/lighthouserc.cjs`): all assertions pass, 3 runs.

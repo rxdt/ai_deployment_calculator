@@ -6,7 +6,7 @@ import {
   specFromState,
   weightsGb,
 } from "./calculator-core";
-import { hardware } from "./hardware";
+import { hardware, hardwareRecommendation } from "./hardware";
 import { defaultState } from "./state";
 import type { FormState, KvPrecision, Precision } from "./types";
 import { memoryBreakdown } from "./workload-memory";
@@ -406,6 +406,42 @@ describe("calculator properties", () => {
         },
       ),
       { numRuns: 100 },
+    );
+  });
+
+  test("the recommended tier always shows non-negative fit headroom, as the spec guarantees by construction", () => {
+    // Spec: "For the recommended tier Fit_Headroom_GB >= 0 by construction." The chosen tier is
+    // the smallest whose VRAM >= required / utilization, so re-applying that same utilization
+    // must still cover the requirement. Guards the end-to-end recommendation path (tier pick +
+    // utilization multiply + formatting), including that the margin never renders as "-0.0 GB"
+    // from a `(required / u) * u` floating-point undershoot. Utilization is drawn from the only
+    // three runtime targets (0.80 / 0.85 / 0.90).
+    fc.assert(
+      fc.property(
+        fc.float({
+          min: Math.fround(0.1),
+          max: Math.fround(400),
+          noNaN: true,
+          noDefaultInfinity: true,
+        }),
+        fc.constantFrom(0.8, 0.85, 0.9),
+        fc.boolean(),
+        (estimatedRequiredGb, utilization, allowSharding) => {
+          const recommendation = hardwareRecommendation(
+            roundTo(estimatedRequiredGb, 1),
+            utilization,
+            { allowSharding },
+          );
+
+          if (recommendation.fitHeadroom === "n/a") {
+            return; // Overflow or empty workload: no recommended tier to bound.
+          }
+          const headroom = Number(recommendation.fitHeadroom.split(" ", 1)[0]);
+          expect(headroom).toBeGreaterThanOrEqual(0);
+          expect(recommendation.fitHeadroom.startsWith("-")).toBe(false);
+        },
+      ),
+      { numRuns: 200 },
     );
   });
 });

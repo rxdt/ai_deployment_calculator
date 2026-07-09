@@ -340,6 +340,29 @@ describe("training estimates", () => {
     expect(memoryBreakdown(spec).requiredGb).toBe(21);
   });
 
+  /**
+  Exact model files can be known even when a caller does not know the parameter
+  count. The file still represents resident model memory and should receive the
+  normal runtime reserve and throughput estimate.
+  */
+  test("known model file size drives estimates when total parameters are unknown", () => {
+    const spec = specFromState(
+      state({
+        totalParams: "0",
+        knownModelFileSizeGb: "52",
+      }),
+    );
+    const breakdown = memoryBreakdown(spec);
+
+    expect(spec.knownModelFileSizeGb).toBe(52);
+    expect(weightsGb(spec)).toBe(52);
+    expect(breakdown.runtimeOverheadGb).toBe(1.5);
+    expect(breakdown.requiredGb).toBe(62);
+    expect(speedEstimate(spec, weightsGb(spec), SPEED_TIER)).not.toBe(
+      "0.0 tokens/second",
+    );
+  });
+
   test("GPU resident fraction scales known-file inference weights without exceeding the file size", () => {
     const partial = specFromState(
       state({
@@ -558,6 +581,30 @@ describe("training estimates", () => {
     );
 
     expect(memoryBreakdown(spec).requiredGb).toBe(0);
+    expect(speedEstimate(spec, weightsGb(spec), SPEED_TIER)).toBe(
+      "0.0 tokens/second",
+    );
+  });
+
+  /**
+  Workload dimensions alone cannot create VRAM demand without either model
+  parameters or an exact known model file.
+  */
+  test("zero model memory suppresses family workload memory", () => {
+    const spec = specFromState(
+      state({
+        totalParams: "0",
+        workloadFamily: "vision",
+        imageWidth: "4096",
+        imageHeight: "4096",
+      }),
+    );
+    const breakdown = memoryBreakdown(spec);
+
+    expect(weightsGb(spec)).toBe(0);
+    expect(breakdown.inputActivationGb).toBe(0);
+    expect(breakdown.runtimeOverheadGb).toBe(0);
+    expect(breakdown.requiredGb).toBe(0);
     expect(speedEstimate(spec, weightsGb(spec), SPEED_TIER)).toBe(
       "0.0 tokens/second",
     );

@@ -272,11 +272,15 @@ export function memoryBreakdown(
   spec: Readonly<CalculationSpec>,
 ): MemoryBreakdown {
   const weights = weightsGb(spec);
-  const runtimeOverhead = spec.totalParamsB === 0 ? 0 : spec.runtime.overheadGb;
-  const working =
-    spec.executionMode === "Inference"
-      ? inferenceWorkingMemoryGb(spec, weights)
-      : { kvCacheGb: 0, inputActivationGb: trainingActivationGb(spec) };
+  const hasModelMemory = weights > 0;
+  const runtimeOverhead = hasModelMemory ? spec.runtime.overheadGb : 0;
+  let working: WorkingMemory = { kvCacheGb: 0, inputActivationGb: 0 };
+  if (hasModelMemory) {
+    working =
+      spec.executionMode === "Inference"
+        ? inferenceWorkingMemoryGb(spec, weights)
+        : { kvCacheGb: 0, inputActivationGb: trainingActivationGb(spec) };
+  }
   const trainingState = trainingStateGb(spec);
   const subtotal =
     weights +
@@ -307,7 +311,7 @@ export function speedEstimate(
   currentWeightsGb: number,
   recommendedTier: Readonly<HardwareTier>,
 ): string {
-  if (spec.totalParamsB === 0) {
+  if (currentWeightsGb === 0) {
     return ZERO_SPEED_ESTIMATES.get(spec.family) ?? "0.0 tokens/second";
   }
   const precision = PRECISION_MAP[spec.precision];

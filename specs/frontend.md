@@ -172,6 +172,9 @@
       the zeroed reset estimate.
 - [x] Calculator unit tests cover invalid/non-positive `Known Model File Size`
       values falling back to parameter-based weights instead of zeroing memory.
+- [x] Calculator unit tests cover the model-memory boundary: exact known files
+      still estimate when total parameters are unknown, while zero model memory
+      suppresses workload-only activation memory.
 - [x] Calculator unit tests cover family-specific training activation sizing for
       vision, diffusion, video, audio, tabular, and custom workloads.
 - [x] State and app unit tests cover GPU resident fraction and LoRA trainable

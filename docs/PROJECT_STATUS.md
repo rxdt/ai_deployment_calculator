@@ -29,6 +29,10 @@
 - New this iteration: direct calculation state also enforces impossible semantic
   caps: LoRA trainable percent cannot exceed `100`, and MoE active parameters
   cannot exceed total parameters.
+- New this iteration: model-memory gating now treats a positive
+  `Known Model File Size` as real resident memory even when total parameters are
+  unknown, while zero model memory no longer produces workload-only activation,
+  runtime, or speed estimates.
 
 ## Commands
 
@@ -53,6 +57,7 @@
 - `pnpm --dir frontend exec vitest run src/state.test.ts src/app.test.ts`
   passed: 63 tests.
 - `pnpm --dir frontend exec vitest run src/calculator.test.ts` passed: 72 tests.
+- `pnpm --dir frontend exec vitest run src/calculator.test.ts` passed: 74 tests.
 - `pnpm preflight` passed: prettier check, eslint, stylelint, html-validate.
 - `pnpm gate` passed: format, lint, typecheck, schema, dependency checks,
   deadcode, spelling, workflow lint, SAST, secrets, audit, build, coverage,
@@ -61,5 +66,6 @@
 ## Blockers
 
 - No blocker for the scoped frontend change.
-- Existing unstaged human-owned forbidden edits remain in `harness/gate.ts` and
-  `harness/gate.test.ts`; agents must not stage or alter them.
+- Existing unstaged human-owned forbidden edits remain in `PROMPT.md`,
+  `harness/gate.ts`, and `harness/gate.test.ts`; agents must not stage or alter
+  them.

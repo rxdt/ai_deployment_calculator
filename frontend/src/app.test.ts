@@ -3,6 +3,36 @@ import { afterEach, describe, expect, test } from "vitest";
 import indexHtml from "../index.html?raw";
 import { CalculatorApp, mountCalculator, sanitizeNumberInput } from "./app";
 
+const CONTRACTED_LABELS = new Map([
+  ["workload-family", "Workload Family"],
+  ["total-params", "Total Model Parameters"],
+  ["parameter-unit", "Parameter Unit"],
+  ["precision", "Precision"],
+  ["execution-mode", "Execution Mode"],
+  ["runtime-profile", "Runtime Profile"],
+  ["known-model-file-size-gb", "Known Model File Size"],
+]);
+
+const PUBLIC_WORKLOAD_NAMES = [
+  "Text generation / chat",
+  "Text embeddings / reranking / classification",
+  "Encoder-decoder generation",
+  "Vision understanding",
+  "Vision-language / multimodal",
+  "Image generation / diffusion",
+  "Video generation",
+  "Speech / audio",
+  "Tabular / classical ML",
+  "Custom / unknown",
+];
+
+const REPLACED_PUBLIC_NAMES = [
+  "Model Family",
+  "LLM / text generation",
+  "Text encoder / embeddings / reranking / classification",
+  "Known Resident Model Size",
+];
+
 /**
  Render the real index.html into the jsdom document body.
 */
@@ -111,6 +141,35 @@ function field(name: string): HTMLInputElement | HTMLSelectElement {
     throw new TypeError(`Missing field: ${name}`);
   }
   return node;
+}
+
+/**
+ Read the visible label text for a control by field name.
+@param name - the control's name attribute
+@returns normalized label text
+*/
+function labelTextFor(name: string): string {
+  const control = field(name);
+  const label = control.labels?.[0];
+  if (!(label instanceof HTMLLabelElement)) {
+    throw new TypeError(`Missing label for: ${name}`);
+  }
+  return label.textContent.trim().replaceAll(/\s+/gu, " ");
+}
+
+/**
+ Return the visible option labels for a select field.
+@param name - the control's name attribute
+@returns normalized option text
+*/
+function optionText(name: string): string[] {
+  const control = field(name);
+  if (!(control instanceof HTMLSelectElement)) {
+    throw new TypeError(`${name} control must be a select`);
+  }
+  return [...control.options].map((option) =>
+    option.textContent.trim().replaceAll(/\s+/gu, " "),
+  );
 }
 
 /**
@@ -230,6 +289,24 @@ describe("CalculatorApp construction", () => {
     loadDom();
     field("kv-cache-precision").remove();
     expect(() => mountCalculator(document)).not.toThrow();
+  });
+});
+
+describe("naming contract", () => {
+  test("renders public UI names from the naming contract in the real form", () => {
+    loadDom();
+    mountCalculator(document);
+
+    for (const [id, expected] of CONTRACTED_LABELS) {
+      expect(labelTextFor(id)).toBe(expected);
+    }
+    expect(optionText("workload-family")).toEqual(PUBLIC_WORKLOAD_NAMES);
+    expect(
+      dataSlot("advanced-assumptions").firstElementChild?.textContent,
+    ).toBe("Advanced assumptions");
+    for (const oldName of REPLACED_PUBLIC_NAMES) {
+      expect(document.body.textContent).not.toContain(oldName);
+    }
   });
 });
 

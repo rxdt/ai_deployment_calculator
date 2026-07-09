@@ -16,9 +16,9 @@
 - [x] There is NO fast-api or WSGI app.
 - [x] `CalculatorApp` normalizes form state, calls local TypeScript
       `buildReport(state)`, and renders synchronously.
-- [ ] Public UI names follow the Naming Contract in `specs/plan.md`; do not redefine
+- [x] Public UI names follow the Naming Contract in `specs/plan.md`; do not redefine
       them here.
-- [ ] The app is responsive.
+- [x] The app is responsive.
 - [x] Complex underlying formulas only appear in expandable cards.
 - [ ] The app is accurate and has inputs/outputs an engineer would trust
 - [ ] The app is simple enough for a non-tech user
@@ -41,7 +41,10 @@
 - [x] `KV Cache Precision` lives in advanced assumptions, is visible only for
       inference decoder-KV workloads, and offers `8-bit / FP8`, `16-bit`, and
       `32-bit`.
-- [ ] The app is responsive according to `/scratchpad/responsive_frontend_research.md`
+- [x] The app is responsive according to
+      `/scratchpad/responsive_frontend_research.md`; Playwright checks default,
+      long workload names, and expanded advanced assumptions keep edge content in
+      viewport.
 - [x] Workload size label is `Concurrent Requests` for inference and
       `Micro Batch Size` for training; never reintroduce generic `Batch Size`.
 - [x] `MoE Model` appears only for text generation, embeddings, encoder-decoder,
@@ -72,7 +75,9 @@
   - [x] The app fits in one viewport on desktop and mobile in the collapsed
         default state; `frontend/tests/responsive.spec.ts:75` passes on all
         Playwright projects.
-  - [ ] The app is responsive ~/ai_deployment_calculator/scratchpad/responsive_frontend_research.md
+  - [x] The app is responsive
+        `~/ai_deployment_calculator/scratchpad/responsive_frontend_research.md`
+        with covered desktop/mobile edge content staying in viewport.
   - [ ] Styling follows `specs/DESIGN.md` -- Design system defines 24 colors, 7 typography scales, 5 rounding levels, 10 spacing tokens, 25 components.
   - [ ] Styling honors a compact, clean calculator shape. Compact calculator examples are like `spec/calc1.png`, `~/specs/calc2.png`, `spec/calc13.png`.
   - [ ] Styling keeps app compact and well-organized
@@ -110,8 +115,10 @@
         `Training memory`, `Runtime reserve`, `Safety margin`). Rows that round to
         `0.0 GB` are hidden.
   - [x] `Formula used` — the inline canonical equation substitution.
-  - [x] `Assumptions used` — visible precision, runtime, execution, and KV
-        assumptions.
+  - [x] `Assumptions used` — visible precision, runtime, execution, known-file
+        override, training, sharding, and KV assumptions when they affect the
+        estimate. Decoder KV assumptions include the context/output/text-image
+        scaling inputs plus concurrency, precision, and resolved head counts.
 - [x] The hardware-recommendation and fit math (usable VRAM on class, fit headroom,
       overflow `n/a`, speed) is defined in the Formulas section below.
 - [x] Warnings are conditional only: training, MoE, and sharded-tier speed guidance.
@@ -140,13 +147,17 @@
       `Estimate confidence` label, collapsed output panels, removed `Accuracy` /
       `Your GPU Fit` surfaces, default empty warnings, and fractional
       `Total Model Parameters` input cleanup, plus stale hidden-MoE checkbox
-      cleanup when switching away from and back to MoE-applicable families, and
-      workload-unit speed labels.
+      cleanup when switching away from and back to MoE-applicable families,
+      workload-unit speed labels, and the Naming Contract public labels/options.
 - [x] Report unit tests cover overflow guidance plus the sharded-tier warning used
       for the fallback speed estimate.
 - [x] Report unit tests pin the confidence label for all ten workload families
       and pin which families surface decoder `KV Cache precision` assumptions in
-      inference (text generation, encoder-decoder, vision-language only).
+      inference (text generation, encoder-decoder, vision-language only), plus
+      the family-specific KV scaling inputs surfaced in assumptions.
+- [x] Report and calculator unit tests cover advanced assumptions that affect
+      estimates: known file size, GPU resident fraction clamping, LoRA trainable
+      percent, optimizer, gradient checkpointing, and memory sharding.
 - [x] `frontend/src/legacy-approximations.test.ts` was deleted; do not reintroduce
       it or any legacy-approximation test.
 - [x] Required commands: `pnpm --dir frontend exec vitest run src/calculator.test.ts`,

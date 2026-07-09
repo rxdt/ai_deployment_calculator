@@ -1,6 +1,7 @@
 import {
   specFromState,
   weightsGb,
+  type CalculationSpec,
   type MemoryBreakdown,
 } from "./calculator-core";
 import { confidenceLabel } from "./confidence";
@@ -71,20 +72,106 @@ function warningsFor(state: Readonly<FormState>): string[] {
 
 /**
  
-@param state
+@param value
 */
-function assumptionRows(state: Readonly<FormState>): DisplayRow[] {
-  const rows: DisplayRow[] = [
-    { label: "Precision", value: state.precision },
-    { label: "Runtime profile", value: state.runtimeProfile },
-    { label: "Execution mode", value: state.executionMode },
-  ];
-  if (!hasDecoderKvCache(state)) {
-    return rows;
+function formatPercent(value: number): string {
+  return `${String(Number((value * 100).toFixed(1)))}%`;
+}
+
+/**
+
+@param spec
+*/
+function knownFileAssumptionRows(
+  spec: Readonly<CalculationSpec>,
+): DisplayRow[] {
+  if (spec.knownModelFileSizeGb === null || spec.knownModelFileSizeGb <= 0) {
+    return [];
   }
-  const spec = specFromState(state);
+  const rows: DisplayRow[] = [
+    {
+      label: "Known Model File Size",
+      value: formatGb(spec.knownModelFileSizeGb),
+    },
+  ];
+  if (spec.gpuResidentFraction !== 1) {
+    rows.push({
+      label: "GPU resident fraction",
+      value: formatPercent(spec.gpuResidentFraction),
+    });
+  }
+  return rows;
+}
+
+/**
+
+@param state
+@param spec
+*/
+function trainingAssumptionRows(
+  state: Readonly<FormState>,
+  spec: Readonly<CalculationSpec>,
+): DisplayRow[] {
+  if (state.executionMode === "Inference") {
+    return [];
+  }
+  const rows: DisplayRow[] = [];
+  if (state.executionMode !== "Full training") {
+    rows.push({
+      label: "LoRA trainable parameters",
+      value: `${String(spec.loraTrainablePercent)}%`,
+    });
+  }
+  rows.push(
+    { label: "Optimizer", value: state.optimizer },
+    {
+      label: "Gradient checkpointing",
+      value: state.gradientCheckpointing ? "Enabled" : "Disabled",
+    },
+  );
+  return rows;
+}
+
+/**
+
+@param state
+@param spec
+*/
+function kvAssumptionRows(
+  state: Readonly<FormState>,
+  spec: Readonly<CalculationSpec>,
+): DisplayRow[] {
+  if (!hasDecoderKvCache(state)) {
+    return [];
+  }
+  const workloadRow = {
+    label: "Concurrent requests",
+    value: spec.workloadSize.toString(),
+  };
+  let scalingRows: DisplayRow[];
+  if (state.workloadFamily === "encoder_decoder") {
+    scalingRows = [
+      { label: "Output tokens", value: state.outputTokens },
+      workloadRow,
+    ];
+  } else if (state.workloadFamily === "vision_language") {
+    scalingRows = [
+      { label: "Text context tokens", value: state.textContextTokens },
+      { label: "Image count", value: state.imageCount },
+      {
+        label: "Image size",
+        value: `${state.imageWidth} x ${state.imageHeight}`,
+      },
+      workloadRow,
+    ];
+  } else {
+    scalingRows = [
+      { label: "Context tokens", value: state.contextTokens },
+      workloadRow,
+    ];
+  }
   return [
-    ...rows,
+    ...scalingRows,
     { label: "KV Cache precision", value: state.kvCachePrecision },
     { label: "KV heads used", value: spec.architecture.kvHeads.toString() },
     {
@@ -96,6 +183,29 @@ function assumptionRows(state: Readonly<FormState>): DisplayRow[] {
 
 /**
  
+@param state
+@param spec
+*/
+function assumptionRows(
+  state: Readonly<FormState>,
+  spec: Readonly<CalculationSpec>,
+): DisplayRow[] {
+  const shardingRows = state.memoryShardingEnabled
+    ? [{ label: "Memory sharding", value: "Enabled" }]
+    : [];
+  return [
+    { label: "Precision", value: state.precision },
+    { label: "Runtime profile", value: state.runtimeProfile },
+    { label: "Execution mode", value: state.executionMode },
+    ...knownFileAssumptionRows(spec),
+    ...trainingAssumptionRows(state, spec),
+    ...shardingRows,
+    ...kvAssumptionRows(state, spec),
+  ];
+}
+
+/**
+
 @param state
 */
 function weightsLabel(state: Readonly<FormState>): string {
@@ -161,7 +271,7 @@ export function buildReport(state: Readonly<FormState>): ReportPayload {
       row("Runtime reserve", breakdown.runtimeOverheadGb),
       row("Safety margin", breakdown.safetyBufferGb),
     ]),
-    assumptions: assumptionRows(state),
+    assumptions: assumptionRows(state, spec),
     warnings,
     calculation: formulaText(breakdown, required, spec.runtime.buffer),
   };

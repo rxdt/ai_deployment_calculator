@@ -62,6 +62,11 @@ body {
   line-height: var(--font-line-body);
 }
 
+img {
+  max-width: 100%;
+  height: auto;
+}
+
 button,
 input,
 select {
@@ -105,6 +110,7 @@ a {
 }
 
 .topbar {
+  min-width: 0;
   min-height: var(--layout-control-size);
   display: flex;
   align-items: center;
@@ -113,6 +119,10 @@ a {
   padding: 0 var(--space-md);
   border-bottom: var(--layout-border) solid var(--color-border);
   background: var(--color-topbar);
+}
+
+.topnav {
+  min-width: 0;
 }
 
 .brand,
@@ -130,6 +140,7 @@ summary {
 }
 
 .topnav a {
+  min-width: 0;
   min-height: var(--layout-control-size);
   display: inline-flex;
   align-items: center;
@@ -137,8 +148,25 @@ summary {
   text-decoration: none;
 }
 
+.topnav span,
+.brand,
+label,
+legend,
+summary,
+.hero-label,
+.hero-say,
+.hero-confidence,
+.metric span,
+.metric strong,
+.fit span,
+.fit strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 .layout {
   min-height: 0;
+  min-width: 0;
   display: flex;
   gap: var(--space-md);
   padding: var(--space-md);
@@ -277,6 +305,8 @@ summary {
 }
 
 .hero-value {
+  min-width: 0;
+  overflow-wrap: anywhere;
   color: var(--color-primary);
   font-size: var(--font-hero);
   font-weight: var(--font-weight-strong);

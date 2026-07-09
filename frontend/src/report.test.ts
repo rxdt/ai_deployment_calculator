@@ -343,6 +343,81 @@ describe("buildReport", () => {
     });
   });
 
+  test("assumptions surface decoder KV scaling inputs by workload family", () => {
+    expect(
+      buildReport(
+        state({
+          workloadFamily: "text_generation",
+          contextTokens: "32000",
+          workloadSize: "4",
+        }),
+      ).assumptions,
+    ).toEqual(
+      expect.arrayContaining([
+        { label: "Context tokens", value: "32000" },
+        { label: "Concurrent requests", value: "4" },
+      ]),
+    );
+
+    expect(
+      buildReport(
+        state({
+          workloadFamily: "encoder_decoder",
+          outputTokens: "512",
+          workloadSize: "2",
+        }),
+      ).assumptions,
+    ).toEqual(
+      expect.arrayContaining([
+        { label: "Output tokens", value: "512" },
+        { label: "Concurrent requests", value: "2" },
+      ]),
+    );
+
+    expect(
+      buildReport(
+        state({
+          workloadFamily: "vision_language",
+          textContextTokens: "12000",
+          imageCount: "3",
+          imageWidth: "1280",
+          imageHeight: "720",
+        }),
+      ).assumptions,
+    ).toEqual(
+      expect.arrayContaining([
+        { label: "Text context tokens", value: "12000" },
+        { label: "Image count", value: "3" },
+        { label: "Image size", value: "1280 x 720" },
+      ]),
+    );
+  });
+
+  test("assumptions surface advanced inputs that change memory or hardware selection", () => {
+    const report = buildReport(
+      state({
+        executionMode: "QLoRA fine-tuning",
+        knownModelFileSizeGb: "52",
+        gpuResidentFraction: "0.25",
+        loraTrainablePercent: "2",
+        optimizer: "8-bit Adam",
+        gradientCheckpointing: false,
+        memoryShardingEnabled: true,
+      }),
+    );
+
+    expect(report.assumptions).toEqual(
+      expect.arrayContaining([
+        { label: "Known Model File Size", value: "52.0 GB" },
+        { label: "GPU resident fraction", value: "25%" },
+        { label: "LoRA trainable parameters", value: "2%" },
+        { label: "Optimizer", value: "8-bit Adam" },
+        { label: "Gradient checkpointing", value: "Disabled" },
+        { label: "Memory sharding", value: "Enabled" },
+      ]),
+    );
+  });
+
   test("assumptions omit KV cache details outside inference decoder KV workloads", () => {
     const visionRows = buildReport(
       state({ workloadFamily: "vision" }),

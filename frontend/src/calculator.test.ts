@@ -340,6 +340,34 @@ describe("training estimates", () => {
     expect(memoryBreakdown(spec).requiredGb).toBe(21);
   });
 
+  test("GPU resident fraction scales known-file inference weights without exceeding the file size", () => {
+    const partial = specFromState(
+      state({
+        knownModelFileSizeGb: "52",
+        gpuResidentFraction: "0.25",
+      }),
+    );
+    const overOne = specFromState(
+      state({
+        knownModelFileSizeGb: "52",
+        gpuResidentFraction: "2",
+      }),
+    );
+    const negative = specFromState(
+      state({
+        knownModelFileSizeGb: "52",
+        gpuResidentFraction: "-0.25",
+      }),
+    );
+
+    expect(partial.gpuResidentFraction).toBe(0.25);
+    expect(weightsGb(partial)).toBe(13);
+    expect(overOne.gpuResidentFraction).toBe(1);
+    expect(weightsGb(overOne)).toBe(52);
+    expect(negative.gpuResidentFraction).toBe(1);
+    expect(weightsGb(negative)).toBe(52);
+  });
+
   test("training activation uses encoder and encoder-decoder token shapes", () => {
     const encoder = specFromState(
       state({

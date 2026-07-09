@@ -106,6 +106,25 @@ for (const viewport of onePageViewports) {
       page.getByText("Assumptions used", { exact: true }),
     ).toBeInViewport();
   });
+
+  test(`responsive edges stay in viewport on ${viewport.name}`, async ({
+    page,
+  }) => {
+    await page.setViewportSize(viewport);
+    await page.goto("/");
+
+    await expect(page.getByLabel("GitHub repository")).toBeInViewport();
+    await expect(page.getByLabel("Workload Family")).toBeInViewport();
+    await expect(page.locator('[data-out="gpu-class"]')).toBeInViewport();
+
+    await page.locator("#workload-family").selectOption("text_encoder");
+    await expect(page.getByLabel("Workload Family")).toBeInViewport();
+    await expect(page.locator('[data-out="gpu-class"]')).toBeInViewport();
+
+    await page.getByText("Advanced assumptions", { exact: true }).click();
+    await expect(page.getByLabel("Known Model File Size")).toBeInViewport();
+    await expect(page.getByLabel("Memory Sharding")).toBeInViewport();
+  });
 }
 
 test("axe accessibility scan", async ({ page }) => {

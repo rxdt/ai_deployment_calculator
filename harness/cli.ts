@@ -3,6 +3,7 @@ import * as fs from "node:fs";
 import path from "node:path";
 
 import * as gate from "./gate.js";
+import { renderStatus } from "./logging.js";
 
 const USAGE = "usage: harness <preflight|gate|loop|status|setup>";
 const LOOP_ERROR = "harness setup must not run inside the agent loop\n";
@@ -147,17 +148,8 @@ export const run = (
 };
 
 export const runStatus = (): number => {
-  const runs = path.join(repoRoot(process.cwd()), "scratchpad", "runs");
-  const logs = (
-    fs.existsSync(runs) ? fs.readdirSync(runs, { recursive: true }) : []
-  )
-    .map(String)
-    .filter((name) => name.endsWith(".jsonl"))
-    .toSorted((left, right) => left.localeCompare(right));
-  process.stdout.write(`${String(logs.length)} run log(s) in ${runs}\n`);
-  const newest = logs.at(-1);
-  if (newest !== undefined)
-    process.stdout.write(`newest: ${path.join(runs, newest)}\n`);
+  const repo = repoRoot(process.cwd());
+  process.stdout.write(renderStatus(repo));
   return 0;
 };
 

@@ -116,6 +116,16 @@ function nonNegative(value: string, fallback: number): number {
 
 /**
  
+@param value
+@param fallback
+*/
+function fraction(value: string, fallback: number): number {
+  const parsed = decimal(value, fallback);
+  return parsed >= 0 ? Math.min(parsed, 1) : fallback;
+}
+
+/**
+
 @param state
 */
 function totalParametersB(state: Readonly<FormState>): number {
@@ -294,7 +304,7 @@ export function specFromState(state: Readonly<FormState>): CalculationSpec {
     architecture: architectureFor(total),
     visionArchitecture: null,
     knownModelFileSizeGb: knownFile,
-    gpuResidentFraction: nonNegative(state.gpuResidentFraction, 1),
+    gpuResidentFraction: fraction(state.gpuResidentFraction, 1),
     loraTrainablePercent: nonNegative(state.loraTrainablePercent, 0.5),
     optimizerBytes: optimizerBytes(state.optimizer),
     gradientCheckpointing: state.gradientCheckpointing,

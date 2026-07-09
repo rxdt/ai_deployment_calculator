@@ -741,9 +741,11 @@ layout (topbar, two-pane `layout`, hero, collapsible `panel`/`advanced` details,
 and a narrow-width media query); the responsive Playwright checks pass. This conflicts with
 items #1–#2 and the "styling deferred" framing above — whether that earlier styling should
 stand or be reverted is a product decision left to the owner. The direction below remains the
-reference for the visual pass; the Lighthouse/Playwright visual verification and the unchecked
-STYLING items remain open and are currently execution-blocked. This section describes
-presentation only — no calculation, markup-structure, or label changes (those are fixed above).
+reference for the visual pass; Lighthouse and the responsive Playwright suite both pass against
+the current stylesheet, so the remaining unchecked STYLING items are visual-polish and the
+deferred-vs-committed styling conflict — owner product decisions, not execution-blocked. This
+section describes presentation only — no calculation, markup-structure, or label changes (those
+are fixed above).
 
 Hierarchy:
 

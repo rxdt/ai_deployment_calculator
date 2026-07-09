@@ -29,8 +29,11 @@
 - Calculator unit tests now pin decoder-KV families versus no-KV families and
   exact scaling for encoder, encoder-decoder, diffusion, video, audio, tabular,
   and custom working-memory formulas.
+- Hidden adaptive controls now disable their child inputs/selects, and the
+  reactive form skips disabled controls during serialization.
 - `specs/frontend.md` marks calculation unit coverage, required commands, and
   the deleted legacy-approximations test as complete.
+- `specs/frontend.md` marks disabled hidden adaptive controls complete.
 
 ## Commands
 
@@ -59,14 +62,16 @@
 - `pnpm --dir frontend exec vitest run src/report.test.ts` last recorded 16
   tests.
 - `pnpm --dir frontend exec vitest run src/calculator.test.ts` passes: 58 tests.
+- `pnpm --dir frontend exec vitest run src/app.test.ts src/state.test.ts`
+  passes: 56 tests.
 - App typecheck command above passes.
 - `pnpm preflight` first failed for unstaged work and test-file formatting; after
   formatting and staging, it passed.
-- Final `pnpm preflight` passes.
-- Final `pnpm gate` passes format, eslint, style, html, typecheck, harness
+- Current `pnpm preflight` passes.
+- Current `pnpm gate` passes format, eslint, style, html, typecheck, harness
   types, schema, dependency-cruiser, deadcode, spelling, workflow lint, secrets,
   audit, build, e2e, and Lighthouse. `semgrep` is not installed and is skipped.
-- Final `pnpm gate` fails in forbidden harness coverage tests:
+- Current `pnpm gate` fails in forbidden harness coverage tests:
   `harness/cli.test.ts` has six setup cases expecting status `0`, `1`, or `7`
   but receiving status `2`.
 

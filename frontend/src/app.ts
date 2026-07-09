@@ -21,15 +21,37 @@ function toStateKey(name: string): string {
 
 @param element
 */
+function selectEntry(element: HTMLSelectElement): [string, string] | null {
+  if (element.disabled) {
+    return null;
+  }
+  return [element.name, element.value];
+}
+
+/**
+
+@param element
+*/
+function inputEntry(element: HTMLInputElement): [string, string] | null {
+  if (element.disabled) {
+    return null;
+  }
+  if (element.type === "checkbox") {
+    return element.checked ? [element.name, "on"] : null;
+  }
+  return [element.name, element.value];
+}
+
+/**
+
+@param element
+*/
 function controlEntry(element: Element): [string, string] | null {
   if (element instanceof HTMLSelectElement) {
-    return [element.name, element.value];
+    return selectEntry(element);
   }
   if (element instanceof HTMLInputElement) {
-    if (element.type === "checkbox") {
-      return element.checked ? [element.name, "on"] : null;
-    }
-    return [element.name, element.value];
+    return inputEntry(element);
   }
   return null;
 }
@@ -131,6 +153,36 @@ function dataSlot(root: ParentNode, name: string): HTMLElement | null {
     }
   }
   return null;
+}
+
+/**
+
+@param node
+@param isDisabled
+*/
+function setDescendantControlsDisabled(
+  node: Element,
+  isDisabled: boolean,
+): void {
+  for (const child of node.children) {
+    if (
+      child instanceof HTMLInputElement ||
+      child instanceof HTMLSelectElement
+    ) {
+      child.disabled = isDisabled;
+    }
+    setDescendantControlsDisabled(child, isDisabled);
+  }
+}
+
+/**
+
+@param node
+@param isHidden
+*/
+function setHiddenWithControls(node: HTMLElement, isHidden: boolean): void {
+  node.hidden = isHidden;
+  setDescendantControlsDisabled(node, isHidden);
 }
 
 export class CalculatorApp {
@@ -279,21 +331,24 @@ export class CalculatorApp {
       // The [data-families] selector guarantees the attribute is present, so String()
       // only ever wraps a real value; it avoids a nullish-default branch that no real
       // DOM state could exercise.
-      node.hidden = !String(node.dataset.families).split(" ").includes(family);
+      setHiddenWithControls(
+        node,
+        !String(node.dataset.families).split(" ").includes(family),
+      );
     }
     const isMoeApplicable = hasMoeControl(family);
     for (const node of this.root.querySelectorAll<HTMLElement>(
       "[data-moe-families]",
     )) {
-      node.hidden = !isMoeApplicable;
+      setHiddenWithControls(node, !isMoeApplicable);
     }
     const isActiveVisible = isMoeApplicable && state.moeEnabled;
     for (const node of this.root.querySelectorAll<HTMLElement>(
       "[data-active]",
     )) {
-      node.hidden = !isActiveVisible;
+      setHiddenWithControls(node, !isActiveVisible);
     }
-    this.kvCacheRow.hidden = !hasDecoderKvCache(state);
+    setHiddenWithControls(this.kvCacheRow, !hasDecoderKvCache(state));
     const label =
       state.executionMode === "Inference"
         ? "Concurrent Requests"

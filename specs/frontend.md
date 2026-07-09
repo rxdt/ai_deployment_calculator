@@ -48,6 +48,8 @@
       multimodal, and custom. `Active Parameters` appears only when checked.
 - [x] Changing workload family or execution mode rerenders adaptive controls without
       waiting for form submit.
+- [x] Hidden adaptive controls are disabled so only visible, applicable controls are
+      editable and serialized by the reactive form.
 - [ ] HTML reflects clean, compact, well-organized flow. Clean, compact, well-organized examples are like `spec/calc1.png`, `~/specs/calc2.png`, `spec/calc13.png` -> do not follow those exactly, they are loose examples of what 'good' looks like to a human user.
 - [x] Small Github logo with link to github repo is in top right
       `https://github.com/rxdt/ai_deployment_calculator/`.

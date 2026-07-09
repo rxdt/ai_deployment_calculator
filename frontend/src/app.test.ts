@@ -590,10 +590,14 @@ describe("adaptive controls", () => {
     loadDom();
     mountCalculator(document);
     expect(isRowHidden("context-tokens")).toBe(false);
+    expect(field("context-tokens").disabled).toBe(false);
     fireChange("workload-family", "vision");
     expect(isRowHidden("context-tokens")).toBe(true);
+    expect(field("context-tokens").disabled).toBe(true);
     expect(isRowHidden("image-width")).toBe(false);
+    expect(field("image-width").disabled).toBe(false);
     expect(isRowHidden("moe-enabled")).toBe(true);
+    expect(field("moe-enabled").disabled).toBe(true);
   });
 
   test("rerenders adaptive controls from change events without submitting", () => {
@@ -643,12 +647,14 @@ describe("adaptive controls", () => {
     mountCalculator(document);
     expect(isRowHidden("moe-enabled")).toBe(false);
     expect(isRowHidden("active-params")).toBe(true);
+    expect(field("active-params").disabled).toBe(true);
     const moe = field("moe-enabled");
     if (moe instanceof HTMLInputElement) {
       moe.checked = true;
     }
     moe.dispatchEvent(new Event("change", { bubbles: true }));
     expect(isRowHidden("active-params")).toBe(false);
+    expect(field("active-params").disabled).toBe(false);
   });
 
   test("ignores a checked hidden MoE box after switching workload family", () => {

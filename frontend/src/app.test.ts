@@ -218,6 +218,14 @@ describe("CalculatorApp construction", () => {
     );
   });
 
+  test("throws when a required synchronized checkbox is missing", () => {
+    loadDom();
+    field("moe-enabled").remove();
+    expect(() => mountCalculator(document)).toThrow(
+      "Missing checkbox control: moe-enabled",
+    );
+  });
+
   test("keeps rendering when the KV precision select is missing from its row", () => {
     loadDom();
     field("kv-cache-precision").remove();

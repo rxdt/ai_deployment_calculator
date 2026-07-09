@@ -103,8 +103,8 @@ describe("normalizedState", () => {
 
   test("clamps numbers above the maximum", () => {
     expect(
-      normalizedState(parameters({ totalParams: "1000000" })).totalParams,
-    ).toBe("999999");
+      normalizedState(parameters({ totalParams: "100000000" })).totalParams,
+    ).toBe("99999999.9");
   });
 
   test("clamps advanced ratio and percent query values to valid ranges", () => {
@@ -127,6 +127,18 @@ describe("normalizedState", () => {
     expect(normalizedState(parameters({ totalParams: "42" })).totalParams).toBe(
       "42",
     );
+  });
+
+  test("rejects numbers with more than one decimal digit", () => {
+    expect(
+      normalizedState(parameters({ totalParams: "7.25" })).totalParams,
+    ).toBe(defaultState().totalParams);
+  });
+
+  test("accepts the global cap plus one decimal digit", () => {
+    expect(
+      normalizedState(parameters({ totalParams: "99999999.9" })).totalParams,
+    ).toBe("99999999.9");
   });
 
   test("treats a bare decimal point as invalid", () => {

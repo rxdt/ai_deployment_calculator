@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, test } from "vitest";
 import indexHtml from "../index.html?raw";
-import { CalculatorApp, mountCalculator, sanitizeNumberInput } from "./app";
+import { CalculatorApp, mountCalculator } from "./app";
+import { sanitizeNumberInput } from "./input-sanitizer";
 
 const CONTRACTED_LABELS = new Map([
   ["workload-family", "Workload Family"],
@@ -625,8 +626,8 @@ describe("mounted calculator", () => {
     mountCalculator(document);
     fireInput("context-tokens", "-9e5");
     expect(field("context-tokens").value).toBe("95");
-    fireInput("context-tokens", "1000000");
-    expect(field("context-tokens").value).toBe("999999");
+    fireInput("context-tokens", "100000000");
+    expect(field("context-tokens").value).toBe("99999999");
   });
 
   test("reset zeroes inputs and outputs and explains the empty estimate", () => {
@@ -891,7 +892,15 @@ describe("sanitizeNumberInput", () => {
     input.inputMode = "decimal";
     input.value = "1.2.3";
     sanitizeNumberInput(input);
-    expect(input.value).toBe("1.23");
+    expect(input.value).toBe("1.2");
+  });
+
+  test("keeps one decimal digit at the global cap", () => {
+    const input = document.createElement("input");
+    input.inputMode = "decimal";
+    input.value = "100000000";
+    sanitizeNumberInput(input);
+    expect(input.value).toBe("99999999.9");
   });
 
   test("leaves an already-clean value untouched", () => {
@@ -906,9 +915,9 @@ describe("sanitizeNumberInput", () => {
     const input = document.createElement("input");
     input.dataset.numberMax = "not-a-number";
     input.inputMode = "numeric";
-    input.value = "1000000";
+    input.value = "100000000";
     sanitizeNumberInput(input);
-    expect(input.value).toBe("999999");
+    expect(input.value).toBe("99999999");
   });
 });
 

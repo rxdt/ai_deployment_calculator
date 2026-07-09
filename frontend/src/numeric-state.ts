@@ -1,6 +1,6 @@
 import type { FormState } from "./types";
 
-const MAX_NUMERIC_VALUE = 999_999;
+const MAX_NUMERIC_VALUE = 99_999_999.9;
 
 const NUMERIC_KEYS = [
   "totalParams",
@@ -61,6 +61,9 @@ function isPlainDecimal(value: string): boolean {
   if (parts.length > 2) {
     return false;
   }
+  if (parts[1] !== undefined && parts[1].length > 1) {
+    return false;
+  }
   const digits = parts.join("");
   if (digits.length === 0) {
     return false;
@@ -71,6 +74,13 @@ function isPlainDecimal(value: string): boolean {
     }
   }
   return true;
+}
+
+/**
+@param value
+*/
+function maximumValue(value: number): string {
+  return Number.isSafeInteger(value) ? String(value) : value.toFixed(1);
 }
 
 /**
@@ -86,7 +96,7 @@ function decimal(
   if (value === null || value.trim() === "" || !isPlainDecimal(value)) {
     return fallback;
   }
-  return Number(value) <= maximum ? value : String(maximum);
+  return Number(value) <= maximum ? value : maximumValue(maximum);
 }
 
 /**

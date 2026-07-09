@@ -24,6 +24,9 @@
 - [x] Only one form action exists, with text `Reset`; it is a submit button so the
       form has one accessible action.
 - [x] Advanced assumptions expanded section shows additional options.
+- [x] Numeric fields accept only digits plus at most one decimal digit, reject
+      letters/negatives/exponents, and clamp global values to `99999999.9`
+      (`99999999` for integer-mode inputs); field caps still apply.
 - [ ] Bare, minimal styles.css only to get tests passing until typescript/html work is complete.
 - [x] Visible form actions are not duplicated: `Reset` is the only visible button,
       and there is no hidden submit control.

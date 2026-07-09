@@ -1,9 +1,8 @@
 import { buildReport } from "./report";
+import { sanitizeNumberInput } from "./input-sanitizer";
 import { normalizedState, zeroState } from "./state";
 import type { DisplayRow, FormState, ReportPayload } from "./types";
 import { hasDecoderKvCache, hasMoeControl } from "./workload-visibility";
-
-const NUMBER_MAX = 999_999;
 
 /**
  Convert a kebab-case wire name (HTML `name` attribute) to the camelCase
@@ -69,39 +68,6 @@ function searchFromForm(form: HTMLFormElement): URLSearchParams {
     }
   }
   return search;
-}
-
-/**
-
-@param input
-*/
-function inputMaximum(input: HTMLInputElement): number {
-  const configured = input.dataset.numberMax;
-  if (configured === undefined) {
-    return NUMBER_MAX;
-  }
-  const parsed = Number(configured);
-  return Number.isFinite(parsed) ? Math.min(parsed, NUMBER_MAX) : NUMBER_MAX;
-}
-
-/**
-
-@param input
-*/
-export function sanitizeNumberInput(input: HTMLInputElement): void {
-  const digitsOnly = input.value.replaceAll(/[^\d.]/gu, "");
-  const [integer = "", ...fractions] = digitsOnly.split(".");
-  let next =
-    input.inputMode === "decimal" && fractions.length > 0
-      ? `${integer}.${fractions.join("")}`
-      : integer;
-  const maximum = inputMaximum(input);
-  if (next !== "" && Number(next) > maximum) {
-    next = String(maximum);
-  }
-  if (input.value !== next) {
-    input.value = next;
-  }
 }
 
 /**

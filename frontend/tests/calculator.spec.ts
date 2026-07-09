@@ -37,8 +37,8 @@ test("rejects negatives, exponents, and unbounded numbers", async ({
   await page.locator("#context-tokens").fill("-9e5");
   await expect(page.locator("#context-tokens")).toHaveValue("95");
 
-  await page.locator("#context-tokens").fill("1000000");
-  await expect(page.locator("#context-tokens")).toHaveValue("999999");
+  await page.locator("#context-tokens").fill("100000000");
+  await expect(page.locator("#context-tokens")).toHaveValue("99999999");
 });
 
 test("reset zeroes inputs and outputs", async ({ page }) => {

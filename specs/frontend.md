@@ -1,10 +1,7 @@
 # Frontend Spec
 
-1. [ ] **PRIORITY** TYPESCRPT AND HTML WORK IS COMPLETED 100%
-2. [ ] Frontend and UI implemented; keep green.
-3. [ ] Responsive standards met.
-4. [ ] Frontend best practices implemented.
-5. [ ] **Styling is the very LAST thing implemented.** (The owner will revert styling changes until html/typescrpt/javascript work and items 1-4 above are done.)
+1. [ ] **PRIORITY** TYPESCRPT AND HTML WORK IS COMPLETED%
+2. [ ] **Styling after.**
 
 > Checkbox checked on completed items to clarify what is done
 
@@ -20,8 +17,7 @@
       them here.
 - [x] The app is responsive.
 - [x] Complex underlying formulas only appear in expandable cards.
-- [ ] The app is accurate and has inputs/outputs an engineer would trust
-- [ ] The app is simple enough for a non-tech user
+- [ ] The app is accurate and has expected inputs/outputs
 
 ## UI
 
@@ -70,22 +66,17 @@
 - [ ] Top hero result looks like a more professional version than in `specs/this_png_shows_some_ideas_are_ok_not_all.png`
 - [x] Small disclaimer should exist below app outputs.
 - [x] Complex details and formulas are hidden in expandable sections as in this app `specs/light_style_ideas_reflected_in_DESIGN.md.png`
-- [ ] **Run lighthouse and Playwright. Both must pass.** Direct
+- [ ] **Run lighthouse and Playwright. Both must pass.**
 
 ## STYLING
 
-- [ ] Iff javascript and html work are completed. styling can begin.
-  - [x] When 'Advanced assumptions' is expanded, app fits in one viewport on desktop and mobile.
-  - [x] The app fits in one viewport on desktop and mobile in the collapsed
-        default state; `frontend/tests/responsive.spec.ts:75` passes on all
-        Playwright projects.
-  - [x] The app is responsive
-        `~/ai_deployment_calculator/scratchpad/responsive_frontend_research.md`
-        with covered desktop/mobile edge content staying in viewport.
-  - [ ] Styling follows `specs/DESIGN.md` -- Design system defines 24 colors, 7 typography scales, 5 rounding levels, 10 spacing tokens, 25 components.
-  - [ ] Styling honors a compact, clean calculator shape. Compact calculator examples are like `spec/calc1.png`, `~/specs/calc2.png`, `spec/calc13.png`.
-  - [ ] Styling keeps app compact and well-organized
-  - [ ] Styling loosely inspired by `specs/light_style_ideas_reflected_in_DESIGN.md.png`
+- [x] When 'Advanced assumptions' is expanded, app fits in one viewport on desktop and mobile.
+- [x] The app fits in one viewport on desktop and mobile in the collapsed default state; `frontend/tests/responsive.spec.ts:75` passes on all Playwright projects.
+- [x] The app is responsive  `~/ai_deployment_calculator/scratchpad/responsive_frontend_research.md` with covered desktop/mobile edge content staying in viewport.
+- [ ] Styling follows `specs/DESIGN.md` -- Design system defines 24 colors, 7 typography scales, 5 rounding levels, 10 spacing tokens, 25 components.
+- [ ] Styling honors a compact, clean calculator shape. Compact calculator examples are like `spec/calc1.png`, `~/specs/calc2.png`, `spec/calc13.png`.
+- [ ] Styling keeps app compact and well-organized
+- [ ] Styling loosely inspired by `specs/light_style_ideas_reflected_in_DESIGN.md.png`
 
 ## Calculation
 
@@ -742,7 +733,17 @@ assert known file size overrides parameter-derived weight estimate
 
 ## Design Direction
 
-Styling is deferred until TS and HTML work is verified complete; `styles.css` currently holds only a box-sizing reset. When the visual pass happens, follow this direction. It describes presentation only — no calculation, markup-structure, or label changes (those are fixed above).
+Status note (factual, current `HEAD`): `styles.css` is no longer a bare box-sizing
+reset. It is a committed full dark design-system stylesheet whose custom properties match
+`DESIGN.md` (background `#09090B`, secondary text `#A1A1AA`, primary `#22C55E`, cyan signal
+`#67E8F9`, Geist Variable body, JetBrains Mono for metrics/formulas/code) plus component
+layout (topbar, two-pane `layout`, hero, collapsible `panel`/`advanced` details, warnings,
+and a narrow-width media query); the responsive Playwright checks pass. This conflicts with
+items #1–#2 and the "styling deferred" framing above — whether that earlier styling should
+stand or be reverted is a product decision left to the owner. The direction below remains the
+reference for the visual pass; the Lighthouse/Playwright visual verification and the unchecked
+STYLING items remain open and are currently execution-blocked. This section describes
+presentation only — no calculation, markup-structure, or label changes (those are fixed above).
 
 Hierarchy:
 

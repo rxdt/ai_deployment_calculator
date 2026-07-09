@@ -139,7 +139,8 @@ Responsive standards met:
 
 - [x] First glance hero cards show only `Estimated VRAM Required`, the short
       usable-VRAM line, and `Recommended GPU Class`
-- [ ] NO `Estimate confidence` anywhere in code or app view
+- [x] Confidence output uses the visible label `Confidence`; retired wording is
+      gone from source and app view.
 - [x] `Recommended GPU Class` is visible (e.g. `24 GB GPU hardware tier`).
 
 ## Tests And Checks

@@ -444,6 +444,7 @@ describe("mounted calculator", () => {
     );
     expect(out("min-cap")).toBe("22.4 GB");
     expect(out("confidence")).toBe("Estimated");
+    expect(dataSlot("confidence-label").textContent.trim()).toBe("Confidence");
     expect(out("speed")).toMatch(/tokens\/sec$/u);
     expect(outSlot("breakdown").children).toHaveLength(5);
   });
@@ -553,10 +554,7 @@ describe("mounted calculator", () => {
     expect(out("vram-say")).toBe("The workload needs 19.0 GB usable VRAM.");
     expect(out("confidence")).toBe("Estimated");
     expect(out("gpu-class")).toBe("24 GB GPU hardware tier");
-    const heroText = [dataSlot("hero-total-card"), dataSlot("hero-gpu-card")]
-      .map((hero) => hero.textContent)
-      .join(" ");
-    expect(heroText).not.toContain("Estimate confidence");
+    expect(dataSlot("confidence-label").textContent.trim()).toBe("Confidence");
     expect(dataSlot("hero-total-card").contains(outSlot("confidence"))).toBe(
       false,
     );

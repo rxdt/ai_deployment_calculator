@@ -2,7 +2,7 @@ import { describe, expect, test } from "vitest";
 import { confidenceLabel } from "./confidence";
 import type { WorkloadFamily } from "./types";
 
-describe("always-visible estimate confidence label", () => {
+describe("always-visible confidence label", () => {
   test("labels pipeline-specific and open-ended families as Rough", () => {
     // Non-negotiable Research Correction: diffusion/video memory is pipeline-specific and
     // lower confidence by default; custom/unknown has no fixed architecture to estimate from.

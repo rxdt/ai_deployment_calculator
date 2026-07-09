@@ -118,7 +118,7 @@ Done means:
 20. Hardware recommendation comes from required_gb / utilization target.
 21. Outputs show enough math to explain recommendations without overwhelming the user.
 ~~23. Speed estimate label adapts by workload.~~
-25. Confidence label is always visible.
+~~25. Confidence label is always visible.~~
 26. Correct formulas remain.
 27. All calculations run in frontend TypeScript.
 28. README is updated.

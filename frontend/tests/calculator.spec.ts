@@ -214,6 +214,9 @@ test("renders the default 7B estimate consistently across the full report", asyn
   await expect(page.locator('[data-out="gpu-class"]')).toHaveText(
     "24 GB GPU hardware tier",
   );
+  await expect(page.locator('[data-slot="confidence-label"]')).toHaveText(
+    "Confidence",
+  );
   await expect(page.locator('[data-out="confidence"]')).toHaveText("Estimated");
 
   await page.getByText("Why this recommendation").click();

@@ -9,7 +9,7 @@ const ROUGH_FAMILIES = new Set<WorkloadFamily>([
 ]);
 
 /**
-Returns the always-visible estimate-confidence label for a workload family.
+Returns the always-visible confidence label for a workload family.
 Diffusion, video, and custom workloads report `Rough`; architecture-based
 families report `Estimated`.
 @param family - selected workload family

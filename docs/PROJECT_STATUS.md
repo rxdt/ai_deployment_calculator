@@ -2,25 +2,20 @@
 
 ## State
 
-- Branch: `main`; HEAD before this iteration: `8b44a1b`.
-- This iteration tightened form behavior for release readiness:
-  - Inference workload size is now labeled `Concurrent Batch Requests` in the
-    form, responsive smoke tests, browser report assertions, and assumptions.
-  - `QLoRA fine-tuning` still forces `Precision` to `4-bit` and
-    `Runtime Profile` to `Local / Edge`.
-  - Choosing a non-`4-bit` precision while in QLoRA now resets numeric inputs and
-    returns `Execution Mode` to `Inference`.
-- `specs/frontend.md` marks the verified checkbox, KV precision, workload-label,
-  and QLoRA precision-switching items complete.
+- Branch: `main`; HEAD before this iteration: `43a6a57`.
+- This iteration completed the output confidence wording cleanup:
+  - The visible label is now `Confidence`.
+  - The old confidence heading wording is gone from frontend source and app view.
+  - Unit and browser tests pin the label while keeping `Estimated` / `Rough`
+    values visible outside collapsed detail panels.
+- `specs/frontend.md` and `specs/plan.md` mark the confidence output item complete.
 
 ## Checks
 
-- Focused unit suites passed:
-  `pnpm --dir frontend exec vitest run src/app.test.ts src/report.test.ts` and
-  `pnpm --dir frontend exec vitest run src/calculator.test.ts src/state.test.ts`.
-- Focused browser suites passed:
-  `pnpm --prefix frontend run test:e2e -- calculator.spec.ts responsive.spec.ts`
-  passed 168 tests.
+- Focused unit suite passed:
+  `pnpm --dir frontend exec vitest run src/app.test.ts src/confidence.test.ts`.
+- Focused browser suite passed:
+  `pnpm --prefix frontend run test:e2e -- calculator.spec.ts` passed 168 tests.
 - Preflight: `pnpm preflight` passed.
 - Final gate: `pnpm gate` is RED only on `harness/cli.test.ts:798`; format,
   lint, style, html, typecheck, harnessTypes, schema, cruise, deadcode,

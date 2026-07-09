@@ -369,6 +369,32 @@ describe("training estimates", () => {
   });
 
   /**
+  Direct callers can bypass URL and form caps. The calculation source of truth
+  should still prevent adapter state from exceeding the whole model.
+  */
+  test("caps direct LoRA trainable percent at the full model", () => {
+    const fullModelAdapters = specFromState(
+      state({
+        totalParams: "8",
+        executionMode: "LoRA fine-tuning",
+        loraTrainablePercent: "100",
+      }),
+    );
+    const impossibleAdapters = specFromState(
+      state({
+        totalParams: "8",
+        executionMode: "LoRA fine-tuning",
+        loraTrainablePercent: "250",
+      }),
+    );
+
+    expect(impossibleAdapters.loraTrainablePercent).toBe(100);
+    expect(trainingStateGb(impossibleAdapters)).toBe(
+      trainingStateGb(fullModelAdapters),
+    );
+  });
+
+  /**
   Direct state may contain stale or invalid Known Model File Size values. They
   should not become a zero-size override that erases parameter-based weights.
   */
@@ -857,6 +883,18 @@ describe("architecture, runtime, accuracy, and speed helpers", () => {
   test("zero active params falls back to the total for MoE compute", () => {
     const spec = specFromState(state({ moeEnabled: true, activeParams: "0" }));
     expect(spec.activeParamsB).toBe(spec.totalParamsB);
+  });
+
+  /**
+  Active MoE parameters are a compute subset of total parameters, never a larger
+  model than the resident weights.
+  */
+  test("caps direct MoE active parameters at total parameters", () => {
+    const spec = specFromState(
+      state({ totalParams: "47", moeEnabled: true, activeParams: "94" }),
+    );
+
+    expect(spec.activeParamsB).toBe(47);
   });
 
   test("roundTo produces fixed one-decimal contract values", () => {

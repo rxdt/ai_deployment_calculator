@@ -26,6 +26,9 @@
 - New this iteration: advanced numeric assumptions now enforce their real upper
   bounds in both live form input and URL state normalization: GPU resident
   fraction is capped at `1`, and LoRA trainable percent is capped at `100`.
+- New this iteration: direct calculation state also enforces impossible semantic
+  caps: LoRA trainable percent cannot exceed `100`, and MoE active parameters
+  cannot exceed total parameters.
 
 ## Commands
 
@@ -49,10 +52,11 @@
   passed: 140 tests.
 - `pnpm --dir frontend exec vitest run src/state.test.ts src/app.test.ts`
   passed: 63 tests.
+- `pnpm --dir frontend exec vitest run src/calculator.test.ts` passed: 72 tests.
 - `pnpm preflight` passed: prettier check, eslint, stylelint, html-validate.
-- `pnpm gate` passed on rerun: format, lint, typecheck, schema, dependency
-  checks, deadcode, spelling, workflow lint, SAST, secrets, audit, build,
-  coverage, Playwright, and Lighthouse.
+- `pnpm gate` passed: format, lint, typecheck, schema, dependency checks,
+  deadcode, spelling, workflow lint, SAST, secrets, audit, build, coverage,
+  Playwright, and Lighthouse.
 
 ## Blockers
 

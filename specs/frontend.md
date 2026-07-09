@@ -56,6 +56,9 @@
 - [x] Advanced ratio/percent controls clamp impossible values before rendering or
       URL normalization: GPU resident fraction maxes at `1`, and LoRA trainable
       percent maxes at `100`.
+- [x] Direct calculation state also clamps impossible semantic bounds: LoRA
+      trainable percent maxes at `100`, and MoE active parameters cannot exceed
+      total parameters.
 - [ ] HTML reflects clean, compact, well-organized flow. Clean, compact, well-organized examples are like `spec/calc1.png`, `~/specs/calc2.png`, `spec/calc13.png` -> do not follow those exactly, they are loose examples of what 'good' looks like to a human user.
 - [x] Small Github logo with link to github repo is in top right
       `https://github.com/rxdt/ai_deployment_calculator/`.
@@ -163,7 +166,8 @@
       the family-specific KV and non-KV scaling inputs surfaced in assumptions.
 - [x] Report and calculator unit tests cover advanced assumptions that affect
       estimates: known file size, GPU resident fraction clamping, LoRA trainable
-      percent, optimizer, gradient checkpointing, and memory sharding.
+      percent, direct LoRA/MoE semantic caps, optimizer, gradient checkpointing,
+      and memory sharding.
 - [x] Calculator unit tests cover the workload-size lower bound without breaking
       the zeroed reset estimate.
 - [x] Calculator unit tests cover invalid/non-positive `Known Model File Size`

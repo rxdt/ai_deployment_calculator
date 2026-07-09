@@ -295,7 +295,9 @@ export function specFromState(state: Readonly<FormState>): CalculationSpec {
     family: state.workloadFamily,
     totalParamsB: total,
     residentParamsB: total,
-    activeParamsB: isMoeEnabled ? positive(state.activeParams, total) : total,
+    activeParamsB: isMoeEnabled
+      ? Math.min(positive(state.activeParams, total), total)
+      : total,
     precision: state.precision,
     executionMode: state.executionMode,
     runtimeProfile: state.runtimeProfile,
@@ -306,7 +308,10 @@ export function specFromState(state: Readonly<FormState>): CalculationSpec {
     visionArchitecture: null,
     knownModelFileSizeGb: knownFile,
     gpuResidentFraction: fraction(state.gpuResidentFraction, 1),
-    loraTrainablePercent: nonNegative(state.loraTrainablePercent, 0.5),
+    loraTrainablePercent: Math.min(
+      nonNegative(state.loraTrainablePercent, 0.5),
+      100,
+    ),
     optimizerBytes: optimizerBytes(state.optimizer),
     gradientCheckpointing: state.gradientCheckpointing,
     state,

@@ -172,6 +172,12 @@
       vision, diffusion, video, audio, tabular, and custom workloads.
 - [x] State and app unit tests cover GPU resident fraction and LoRA trainable
       percent caps for URL queries and live form input.
+- [x] `frontend/src/calculator.property.test.ts` fast-check properties guard the
+      non-negotiable Research Corrections across random inputs: enabling MoE never
+      changes resident weight memory or required VRAM at inference, weight memory
+      rises monotonically with precision byte-width, and a `Known Model File Size`
+      overrides parameter- and precision-based weights (scaled only by GPU resident
+      fraction). These generalize the single-example pins in `calculator.test.ts`.
 - [x] `frontend/src/legacy-approximations.test.ts` was deleted; do not reintroduce
       it or any legacy-approximation test.
 - [x] Required commands: `pnpm --dir frontend exec vitest run src/calculator.test.ts`,

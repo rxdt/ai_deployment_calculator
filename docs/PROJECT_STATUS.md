@@ -27,6 +27,11 @@
 - Model-memory gating treats positive `Known Model File Size` as resident memory
   even with unknown total params; zero model memory suppresses workload-only
   activation/runtime/speed.
+- `calculator.property.test.ts` now guards three non-negotiable Research
+  Corrections with fast-check across random inputs (MoE never changes resident
+  weight/required VRAM at inference, weight memory is monotonic in precision
+  byte-width, known file size overrides parameter/precision weights). Frontend
+  suite: 181 tests, 100% coverage.
 
 ## Commands
 
@@ -47,7 +52,7 @@
   this iteration by actually running them: `node -e`, `pnpm`, `vitest`,
   `playwright`, and `lhci` all execute.
   - `pnpm preflight`: pass (prettier, eslint, stylelint, html-validate).
-  - `pnpm --prefix frontend run test:coverage`: 176 tests pass, 100%
+  - `pnpm --prefix frontend run test:coverage`: 181 tests pass, 100%
     statements/branches/functions/lines.
   - Playwright (`../harness/playwright.config.js`): 126 pass across all projects.
   - Lighthouse (`harness/lighthouserc.cjs`): all assertions pass, 3 runs.

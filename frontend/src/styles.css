@@ -22,6 +22,8 @@
   --font-line-solid: 1;
   --font-weight-bold: 700;
   --font-weight-strong: 800;
+  --font-mono:
+    "JetBrains Mono", ui-monospace, sfmono-regular, consolas, monospace;
   --layout-border: 0.0625rem;
   --layout-control-size: 2.5rem;
   --layout-advanced-height: calc(100vh - 6rem);
@@ -79,7 +81,9 @@ select {
   border-radius: var(--radius-sm);
   background: var(--color-input);
   color: var(--color-text);
-  font: inherit;
+  font-family: var(--font-mono);
+  font-size: inherit;
+  line-height: inherit;
 }
 
 button {
@@ -129,8 +133,13 @@ a {
 
 .brand,
 .hero-label,
+.result-meta strong,
 legend,
-summary,
+summary {
+  font-size: var(--font-body);
+  font-family: var(--font-mono);
+}
+
 label {
   font-size: var(--font-body);
 }
@@ -382,8 +391,7 @@ summary,
 .metric strong,
 .fit strong,
 code {
-  font-family:
-    "JetBrains Mono", ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-family: var(--font-mono);
 }
 
 code {

@@ -26,46 +26,37 @@
       letters/negatives/exponents, and clamp global values to `99999999.9`
       (`99999999` for integer-mode inputs); field caps still apply.
 - [ ] Bare, minimal styles.css only to get tests passing until typescript/html work is complete.
+- [ ] When a checkbox is selected, a styled check or X appears, confirming to the user the cacluclator is using that input
+- [ ] 'Gradient Checkpointing' and 'Memory Sharding' are actually checkable checkboxes and affect outputs to correct values
 - [x] Main form shows `Workload Family`, `Total Model Parameters`,
       `Parameter Unit`, `Precision`, `Execution Mode`, `Runtime Profile`,
       adaptive input controls, adaptive workload size, and relevant `MoE Model`.
-- [x] `Total Model Parameters` accepts fractional values such as `3.8` billion.
 - [x] Rare controls live in `<details><summary>Advanced assumptions</summary>`.
 - [x] `QLoRA fine-tuning` visibly snaps `Precision` to `4-bit` and
       `Runtime Profile` to `Local / Edge`, matching the forced calculation state.
+- [ ] If 'Execution Mode' is set to `QLoRA fine-tuning`, switching precision from `4-bit` in `Precision` resets inputs and `Deployment` to `Inference`
 - [x] `KV Cache Precision` lives in advanced assumptions, is visible only for
       inference decoder-KV workloads, and offers `8-bit / FP8`, `16-bit`, and
       `32-bit`.
-- [x] The app is responsive according to
-      `/scratchpad/responsive_frontend_research.md`; Playwright checks default,
-      long workload names, and expanded advanced assumptions keep edge content in
-      viewport.
-- [x] Workload size label is `Concurrent Requests` for inference and
-      `Micro Batch Size` for training; never reintroduce generic `Batch Size`.
-- [x] `MoE Model` appears only for text generation, embeddings, encoder-decoder,
-      multimodal, and custom. `Active Parameters` appears only when checked.
-- [x] Changing workload family or execution mode rerenders adaptive controls without
-      waiting for form submit.
-- [x] Hidden adaptive controls are disabled so only visible, applicable controls are
-      editable and serialized by the reactive form.
-- [x] Advanced ratio/percent controls clamp impossible values before rendering or
-      URL normalization: GPU resident fraction maxes at `1`, and LoRA trainable
-      percent maxes at `100`.
-- [x] Direct calculation state also clamps impossible semantic bounds: LoRA
-      trainable percent maxes at `100`, and MoE active parameters cannot exceed
-      total parameters.
+- [ ] Selecting a different `KV Cache Precision` in the dropdown in advanced assumptions changes outputs accurately
+- [x] The app is responsive according to `/scratchpad/responsive_frontend_research.md`; Playwright checks default,
+      long workload names, and expanded advanced assumptions keep edge content in viewport.
+- [ ] Workload size label is `Concurrent Batch Requests` for inference and `Micro Batch Size` for training; never reintroduce generic `Batch Size`.
 - [ ] HTML reflects clean, compact, well-organized flow. Clean, compact, well-organized examples are like `spec/calc1.png`, `~/specs/calc2.png`, `spec/calc13.png` -> do not follow those exactly, they are loose examples of what 'good' looks like to a human user.
 - [ ] Calculator elements are not overly big.
 - [ ] Cyan is used minimally for headings and ONLY for when elements are expanded only e.g. when `Why this recommendation` is expanded its text color uses the cyan color in DESIGN.md. Otherwise text headings do not use cyan.
+- [ ] 'Advanced Assumptions' container does not span too far right where it clashes with the expanded detail model cards like 'Assumptions Used'
 - [ ] Result cards loosely styling inspiration from `/specs/this_png_shows_some_ideas_are_ok_not_all.png`
 - [ ] Top hero result looks like a more professional version than in `specs/this_png_shows_some_ideas_are_ok_not_all.png`
 - [x] Complex details and formulas are hidden in expandable sections as in this app `specs/light_style_ideas_reflected_in_DESIGN.md.png`
+- [ ] 'Calculation used' card when expanded shows the full calculation in an organized format for human-readability
+- [ ] 'Calculation used' and 'Formula used' are clear in how they are different and show different information. Both are useful to users.
 
 ## STYLING
 
-- [x] When 'Advanced assumptions' is expanded, app fits in one viewport on desktop and mobile.
-- [x] The app fits in one viewport on desktop and mobile in the collapsed default state; `frontend/tests/responsive.spec.ts:75` passes on all Playwright projects.
-- [x] The app is responsive  `~/ai_deployment_calculator/scratchpad/responsive_frontend_research.md` with covered desktop/mobile edge content staying in viewport.
+- [ ] When 'Advanced assumptions' is expanded, app fits in one viewport on desktop and mobile.
+- [ ] The app fits in one viewport on desktop and mobile in the collapsed default state; `frontend/tests/responsive.spec.ts:75` passes on all Playwright projects.
+- [ ] Verify the app is responsive  `~/ai_deployment_calculator/scratchpad/responsive_frontend_research.md` with covered desktop/mobile edge content staying in viewport.
 - [ ] Styling follows `specs/DESIGN.md` -- Design system defines 24 colors, 7 typography scales, 5 rounding levels, 10 spacing tokens, 25 components.
 - [ ] Styling honors a compact, clean calculator shape. Compact calculator examples are like `spec/calc1.png`, `~/specs/calc2.png`, `spec/calc13.png`.
 - [ ] Styling loosely inspired by `specs/light_style_ideas_reflected_in_DESIGN.md.png`
@@ -119,12 +110,6 @@ Layout:
 - Narrow widths: a clean single-column flow. Do not force a no-scroll mobile by
   cramming; that would be a behavior change.
 
-Typography:
-
-- [ ] Sans (Geist / system-ui) for headings, result values, and body text.
-- [ ] JetBrains Mono only for HUD/section labels, formulas, code, terminal/status
-      text, and form inputs. Result numbers use `font-variant-numeric: tabular-nums`.
-
 Color:
 
 - [ ] Near-black background; off-white text; muted gray-green secondary text.
@@ -153,9 +138,9 @@ Responsive standards met:
 ## Outputs
 
 - [x] First glance hero cards show only `Estimated VRAM Required`, the short
-      usable-VRAM line, and `Recommended GPU Class`; `Estimate confidence` stays
-      visible but outside the hero cards.
-  - [x] `Recommended GPU Class` is visible (e.g. `24 GB GPU hardware tier`).
+      usable-VRAM line, and `Recommended GPU Class`
+- [ ] NO `Estimate confidence` anywhere in code or app view
+- [x] `Recommended GPU Class` is visible (e.g. `24 GB GPU hardware tier`).
 
 ## Tests And Checks
 

@@ -68,6 +68,46 @@ for (const path of pages) {
       );
     }
   });
+
+  test(`typography separates reading text from technical controls: ${path}`, async ({
+    page,
+  }) => {
+    await page.goto(path);
+
+    await expect(page.locator("body")).not.toHaveCSS(
+      "font-family",
+      /JetBrains Mono/u,
+    );
+    await expect(
+      page.getByRole("heading", { name: "VRAM Deployment Calculator" }),
+    ).not.toHaveCSS("font-family", /JetBrains Mono/u);
+    await expect(page.locator('[data-out="total"]')).not.toHaveCSS(
+      "font-family",
+      /JetBrains Mono/u,
+    );
+    await expect(page.getByLabel("Total Model Parameters")).toHaveCSS(
+      "font-family",
+      /JetBrains Mono/u,
+    );
+    await expect(page.getByLabel("Workload Family")).toHaveCSS(
+      "font-family",
+      /JetBrains Mono/u,
+    );
+    await expect(page.getByText("Calculation used", { exact: true })).toHaveCSS(
+      "font-family",
+      /JetBrains Mono/u,
+    );
+    await expect(page.locator('[data-out="confidence"]')).toHaveCSS(
+      "font-family",
+      /JetBrains Mono/u,
+    );
+
+    await page.getByText("Formula used", { exact: true }).click();
+    await expect(page.locator('[data-out="calc-formula"]')).toHaveCSS(
+      "font-family",
+      /JetBrains Mono/u,
+    );
+  });
 }
 
 for (const viewport of onePageViewports) {

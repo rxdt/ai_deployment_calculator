@@ -27,6 +27,8 @@
   --layout-advanced-height: calc(100vh - 6rem);
   --layout-advanced-width: min(42rem, calc(100vw - (var(--space-md) * 2)));
   --layout-half: calc(50% - var(--space-sm));
+  --layout-primary-result: calc(67% - var(--space-sm));
+  --layout-secondary-result: calc(33% - var(--space-sm));
   --layout-quarter: calc(25% - var(--space-sm));
   --z-disclosure: 1;
   --radius-sm: 0.25rem;
@@ -283,7 +285,9 @@ summary,
 
 .results {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, var(--layout-half)));
+  grid-template-columns:
+    minmax(0, var(--layout-primary-result))
+    minmax(0, var(--layout-secondary-result));
   gap: var(--space-sm);
   align-content: start;
 }
@@ -306,6 +310,10 @@ summary,
   padding: var(--space-md);
 }
 
+.hero--secondary {
+  background: var(--color-raised);
+}
+
 .result-meta {
   grid-column: 1 / -1;
   display: flex;
@@ -320,6 +328,7 @@ summary,
   color: var(--color-primary);
   font-size: var(--font-hero);
   font-weight: var(--font-weight-strong);
+  font-variant-numeric: tabular-nums;
   line-height: var(--font-line-solid);
 }
 
@@ -372,7 +381,6 @@ summary,
 
 .metric strong,
 .fit strong,
-output,
 code {
   font-family:
     "JetBrains Mono", ui-monospace, SFMono-Regular, Consolas, monospace;

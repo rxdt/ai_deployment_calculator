@@ -135,3 +135,27 @@ test("axe accessibility scan", async ({ page }) => {
 
   expect(results.violations).toEqual([]);
 });
+
+test("first glance result hierarchy makes the VRAM answer dominant", async ({
+  page,
+}) => {
+  await page.setViewportSize({ height: 720, width: 1280 });
+  await page.goto("/");
+
+  const totalCard = page.locator('[data-slot="hero-total-card"]');
+  const gpuCard = page.locator('[data-slot="hero-gpu-card"]');
+  const totalBox = await totalCard.boundingBox();
+  const gpuBox = await gpuCard.boundingBox();
+
+  expect(totalBox).not.toBeNull();
+  expect(gpuBox).not.toBeNull();
+  expect(totalBox?.width ?? 0).toBeGreaterThan((gpuBox?.width ?? 0) * 1.5);
+  await expect(page.locator('[data-out="total"]')).toHaveCSS(
+    "font-variant-numeric",
+    "tabular-nums",
+  );
+  await expect(page.locator('[data-out="total"]')).not.toHaveCSS(
+    "font-family",
+    /JetBrains Mono/u,
+  );
+});

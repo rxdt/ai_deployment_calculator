@@ -778,7 +778,7 @@ are fixed above).
 
 Hierarchy:
 
-- [ ] One dominant result (the hero VRAM number + recommended GPU class). Everything
+- [x] One dominant result (the hero VRAM number + recommended GPU class). Everything
       else is demoted: a couple of glanceable numbers, then collapsed `<details>`
       for the breakdown, why, assumptions, and warnings. Avoid the "debug dashboard"
       look where every value has equal weight.

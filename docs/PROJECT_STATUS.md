@@ -19,6 +19,11 @@
   (`tokens/second`, `images/minute`, `clips/minute`, `rows/second`,
   `audio tokens/second`) and prove MoE active parameters yield a strictly faster
   estimate than the dense equivalent, replacing a loose regex assertion.
+- Report tests now pin the confidence label across all ten workload families
+  (`Rough` only for image diffusion, video generation, and custom) and pin the
+  decoder-KV assumption contract: in inference only text generation,
+  encoder-decoder, and vision-language surface `KV Cache precision`; the other
+  seven families never do.
 
 ## Commands
 
@@ -40,7 +45,9 @@
 
 - `pnpm --dir frontend exec vitest run src/app.test.ts src/report.test.ts`
   passes: 60 tests.
-- `pnpm --dir frontend exec vitest run src/report.test.ts` passes: 16 tests.
+- `pnpm --dir frontend exec vitest run src/report.test.ts` last recorded 16
+  tests; this iteration adds the exhaustive confidence case and a decoder-KV
+  contract case (execution blocked in-session, see Blockers).
 - `pnpm preflight` first failed only because no real work was staged; rerun
   after staging passed.
 - Final `pnpm preflight` passes.
@@ -54,11 +61,13 @@
 ## Blockers
 
 - No current frontend behavior blocker.
-- This iteration's sandbox denied every `pnpm`, `vitest`, and
-  `node harness/harness.mjs` invocation ("requires approval"), so the strengthened
-  speed-estimate tests could not be executed in-session; they were hand-verified
-  against `workload-memory.ts` (`SPEED_STYLES` units and the MoE compute-weight
-  branch). The loop hook must run `pnpm preflight`/`pnpm gate` to confirm green.
+- This iteration's sandbox again denied every `pnpm`, `vitest`, and
+  `node harness/harness.mjs` invocation ("requires approval"), so the new report
+  tests could not be executed in-session. They were hand-verified against
+  `confidence.ts` (`ROUGH_FAMILIES`) and `workload-visibility.ts`
+  (`DECODER_KV_FAMILIES` + `hasDecoderKvCache` inference gate) plus the exact
+  `WorkloadFamily` union in `types.ts`. The loop hook must run
+  `pnpm preflight`/`pnpm gate` to confirm green.
 - `harness/cli.test.ts` is forbidden to agents, so the gate coverage failure
   needs a human harness fix or approval.
 

@@ -137,6 +137,9 @@
       `Total Model Parameters` input cleanup.
 - [x] Report unit tests cover overflow guidance plus the sharded-tier warning used
       for the fallback speed estimate.
+- [x] Report unit tests pin the confidence label for all ten workload families
+      and pin which families surface decoder `KV Cache precision` assumptions in
+      inference (text generation, encoder-decoder, vision-language only).
 - [ ] `frontend/src/legacy-approximations.test.ts` was deleted; do not reintroduce
       it or any legacy-approximation test.
 - [ ] Required commands: `pnpm --dir frontend exec vitest run src/report.test.ts`,

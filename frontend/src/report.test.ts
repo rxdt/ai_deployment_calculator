@@ -277,16 +277,54 @@ describe("buildReport", () => {
     );
   });
 
-  test("labels architecture-based families Estimated and guessier ones Rough", () => {
-    const cases = [
+  test("labels every workload family Estimated except the pipeline/open-ended Rough ones", () => {
+    const cases: readonly (readonly [FormState["workloadFamily"], string])[] = [
       ["text_generation", "Estimated"],
       ["text_encoder", "Estimated"],
+      ["encoder_decoder", "Estimated"],
+      ["vision", "Estimated"],
+      ["vision_language", "Estimated"],
       ["image_diffusion", "Rough"],
       ["video_generation", "Rough"],
+      ["audio", "Estimated"],
+      ["tabular", "Estimated"],
       ["custom", "Rough"],
-    ] as const;
+    ];
     for (const [workloadFamily, expected] of cases) {
       expect(buildReport(state({ workloadFamily })).confidence).toBe(expected);
+    }
+  });
+
+  test("surfaces decoder KV assumptions only for autoregressive transformer families in inference", () => {
+    const kvFamilies: readonly FormState["workloadFamily"][] = [
+      "text_generation",
+      "encoder_decoder",
+      "vision_language",
+    ];
+    const noKvFamilies: readonly FormState["workloadFamily"][] = [
+      "text_encoder",
+      "vision",
+      "image_diffusion",
+      "video_generation",
+      "audio",
+      "tabular",
+      "custom",
+    ];
+    for (const workloadFamily of kvFamilies) {
+      const rows = buildReport(
+        state({ workloadFamily, executionMode: "Inference" }),
+      ).assumptions;
+      expect(rows).toContainEqual(
+        expect.objectContaining({ label: "KV Cache precision" }),
+      );
+    }
+    for (const workloadFamily of noKvFamilies) {
+      const rows = buildReport(
+        state({ workloadFamily, executionMode: "Inference" }),
+      ).assumptions;
+      expect(rows).not.toContainEqual(
+        expect.objectContaining({ label: "KV Cache precision" }),
+      );
     }
   });
 

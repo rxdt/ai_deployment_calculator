@@ -422,6 +422,25 @@ describe("mounted calculator", () => {
     }
   });
 
+  test("labels the speed estimate with the rendered workload unit", () => {
+    const cases = [
+      ["text_generation", "Estimated Speed (tokens/sec)", "tokens/sec"],
+      ["image_diffusion", "Estimated Speed (images/min)", "images/minute"],
+      ["video_generation", "Estimated Speed (clips/min)", "clips/minute"],
+      ["tabular", "Estimated Speed (rows/sec)", "rows/sec"],
+      ["audio", "Estimated Speed (audio tokens/sec)", "audio tokens/sec"],
+    ] as const;
+    loadDom();
+    mountCalculator(document);
+    const label = dataSlot("speed-label");
+
+    for (const [family, expectedLabel, expectedSpeedUnit] of cases) {
+      fireChange("workload-family", family);
+      expect(label.textContent).toBe(expectedLabel);
+      expect(out("speed")).toContain(expectedSpeedUnit);
+    }
+  });
+
   test("renders only first-glance results outside the collapsed detail panels", () => {
     loadDom();
     mountCalculator(document);

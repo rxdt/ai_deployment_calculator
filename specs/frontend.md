@@ -102,8 +102,8 @@
 - [x] Collapsed `<details>` panels hold the rest:
   - [x] `Why this recommendation` — a plain-language "why" sentence plus
         `Minimum GPU VRAM Capacity`, `Usable VRAM Target`,
-        `Usable VRAM on Recommended Class`, `Fit Headroom`, and `Estimated Speed`
-        (rendered as `tokens/sec`).
+        `Usable VRAM on Recommended Class`, `Fit Headroom`, and a workload-unit
+        speed label such as `Estimated Speed (tokens/sec)`.
   - [x] `Calculation used` — the per-component breakdown rows (`Model memory` or
         `QLoRA base model memory`, `Context memory`, `Activation memory`,
         `Training memory`, `Runtime reserve`, `Safety margin`). Rows that round to
@@ -138,7 +138,8 @@
       `Estimate confidence` label, collapsed output panels, removed `Accuracy` /
       `Your GPU Fit` surfaces, default empty warnings, and fractional
       `Total Model Parameters` input cleanup, plus stale hidden-MoE checkbox
-      cleanup when switching away from and back to MoE-applicable families.
+      cleanup when switching away from and back to MoE-applicable families, and
+      workload-unit speed labels.
 - [x] Report unit tests cover overflow guidance plus the sharded-tier warning used
       for the fallback speed estimate.
 - [x] Report unit tests pin the confidence label for all ten workload families

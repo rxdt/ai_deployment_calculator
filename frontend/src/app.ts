@@ -142,6 +142,15 @@ function formatSpeed(speed: string): string {
 }
 
 /**
+@param speed
+*/
+function speedLabel(speed: string): string {
+  const formatted = formatSpeed(speed);
+  const unit = formatted.replace(/^[\d.]+ /u, "");
+  return `Estimated Speed (${unit.replaceAll("/minute", "/min")})`;
+}
+
+/**
 Look up an element by its data-slot value.
 @param root - DOM root to search
 @param name - data-slot value
@@ -318,6 +327,9 @@ export class CalculatorApp {
     this.setText("usable-target", fit.usableVramTarget);
     this.setText("usable-on-class", fit.usableVramOnClass);
     this.setText("fit-headroom", fit.fitHeadroom);
+    dataSlot(this.root, "speed-label")?.replaceChildren(
+      speedLabel(report.speed),
+    );
     this.setText("speed", formatSpeed(report.speed));
     this.fillRows("breakdown", report.breakdown);
     this.setText("calc-formula", report.calculation);

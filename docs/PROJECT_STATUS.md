@@ -16,6 +16,10 @@
   Playwright pins no page overflow on desktop/mobile viewports.
 - `specs/frontend.md` marks the expanded advanced one-viewport contract and
   Playwright coverage complete.
+- Result detail speed labels now include the rendered workload unit, e.g.
+  `Estimated Speed (tokens/sec)`, `images/min`, `clips/min`, `rows/sec`, or
+  `audio tokens/sec`.
+- `specs/plan.md` marks the workload-adaptive speed label complete.
 
 ## Commands
 
@@ -37,8 +41,11 @@
 
 ## Checks
 
+- Focused app tests pass: `pnpm --dir frontend exec vitest run src/app.test.ts`.
+- Focused calculator/report tests pass:
+  `pnpm --dir frontend exec vitest run src/calculator.test.ts src/report.test.ts`.
+- `pnpm preflight` passes after staging this iteration's scoped files.
 - Focused responsive Playwright passes: 48 tests.
-- `pnpm preflight` passes.
 - `pnpm gate` passes format, eslint, style, html, typecheck, harness types,
   schema, dependency-cruiser, deadcode, spelling, workflow lint, secrets,
   audit, build, e2e, and Lighthouse. `semgrep` is not installed and is skipped.

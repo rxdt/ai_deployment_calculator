@@ -149,7 +149,7 @@ Done means:
 19. Full training includes weights, master weights, gradients, optimizer state, activations, overhead, and buffer.
 20. Hardware recommendation comes from required_gb / utilization target.
 21. Outputs show enough math to explain recommendations without overwhelming the user.
-23. Speed estimate label adapts by workload.
+~~23. Speed estimate label adapts by workload.~~
 25. Confidence label is always visible.
 26. No old wrong formulas remain.
 27. All calculations run in frontend TypeScript.

@@ -178,6 +178,11 @@ components:
     typography: "{typography.hud-label}"
     rounded: "{rounded.sm}"
     padding: 0.5rem
+
+## Commands
+
+Use `pnpm preflight` before committing and `pnpm gate` for the full gate.
+Frontend preview and UI verification commands live in `specs/frontend.md`.
   signal-label:
     backgroundColor: "{colors.card}"
     textColor: "{colors.cyan-signal}"

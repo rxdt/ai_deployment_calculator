@@ -62,35 +62,30 @@
 
 ## Checks
 
-- Focused units pass via harness Vitest:
-  `./harness/node_modules/.bin/vitest run --config harness/vitest.config.js frontend/src/app.test.ts frontend/src/calculator.test.ts frontend/src/report.test.ts`
-  (`127` tests).
-- Full frontend unit sweep via harness Vitest runs `153` tests, then fails on
-  missing `fast-check` for `frontend/src/calculator.property.test.ts`.
-- Source lint passes for changed source:
-  `./harness/node_modules/.bin/eslint frontend/src/report.ts --config harness/eslint.config.js --max-warnings=0`.
-- Latest `pnpm preflight` passes format/style/html but fails eslint because the
-  current frontend install cannot resolve `vitest` types in `frontend/src/*.test.ts`.
-- Final `pnpm gate` passed format, style, html, schema, cruise, deadcode,
-  spelling, workflow, sast, secrets, audit, build, and Lighthouse; it failed
-  eslint/typecheck/coverage/e2e on the blockers below.
-- Commit attempt failed in the pre-commit preflight on unresolved Vitest types
-  in `frontend/src/report.test.ts` plus forbidden `harness/cli.ts`.
+- No checks could run this iteration: the session permission mode denies every
+  code-execution command. `pnpm`, `./harness/node_modules/.bin/vitest`,
+  `node -e`, and `node harness/harness.mjs` all return "This command requires
+  approval" in this non-interactive session and never execute. `git`, `ls`,
+  `cat`, and `find` are allowed, so review is read-only only.
+- Verified by inspection that the previously-listed dependency blockers are
+  stale: `frontend/node_modules/.bin/{vite,vitest,playwright}`,
+  `frontend/node_modules/@playwright/test`,
+  `frontend/node_modules/@axe-core/playwright`, `harness/.bin/{vitest,eslint}`,
+  and `fast-check` (frontend + harness) are all present.
+- `frontend/src/calculator-core.ts` read end-to-end: canonical equation,
+  precision map, architecture buckets, runtime presets, weight/QLoRA/file-size
+  override, training-state, and training-activation math match `specs/frontend.md`.
+  No defect found; no change made because none could be verified.
 
 ## Blockers
 
-- No current frontend behavior blocker.
-- Existing unstaged forbidden edits remain in `harness/cli.ts` and
-  `harness/cli.test.ts`; `harness/cli.ts:142` fails eslint
-  `unicorn/max-nested-calls`, and agents must not stage or alter harness files.
-- Forbidden `harness/logging.ts` currently fails Prettier, eslint
-  `unicorn/no-array-reduce`, callback-reference, and max-lines checks.
-- Frontend-local package bins are absent in this install: `pnpm --dir frontend
-  exec vitest ...` and direct `pnpm --prefix frontend run build` fail on missing
-  `vitest`/`vite`; full harness Vitest also lacks `fast-check`.
-- `pnpm gate` e2e fails because `@playwright/test` and `@axe-core/playwright`
-  cannot be resolved from `frontend/tests/*.spec.ts`.
-- `pnpm install --frozen-lockfile` reports the workspace is already up to date
-  but does not restore frontend-local `.bin` links.
-- Existing unstaged forbidden edits remain in `PROMPT.md`; agents must not stage
-  or alter them.
+- PRIMARY: session permission mode denies executing project code
+  (`pnpm`/`vitest`/`node -e`/`node harness`), so `pnpm preflight`, `pnpm gate`,
+  unit tests, e2e, and build cannot be run and no source change can be validated
+  this iteration. Retried the same commands multiple times; consistently denied.
+  Prior commits (e.g. `b4cdfae`, `9fefa37`) shipped real source, so this is a
+  session-specific regression, not a repo state.
+- No current frontend behavior blocker found by read-only review.
+- Existing unstaged forbidden edits remain in `harness/cli.test.ts`,
+  `harness/gate.test.ts`, `harness/logging.test.ts`, `harness/logging.ts`, and
+  `PROMPT.md`; agents must not stage or alter these human-owned files.

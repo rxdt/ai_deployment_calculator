@@ -68,7 +68,7 @@
 ## STYLING
 
 - [ ] Iff javascript and html work are completed. styling can begin.
-  - [ ] When 'Advanced assumptions' is expanded, app fits in one viewport on desktop and mobile.
+  - [x] When 'Advanced assumptions' is expanded, app fits in one viewport on desktop and mobile.
   - [ ] The app fits in one viewport on desktop and mobile in the collapsed
         default state; `frontend/tests/responsive.spec.ts:75` passes on all
         Playwright projects.
@@ -89,7 +89,8 @@
       adapter/full-training state plus checkpointed activations; legacy
       `trained=on&use_adapter=on` query flags are ignored.
 - [x] MoE state is honored only for MoE-applicable workload families. Hidden or
-      query-supplied MoE values for other families do not affect speed or warnings.
+      query-supplied MoE values for other families do not affect speed or warnings,
+      and stale hidden MoE checks are cleared before the control is shown again.
 
 ## Outputs
 
@@ -130,13 +131,14 @@
       legacy flag removal.
 - [x] Playwright covers accessibility, local report rendering, adaptive controls,
       no generic `Batch Size`, MoE visibility, escaping, four collapsed result
-      detail cards, expanded-heading cyan color, and collapsed one-viewport fit on
-      desktop/mobile.
+      detail cards, expanded-heading cyan color, collapsed one-viewport fit, and
+      expanded advanced-assumptions no-overflow fit on desktop/mobile.
 - [x] App unit tests cover the real HTML `KV Cache Precision` options, real HTML
       `Execution Mode` choices, the rendered 32-bit KV estimate, the always-visible
       `Estimate confidence` label, collapsed output panels, removed `Accuracy` /
       `Your GPU Fit` surfaces, default empty warnings, and fractional
-      `Total Model Parameters` input cleanup.
+      `Total Model Parameters` input cleanup, plus stale hidden-MoE checkbox
+      cleanup when switching away from and back to MoE-applicable families.
 - [x] Report unit tests cover overflow guidance plus the sharded-tier warning used
       for the fallback speed estimate.
 - [x] Report unit tests pin the confidence label for all ten workload families
@@ -146,6 +148,7 @@
       it or any legacy-approximation test.
 - [x] Required commands: `pnpm --dir frontend exec vitest run src/calculator.test.ts`,
       `pnpm --dir frontend exec vitest run src/report.test.ts`,
+      `pnpm --dir frontend exec vitest run src/app.test.ts`,
       `pnpm --dir frontend exec vitest run src/app.test.ts src/report.test.ts`,
       `pnpm --prefix frontend run build`,
       `pnpm --prefix frontend run preview -- --port 5174`,

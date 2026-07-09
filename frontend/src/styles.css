@@ -11,6 +11,7 @@
   --color-primary: #22c55e;
   --color-primary-text: #0a0a0f;
   --color-cyan: #67e8f9;
+  --color-shadow: #0006;
   --color-topbar: #09090bcc;
   --font-body: 0.8125rem;
   --font-heading: 1.375rem;
@@ -23,7 +24,11 @@
   --font-weight-strong: 800;
   --layout-border: 0.0625rem;
   --layout-control-size: 2.5rem;
+  --layout-advanced-height: calc(100vh - 6rem);
+  --layout-advanced-width: min(42rem, calc(100vw - (var(--space-md) * 2)));
   --layout-half: calc(50% - var(--space-sm));
+  --layout-quarter: calc(25% - var(--space-sm));
+  --layer-disclosure: 1;
   --radius-sm: 0.25rem;
   --space-2xs: 0.125rem;
   --space-xs: 0.25rem;
@@ -225,7 +230,22 @@ summary {
 }
 
 .advanced {
+  position: relative;
   margin-bottom: var(--space-sm);
+}
+
+.advanced[open] .group {
+  position: absolute;
+  z-index: var(--layer-disclosure);
+  margin-top: 0;
+  width: var(--layout-advanced-width);
+  max-height: var(--layout-advanced-height);
+  overflow-y: auto;
+  box-shadow: 0 1rem 2rem var(--color-shadow);
+}
+
+.advanced[open] .field {
+  flex-basis: var(--layout-quarter);
 }
 
 .actions {

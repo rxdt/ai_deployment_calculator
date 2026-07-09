@@ -90,6 +90,24 @@ for (const viewport of onePageViewports) {
       page.getByText("Assumptions used", { exact: true }),
     ).toBeInViewport();
   });
+
+  test(`expanded advanced assumptions do not overflow on ${viewport.name}`, async ({
+    page,
+  }) => {
+    await page.setViewportSize(viewport);
+    await page.goto("/");
+    await page.getByText("Advanced assumptions", { exact: true }).click();
+
+    await expect(page.getByLabel("Known Model File Size")).toBeInViewport();
+    await expect(page.getByLabel("Memory Sharding")).toBeInViewport();
+    const metrics = await page.evaluate(() => ({
+      height: document.documentElement.scrollHeight,
+      width: document.documentElement.scrollWidth,
+    }));
+
+    expect(metrics.height).toBeLessThanOrEqual(viewport.height);
+    expect(metrics.width).toBeLessThanOrEqual(viewport.width);
+  });
 }
 
 test("axe accessibility scan", async ({ page }) => {

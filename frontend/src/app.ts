@@ -278,6 +278,14 @@ export class CalculatorApp {
     element.value = value;
   }
 
+  private setCheckboxChecked(name: string, isChecked: boolean): void {
+    const element = this.form.elements.namedItem(name);
+    if (!(element instanceof HTMLInputElement && element.type === "checkbox")) {
+      throw new TypeError(`Missing checkbox control: ${name}`);
+    }
+    element.checked = isChecked;
+  }
+
   private fillRows(name: string, rows: readonly DisplayRow[]): void {
     const list = this.slot(name);
     list.replaceChildren();
@@ -337,6 +345,7 @@ export class CalculatorApp {
       );
     }
     const isMoeApplicable = hasMoeControl(family);
+    this.setCheckboxChecked("moe-enabled", state.moeEnabled && isMoeApplicable);
     for (const node of this.root.querySelectorAll<HTMLElement>(
       "[data-moe-families]",
     )) {

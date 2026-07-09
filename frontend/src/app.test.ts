@@ -681,6 +681,31 @@ describe("adaptive controls", () => {
     );
   });
 
+  test("clears stale MoE selection when returning to an applicable family", () => {
+    loadDom();
+    mountCalculator(document);
+    const moe = field("moe-enabled");
+    if (!(moe instanceof HTMLInputElement)) {
+      throw new TypeError("MoE control must be a checkbox");
+    }
+    moe.checked = true;
+    moe.dispatchEvent(new Event("change", { bubbles: true }));
+    expect(moe.checked).toBe(true);
+    expect(isRowHidden("active-params")).toBe(false);
+
+    fireChange("workload-family", "vision");
+    expect(moe.checked).toBe(false);
+    expect(isRowHidden("moe-enabled")).toBe(true);
+
+    fireChange("workload-family", "text_generation");
+    expect(isRowHidden("moe-enabled")).toBe(false);
+    expect(moe.checked).toBe(false);
+    expect(isRowHidden("active-params")).toBe(true);
+    expect(outSlot("warnings").textContent).not.toContain(
+      "MoE active parameters",
+    );
+  });
+
   test("switches the workload size label for training", () => {
     loadDom();
     mountCalculator(document);

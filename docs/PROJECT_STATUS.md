@@ -73,6 +73,13 @@
   - `pnpm preflight`: pass (prettier, eslint, stylelint, html-validate).
   - `pnpm --prefix frontend run test:coverage`: 190 tests pass, 100%
     statements/branches/functions/lines.
+  - Full `pnpm gate` was actually run to completion this iteration (not just
+    preflight): stages format, eslint, style, html, typecheck, harnessTypes,
+    schema, cruise, deadcode, spelling, workflow, sast, secrets, audit, build,
+    e2e (Playwright), and lighthouse all pass (status=0). The ONLY red stage is
+    `coverage` (combined harness+frontend vitest), failing on exactly one
+    assertion: `harness/cli.test.ts` "pins agent presets" — the forbidden-path
+    mismatch documented under Blockers. Every frontend-owned stage is green.
   - Playwright (`../harness/playwright.config.js`): 126 pass across all projects.
   - Lighthouse (`harness/lighthouserc.cjs`): all assertions pass, 3 runs.
   - Accuracy re-verified by hand-recomputing canonical cases from the spec

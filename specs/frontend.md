@@ -12,9 +12,9 @@
 
 **Build and run the app to "view" it as you make changes.** If built and previewed the production app; `5173` was occupied, the Vite preview can be inspected at `http://127.0.0.1:5174/`.
 
-- [ ] The Vite app is static.
-- [ ] There is NO fast-api or WSGI app
-- [ ] `CalculatorApp` normalizes form state, calls local TypeScript
+- [x] The Vite app is static.
+- [x] There is NO fast-api or WSGI app.
+- [x] `CalculatorApp` normalizes form state, calls local TypeScript
       `buildReport(state)`, and renders synchronously.
 - [ ] Public UI names follow the Naming Contract in `specs/plan.md`; do not redefine
       them here.
@@ -69,7 +69,7 @@
 
 - [ ] Iff javascript and html work are completed. styling can begin.
   - [x] When 'Advanced assumptions' is expanded, app fits in one viewport on desktop and mobile.
-  - [ ] The app fits in one viewport on desktop and mobile in the collapsed
+  - [x] The app fits in one viewport on desktop and mobile in the collapsed
         default state; `frontend/tests/responsive.spec.ts:75` passes on all
         Playwright projects.
   - [ ] The app is responsive ~/ai_deployment_calculator/scratchpad/responsive_frontend_research.md
@@ -84,10 +84,11 @@
       the calculation; `report.ts` assembles the rendered report. The canonical
       equation, presets, per-family formulas, and hardware/speed math are detailed in
       the Formulas section below.
-- [ ] `Known Model File Size` overrides parameter-based weight estimates; MoE active
-      parameters affect speed/KV only, not resident weight memory; training modes use
-      adapter/full-training state plus checkpointed activations; legacy
-      `trained=on&use_adapter=on` query flags are ignored.
+- [x] `Known Model File Size` overrides parameter-based weight estimates, including
+      QLoRA base weight memory; MoE active parameters affect speed/KV only, not
+      resident weight memory; training modes use adapter/full-training state plus
+      checkpointed activations; legacy `trained=on&use_adapter=on` query flags are
+      ignored.
 - [x] MoE state is honored only for MoE-applicable workload families. Hidden or
       query-supplied MoE values for other families do not affect speed or warnings,
       and stale hidden MoE checks are cleared before the control is shown again.
@@ -561,7 +562,7 @@ Defaults:
 
 `Active_Params_B = Active_Params_Input_B if MoE enabled else Total_Params_B`
 
-- [ ] Active parameters affect rough speed estimates only.
+- [x] Active parameters affect rough speed estimates only.
 
 They do not reduce weight memory unless expert offload or sharding is explicitly enabled.
 
@@ -682,7 +683,7 @@ execution mode = inference | lora finetune | qlora finetune | full training
 
 ### Keep these as the core smoke tests:
 
-- [ ] Values are scratch-included (product default), matching calculator.test.ts.
+- [x] Values are scratch-included (product default), matching calculator.test.ts.
 
 8B LLM inference, 8000 ctx, 16-bit weights, 16-bit KV, server:
 expected = 21.3 GB (scratch-zero comparison: 20.4 GB)

@@ -307,18 +307,18 @@ export function specFromState(state: Readonly<FormState>): CalculationSpec {
 @param spec
 */
 export function weightsGb(spec: Readonly<CalculationSpec>): number {
+  if (spec.executionMode === "Full training") {
+    return spec.totalParamsB * PRECISION_MAP[spec.precision].weightBytes;
+  }
+  if (spec.knownModelFileSizeGb !== null) {
+    return spec.knownModelFileSizeGb * spec.gpuResidentFraction;
+  }
   if (spec.executionMode === "QLoRA fine-tuning") {
     return (
       spec.residentParamsB *
       PRECISION_MAP["4-bit"].weightBytes *
       PRECISION_MAP["4-bit"].weightOverhead
     );
-  }
-  if (spec.executionMode === "Full training") {
-    return spec.totalParamsB * PRECISION_MAP[spec.precision].weightBytes;
-  }
-  if (spec.knownModelFileSizeGb !== null) {
-    return spec.knownModelFileSizeGb * spec.gpuResidentFraction;
   }
   const precision = PRECISION_MAP[spec.precision];
   return (

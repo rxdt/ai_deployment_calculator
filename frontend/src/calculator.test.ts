@@ -327,6 +327,19 @@ describe("training estimates", () => {
     expect(weightsGb(lora)).toBe(14);
   });
 
+  test("known model file size overrides QLoRA base weight estimate", () => {
+    const spec = specFromState(
+      state({
+        totalParams: "8",
+        executionMode: "QLoRA fine-tuning",
+        knownModelFileSizeGb: "6",
+      }),
+    );
+
+    expect(weightsGb(spec)).toBe(6);
+    expect(memoryBreakdown(spec).requiredGb).toBe(21);
+  });
+
   test("training activation uses encoder and encoder-decoder token shapes", () => {
     const encoder = specFromState(
       state({

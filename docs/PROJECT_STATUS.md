@@ -20,6 +20,8 @@
   `Estimated Speed (tokens/sec)`, `images/min`, `clips/min`, `rows/sec`, or
   `audio tokens/sec`.
 - `specs/plan.md` marks the workload-adaptive speed label complete.
+- `Known Model File Size` now overrides QLoRA base model memory, matching the
+  documented resident-file-size override contract.
 
 ## Commands
 
@@ -44,6 +46,8 @@
 - Focused app tests pass: `pnpm --dir frontend exec vitest run src/app.test.ts`.
 - Focused calculator/report tests pass:
   `pnpm --dir frontend exec vitest run src/calculator.test.ts src/report.test.ts`.
+- Focused calculator tests pass:
+  `pnpm --dir frontend exec vitest run src/calculator.test.ts`.
 - `pnpm preflight` passes after staging this iteration's scoped files.
 - Focused responsive Playwright passes: 48 tests.
 - `pnpm gate` passes format, eslint, style, html, typecheck, harness types,
@@ -58,6 +62,8 @@
 - No current frontend behavior blocker.
 - `harness/cli.test.ts` is forbidden to agents, so the gate coverage failure
   needs a human harness fix or approval.
+- Existing unstaged forbidden edits remain in `harness/cli.ts` and
+  `harness/cli.test.ts`; agents must not stage or alter them.
 
 ## Next
 

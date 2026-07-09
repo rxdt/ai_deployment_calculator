@@ -162,6 +162,8 @@
       percent, optimizer, gradient checkpointing, and memory sharding.
 - [x] Calculator unit tests cover the workload-size lower bound without breaking
       the zeroed reset estimate.
+- [x] Calculator unit tests cover invalid/non-positive `Known Model File Size`
+      values falling back to parameter-based weights instead of zeroing memory.
 - [x] `frontend/src/legacy-approximations.test.ts` was deleted; do not reintroduce
       it or any legacy-approximation test.
 - [x] Required commands: `pnpm --dir frontend exec vitest run src/calculator.test.ts`,

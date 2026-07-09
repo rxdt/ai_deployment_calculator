@@ -368,6 +368,21 @@ describe("training estimates", () => {
     expect(weightsGb(negative)).toBe(52);
   });
 
+  /**
+  Direct state may contain stale or invalid Known Model File Size values. They
+  should not become a zero-size override that erases parameter-based weights.
+  */
+  test.each(["0", "-52", "bad"])(
+    "ignores %s as a non-positive known file size override",
+    (knownModelFileSizeGb) => {
+      const baseline = specFromState(state());
+      const invalidOverride = specFromState(state({ knownModelFileSizeGb }));
+
+      expect(invalidOverride.knownModelFileSizeGb).toBeNull();
+      expect(weightsGb(invalidOverride)).toBe(weightsGb(baseline));
+    },
+  );
+
   test("training activation uses encoder and encoder-decoder token shapes", () => {
     const encoder = specFromState(
       state({

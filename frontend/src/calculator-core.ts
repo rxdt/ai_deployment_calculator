@@ -287,7 +287,7 @@ function optimizerBytes(name: FormState["optimizer"]): number {
 export function specFromState(state: Readonly<FormState>): CalculationSpec {
   const total = totalParametersB(state);
   const knownFile = state.knownModelFileSizeGb.trim()
-    ? positive(state.knownModelFileSizeGb, 0)
+    ? positive(state.knownModelFileSizeGb, 0) || null
     : null;
   const isMoeEnabled = hasMoeControl(state.workloadFamily) && state.moeEnabled;
   return {

@@ -19,6 +19,8 @@
 - New this iteration: direct nonzero-model calculations clamp
   `Concurrent Requests` / `Micro Batch Size` to at least `1` so a zero request
   or batch count cannot erase workload-sensitive memory.
+- New this iteration: invalid, zero, or negative direct `Known Model File Size`
+  values no longer become zero-size overrides; parameter-based weights are used.
 
 ## Commands
 
@@ -38,11 +40,13 @@
 ## Checks
 
 - `pnpm --dir frontend exec vitest run src/calculator.test.ts` passed:
-  61 tests.
+  64 tests.
 - `pnpm preflight` passed: prettier check, eslint, stylelint, html-validate.
-- `pnpm gate` passed: format, lint, typecheck, schema, dependency checks,
-  deadcode, spelling, workflow lint, SAST, secrets, audit, build, coverage,
-  Playwright, and Lighthouse.
+- First `pnpm gate` run hit a transient desktop Chrome axe execution-context
+  failure; focused rerun of that Playwright case passed.
+- Second `pnpm gate` passed: format, lint, typecheck, schema, dependency
+  checks, deadcode, spelling, workflow lint, SAST, secrets, audit, build,
+  coverage, Playwright, and Lighthouse.
 
 ## Blockers
 

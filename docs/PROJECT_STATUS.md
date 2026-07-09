@@ -31,8 +31,14 @@
   Corrections with fast-check across random inputs: MoE never changes resident
   weight/required VRAM at inference, weight memory is monotonic in precision
   byte-width, known file size overrides parameter/precision weights, and decoder
-  KV required VRAM never decreases as context length or concurrency grows.
-  Frontend suite: 181 tests, 100% coverage.
+  KV required VRAM never decreases as context length, concurrency, or KV precision
+  byte-width grows. New this iteration: text-encoder required VRAM is invariant to
+  KV precision (no persistent generation KV), QLoRA weight memory is the frozen
+  4-bit base scaled by params regardless of the precision control (no flat 4 GB),
+  and full training strictly exceeds LoRA/QLoRA required VRAM. `confidence.test.ts`
+  pins the confidence-label mapping (diffusion/video/custom -> `Rough`, else
+  `Estimated`, always non-empty). Frontend suite: 188 tests, 100% coverage.
+  All four new invariants were mutation-verified (each fails on a broken source).
 
 ## Commands
 
@@ -53,7 +59,7 @@
   this iteration by actually running them: `node -e`, `pnpm`, `vitest`,
   `playwright`, and `lhci` all execute.
   - `pnpm preflight`: pass (prettier, eslint, stylelint, html-validate).
-  - `pnpm --prefix frontend run test:coverage`: 181 tests pass, 100%
+  - `pnpm --prefix frontend run test:coverage`: 188 tests pass, 100%
     statements/branches/functions/lines.
   - Playwright (`../harness/playwright.config.js`): 126 pass across all projects.
   - Lighthouse (`harness/lighthouserc.cjs`): all assertions pass, 3 runs.

@@ -1,9 +1,9 @@
 import fc from "fast-check";
 import { describe, expect, test } from "vitest";
-import { specFromState, weightsGb } from "./calculator-core";
+import { PRECISION_MAP, specFromState, weightsGb } from "./calculator-core";
 import { hardware } from "./hardware";
 import { defaultState } from "./state";
-import type { FormState, Precision } from "./types";
+import type { FormState, KvPrecision, Precision } from "./types";
 import { memoryBreakdown } from "./workload-memory";
 
 const finiteParameterCount = fc
@@ -31,6 +31,14 @@ const PRECISION_BY_ASCENDING_WEIGHT: readonly Precision[] = [
 ];
 
 const anyPrecision = fc.constantFrom(...PRECISION_BY_ASCENDING_WEIGHT);
+
+// Ordered from fewest to most KV bytes (1, 2, 4). Decoder KV memory must not decrease
+// along this order.
+const KV_PRECISION_BY_ASCENDING_BYTES: readonly KvPrecision[] = [
+  "8-bit / FP8",
+  "16-bit",
+  "32-bit",
+];
 
 /**
 
@@ -211,6 +219,109 @@ describe("calculator properties", () => {
           });
 
           expect(memory).toBeCloseTo(knownFileGb * residentFraction, 6);
+        },
+      ),
+      { numRuns: 100 },
+    );
+  });
+
+  test("text-generation required memory does not decrease as KV precision keeps more bytes", () => {
+    // Non-negotiable Research Correction: the decoder KV cache must scale with KV precision.
+    // Wider KV bytes can only raise the estimate, never lower it. Guards the kvBytes factor
+    // against sign/scale regressions alongside the context and concurrency guards above.
+    fc.assert(
+      fc.property(positiveParameterCount, (totalParameters) => {
+        const memories = KV_PRECISION_BY_ASCENDING_BYTES.map(
+          (kvCachePrecision) =>
+            requiredGb({
+              workloadFamily: "text_generation",
+              totalParams: totalParameters,
+              kvCachePrecision,
+            }),
+        );
+
+        for (let index = 1; index < memories.length; index += 1) {
+          expect(memories[index]).toBeGreaterThanOrEqual(memories[index - 1]);
+        }
+      }),
+      { numRuns: 100 },
+    );
+  });
+
+  test("text-encoder required memory is identical across every KV precision", () => {
+    // Non-negotiable Research Correction: encoder models have no persistent generation KV
+    // cache, so KV precision must not move their estimate at all. A nonzero spread here would
+    // mean a KV term leaked into an encoder path.
+    fc.assert(
+      fc.property(positiveParameterCount, (totalParameters) => {
+        const memories = KV_PRECISION_BY_ASCENDING_BYTES.map(
+          (kvCachePrecision) =>
+            requiredGb({
+              workloadFamily: "text_encoder",
+              totalParams: totalParameters,
+              kvCachePrecision,
+            }),
+        );
+
+        expect(new Set(memories).size).toBe(1);
+      }),
+      { numRuns: 100 },
+    );
+  });
+
+  test("QLoRA weight memory is the frozen 4-bit base regardless of the precision control", () => {
+    // Non-negotiable Research Correction: QLoRA freezes a 4-bit base plus adapters. Weight
+    // memory must track the 4-bit base scaled by parameter count — never a flat 4 GB overhead
+    // and never the selected inference precision.
+    fc.assert(
+      fc.property(
+        positiveParameterCount,
+        anyPrecision,
+        (totalParameters, precision) => {
+          const expected =
+            Number(totalParameters) *
+            PRECISION_MAP["4-bit"].weightBytes *
+            PRECISION_MAP["4-bit"].weightOverhead;
+
+          expect(
+            weightMemoryGb({
+              workloadFamily: "text_generation",
+              executionMode: "QLoRA fine-tuning",
+              totalParams: totalParameters,
+              precision,
+            }),
+          ).toBeCloseTo(expected, 6);
+        },
+      ),
+      { numRuns: 100 },
+    );
+  });
+
+  test("full training requires strictly more memory than adapter fine-tuning of the same model", () => {
+    // Non-negotiable Research Corrections: LoRA/QLoRA train adapters, not all base weights,
+    // and full training additionally carries master weights, gradients, and optimizer state
+    // over every parameter. Full training must therefore dominate both adapter modes.
+    fc.assert(
+      fc.property(
+        positiveParameterCount,
+        anyPrecision,
+        (totalParameters, precision) => {
+          const base = {
+            workloadFamily: "text_generation" as const,
+            totalParams: totalParameters,
+            precision,
+          };
+          const full = requiredGb({
+            ...base,
+            executionMode: "Full training",
+          });
+
+          expect(full).toBeGreaterThan(
+            requiredGb({ ...base, executionMode: "LoRA fine-tuning" }),
+          );
+          expect(full).toBeGreaterThan(
+            requiredGb({ ...base, executionMode: "QLoRA fine-tuning" }),
+          );
         },
       ),
       { numRuns: 100 },

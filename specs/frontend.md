@@ -179,8 +179,18 @@
       overrides parameter- and precision-based weights (scaled only by GPU resident
       fraction). These generalize the single-example pins in `calculator.test.ts`.
 - [x] `calculator.property.test.ts` also pins decoder-KV monotonicity: text
-      generation required VRAM never decreases as context length or concurrency
-      grows, guarding the KV formula against sign/operator regressions.
+      generation required VRAM never decreases as context length, concurrency, or
+      KV precision byte-width grows, guarding the KV formula against sign/operator
+      regressions.
+- [x] `calculator.property.test.ts` pins the remaining KV/training Research
+      Corrections: text-encoder required VRAM is identical across all KV precisions
+      (no persistent generation KV), QLoRA weight memory is the frozen 4-bit base
+      scaled by parameter count regardless of the precision control (never a flat
+      4 GB), and full training strictly exceeds LoRA/QLoRA required VRAM for the same
+      model (adapters, not full base-weight training state).
+- [x] `frontend/src/confidence.test.ts` pins the always-visible confidence label
+      mapping: diffusion/video/custom report `Rough`, architecture-derived families
+      report `Estimated`, and every family returns a non-empty label.
 - [x] `frontend/src/legacy-approximations.test.ts` was deleted; do not reintroduce
       it or any legacy-approximation test.
 - [x] Required commands: `pnpm --dir frontend exec vitest run src/calculator.test.ts`,

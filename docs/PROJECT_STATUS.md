@@ -15,6 +15,10 @@
 - `specs/frontend.md` marks the single-action UI contract complete.
 - Overflow reports now include the sharded-tier speed warning whenever the speed
   estimate falls back to the top sharded tier.
+- Speed-estimate tests now pin each workload family's throughput unit
+  (`tokens/second`, `images/minute`, `clips/minute`, `rows/second`,
+  `audio tokens/second`) and prove MoE active parameters yield a strictly faster
+  estimate than the dense equivalent, replacing a loose regex assertion.
 
 ## Commands
 
@@ -50,9 +54,15 @@
 ## Blockers
 
 - No current frontend behavior blocker.
+- This iteration's sandbox denied every `pnpm`, `vitest`, and
+  `node harness/harness.mjs` invocation ("requires approval"), so the strengthened
+  speed-estimate tests could not be executed in-session; they were hand-verified
+  against `workload-memory.ts` (`SPEED_STYLES` units and the MoE compute-weight
+  branch). The loop hook must run `pnpm preflight`/`pnpm gate` to confirm green.
 - `harness/cli.test.ts` is forbidden to agents, so the gate coverage failure
   needs a human harness fix or approval.
 
 ## Next
 
+- Confirm `pnpm preflight` green once execution is permitted.
 - Human fix or approve the forbidden harness setup-status failures.

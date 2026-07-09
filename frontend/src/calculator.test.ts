@@ -34,6 +34,15 @@ function speedTierForTest(): HardwareTier {
 // 24 GB consumer class, an arbitrary tier for speed-format assertions.
 const SPEED_TIER = speedTierForTest();
 
+/**
+ Parse the leading numeric throughput out of a `"<value> <unit>"` speed string.
+@param speed - formatted speed estimate such as `"156.0 tokens/second"`
+@returns the numeric throughput
+*/
+function speedValue(speed: string): number {
+  return Number(speed.split(" ", 1)[0]);
+}
+
 const NO_KV_FAMILIES = new Set<WorkloadFamily>([
   "text_encoder",
   "vision",
@@ -532,24 +541,40 @@ describe("architecture, runtime, accuracy, and speed helpers", () => {
     });
   });
 
-  test("speed labels vary by workload family and MoE compute weights", () => {
-    for (const family of [
-      "text_generation",
-      "image_diffusion",
-      "video_generation",
-      "tabular",
-      "audio",
-    ] as const) {
-      const spec = specFromState(
-        state({
-          workloadFamily: family,
-          moeEnabled: family === "text_generation",
-        }),
-      );
-      expect(speedEstimate(spec, weightsGb(spec), SPEED_TIER)).toMatch(
-        /tokens|images|clips|rows|audio/u,
-      );
+  test("speed estimate reports the workload-specific throughput unit", () => {
+    const expectedUnits: readonly (readonly [WorkloadFamily, string])[] = [
+      ["text_generation", "tokens/second"],
+      ["text_encoder", "tokens/second"],
+      ["encoder_decoder", "tokens/second"],
+      ["custom", "tokens/second"],
+      ["image_diffusion", "images/minute"],
+      ["video_generation", "clips/minute"],
+      ["tabular", "rows/second"],
+      ["audio", "audio tokens/second"],
+    ];
+    for (const [family, unit] of expectedUnits) {
+      const spec = specFromState(state({ workloadFamily: family }));
+      const speed = speedEstimate(spec, weightsGb(spec), SPEED_TIER);
+      expect(speed.endsWith(unit)).toBe(true);
     }
+  });
+
+  test("MoE active parameters drive a faster speed estimate than the dense model", () => {
+    const shared = {
+      totalParams: "47",
+      precision: "16-bit",
+      workloadFamily: "text_generation" as const,
+    };
+    const dense = specFromState(state(shared));
+    const moe = specFromState(
+      state({ ...shared, moeEnabled: true, activeParams: "3" }),
+    );
+    const denseSpeed = speedValue(
+      speedEstimate(dense, weightsGb(dense), SPEED_TIER),
+    );
+    const moeSpeed = speedValue(speedEstimate(moe, weightsGb(moe), SPEED_TIER));
+    // tokens/sec = bandwidth / compute_weight, so smaller active compute is faster.
+    expect(moeSpeed).toBeGreaterThan(denseSpeed);
   });
 
   test("MoE never reduces resident weight memory", () => {

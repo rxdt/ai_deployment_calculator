@@ -97,6 +97,17 @@
   harness assertion turns the gate RED before Playwright/Lighthouse run. Both files
   are forbidden (`harness/`), so an agent cannot reconcile them. To unblock: the
   owner reconciles `harness/cli.ts` and `harness/cli.test.ts`.
+- Fixed this iteration: the gate's `typecheck` stage
+  (`tsc -p harness/tsconfig.app.json`, which enforces `noUncheckedIndexedAccess`)
+  was RED on frontend code — `calculator.property.test.ts` indexed `memories[index]`
+  in two monotonicity loops, typed `number | undefined`, rejected by
+  `toBeGreaterThan(…)`. This slipped past prior handoffs because neither
+  `pnpm preflight` nor the vitest suite runs `tsc` (vitest transpiles via esbuild).
+  Rewrote both loops with a seedless `reduce` over consecutive pairs (both sides
+  typed `number`); assertions and mutation-strength unchanged (verified: a broken
+  `PRECISION_MAP` still fails the monotonic guard). `tsc` app + harness projects now
+  pass. So the ONLY remaining gate-red stage is the forbidden-path `coverage`
+  failure above.
 - Separately, the uncommitted `harness/gate.ts` + `harness/gate.test.ts` WIP is
   self-consistent (empty-commit-after-containment is now a stderr warning, not a
   preflight failure) and does NOT block: `pnpm preflight` passes with 0 issues this

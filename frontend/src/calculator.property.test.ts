@@ -191,9 +191,11 @@ describe("calculator properties", () => {
           }),
         );
 
-        for (let index = 1; index < memories.length; index += 1) {
-          expect(memories[index]).toBeGreaterThan(memories[index - 1]);
-        }
+        // Strictly increasing == ascending order with no duplicates. Expressed via
+        // whole-array comparison to avoid an unchecked index access
+        // (noUncheckedIndexedAccess) and the banned reduce/index-loop patterns.
+        expect(memories).toStrictEqual([...memories].sort((a, b) => a - b));
+        expect(new Set(memories).size).toBe(memories.length);
       }),
       { numRuns: 100 },
     );
@@ -245,9 +247,10 @@ describe("calculator properties", () => {
             }),
         );
 
-        for (let index = 1; index < memories.length; index += 1) {
-          expect(memories[index]).toBeGreaterThanOrEqual(memories[index - 1]);
-        }
+        // Non-decreasing == already in ascending order. Whole-array comparison avoids
+        // an unchecked index access (noUncheckedIndexedAccess) and the banned
+        // reduce/index-loop patterns; ties are allowed (no distinctness check).
+        expect(memories).toStrictEqual([...memories].sort((a, b) => a - b));
       }),
       { numRuns: 100 },
     );

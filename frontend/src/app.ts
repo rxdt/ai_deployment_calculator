@@ -75,6 +75,19 @@ function searchFromForm(form: HTMLFormElement): URLSearchParams {
 
 @param input
 */
+function inputMaximum(input: HTMLInputElement): number {
+  const configured = input.dataset.numberMax;
+  if (configured === undefined) {
+    return NUMBER_MAX;
+  }
+  const parsed = Number(configured);
+  return Number.isFinite(parsed) ? Math.min(parsed, NUMBER_MAX) : NUMBER_MAX;
+}
+
+/**
+
+@param input
+*/
 export function sanitizeNumberInput(input: HTMLInputElement): void {
   const digitsOnly = input.value.replaceAll(/[^\d.]/gu, "");
   const [integer = "", ...fractions] = digitsOnly.split(".");
@@ -82,8 +95,9 @@ export function sanitizeNumberInput(input: HTMLInputElement): void {
     input.inputMode === "decimal" && fractions.length > 0
       ? `${integer}.${fractions.join("")}`
       : integer;
-  if (next !== "" && Number(next) > NUMBER_MAX) {
-    next = String(NUMBER_MAX);
+  const maximum = inputMaximum(input);
+  if (next !== "" && Number(next) > maximum) {
+    next = String(maximum);
   }
   if (input.value !== next) {
     input.value = next;

@@ -23,6 +23,9 @@
 - New this iteration: shared workload sizing lives in
   `frontend/src/workload-sizing.ts` so inference and training parse common
   image/video/audio/tabular/custom sizing controls consistently.
+- New this iteration: advanced numeric assumptions now enforce their real upper
+  bounds in both live form input and URL state normalization: GPU resident
+  fraction is capped at `1`, and LoRA trainable percent is capped at `100`.
 
 ## Commands
 
@@ -44,6 +47,8 @@
 - `pnpm --dir frontend exec vitest run src/calculator.test.ts` passed: 70 tests.
 - `pnpm --dir frontend exec vitest run src/report.test.ts src/app.test.ts src/calculator.test.ts`
   passed: 140 tests.
+- `pnpm --dir frontend exec vitest run src/state.test.ts src/app.test.ts`
+  passed: 63 tests.
 - `pnpm preflight` passed: prettier check, eslint, stylelint, html-validate.
 - `pnpm gate` passed on rerun: format, lint, typecheck, schema, dependency
   checks, deadcode, spelling, workflow lint, SAST, secrets, audit, build,

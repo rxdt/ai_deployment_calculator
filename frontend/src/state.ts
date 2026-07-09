@@ -1,4 +1,5 @@
 import * as z from "zod";
+import { normalizedNumericState, zeroNumericState } from "./numeric-state";
 import type { FormState } from "./types";
 
 const workloadSchema = z.enum([
@@ -67,29 +68,6 @@ const DEFAULT_STATE: FormState = {
 };
 
 const CHECKED_VALUES = new Set(["1", "true", "on", "yes"]);
-const MAX_NUMERIC_VALUE = 999_999;
-
-const NUMERIC_KEYS = [
-  "totalParams",
-  "workloadSize",
-  "contextTokens",
-  "sequenceTokens",
-  "inputTokens",
-  "outputTokens",
-  "imageWidth",
-  "imageHeight",
-  "textContextTokens",
-  "imageCount",
-  "videoFrames",
-  "audioSeconds",
-  "rowsPerBatch",
-  "features",
-  "inputSizeMultiplier",
-  "activeParams",
-  "knownModelFileSizeGb",
-  "gpuResidentFraction",
-  "loraTrainablePercent",
-] as const satisfies readonly (keyof FormState)[];
 
 type ChoiceState = Pick<
   FormState,
@@ -103,20 +81,10 @@ type ChoiceState = Pick<
   | "optimizer"
 >;
 
-type NumericKey = (typeof NUMERIC_KEYS)[number];
-type NumericState = Pick<FormState, NumericKey>;
-
 type BooleanState = Pick<
   FormState,
   "moeEnabled" | "gradientCheckpointing" | "memoryShardingEnabled"
 >;
-
-/**
-@returns numeric zero overrides for the reset action
-*/
-function zeroNumericState(): Partial<NumericState> {
-  return Object.fromEntries(NUMERIC_KEYS.map((key) => [key, "0"]));
-}
 
 /**
  Convert a camelCase state key to the kebab-case name used on the wire
@@ -152,39 +120,6 @@ function isChecked(
   return value === null
     ? isFallbackChecked
     : CHECKED_VALUES.has(value.toLowerCase());
-}
-
-/**
- 
-@param value
-*/
-function isPlainDecimal(value: string): boolean {
-  const parts = value.split(".");
-  if (parts.length > 2) {
-    return false;
-  }
-  const digits = parts.join("");
-  if (digits.length === 0) {
-    return false;
-  }
-  for (const char of digits) {
-    if (char < "0" || char > "9") {
-      return false;
-    }
-  }
-  return true;
-}
-
-/**
- 
-@param value
-@param fallback
-*/
-function decimal(value: string | null, fallback: string): string {
-  if (value === null || value.trim() === "" || !isPlainDecimal(value)) {
-    return fallback;
-  }
-  return Number(value) <= MAX_NUMERIC_VALUE ? value : String(MAX_NUMERIC_VALUE);
 }
 
 /**
@@ -297,46 +232,6 @@ function normalizedAdvancedState(
       defaults.memoryShardingEnabled,
     ),
   };
-}
-
-/**
- 
-@param search
-@param defaults
-*/
-function normalizedNumericState(
-  search: URLSearchParams,
-  defaults: FormState,
-): NumericState {
-  const normalized: Record<NumericKey, string> = {
-    totalParams: defaults.totalParams,
-    workloadSize: defaults.workloadSize,
-    contextTokens: defaults.contextTokens,
-    sequenceTokens: defaults.sequenceTokens,
-    inputTokens: defaults.inputTokens,
-    outputTokens: defaults.outputTokens,
-    imageWidth: defaults.imageWidth,
-    imageHeight: defaults.imageHeight,
-    textContextTokens: defaults.textContextTokens,
-    imageCount: defaults.imageCount,
-    videoFrames: defaults.videoFrames,
-    audioSeconds: defaults.audioSeconds,
-    rowsPerBatch: defaults.rowsPerBatch,
-    features: defaults.features,
-    inputSizeMultiplier: defaults.inputSizeMultiplier,
-    activeParams: defaults.activeParams,
-    knownModelFileSizeGb: defaults.knownModelFileSizeGb,
-    gpuResidentFraction: defaults.gpuResidentFraction,
-    loraTrainablePercent: defaults.loraTrainablePercent,
-  };
-  for (const key of NUMERIC_KEYS) {
-    normalized[key] = decimal(last(search, key), defaults[key]);
-  }
-  normalized.knownModelFileSizeGb = decimal(
-    last(search, "knownModelFileSizeGb"),
-    defaults.knownModelFileSizeGb,
-  );
-  return normalized;
 }
 
 /**

@@ -53,6 +53,9 @@
       waiting for form submit.
 - [x] Hidden adaptive controls are disabled so only visible, applicable controls are
       editable and serialized by the reactive form.
+- [x] Advanced ratio/percent controls clamp impossible values before rendering or
+      URL normalization: GPU resident fraction maxes at `1`, and LoRA trainable
+      percent maxes at `100`.
 - [ ] HTML reflects clean, compact, well-organized flow. Clean, compact, well-organized examples are like `spec/calc1.png`, `~/specs/calc2.png`, `spec/calc13.png` -> do not follow those exactly, they are loose examples of what 'good' looks like to a human user.
 - [x] Small Github logo with link to github repo is in top right
       `https://github.com/rxdt/ai_deployment_calculator/`.
@@ -167,6 +170,8 @@
       values falling back to parameter-based weights instead of zeroing memory.
 - [x] Calculator unit tests cover family-specific training activation sizing for
       vision, diffusion, video, audio, tabular, and custom workloads.
+- [x] State and app unit tests cover GPU resident fraction and LoRA trainable
+      percent caps for URL queries and live form input.
 - [x] `frontend/src/legacy-approximations.test.ts` was deleted; do not reintroduce
       it or any legacy-approximation test.
 - [x] Required commands: `pnpm --dir frontend exec vitest run src/calculator.test.ts`,

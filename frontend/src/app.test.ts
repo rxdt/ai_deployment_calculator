@@ -873,6 +873,18 @@ describe("adaptive controls", () => {
   });
 });
 
+describe("advanced numeric input caps", () => {
+  test("clamps advanced ratio and percent inputs to their real ranges", () => {
+    loadDom();
+    mountCalculator(document);
+    fireInput("gpu-resident-fraction", "2");
+    fireInput("lora-trainable-percent", "150");
+
+    expect(field("gpu-resident-fraction").value).toBe("1");
+    expect(field("lora-trainable-percent").value).toBe("100");
+  });
+});
+
 describe("sanitizeNumberInput", () => {
   test("keeps a single decimal point for decimal inputs", () => {
     const input = document.createElement("input");
@@ -888,6 +900,15 @@ describe("sanitizeNumberInput", () => {
     input.value = "42";
     sanitizeNumberInput(input);
     expect(input.value).toBe("42");
+  });
+
+  test("falls back to the global cap when a field cap is malformed", () => {
+    const input = document.createElement("input");
+    input.dataset.numberMax = "not-a-number";
+    input.inputMode = "numeric";
+    input.value = "1000000";
+    sanitizeNumberInput(input);
+    expect(input.value).toBe("999999");
   });
 });
 

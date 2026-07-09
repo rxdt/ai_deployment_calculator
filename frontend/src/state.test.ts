@@ -107,6 +107,18 @@ describe("normalizedState", () => {
     ).toBe("999999");
   });
 
+  test("clamps advanced ratio and percent query values to valid ranges", () => {
+    const state = normalizedState(
+      parameters({
+        gpuResidentFraction: "2",
+        loraTrainablePercent: "150",
+      }),
+    );
+
+    expect(state.gpuResidentFraction).toBe("1");
+    expect(state.loraTrainablePercent).toBe("100");
+  });
+
   test("accepts a plain decimal and an integer-only value", () => {
     expect(
       normalizedState(parameters({ gpuResidentFraction: "0.5" }))

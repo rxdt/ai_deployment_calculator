@@ -64,9 +64,7 @@
 - [ ] Top hero result looks like a more professional version than in `specs/this_png_shows_some_ideas_are_ok_not_all.png`
 - [x] Small disclaimer should exist below app outputs.
 - [x] Complex details and formulas are hidden in expandable sections as in this app `specs/light_style_ideas_reflected_in_DESIGN.md.png`
-- [ ] **Run lighthouse and Playwright frequently. Both must pass.** Direct
-      Playwright and Lighthouse pass; full `pnpm gate` remains blocked by dirty
-      human-owned harness changes.
+- [ ] **Run lighthouse and Playwright. Both must pass.** Direct
 
 ## STYLING
 
@@ -85,10 +83,10 @@
 
 ## Calculation
 
-- [ ] `frontend/src/calculator-core.ts`, `workload-memory.ts`, and `hardware.ts` own
-      the calculation; `report.ts` assembles the rendered report. The canonical
-      equation, presets, per-family formulas, and hardware/speed math are detailed in
-      the Formulas section below.
+- [x] `frontend/src/calculator-core.ts`, `workload-memory.ts`,
+      `workload-sizing.ts`, and `hardware.ts` own the calculation; `report.ts`
+      assembles the rendered report. The canonical equation, presets, per-family
+      formulas, and hardware/speed math are detailed in the Formulas section below.
 - [x] `Known Model File Size` overrides parameter-based weight estimates, including
       QLoRA base weight memory; MoE active parameters affect speed/KV only, not
       resident weight memory; training modes use adapter/full-training state plus
@@ -167,6 +165,8 @@
       the zeroed reset estimate.
 - [x] Calculator unit tests cover invalid/non-positive `Known Model File Size`
       values falling back to parameter-based weights instead of zeroing memory.
+- [x] Calculator unit tests cover family-specific training activation sizing for
+      vision, diffusion, video, audio, tabular, and custom workloads.
 - [x] `frontend/src/legacy-approximations.test.ts` was deleted; do not reintroduce
       it or any legacy-approximation test.
 - [x] Required commands: `pnpm --dir frontend exec vitest run src/calculator.test.ts`,
@@ -555,6 +555,11 @@ Do not use `Total_Params_B * 16` as the final formula. That is only a rough para
 Use this for LoRA, QLoRA, and Full Training.
 
 `Training_Activation_GB = Activation_Factor_Training * Micro_Batch_Size * Sequence_Or_Token_Count * Num_Layers * Hidden_Size * Activation_Bytes / 1e9`
+
+`Sequence_Or_Token_Count` follows the selected workload family: text context,
+encoder sequence, encoder-decoder input plus output, image patch tokens,
+video patch tokens across temporal steps, audio tokens, tabular row-feature
+blocks, or custom input multiplier.
 
 Then:
 

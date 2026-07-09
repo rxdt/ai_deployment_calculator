@@ -7,6 +7,7 @@ import type {
   RuntimeProfile,
   WorkloadFamily,
 } from "./types";
+import { trainingTokenCount } from "./workload-sizing";
 import { hasMoeControl } from "./workload-visibility";
 
 const BYTES_PER_GB = 1_000_000_000;
@@ -340,30 +341,12 @@ export function weightsGb(spec: Readonly<CalculationSpec>): number {
  
 @param spec
 */
-function sequenceForTraining(spec: Readonly<CalculationSpec>): number {
-  const { state } = spec;
-  if (spec.family === "encoder_decoder") {
-    return (
-      nonNegative(state.inputTokens, 1024) +
-      nonNegative(state.outputTokens, 256)
-    );
-  }
-  if (spec.family === "text_encoder") {
-    return nonNegative(state.sequenceTokens, 512);
-  }
-  return nonNegative(state.contextTokens, 8000);
-}
-
-/**
- 
-@param spec
-*/
 export function trainingActivationGb(spec: Readonly<CalculationSpec>): number {
   const factor = spec.gradientCheckpointing ? 3 : 8;
   return (
     (factor *
       spec.workloadSize *
-      sequenceForTraining(spec) *
+      trainingTokenCount(spec.state) *
       spec.architecture.layers *
       spec.architecture.hidden *
       2) /

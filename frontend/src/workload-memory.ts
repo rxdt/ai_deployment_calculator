@@ -9,10 +9,10 @@ import {
 } from "./calculator-core";
 import { estimateSpeed, type HardwareTier } from "./hardware";
 import type { WorkloadFamily } from "./types";
+import { imageTokens, nonNegativeField, videoSize } from "./workload-sizing";
 import { hasMoeControl } from "./workload-visibility";
 
 const BYTES_PER_GB = 1_000_000_000;
-const DEFAULT_PATCH_SIZE = 16;
 const DEFAULT_LATENT_DOWNSAMPLE = 8;
 const DEFAULT_LATENT_CHANNELS = 4;
 const DEFAULT_TEMPORAL_DOWNSAMPLE = 4;
@@ -52,11 +52,6 @@ type WorkingMemoryBuilder = (
   spec: Readonly<CalculationSpec>,
   weights: number,
 ) => WorkingMemory;
-
-const nonNegative = (value: string, fallback: number): number => {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
-};
 
 const decoderKvGb = (
   spec: Readonly<CalculationSpec>,
@@ -105,33 +100,18 @@ const visionActivationGb = (
   }
   return pixelProxyGb(
     spec,
-    nonNegative(spec.state.imageWidth, 1024),
-    nonNegative(spec.state.imageHeight, 1024),
+    nonNegativeField(spec.state.imageWidth, 1024),
+    nonNegativeField(spec.state.imageHeight, 1024),
   );
-};
-
-const imageTokens = (width: number, height: number): number => {
-  const patches =
-    Math.ceil(width / DEFAULT_PATCH_SIZE) *
-    Math.ceil(height / DEFAULT_PATCH_SIZE);
-  return patches + 1;
-};
-
-const videoSize = (
-  resolution: "720p" | "1080p",
-): {
-  width: number;
-  height: number;
-} => {
-  return resolution === "1080p"
-    ? { width: 1920, height: 1080 }
-    : { width: 1280, height: 720 };
 };
 
 const textGenerationMemory: WorkingMemoryBuilder = (spec, currentWeightsGb) => {
   const scratchRatio = spec.runtimeProfile === "Local / Edge" ? 0.03 : 0.05;
   return {
-    kvCacheGb: decoderKvGb(spec, nonNegative(spec.state.contextTokens, 8000)),
+    kvCacheGb: decoderKvGb(
+      spec,
+      nonNegativeField(spec.state.contextTokens, 8000),
+    ),
     inputActivationGb: currentWeightsGb * scratchRatio,
   };
 };
@@ -141,7 +121,7 @@ const textEncoderMemory: WorkingMemoryBuilder = (spec) => {
     kvCacheGb: 0,
     inputActivationGb: encoderActivationGb(
       spec,
-      nonNegative(spec.state.sequenceTokens, 512),
+      nonNegativeField(spec.state.sequenceTokens, 512),
     ),
   };
 };
@@ -149,9 +129,9 @@ const textEncoderMemory: WorkingMemoryBuilder = (spec) => {
 const encoderDecoderMemory: WorkingMemoryBuilder = (spec, currentWeightsGb) => {
   const input = encoderActivationGb(
     spec,
-    nonNegative(spec.state.inputTokens, 1024),
+    nonNegativeField(spec.state.inputTokens, 1024),
   );
-  const kv = decoderKvGb(spec, nonNegative(spec.state.outputTokens, 256));
+  const kv = decoderKvGb(spec, nonNegativeField(spec.state.outputTokens, 256));
   return {
     kvCacheGb: kv,
     inputActivationGb: input + currentWeightsGb * 0.05,
@@ -159,8 +139,8 @@ const encoderDecoderMemory: WorkingMemoryBuilder = (spec, currentWeightsGb) => {
 };
 
 const visionMemory: WorkingMemoryBuilder = (spec) => {
-  const width = nonNegative(spec.state.imageWidth, 1024);
-  const height = nonNegative(spec.state.imageHeight, 1024);
+  const width = nonNegativeField(spec.state.imageWidth, 1024);
+  const height = nonNegativeField(spec.state.imageHeight, 1024);
   const tokens = imageTokens(width, height);
   const transformer = encoderActivationGb(spec, tokens);
   const pixels = pixelProxyGb(spec, width, height);
@@ -168,13 +148,14 @@ const visionMemory: WorkingMemoryBuilder = (spec) => {
 };
 
 const visionLanguageMemory: WorkingMemoryBuilder = (spec, currentWeightsGb) => {
-  const width = nonNegative(spec.state.imageWidth, 1024);
-  const height = nonNegative(spec.state.imageHeight, 1024);
+  const width = nonNegativeField(spec.state.imageWidth, 1024);
+  const height = nonNegativeField(spec.state.imageHeight, 1024);
   const imageTokenCount =
-    nonNegative(spec.state.imageCount, 1) * (imageTokens(width, height) - 1);
+    nonNegativeField(spec.state.imageCount, 1) *
+    (imageTokens(width, height) - 1);
   const kv = decoderKvGb(
     spec,
-    nonNegative(spec.state.textContextTokens, 4000) + imageTokenCount,
+    nonNegativeField(spec.state.textContextTokens, 4000) + imageTokenCount,
   );
   const vision = visionActivationGb(spec, imageTokenCount);
   return {
@@ -185,10 +166,10 @@ const visionLanguageMemory: WorkingMemoryBuilder = (spec, currentWeightsGb) => {
 
 const imageDiffusionMemory: WorkingMemoryBuilder = (spec, currentWeightsGb) => {
   const latentHeight = Math.ceil(
-    nonNegative(spec.state.imageHeight, 1024) / DEFAULT_LATENT_DOWNSAMPLE,
+    nonNegativeField(spec.state.imageHeight, 1024) / DEFAULT_LATENT_DOWNSAMPLE,
   );
   const latentWidth = Math.ceil(
-    nonNegative(spec.state.imageWidth, 1024) / DEFAULT_LATENT_DOWNSAMPLE,
+    nonNegativeField(spec.state.imageWidth, 1024) / DEFAULT_LATENT_DOWNSAMPLE,
   );
   const elements =
     spec.workloadSize * latentHeight * latentWidth * DEFAULT_LATENT_CHANNELS;
@@ -202,7 +183,7 @@ const imageDiffusionMemory: WorkingMemoryBuilder = (spec, currentWeightsGb) => {
 const videoMemory: WorkingMemoryBuilder = (spec, currentWeightsGb) => {
   const size = videoSize(spec.state.videoResolution);
   const latentFrames = Math.ceil(
-    nonNegative(spec.state.videoFrames, 81) / DEFAULT_TEMPORAL_DOWNSAMPLE,
+    nonNegativeField(spec.state.videoFrames, 81) / DEFAULT_TEMPORAL_DOWNSAMPLE,
   );
   const latentHeight = Math.ceil(size.height / DEFAULT_LATENT_DOWNSAMPLE);
   const latentWidth = Math.ceil(size.width / DEFAULT_LATENT_DOWNSAMPLE);
@@ -221,7 +202,8 @@ const videoMemory: WorkingMemoryBuilder = (spec, currentWeightsGb) => {
 
 const audioMemory: WorkingMemoryBuilder = (spec) => {
   const tokens =
-    nonNegative(spec.state.audioSeconds, 30) * DEFAULT_AUDIO_TOKENS_PER_SECOND;
+    nonNegativeField(spec.state.audioSeconds, 30) *
+    DEFAULT_AUDIO_TOKENS_PER_SECOND;
   return {
     kvCacheGb: 0,
     inputActivationGb: encoderActivationGb(spec, tokens),
@@ -230,8 +212,8 @@ const audioMemory: WorkingMemoryBuilder = (spec) => {
 
 const tabularMemory: WorkingMemoryBuilder = (spec) => {
   const tabular =
-    (nonNegative(spec.state.rowsPerBatch, 10_000) *
-      nonNegative(spec.state.features, 100) *
+    (nonNegativeField(spec.state.rowsPerBatch, 10_000) *
+      nonNegativeField(spec.state.features, 100) *
       DEFAULT_FEATURE_BYTES) /
     BYTES_PER_GB;
   return { kvCacheGb: 0, inputActivationGb: tabular * 4 };
@@ -241,7 +223,9 @@ const customMemory: WorkingMemoryBuilder = (spec, currentWeightsGb) => {
   return {
     kvCacheGb: 0,
     inputActivationGb:
-      currentWeightsGb * 0.25 * nonNegative(spec.state.inputSizeMultiplier, 1),
+      currentWeightsGb *
+      0.25 *
+      nonNegativeField(spec.state.inputSizeMultiplier, 1),
   };
 };
 

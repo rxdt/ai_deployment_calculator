@@ -406,6 +406,72 @@ describe("training estimates", () => {
     );
   });
 
+  /**
+  Training estimates must follow the same visible family-specific sizing inputs
+  that users tune for inference, not the text-generation context fallback.
+  */
+  test.each([
+    {
+      scenario: "vision image patch tokens",
+      overrides: {
+        workloadFamily: "vision",
+        imageWidth: "2048",
+        imageHeight: "2048",
+      },
+      expected: 12.88568832,
+    },
+    {
+      scenario: "diffusion output image patch tokens",
+      overrides: {
+        workloadFamily: "image_diffusion",
+        imageWidth: "2048",
+        imageHeight: "2048",
+      },
+      expected: 12.88568832,
+    },
+    {
+      scenario: "video patch tokens across latent frame steps",
+      overrides: {
+        workloadFamily: "video_generation",
+        videoResolution: "1080p",
+        videoFrames: "161",
+      },
+      expected: 263.140933632,
+    },
+    {
+      scenario: "audio duration tokens",
+      overrides: { workloadFamily: "audio", audioSeconds: "60" },
+      expected: 2.359296,
+    },
+    {
+      scenario: "tabular row-feature blocks",
+      overrides: {
+        workloadFamily: "tabular",
+        rowsPerBatch: "20000",
+        features: "200",
+      },
+      expected: 31.45728,
+    },
+    {
+      scenario: "custom input multiplier",
+      overrides: { workloadFamily: "custom", inputSizeMultiplier: "3" },
+      expected: 18.874368,
+    },
+  ] satisfies readonly {
+    readonly scenario: string;
+    readonly overrides: Partial<FormState>;
+    readonly expected: number;
+  }[])(
+    "training activation scales with $scenario",
+    ({ overrides, expected }) => {
+      const spec = specFromState(
+        state({ ...overrides, executionMode: "LoRA fine-tuning" }),
+      );
+
+      expect(trainingActivationGb(spec)).toBeCloseTo(expected, 9);
+    },
+  );
+
   test("calculator parsing falls back for invalid direct state values", () => {
     const spec = specFromState(
       state({

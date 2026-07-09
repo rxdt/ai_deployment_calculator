@@ -2,7 +2,7 @@
 
 ## State
 
-- Current branch: `main`.
+- Current branch: `main`; latest agent commit: current `HEAD`.
 - Static Vite + TypeScript calculator; frontend calculations and report
   rendering are the source of truth.
 - Default output contract: hero glance first, four collapsed result detail
@@ -17,12 +17,12 @@
   checkpointing, memory sharding, decoder KV scaling inputs, and non-KV
   workload scaling inputs.
 - `Known Model File Size` overrides QLoRA base model memory.
-- New this iteration: `Assumptions used` now surfaces non-KV workload drivers
-  such as image size, video frames/resolution, audio seconds, tabular shape, and
-  custom input multiplier.
-- New this iteration: report assumption assembly moved to
-  `frontend/src/report-assumptions.ts`; `report.ts` stays under the file-size
-  lint cap while assembling the payload.
+- New this iteration: training activation memory now uses family-specific
+  workload proxies for vision, diffusion, video, audio, tabular, and custom
+  training estimates instead of falling back to text context length.
+- New this iteration: shared workload sizing lives in
+  `frontend/src/workload-sizing.ts` so inference and training parse common
+  image/video/audio/tabular/custom sizing controls consistently.
 
 ## Commands
 
@@ -41,12 +41,13 @@
 
 ## Checks
 
+- `pnpm --dir frontend exec vitest run src/calculator.test.ts` passed: 70 tests.
 - `pnpm --dir frontend exec vitest run src/report.test.ts src/app.test.ts src/calculator.test.ts`
-  passed: 133 tests.
+  passed: 140 tests.
 - `pnpm preflight` passed: prettier check, eslint, stylelint, html-validate.
-- `pnpm gate` passed: format, lint, typecheck, schema, dependency checks,
-  deadcode, spelling, workflow lint, SAST, secrets, audit, build, coverage,
-  Playwright, and Lighthouse.
+- `pnpm gate` passed on rerun: format, lint, typecheck, schema, dependency
+  checks, deadcode, spelling, workflow lint, SAST, secrets, audit, build,
+  coverage, Playwright, and Lighthouse.
 
 ## Blockers
 

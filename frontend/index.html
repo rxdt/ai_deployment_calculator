@@ -389,23 +389,24 @@
         <!-- RESULTS -->
         <section class="results" aria-label="Estimate">
           <!-- Tier 1: the answer, at a glance -->
-          <div class="hero">
+          <div class="hero" data-slot="hero-total-card">
             <p class="hero-label">Estimated VRAM Required</p>
             <p class="hero-value"><output data-out="total">0.0 GB</output></p>
             <p class="hero-say" data-out="vram-say"></p>
-            <p class="hero-confidence">
-              <span class="hero-label" data-slot="confidence-label"
-                >Estimate confidence</span
-              ><strong data-out="confidence"></strong>
-            </p>
           </div>
 
-          <div class="hero hero--secondary">
+          <div class="hero hero--secondary" data-slot="hero-gpu-card">
             <p class="hero-label" data-slot="gpu-class-label">
               Recommended GPU Class
             </p>
             <p class="hero-value hero-value-small" data-out="gpu-class"></p>
           </div>
+
+          <p class="result-meta">
+            <span class="hero-label" data-slot="confidence-label"
+              >Estimate confidence</span
+            ><strong data-out="confidence"></strong>
+          </p>
 
           <!-- Tier 2: the reasoning and numbers, hidden until asked for -->
           <details class="panel">

@@ -463,16 +463,22 @@ describe("mounted calculator", () => {
     expect(requireButton().textContent.trim()).toBe("Reset");
   });
 
-  test("keeps the confidence label visible and adapts it to the workload", () => {
+  test("keeps the confidence label visible outside the hero cards and adapts it to the workload", () => {
     loadDom();
     mountCalculator(document);
-    // The confidence label lives outside every collapsible <details> panel, so
-    // none of its ancestors is a <details> and it needs no expansion to show.
+    // The confidence label remains visible, but it is demoted out of the hero
+    // cards so the first-glance result hierarchy stays focused on VRAM and GPU.
     let ancestor = outSlot("confidence").parentElement;
     while (ancestor !== null) {
       expect(ancestor.tagName).not.toBe("DETAILS");
       ancestor = ancestor.parentElement;
     }
+    expect(dataSlot("hero-total-card").contains(outSlot("confidence"))).toBe(
+      false,
+    );
+    expect(dataSlot("hero-gpu-card").contains(outSlot("confidence"))).toBe(
+      false,
+    );
     expect(out("confidence")).toBe("Estimated");
     fireChange("workload-family", "image_diffusion");
     expect(out("confidence")).toBe("Rough");
@@ -547,6 +553,16 @@ describe("mounted calculator", () => {
     expect(out("vram-say")).toBe("The workload needs 19.0 GB usable VRAM.");
     expect(out("confidence")).toBe("Estimated");
     expect(out("gpu-class")).toBe("24 GB GPU hardware tier");
+    const heroText = [dataSlot("hero-total-card"), dataSlot("hero-gpu-card")]
+      .map((hero) => hero.textContent)
+      .join(" ");
+    expect(heroText).not.toContain("Estimate confidence");
+    expect(dataSlot("hero-total-card").contains(outSlot("confidence"))).toBe(
+      false,
+    );
+    expect(dataSlot("hero-gpu-card").contains(outSlot("confidence"))).toBe(
+      false,
+    );
     for (const name of firstGlanceSlots) {
       expect(() => containingDetails(outSlot(name))).toThrow(
         "Missing containing details panel",

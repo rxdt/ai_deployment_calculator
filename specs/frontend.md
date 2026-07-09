@@ -164,6 +164,8 @@
       and pin which families surface decoder `KV Cache precision` assumptions in
       inference (text generation, encoder-decoder, vision-language only), plus
       the family-specific KV and non-KV scaling inputs surfaced in assumptions.
+- [x] Report unit tests cover malformed direct numeric state so assumption rows
+      show resolved formula fallbacks instead of raw invalid strings.
 - [x] Report and calculator unit tests cover advanced assumptions that affect
       estimates: known file size, GPU resident fraction clamping, LoRA trainable
       percent, direct LoRA/MoE semantic caps, optimizer, gradient checkpointing,

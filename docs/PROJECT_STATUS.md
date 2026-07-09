@@ -33,6 +33,8 @@
   `Known Model File Size` as real resident memory even when total parameters are
   unknown, while zero model memory no longer produces workload-only activation,
   runtime, or speed estimates.
+- New this iteration: report assumption rows now display resolved numeric
+  fallback values for malformed direct state, matching the formula inputs.
 
 ## Commands
 
@@ -59,6 +61,7 @@
 - `pnpm --dir frontend exec vitest run src/calculator.test.ts` passed: 72 tests.
 - `pnpm --dir frontend exec vitest run src/calculator.test.ts` passed: 74 tests.
 - `pnpm preflight` passed: prettier check, eslint, stylelint, html-validate.
+- `pnpm --dir frontend exec vitest run src/report.test.ts` passed: 23 tests.
 - `pnpm gate` passed: format, lint, typecheck, schema, dependency checks,
   deadcode, spelling, workflow lint, SAST, secrets, audit, build, coverage,
   Playwright, and Lighthouse.

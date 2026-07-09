@@ -1,6 +1,7 @@
 import type { CalculationSpec } from "./calculator-core";
 import { formatGb } from "./hardware";
 import type { DisplayRow, FormState, WorkloadFamily } from "./types";
+import { nonNegativeField } from "./workload-sizing";
 import { hasDecoderKvCache } from "./workload-visibility";
 
 /**
@@ -32,6 +33,14 @@ function knownFileAssumptionRows(
     });
   }
   return rows;
+}
+
+/**
+@param value raw numeric field value
+@param fallback formula fallback for malformed direct state
+*/
+function resolvedNumber(value: string, fallback: number): string {
+  return nonNegativeField(value, fallback).toString();
 }
 
 /**
@@ -68,7 +77,7 @@ function trainingAssumptionRows(
 function imageSizeRow(state: Readonly<FormState>): DisplayRow {
   return {
     label: "Image size",
-    value: `${state.imageWidth} x ${state.imageHeight}`,
+    value: `${resolvedNumber(state.imageWidth, 1024)} x ${resolvedNumber(state.imageHeight, 1024)}`,
   };
 }
 
@@ -90,19 +99,28 @@ function kvAssumptionRows(
   let scalingRows: DisplayRow[];
   if (state.workloadFamily === "encoder_decoder") {
     scalingRows = [
-      { label: "Output tokens", value: state.outputTokens },
+      {
+        label: "Output tokens",
+        value: resolvedNumber(state.outputTokens, 256),
+      },
       workloadRow,
     ];
   } else if (state.workloadFamily === "vision_language") {
     scalingRows = [
-      { label: "Text context tokens", value: state.textContextTokens },
-      { label: "Image count", value: state.imageCount },
+      {
+        label: "Text context tokens",
+        value: resolvedNumber(state.textContextTokens, 4000),
+      },
+      { label: "Image count", value: resolvedNumber(state.imageCount, 1) },
       imageSizeRow(state),
       workloadRow,
     ];
   } else {
     scalingRows = [
-      { label: "Context tokens", value: state.contextTokens },
+      {
+        label: "Context tokens",
+        value: resolvedNumber(state.contextTokens, 8000),
+      },
       workloadRow,
     ];
   }
@@ -144,14 +162,20 @@ const textGenerationAssumptionRows: WorkloadAssumptionBuilder = (
   spec,
 ) => {
   return [
-    { label: "Context tokens", value: state.contextTokens },
+    {
+      label: "Context tokens",
+      value: resolvedNumber(state.contextTokens, 8000),
+    },
     workloadSizeRow(state, spec),
   ];
 };
 
 const textEncoderAssumptionRows: WorkloadAssumptionBuilder = (state, spec) => {
   return [
-    { label: "Sequence tokens", value: state.sequenceTokens },
+    {
+      label: "Sequence tokens",
+      value: resolvedNumber(state.sequenceTokens, 512),
+    },
     workloadSizeRow(state, spec),
   ];
 };
@@ -161,8 +185,8 @@ const encoderDecoderAssumptionRows: WorkloadAssumptionBuilder = (
   spec,
 ) => {
   return [
-    { label: "Input tokens", value: state.inputTokens },
-    { label: "Output tokens", value: state.outputTokens },
+    { label: "Input tokens", value: resolvedNumber(state.inputTokens, 1024) },
+    { label: "Output tokens", value: resolvedNumber(state.outputTokens, 256) },
     workloadSizeRow(state, spec),
   ];
 };
@@ -176,8 +200,11 @@ const visionLanguageAssumptionRows: WorkloadAssumptionBuilder = (
   spec,
 ) => {
   return [
-    { label: "Text context tokens", value: state.textContextTokens },
-    { label: "Image count", value: state.imageCount },
+    {
+      label: "Text context tokens",
+      value: resolvedNumber(state.textContextTokens, 4000),
+    },
+    { label: "Image count", value: resolvedNumber(state.imageCount, 1) },
     imageSizeRow(state),
     workloadSizeRow(state, spec),
   ];
@@ -186,29 +213,35 @@ const visionLanguageAssumptionRows: WorkloadAssumptionBuilder = (
 const videoAssumptionRows: WorkloadAssumptionBuilder = (state, spec) => {
   return [
     { label: "Video resolution", value: state.videoResolution },
-    { label: "Video frames", value: state.videoFrames },
+    { label: "Video frames", value: resolvedNumber(state.videoFrames, 81) },
     workloadSizeRow(state, spec),
   ];
 };
 
 const audioAssumptionRows: WorkloadAssumptionBuilder = (state, spec) => {
   return [
-    { label: "Audio seconds", value: state.audioSeconds },
+    { label: "Audio seconds", value: resolvedNumber(state.audioSeconds, 30) },
     workloadSizeRow(state, spec),
   ];
 };
 
 const tabularAssumptionRows: WorkloadAssumptionBuilder = (state, spec) => {
   return [
-    { label: "Rows per batch", value: state.rowsPerBatch },
-    { label: "Features", value: state.features },
+    {
+      label: "Rows per batch",
+      value: resolvedNumber(state.rowsPerBatch, 10_000),
+    },
+    { label: "Features", value: resolvedNumber(state.features, 100) },
     workloadSizeRow(state, spec),
   ];
 };
 
 const customAssumptionRows: WorkloadAssumptionBuilder = (state, spec) => {
   return [
-    { label: "Input size multiplier", value: state.inputSizeMultiplier },
+    {
+      label: "Input size multiplier",
+      value: resolvedNumber(state.inputSizeMultiplier, 1),
+    },
     workloadSizeRow(state, spec),
   ];
 };

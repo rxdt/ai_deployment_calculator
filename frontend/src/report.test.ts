@@ -522,6 +522,41 @@ describe("buildReport", () => {
     );
   });
 
+  /**
+  Direct report callers may bypass URL normalization. Assumption rows should
+  still show the numeric values used by the formulas rather than raw malformed
+  strings.
+  */
+  test("assumptions show resolved numeric fallbacks for malformed direct state", () => {
+    expect(
+      buildReport(state({ contextTokens: "bad", workloadSize: "0" }))
+        .assumptions,
+    ).toEqual(
+      expect.arrayContaining([
+        { label: "Context tokens", value: "8000" },
+        { label: "Concurrent requests", value: "1" },
+      ]),
+    );
+
+    expect(
+      buildReport(
+        state({
+          workloadFamily: "vision_language",
+          textContextTokens: "bad",
+          imageCount: "-2",
+          imageWidth: "bad",
+          imageHeight: "-1",
+        }),
+      ).assumptions,
+    ).toEqual(
+      expect.arrayContaining([
+        { label: "Text context tokens", value: "4000" },
+        { label: "Image count", value: "1" },
+        { label: "Image size", value: "1024 x 1024" },
+      ]),
+    );
+  });
+
   test("assumptions surface advanced inputs that change memory or hardware selection", () => {
     const report = buildReport(
       state({

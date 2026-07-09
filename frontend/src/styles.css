@@ -28,7 +28,7 @@
   --layout-advanced-width: min(42rem, calc(100vw - (var(--space-md) * 2)));
   --layout-half: calc(50% - var(--space-sm));
   --layout-quarter: calc(25% - var(--space-sm));
-  --layer-disclosure: 1;
+  --z-disclosure: 1;
   --radius-sm: 0.25rem;
   --space-2xs: 0.125rem;
   --space-xs: 0.25rem;
@@ -236,7 +236,7 @@ summary {
 
 .advanced[open] .group {
   position: absolute;
-  z-index: var(--layer-disclosure);
+  z-index: var(--z-disclosure);
   margin-top: 0;
   width: var(--layout-advanced-width);
   max-height: var(--layout-advanced-height);

@@ -35,9 +35,22 @@
 - Preflight: `pnpm preflight`
 - Gate: `pnpm gate`
 
+## Checks
+
+- Focused responsive Playwright passes: 48 tests.
+- `pnpm preflight` passes.
+- `pnpm gate` passes format, eslint, style, html, typecheck, harness types,
+  schema, dependency-cruiser, deadcode, spelling, workflow lint, secrets,
+  audit, build, e2e, and Lighthouse. `semgrep` is not installed and is skipped.
+- `pnpm gate` fails in forbidden harness coverage tests:
+  `harness/cli.test.ts` has six setup cases expecting status `0`, `1`, or `7`
+  but receiving status `2`.
+
 ## Blockers
 
-- None for current frontend scope.
+- No current frontend behavior blocker.
+- `harness/cli.test.ts` is forbidden to agents, so the gate coverage failure
+  needs a human harness fix or approval.
 
 ## Next
 

@@ -119,7 +119,7 @@
 
 ## Tests And Checks
 
-- [ ] Unit tests pin corrected totals: `47B` MoE `113.1 GB`, default `7B`
+- [x] Unit tests pin corrected totals: `47B` MoE `113.1 GB`, default `7B`
       `19.0 GB`. QLoRA defaults and `2%` cases, long-context GQA KV, and precision comparison.
 - [ ] Unit tests cover conversion, precision map, file-size override, MoE resident
       memory, decoder KV scaling, no encoder KV, encoder-decoder memory,

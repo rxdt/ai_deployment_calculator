@@ -101,6 +101,7 @@ describe("corrected text-generation totals", () => {
       },
       113.1,
     ],
+    ["7B server inference default matches the empty-form estimate", {}, 19],
     ["8B server inference defaults to 21.3 GB", { totalParams: "8" }, 21.3],
     [
       "104B local exact GGUF file uses local overhead and no server buffer",
@@ -564,7 +565,7 @@ describe("architecture, runtime, accuracy, and speed helpers", () => {
       totalParams: "47",
       precision: "16-bit",
       workloadFamily: "text_generation" as const,
-    };
+    } satisfies Partial<FormState>;
     const dense = specFromState(state(shared));
     const moe = specFromState(
       state({ ...shared, moeEnabled: true, activeParams: "3" }),

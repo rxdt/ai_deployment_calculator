@@ -68,7 +68,31 @@
 
 ## Blockers
 
-- No blocker for the scoped frontend change.
+- HARD BLOCKER (this iteration): the permission policy in this non-interactive
+  session denies direct code-execution commands from Bash. `pnpm preflight`,
+  `pnpm gate`, `node harness/harness.mjs preflight`, `node -e ...`,
+  `pnpm --dir frontend exec vitest run [...]`, and
+  `frontend/node_modules/.bin/vitest` all return "This command requires
+  approval" and are auto-denied; only read-only inspection (`git`, `ls`, `cat`,
+  `wc`, `grep`, `node --version`) runs. The git pre-commit hook DOES run
+  `harness preflight` automatically (prettier, eslint, stylelint, html-validate
+  passed on the commit that carried this note), so format/lint/html are covered
+  on commit. But the full `pnpm gate` — vitest unit/property tests, typecheck,
+  coverage, build, Playwright, Lighthouse — cannot be invoked directly, so the
+  behavioral correctness of any code change cannot be verified this iteration.
+- This iteration was therefore review-only: a full static read of
+  `calculator-core.ts`, `workload-memory.ts`, `workload-sizing.ts`,
+  `hardware.ts`, `report.ts`, `report-assumptions.ts`, `state.ts`,
+  `numeric-state.ts`, and `workload-visibility.ts` found them conformant to the
+  `specs/frontend.md` formulas (weights, precision map, per-family working
+  memory, training state/activation, MoE speed, hardware tiers, overflow, fit,
+  and assumption rows) with no correctness defect. Remaining unchecked
+  `specs/frontend.md` items are the deferred styling pass and the
+  Lighthouse/Playwright visual runs, neither actionable while execution is
+  blocked.
+- To unblock: a human must restore execution permissions (allow `pnpm` and
+  `node <script>` in this session's allowlist) so the loop can run
+  `pnpm preflight` and `pnpm gate` again.
 - Existing unstaged human-owned forbidden edits remain in `PROMPT.md`,
   `harness/gate.ts`, and `harness/gate.test.ts`; agents must not stage or alter
   them.

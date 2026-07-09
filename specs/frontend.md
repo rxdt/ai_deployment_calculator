@@ -148,6 +148,10 @@
 - [x] Browser e2e pins the default `7B` / `19.0 GB` rendered report
       across hero, GPU class, confidence, why math, breakdown rows, formula,
       assumptions, speed, and empty default warnings.
+- [x] Browser e2e pins canonical smoke inputs entered through real controls:
+      47B MoE inference, 8B QLoRA 2%, 7B full training, and 104B exact local
+      GGUF. The checks cover visible totals, GPU class, minimum VRAM,
+      breakdown rows, and assumption rows in `frontend/tests/calculator.spec.ts`.
 - [x] App unit tests cover the real HTML `KV Cache Precision` options, real HTML
       `Execution Mode` choices, the rendered 32-bit KV estimate, the always-visible
       `Estimate confidence` label, collapsed output panels, removed `Accuracy` /

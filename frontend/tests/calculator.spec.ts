@@ -22,6 +22,165 @@ async function expectReportRows(
   }
 }
 
+interface BrowserCalculationCase {
+  readonly name: string;
+  readonly controls: readonly (readonly [
+    string,
+    string | boolean,
+    "fill" | "select" | "check",
+  ])[];
+  readonly total: string;
+  readonly gpuClass: string;
+  readonly minimumRawVram: string;
+  readonly confidence: string;
+  readonly breakdown: readonly [string, string][];
+  readonly assumptions: readonly [string, string][];
+}
+
+const CANONICAL_BROWSER_CASES = [
+  {
+    name: "47B MoE server inference keeps full resident weights",
+    controls: [
+      ["#total-params", "47", "fill"],
+      ["#moe-enabled", true, "check"],
+      ["#active-params", "1.3", "fill"],
+    ],
+    total: "113.1 GB",
+    gpuClass: "141 GB GPU hardware tier",
+    minimumRawVram: "133.1 GB",
+    confidence: "Estimated",
+    breakdown: [
+      ["Model memory", "94.0 GB"],
+      ["Context memory", "2.6 GB"],
+      ["Activation memory", "4.7 GB"],
+      ["Runtime reserve", "1.5 GB"],
+      ["Safety margin", "10.3 GB"],
+    ],
+    assumptions: [
+      ["Precision", "16-bit"],
+      ["Runtime profile", "Server / Cloud"],
+      ["Execution mode", "Inference"],
+      ["Context tokens", "8000"],
+      ["Concurrent requests", "1"],
+      ["KV Cache precision", "16-bit"],
+      ["KV heads used", "8"],
+      ["Conservative KV heads", "64"],
+    ],
+  },
+  {
+    name: "8B QLoRA uses quantized base plus adapter state",
+    controls: [
+      ["#total-params", "8", "fill"],
+      ["#execution-mode", "QLoRA fine-tuning", "select"],
+      ["#lora-trainable-percent", "2", "fill"],
+    ],
+    total: "21.0 GB",
+    gpuClass: "48 GB GPU hardware tier",
+    minimumRawVram: "26.3 GB",
+    confidence: "Estimated",
+    breakdown: [
+      ["QLoRA base model memory", "4.6 GB"],
+      ["Activation memory", "6.3 GB"],
+      ["Training memory", "1.9 GB"],
+      ["Runtime reserve", "4.0 GB"],
+      ["Safety margin", "4.2 GB"],
+    ],
+    assumptions: [
+      ["Precision", "4-bit"],
+      ["Runtime profile", "Local / Edge"],
+      ["Execution mode", "QLoRA fine-tuning"],
+      ["LoRA trainable parameters", "2%"],
+      ["Optimizer", "AdamW"],
+      ["Gradient checkpointing", "Enabled"],
+      ["Context tokens", "8000"],
+      ["Micro batch size", "1"],
+    ],
+  },
+  {
+    name: "7B full training includes training state and activations",
+    controls: [["#execution-mode", "Full training", "select"]],
+    total: "152.9 GB",
+    gpuClass: "No single-GPU fit. Enable memory sharding or use offload.",
+    minimumRawVram: "191.1 GB",
+    confidence: "Estimated",
+    breakdown: [
+      ["Model memory", "14.0 GB"],
+      ["Activation memory", "6.3 GB"],
+      ["Training memory", "98.0 GB"],
+      ["Runtime reserve", "4.0 GB"],
+      ["Safety margin", "30.6 GB"],
+    ],
+    assumptions: [
+      ["Precision", "16-bit"],
+      ["Runtime profile", "Server / Cloud"],
+      ["Execution mode", "Full training"],
+      ["Optimizer", "AdamW"],
+      ["Gradient checkpointing", "Enabled"],
+      ["Context tokens", "8000"],
+      ["Micro batch size", "1"],
+    ],
+  },
+  {
+    name: "104B exact local GGUF file overrides parameter weights",
+    controls: [
+      ["#total-params", "104", "fill"],
+      ["#context-tokens", "32000", "fill"],
+      ["#precision", "4-bit", "select"],
+      ["#runtime-profile", "Local / Edge", "select"],
+      ["#kv-cache-precision", "32-bit", "select"],
+      ["#known-model-file-size-gb", "52", "fill"],
+    ],
+    total: "79.2 GB",
+    gpuClass: "141 GB GPU hardware tier",
+    minimumRawVram: "88.0 GB",
+    confidence: "Estimated",
+    breakdown: [
+      ["Model memory", "52.0 GB"],
+      ["Context memory", "25.2 GB"],
+      ["Activation memory", "1.6 GB"],
+      ["Runtime reserve", "0.5 GB"],
+    ],
+    assumptions: [
+      ["Precision", "4-bit"],
+      ["Runtime profile", "Local / Edge"],
+      ["Execution mode", "Inference"],
+      ["Known Model File Size", "52.0 GB"],
+      ["Context tokens", "32000"],
+      ["Concurrent requests", "1"],
+      ["KV Cache precision", "32-bit"],
+      ["KV heads used", "8"],
+      ["Conservative KV heads", "80"],
+    ],
+  },
+] satisfies readonly BrowserCalculationCase[];
+
+/**
+Apply one browser-calculation scenario through the real form controls.
+@param page Browser page.
+@param controls Ordered control operations.
+*/
+async function applyControls(
+  page: Page,
+  controls: BrowserCalculationCase["controls"],
+): Promise<void> {
+  await page.getByText("Advanced assumptions").click();
+  for (const [selector, value, action] of controls) {
+    const control = page.locator(selector);
+    if (action === "fill") {
+      await control.fill(String(value));
+    } else if (action === "select") {
+      await control.selectOption(String(value));
+    } else {
+      await control.setChecked(Boolean(value));
+    }
+  }
+  await page.locator('[data-slot="advanced-assumptions"]').evaluate((node) => {
+    if (node instanceof HTMLDetailsElement) {
+      node.open = false;
+    }
+  });
+}
+
 test("page has no accessibility violations", async ({ page }) => {
   await page.goto("/");
   const results = await new AxeBuilder({ page }).analyze();
@@ -100,6 +259,37 @@ test("renders the default 7B estimate consistently across the full report", asyn
   ]);
   await expect(page.locator('[data-out="warnings"]')).toBeHidden();
 });
+
+/**
+Canonical unit-test scenarios must produce the same visible report when entered
+through browser controls, not only when called through TypeScript helpers.
+*/
+for (const scenario of CANONICAL_BROWSER_CASES) {
+  test(`renders ${scenario.name}`, async ({ page }) => {
+    await page.goto("/");
+
+    await applyControls(page, scenario.controls);
+
+    await expect(page.locator('[data-out="total"]')).toHaveText(scenario.total);
+    await expect(page.locator('[data-out="gpu-class"]')).toHaveText(
+      scenario.gpuClass,
+    );
+    await expect(page.locator('[data-out="confidence"]')).toHaveText(
+      scenario.confidence,
+    );
+
+    await page.getByText("Why this recommendation").click();
+    await expect(page.locator('[data-out="min-cap"]')).toHaveText(
+      scenario.minimumRawVram,
+    );
+
+    await page.getByText("Calculation used").click();
+    await expectReportRows(page, "breakdown", scenario.breakdown);
+
+    await page.getByText("Assumptions used").click();
+    await expectReportRows(page, "assumptions", scenario.assumptions);
+  });
+}
 
 test("recomputes when parameters change", async ({ page }) => {
   await page.goto("/");

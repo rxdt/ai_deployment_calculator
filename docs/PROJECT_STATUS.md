@@ -80,17 +80,23 @@
 
 ## Blockers
 
-- `pnpm gate` is RED, but only because of human forbidden-path WIP: the
-  uncommitted edit to `harness/cli.ts` changed the `AGENTS.claude` preset (now
-  emits `--dangerously-skip-permissions`, `with`, and `--permission-mode
-  dontAsk`) without updating `harness/cli.test.ts:798` ("pins agent presets"),
-  which still expects the old 6-arg `--permission-mode acceptEdits` form. That
-  single vitest assertion fails and the harness rejects the run before the
-  Playwright/Lighthouse gate stages execute. Both files are forbidden
-  (`harness/`), so an agent cannot reconcile them. All frontend gate stages that
-  did run were green. To unblock: the owner reconciles `harness/cli.ts` and
-  `harness/cli.test.ts`, then `pnpm gate` should pass end-to-end (frontend
-  Playwright + Lighthouse already pass standalone).
+- `pnpm gate` is RED, but only because of human forbidden-path WIP. Confirmed
+  this iteration by running the single assertion: `harness/cli.ts` changed the
+  `AGENTS.claude` preset (now emits `--dangerously-skip-permissions`, `with`, and
+  `--permission-mode dontAsk`) while `harness/cli.test.ts:798` ("pins agent
+  presets") still deep-equals the old `--permission-mode acceptEdits` array
+  (`npx vitest run harness/cli.test.ts -t "pins agent presets"` fails: "expected
+  [ 'claude', '-p', …(8) ] to deeply equal [ 'claude', '-p', …(6) ]"). The gate's
+  `coverage` stage runs the combined harness+frontend vitest suite
+  (`harness/vitest.config.js`, see `harness/gate-data.ts:252`), so that one failing
+  harness assertion turns the gate RED before Playwright/Lighthouse run. Both files
+  are forbidden (`harness/`), so an agent cannot reconcile them. To unblock: the
+  owner reconciles `harness/cli.ts` and `harness/cli.test.ts`.
+- Separately, the uncommitted `harness/gate.ts` + `harness/gate.test.ts` WIP is
+  self-consistent (empty-commit-after-containment is now a stderr warning, not a
+  preflight failure) and does NOT block: `pnpm preflight` passes with 0 issues this
+  iteration even when only forbidden paths are staged. This is a behavior change
+  from the prior handoff, which reported preflight rejecting empty commits.
 - Styling already exists and is NOT deferred in the tree: `frontend/src/styles.css`
   is a committed 389-line dark design-system stylesheet whose tokens match
   `DESIGN.md` (`#09090B`/`#A1A1AA`/`#22C55E`/`#67E8F9`, Geist Variable, JetBrains
@@ -101,11 +107,13 @@
   both run and pass this iteration. Remaining STYLING checkboxes are visual-polish/
   product decisions; not safe to change blind in an autonomous loop given the
   owner's revert history.
-- This iteration's safe code change: added fast-check property guards for the
-  spec's non-negotiable calculation invariants (see State). The calc/TS/HTML work
-  was already complete and verified green; the only red check is the forbidden-path
-  harness mismatch above. Remaining unfinished spec items are visual STYLING polish
-  (owner-gated per revert history) and the forbidden-path harness reconcile.
+- This iteration's safe code change: added the generalized `Total_Params_B * 16`
+  full-training guard (see State) — the last "Do Not Restore" formula lacking a
+  property-level guard. The calc/TS/HTML work was already complete and verified
+  green (189 frontend tests, 100% coverage, preflight 0 issues); the only red check
+  is the forbidden-path harness mismatch above. Remaining unfinished spec items are
+  visual STYLING polish (owner-gated per revert history) and the forbidden-path
+  harness reconcile.
 - Unstaged human-owned forbidden edits remain and were left untouched:
   `PROMPT.md`, `harness/cli.ts`, `harness/gate.ts`, `harness/gate.test.ts`.
   Agents must not stage or alter these. (`specs/frontend.md` is no longer a

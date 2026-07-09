@@ -94,6 +94,8 @@
       resident weight memory; training modes use adapter/full-training state plus
       checkpointed activations; legacy `trained=on&use_adapter=on` query flags are
       ignored.
+- [x] Nonzero model estimates clamp `Concurrent Requests` / `Micro Batch Size` to
+      at least `1` so direct state cannot erase workload-sensitive memory.
 - [x] MoE state is honored only for MoE-applicable workload families. Hidden or
       query-supplied MoE values for other families do not affect speed or warnings,
       and stale hidden MoE checks are cleared before the control is shown again.
@@ -158,6 +160,8 @@
 - [x] Report and calculator unit tests cover advanced assumptions that affect
       estimates: known file size, GPU resident fraction clamping, LoRA trainable
       percent, optimizer, gradient checkpointing, and memory sharding.
+- [x] Calculator unit tests cover the workload-size lower bound without breaking
+      the zeroed reset estimate.
 - [x] `frontend/src/legacy-approximations.test.ts` was deleted; do not reintroduce
       it or any legacy-approximation test.
 - [x] Required commands: `pnpm --dir frontend exec vitest run src/calculator.test.ts`,

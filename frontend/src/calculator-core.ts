@@ -299,7 +299,7 @@ export function specFromState(state: Readonly<FormState>): CalculationSpec {
     executionMode: state.executionMode,
     runtimeProfile: state.runtimeProfile,
     runtime: runtimeAssumptions(state.executionMode, state.runtimeProfile),
-    workloadSize: nonNegative(state.workloadSize, 1),
+    workloadSize: positive(state.workloadSize, 1),
     kvBytes: KV_BYTES[state.kvCachePrecision],
     architecture: architectureFor(total),
     visionArchitecture: null,

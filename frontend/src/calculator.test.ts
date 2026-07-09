@@ -415,6 +415,32 @@ describe("training estimates", () => {
     ).toBe(7);
   });
 
+  /**
+  Direct state can contain zero for request or batch count; a nonzero model should
+  still price at least one unit of workload-sensitive memory.
+  */
+  test("zero workload size falls back to one request instead of erasing memory", () => {
+    const zero = specFromState(
+      state({
+        totalParams: "7",
+        workloadSize: "0",
+        contextTokens: "8000",
+      }),
+    );
+    const one = specFromState(
+      state({
+        totalParams: "7",
+        workloadSize: "1",
+        contextTokens: "8000",
+      }),
+    );
+
+    expect(zero.workloadSize).toBe(1);
+    expect(inferenceWorkingMemoryGb(zero, weightsGb(zero)).kvCacheGb).toBe(
+      inferenceWorkingMemoryGb(one, weightsGb(one)).kvCacheGb,
+    );
+  });
+
   test("zero baseline produces zero output memory and speed", () => {
     const spec = specFromState(
       state({

@@ -1,6 +1,11 @@
 import fc from "fast-check";
 import { describe, expect, test } from "vitest";
-import { PRECISION_MAP, specFromState, weightsGb } from "./calculator-core";
+import {
+  PRECISION_MAP,
+  roundTo,
+  specFromState,
+  weightsGb,
+} from "./calculator-core";
 import { hardware } from "./hardware";
 import { defaultState } from "./state";
 import type { FormState, KvPrecision, Precision } from "./types";
@@ -321,6 +326,59 @@ describe("calculator properties", () => {
           );
           expect(full).toBeGreaterThan(
             requiredGb({ ...base, executionMode: "QLoRA fine-tuning" }),
+          );
+        },
+      ),
+      { numRuns: 100 },
+    );
+  });
+
+  test("full training reports a buffered four-part total, never the bare Total_Params_B * 16 shortcut", () => {
+    // Non-negotiable Research Correction: `Full_Training_GB = Total_Params_B * 16` is only a
+    // rough parameter-state shortcut and "still misses activations, runtime overhead, and
+    // buffer". It is the one "Do Not Restore" formula lacking a generalized guard (the 152.9
+    // canonical case pins a single 7B/16-bit point). Pin across every precision that full
+    // training (a) carries each omitted term as a strictly positive component, (b) reports the
+    // buffered sum of exactly those components, and therefore (c) strictly exceeds the shortcut.
+    // Optimizer is pinned to AdamW (8 optimizer bytes) so the strict inequality holds even for
+    // the thinnest 4-bit weights.
+    fc.assert(
+      fc.property(
+        positiveParameterCount,
+        anyPrecision,
+        (totalParameters, precision) => {
+          const breakdown = memoryBreakdown(
+            specFromState({
+              ...defaultState(),
+              workloadFamily: "text_generation",
+              executionMode: "Full training",
+              optimizer: "AdamW",
+              totalParams: totalParameters,
+              precision,
+            }),
+          );
+
+          // The three terms the shortcut drops are each present, plus the parameter state.
+          expect(breakdown.trainingStateGb).toBeGreaterThan(0);
+          expect(breakdown.inputActivationGb).toBeGreaterThan(0);
+          expect(breakdown.runtimeOverheadGb).toBeGreaterThan(0);
+          expect(breakdown.safetyBufferGb).toBeGreaterThan(0);
+
+          // The reported total is the training-buffered (1.25) sum of exactly those components...
+          const subtotal =
+            breakdown.weightsGb +
+            breakdown.kvCacheGb +
+            breakdown.inputActivationGb +
+            breakdown.trainingStateGb +
+            breakdown.runtimeOverheadGb;
+          expect(breakdown.requiredGb).toBeCloseTo(
+            roundTo(subtotal * 1.25, 1),
+            6,
+          );
+
+          // ...and therefore strictly above the bare parameter-state shortcut it must not restore.
+          expect(breakdown.requiredGb).toBeGreaterThan(
+            Number(totalParameters) * 16,
           );
         },
       ),

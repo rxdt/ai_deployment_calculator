@@ -35,10 +35,17 @@
   byte-width grows. New this iteration: text-encoder required VRAM is invariant to
   KV precision (no persistent generation KV), QLoRA weight memory is the frozen
   4-bit base scaled by params regardless of the precision control (no flat 4 GB),
-  and full training strictly exceeds LoRA/QLoRA required VRAM. `confidence.test.ts`
+  and full training strictly exceeds LoRA/QLoRA required VRAM. New this iteration:
+  full training reports a training-buffered (1.25) four-part total (weights +
+  training state + activations + runtime overhead), each omitted-by-the-shortcut
+  term strictly positive, and strictly exceeds the discredited `Total_Params_B * 16`
+  shortcut across every precision — the one "Do Not Restore" formula that previously
+  had only the single 7B canonical case, now generalized. `confidence.test.ts`
   pins the confidence-label mapping (diffusion/video/custom -> `Rough`, else
-  `Estimated`, always non-empty). Frontend suite: 188 tests, 100% coverage.
-  All four new invariants were mutation-verified (each fails on a broken source).
+  `Estimated`, always non-empty). Frontend suite: 189 tests, 100% coverage.
+  All five new invariants were mutation-verified (each fails on a broken source):
+  the `Total_Params_B * 16` guard was verified against both a dropped-activation
+  mutation and a literal shortcut mutation.
 
 ## Commands
 
@@ -59,7 +66,7 @@
   this iteration by actually running them: `node -e`, `pnpm`, `vitest`,
   `playwright`, and `lhci` all execute.
   - `pnpm preflight`: pass (prettier, eslint, stylelint, html-validate).
-  - `pnpm --prefix frontend run test:coverage`: 188 tests pass, 100%
+  - `pnpm --prefix frontend run test:coverage`: 189 tests pass, 100%
     statements/branches/functions/lines.
   - Playwright (`../harness/playwright.config.js`): 126 pass across all projects.
   - Lighthouse (`harness/lighthouserc.cjs`): all assertions pass, 3 runs.

@@ -3,25 +3,24 @@
 ## State
 
 - Branch: `main`; previous HEAD before this iteration:
-  `ee45c69 Enforce numeric input bounds`.
-- Static Vite + TypeScript calculator; frontend calculations and report
-  rendering remain the source of truth.
-- This iteration completed the output hierarchy item:
-  - Hero cards now show only `Estimated VRAM Required`, the short usable-VRAM
-    line, and `Recommended GPU Class`.
-  - `Estimate confidence` remains visible, but is demoted outside the hero cards.
-  - App tests pin that confidence is outside collapsed details and outside `.hero`.
+  `43cd88b`.
+- This iteration closed the default rendered-report coverage gap:
+  - `frontend/tests/calculator.spec.ts` now pins the browser-rendered default
+    `7B` / `19.0 GB` report across hero, GPU class, confidence, why math,
+    breakdown rows, formula, assumptions, speed, and empty default warnings.
+  - `specs/frontend.md` marks that acceptance item complete.
+- No calculator source behavior changed.
 
 ## Checks
 
-- Focused unit test:
-  `pnpm --dir frontend exec vitest run src/app.test.ts --config ../harness/vitest.config.js`
-  passed: 51 tests.
+- Focused browser suite:
+  `pnpm --prefix frontend run test:e2e -- calculator.spec.ts` passed:
+  132 tests.
 - Preflight: `pnpm preflight` passed.
-- Final gate: `pnpm gate` ran to completion. Format, eslint, style, html,
-  typecheck, harnessTypes, schema, cruise, deadcode, spelling, workflow, sast,
-  secrets, audit, build, e2e, and Lighthouse passed. Coverage failed only on
-  the forbidden harness preset assertion listed below.
+- Final gate: `pnpm gate` completed format, eslint, style, html, typecheck,
+  harnessTypes, schema, cruise, deadcode, spelling, workflow, sast, secrets,
+  audit, build, e2e, and Lighthouse. It is RED only on the forbidden harness
+  preset assertion listed below.
 
 ## Blockers
 
@@ -32,10 +31,12 @@
   `harness/cli.test.ts:798` still pins the old preset. Both files are forbidden
   to agents.
 - Pre-existing agent-editable spec WIP remains in `specs/frontend.md` and
-  `specs/plan.md`; this iteration only updated the output hierarchy item in
-  `specs/frontend.md`.
+  `specs/plan.md`; this iteration only updated the default rendered-report
+  coverage item in `specs/frontend.md`.
 
 ## Next
 
-- Owner reconciles the forbidden harness preset mismatch.
-- After that, rerun `pnpm gate`.
+- Owner reconciles the forbidden harness preset mismatch, then rerun
+  `pnpm gate`.
+- Continue with the remaining shippability gaps in `specs/frontend.md`, starting
+  with cross-input browser checks for values that reflect unit tests.

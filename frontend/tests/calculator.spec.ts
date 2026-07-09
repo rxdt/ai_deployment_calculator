@@ -1,5 +1,26 @@
 import { expect, test } from "@playwright/test";
 import { AxeBuilder } from "@axe-core/playwright";
+import type { Page } from "@playwright/test";
+
+/**
+Assert the label/value rows rendered inside a report list.
+@param page Browser page.
+@param slot Output slot name.
+@param rows Expected label/value pairs.
+*/
+async function expectReportRows(
+  page: Page,
+  slot: string,
+  rows: readonly [string, string][],
+): Promise<void> {
+  const items = page.locator(`[data-out="${slot}"] li`);
+  await expect(items).toHaveCount(rows.length);
+  for (const [index, [label, value]] of rows.entries()) {
+    const item = items.nth(index);
+    await expect(item.locator("span")).toHaveText(label);
+    await expect(item.locator("strong")).toHaveText(value);
+  }
+}
 
 test("page has no accessibility violations", async ({ page }) => {
   await page.goto("/");
@@ -20,6 +41,64 @@ test("renders the default deployment computed locally", async ({ page }) => {
   await expect(page.locator('[data-out="min-cap"]')).toHaveText("22.4 GB");
   await expect(page.locator('[data-out="speed"]')).toContainText("tokens/sec");
   await expect(page.locator('[data-out="breakdown"] li')).toHaveCount(5);
+});
+
+test("renders the default 7B estimate consistently across the full report", async ({
+  page,
+}) => {
+  await page.goto("/");
+
+  await expect(page.locator('[data-out="total"]')).toHaveText("19.0 GB");
+  await expect(page.locator('[data-out="vram-say"]')).toHaveText(
+    "The workload needs 19.0 GB usable VRAM.",
+  );
+  await expect(page.locator('[data-out="gpu-class"]')).toHaveText(
+    "24 GB GPU hardware tier",
+  );
+  await expect(page.locator('[data-out="confidence"]')).toHaveText("Estimated");
+
+  await page.getByText("Why this recommendation").click();
+  await expect(page.locator('[data-out="why"]')).toContainText(
+    "requires a GPU with at least 22.4 GB advertised VRAM",
+  );
+  await expect(page.locator('[data-out="min-cap"]')).toHaveText("22.4 GB");
+  await expect(page.locator('[data-out="usable-target"]')).toHaveText("85%");
+  await expect(page.locator('[data-out="usable-on-class"]')).toHaveText(
+    "20.4 GB",
+  );
+  await expect(page.locator('[data-out="fit-headroom"]')).toHaveText(
+    "1.4 GB usable margin",
+  );
+  await expect(page.locator('[data-out="speed"]')).toHaveText(
+    "66.9 tokens/sec",
+  );
+
+  await page.getByText("Calculation used").click();
+  await expectReportRows(page, "breakdown", [
+    ["Model memory", "14.0 GB"],
+    ["Context memory", "1.0 GB"],
+    ["Activation memory", "0.7 GB"],
+    ["Runtime reserve", "1.5 GB"],
+    ["Safety margin", "1.7 GB"],
+  ]);
+
+  await page.getByText("Formula used").click();
+  await expect(page.locator('[data-out="calc-formula"]')).toHaveText(
+    "Required_GB = (Weights_GB 14.0 GB + Working_Memory_GB 1.7 GB + Training_State_GB 0.0 GB + Runtime_Overhead_GB 1.5 GB) * Buffer 1.10 = 19.0 GB; Safety_Buffer_GB = 1.7 GB",
+  );
+
+  await page.getByText("Assumptions used").click();
+  await expectReportRows(page, "assumptions", [
+    ["Precision", "16-bit"],
+    ["Runtime profile", "Server / Cloud"],
+    ["Execution mode", "Inference"],
+    ["Context tokens", "8000"],
+    ["Concurrent requests", "1"],
+    ["KV Cache precision", "16-bit"],
+    ["KV heads used", "8"],
+    ["Conservative KV heads", "32"],
+  ]);
+  await expect(page.locator('[data-out="warnings"]')).toBeHidden();
 });
 
 test("recomputes when parameters change", async ({ page }) => {

@@ -145,6 +145,9 @@
       detail cards, hidden secondary math until expansion, expanded-heading cyan
       color, collapsed one-viewport fit, and expanded advanced-assumptions
       no-overflow fit on desktop/mobile.
+- [x] Browser e2e pins the default `7B` / `19.0 GB` rendered report
+      across hero, GPU class, confidence, why math, breakdown rows, formula,
+      assumptions, speed, and empty default warnings.
 - [x] App unit tests cover the real HTML `KV Cache Precision` options, real HTML
       `Execution Mode` choices, the rendered 32-bit KV estimate, the always-visible
       `Estimate confidence` label, collapsed output panels, removed `Accuracy` /

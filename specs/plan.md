@@ -8,18 +8,16 @@ Build a GPU VRAM calculator that is easy enough for non-technical users and trus
 
 The app must:
 
-1. Support more than LLMs.
+1. Support more than GPUs for LLMs
 2. Use frontend TypeScript as the calculation source of truth.
 3. Keep calculator formulas in one frontend TypeScript source of truth.
 4. Keep the main UI short.
 5. Put rare details in `Advanced assumptions`.
-6. Show enough math that engineers can trust the recommendation.
+6. Show enough math in collapsed details that engineers can trust the recommendation.
 
 Do not pretend one equation covers all AI workloads.
 
 ## Naming Contract
-
-Keep the old public names. Do not rename them to the addendum names.
 
 Use these names in the UI, docs, labels, and tests:
 
@@ -68,16 +66,6 @@ type WorkloadFamily =
   | "custom";
 ```
 
-## Implementation Specs
-
-Use the focused specs for implementation work:
-
-```txt
-specs/frontend.md = frontend UI, TypeScript report building, output rendering, frontend tests.
-```
-
-The architectural target is Vite + frontend TypeScript calculations. No backend owns calculator formulas.
-
 ## Commands
 
 Use `pnpm preflight` for the loop preflight and `pnpm gate` for the full gate.
@@ -100,26 +88,6 @@ Diffusion/video memory is pipeline-specific and lower confidence by default.
 Known Model File Size should override parameter-based weight estimates for GGUF/exact files.
 MoE active parameters affect rough speed, not resident weight memory, unless expert offload/sharding is enabled.
 ```
-
-## Frontend Scope
-
-Frontend-specific UI, output, warnings, TypeScript structure, and corrected frontend test expectations live in `specs/frontend.md`.
-
-Use this file for the human grand vision, product goals, naming contract, and
-research constraints. Keep implementation details in focused specs such as
-`specs/frontend.md`.
-
-Architecture bucket defaults, training defaults, and per-family working-memory
-formulas are implementation detail and live in `specs/frontend.md`.
-
-## Calculation Contract And Hardware
-
-The canonical equation principles are in **Research Corrections** above. The full
-implemented detail — per-family working-memory formulas, precision/runtime
-presets, training/LoRA/QLoRA/full-training formulas, the MoE rule, the hardware
-tier table, hardware-recommendation and fit math, and the speed estimate — lives
-in `specs/frontend.md` and the source modules `frontend/src/calculator-core.ts`,
-`workload-memory.ts`, and `hardware.ts`. Do not duplicate those formulas here.
 
 > ~~strikethrough~~ strikethrough completed items to clarify what is done
 
@@ -151,12 +119,12 @@ Done means:
 21. Outputs show enough math to explain recommendations without overwhelming the user.
 ~~23. Speed estimate label adapts by workload.~~
 25. Confidence label is always visible.
-26. No old wrong formulas remain.
+26. Correct formulas remain.
 27. All calculations run in frontend TypeScript.
 28. README is updated.
 29. Unit tests pass.
 30. Build passes.
-31. E2E tests pass or exact blocker is documented.
+32. Gate passes
 ```
 
 > ~~strikethrough~~ strikethrough completed items to clarify what is done

@@ -399,7 +399,9 @@ export function runPreflight(
     );
     const staged = stagedNames(repo);
     if (staged.length === 0) {
-      problems.push("Empty commits are rejected. Stage real work.");
+      // Warn but do not fail: an empty commit (e.g. only forbidden paths, now unstaged) is a
+      // no-op the agent can recover from, not a preflight error that should abort the loop.
+      process.stderr.write("Empty commit: nothing staged after containment.\n");
     }
     problems.push(...preferenceProblems(repo, staged));
   }

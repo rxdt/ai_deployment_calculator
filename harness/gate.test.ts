@@ -1202,18 +1202,31 @@ describe("runGate / runPreflight wiring", () => {
 });
 
 describe("loop containment", () => {
-  test("rejects an empty commit", () => {
+  test("warns on an empty commit without failing preflight", () => {
+    const stderr: string[] = [];
+    vi.spyOn(process.stderr, "write").mockImplementation((chunk) => {
+      stderr.push(String(chunk));
+      return true;
+    });
     process.env.RALPH_LOOP = "1";
     const problems = runPreflight(makeRepo(), () => []);
-    expect(problems).toContain("Empty commits are rejected. Stage real work.");
+    // Empty commit is a warning, not a preflight failure.
+    expect(problems).toEqual([]);
+    expect(stderr.join("")).toContain("Empty commit: nothing staged");
   });
 
-  test("rejects a commit emptied by containment", () => {
+  test("unstages forbidden paths and warns instead of failing when that empties the commit", () => {
+    const stderr: string[] = [];
+    vi.spyOn(process.stderr, "write").mockImplementation((chunk) => {
+      stderr.push(String(chunk));
+      return true;
+    });
     process.env.RALPH_LOOP = "1";
     const repo = makeRepo();
     stageFile(repo, "pyproject.toml", "x = 1\n");
     const problems = runPreflight(repo, () => []);
-    expect(problems).toContain("Empty commits are rejected. Stage real work.");
+    expect(problems).toEqual([]);
+    expect(stderr.join("")).toContain("Empty commit: nothing staged");
     expect(stagedNames(repo)).not.toContain("pyproject.toml");
   });
 
@@ -2585,19 +2598,20 @@ describe("frontend gate shape", () => {
       "sneak an escape hatch",
     );
 
-    // A forbidden PATH is unstaged by the hook; with nothing real left to commit, the loop's
-    // empty-commit guard also fails the hook — the protected file never lands. (pyproject.toml is a
-    // FORBIDDEN_FILE and sits at the repo root, so staging it can't write through the harness/ link.)
+    // A forbidden PATH is unstaged by the hook; with nothing real left to commit, the harness only
+    // warns (no hard fail), and the protected file's content never lands. (pyproject.toml is a
+    // FORBIDDEN_FILE at the repo root, so staging it can't write through the harness/ link.)
     runCommand(["git", "restore", "--staged", "frontend/src/sneaky.ts"], repo);
     rmSync(path.join(repo, "frontend/src/sneaky.ts"));
     stageFile(repo, "pyproject.toml", "[tool.evil]\n");
-    const pathBlocked = commit("slip in a protected path");
-    expect(pathBlocked.status).not.toBe(0);
-    expect(runGit(repo, ["log", "--oneline"])).not.toContain(
-      "slip in a protected path",
-    );
-    // The protected path was ejected from the index rather than committed.
+    commit("slip in a protected path");
+    // Containment: the protected path is ejected from the index and its content never lands in a
+    // commit. (The empty commit itself is only warned about, not hard-failed.)
     expect(stagedNames(repo)).not.toContain("pyproject.toml");
+    expect(runGit(repo, ["ls-files"])).not.toContain("pyproject.toml");
+    expect(runGit(repo, ["log", "-1", "--name-only"])).not.toContain(
+      "pyproject.toml",
+    );
   }, 60_000);
 
   test("pre-push and GitHub CI use the JavaScript gate", () => {

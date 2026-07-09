@@ -1,7 +1,7 @@
 # Frontend Spec
 
-1. [ ] **PRIORITY** TYPESCRPT AND HTML WORK IS COMPLETED%
-2. [ ] **Styling after.**
+1. [ ] TYPESCRPT AND HTML WORK COMPLETED%
+2. [ ] Styling based on examples and design tokens DESIGN.md.
 
 > Checkbox checked on completed items to clarify what is done
 
@@ -21,15 +21,11 @@
 
 ## UI
 
-- [x] Only one form action exists, with text `Reset`; it is a submit button so the
-      form has one accessible action.
 - [x] Advanced assumptions expanded section shows additional options.
 - [x] Numeric fields accept only digits plus at most one decimal digit, reject
       letters/negatives/exponents, and clamp global values to `99999999.9`
       (`99999999` for integer-mode inputs); field caps still apply.
 - [ ] Bare, minimal styles.css only to get tests passing until typescript/html work is complete.
-- [x] Visible form actions are not duplicated: `Reset` is the only visible button,
-      and there is no hidden submit control.
 - [x] Main form shows `Workload Family`, `Total Model Parameters`,
       `Parameter Unit`, `Precision`, `Execution Mode`, `Runtime Profile`,
       adaptive input controls, adaptive workload size, and relevant `MoE Model`.
@@ -59,17 +55,11 @@
       trainable percent maxes at `100`, and MoE active parameters cannot exceed
       total parameters.
 - [ ] HTML reflects clean, compact, well-organized flow. Clean, compact, well-organized examples are like `spec/calc1.png`, `~/specs/calc2.png`, `spec/calc13.png` -> do not follow those exactly, they are loose examples of what 'good' looks like to a human user.
-- [x] Small Github logo with link to github repo is in top right
-      `https://github.com/rxdt/ai_deployment_calculator/`.
-- [x] `~VRAM-calculator` is in top left and is not a link.
 - [ ] Calculator elements are not overly big.
 - [ ] Cyan is used minimally for headings and ONLY for when elements are expanded only e.g. when `Why this recommendation` is expanded its text color uses the cyan color in DESIGN.md. Otherwise text headings do not use cyan.
-- [x] Four organized result detail cards are in HTML skeleton shape: `Why this recommendation`, `Calculation used`, `Formula used`, and `Assumptions used`.
-- [ ] Result cards loosely follow inspiration from `/specs/this_png_shows_some_ideas_are_ok_not_all.png`
+- [ ] Result cards loosely styling inspiration from `/specs/this_png_shows_some_ideas_are_ok_not_all.png`
 - [ ] Top hero result looks like a more professional version than in `specs/this_png_shows_some_ideas_are_ok_not_all.png`
-- [x] Small disclaimer should exist below app outputs.
 - [x] Complex details and formulas are hidden in expandable sections as in this app `specs/light_style_ideas_reflected_in_DESIGN.md.png`
-- [ ] **Run lighthouse and Playwright. Both must pass.**
 
 ## STYLING
 
@@ -78,132 +68,106 @@
 - [x] The app is responsive  `~/ai_deployment_calculator/scratchpad/responsive_frontend_research.md` with covered desktop/mobile edge content staying in viewport.
 - [ ] Styling follows `specs/DESIGN.md` -- Design system defines 24 colors, 7 typography scales, 5 rounding levels, 10 spacing tokens, 25 components.
 - [ ] Styling honors a compact, clean calculator shape. Compact calculator examples are like `spec/calc1.png`, `~/specs/calc2.png`, `spec/calc13.png`.
-- [ ] Styling keeps app compact and well-organized
 - [ ] Styling loosely inspired by `specs/light_style_ideas_reflected_in_DESIGN.md.png`
 
-## Calculation
 
-- [x] `frontend/src/calculator-core.ts`, `workload-memory.ts`,
-      `workload-sizing.ts`, and `hardware.ts` own the calculation; `report.ts`
-      assembles the rendered report. The canonical equation, presets, per-family
-      formulas, and hardware/speed math are detailed in the Formulas section below.
-- [x] `Known Model File Size` overrides parameter-based weight estimates, including
-      QLoRA base weight memory; MoE active parameters affect speed/KV only, not
-      resident weight memory; training modes use adapter/full-training state plus
-      checkpointed activations; legacy `trained=on&use_adapter=on` query flags are
-      ignored.
-- [x] Nonzero model estimates clamp `Concurrent Requests` / `Micro Batch Size` to
-      at least `1` so direct state cannot erase workload-sensitive memory.
-- [x] MoE state is honored only for MoE-applicable workload families. Hidden or
-      query-supplied MoE values for other families do not affect speed or warnings,
-      and stale hidden MoE checks are cleared before the control is shown again.
+### Keep these as the core smoke tests:
+
+- [x] Values are scratch-included (product default), matching calculator.test.ts.
+
+8B LLM inference, 8000 ctx, 16-bit weights, 16-bit KV, server:
+expected = 21.3 GB (scratch-zero comparison: 20.4 GB)
+47B MoE LLM inference, active=1.3B, 8000 ctx, 16-bit:
+expected = 113.1 GB (scratch-zero comparison: 107.9 GB)
+assert active params do not reduce weight memory
+8B QLoRA fine-tuning, 8000 sequence, 2% trainable:
+expected = 21.0 GB
+assert no flat 4 GB QLoRA overhead
+7B full training, 8000 sequence:
+expected = 152.9 GB
+assert includes weights + master weights + gradients + optimizer + activations
+104B GGUF local, exact resident size 52GB, 32000 ctx, 32-bit KV:
+expected = 79.2 GB (scratch-zero comparison: 77.7 GB)
+assert known file size overrides parameter-derived weight estimate
+
+## Design Direction
+
+Status note (factual, current `HEAD`): `styles.css` is no longer a bare box-sizing
+reset. It is a committed full dark design-system stylesheet whose custom properties match
+`DESIGN.md` (background `#09090B`, secondary text `#A1A1AA`, primary `#22C55E`, cyan signal
+`#67E8F9`, Geist Variable body, JetBrains Mono for metrics/formulas/code) plus component
+layout (topbar, two-pane `layout`, hero, collapsible `panel`/`advanced` details, warnings,
+and a narrow-width media query); the responsive Playwright checks pass. This conflicts with
+items #1–#2 and the "styling deferred" framing above — whether that earlier styling should
+stand or be reverted is a product decision left to the owner. The direction below remains the
+reference for the visual pass; Lighthouse and the responsive Playwright suite both pass against
+the current stylesheet, so the remaining unchecked STYLING items are visual-polish and the
+deferred-vs-committed styling conflict — owner product decisions, not execution-blocked. This
+section describes presentation only — no calculation, markup-structure, or label changes (those
+are fixed above).
+
+Hierarchy:
+
+- [x] One dominant result (the hero VRAM number + recommended GPU class). Everything
+      else is demoted: a couple of glanceable numbers, then collapsed `<details>`
+      for the breakdown, why, assumptions, and warnings. Avoid the "debug dashboard"
+      look where every value has equal weight.
+
+Layout:
+
+- [ ] Desktop: two panes (inputs and results) that fit 1440x900 without page scroll.
+- Narrow widths: a clean single-column flow. Do not force a no-scroll mobile by
+  cramming; that would be a behavior change.
+
+Typography:
+
+- [ ] Sans (Geist / system-ui) for headings, result values, and body text.
+- [ ] JetBrains Mono only for HUD/section labels, formulas, code, terminal/status
+      text, and form inputs. Result numbers use `font-variant-numeric: tabular-nums`.
+
+Color:
+
+- [ ] Near-black background; off-white text; muted gray-green secondary text.
+- [ ] Reserve the bright green accent for the final answer and status; use softer
+      gray-green for labels and borders. Keep any grid/glow subtle.
+
+Spacing and shape:
+
+- [ ]- Panel padding ~24px, card padding ~16px; card radius 12-14px, input/button
+  radius 8px; dominant gaps 16/24px; input min-height ~44-52px.
+
+Accessibility:
+
+- [ ] Preserve every test-pinned accessible name and the `aria-label` regions the
+      Playwright suite asserts. The styling pass must keep axe violations at zero and
+      meet the touch-target (>=40px) and readable-text (>=13px) checks in
+      `frontend/tests/responsive.spec.ts`.
+
+Responsive standards met:
+
+- [ ] What Makes An App Responsive June 2026 researched
+- [ ] `scratchpad/responsive_frontend_research.md` read and updated
+- [ ] `scratchpad/responsive_frontend_research.md` reflected in frontend implementation
+- [ ] `scratchpad/responsive_frontend_research.md` verified in app when app is run and viewed in browser on different devices
 
 ## Outputs
 
-- [x] First glance (hero): `Estimated VRAM Required` (the total), a short
-      "The workload needs N GB usable VRAM." line, an always-visible
-      `Estimate confidence` label (`Rough` for diffusion/video/custom, `Estimated`
-      otherwise), and `Recommended GPU Class` (e.g. `24 GB GPU hardware tier`).
-      Nothing else is shown by default.
-- [x] Collapsed `<details>` panels hold the rest:
-  - [x] `Why this recommendation` — a plain-language "why" sentence plus
-        `Minimum GPU VRAM Capacity`, `Usable VRAM Target`,
-        `Usable VRAM on Recommended Class`, `Fit Headroom`, and a workload-unit
-        speed label such as `Estimated Speed (tokens/sec)`.
-  - [x] `Calculation used` — the per-component breakdown rows (`Model memory` or
-        `QLoRA base model memory`, `Context memory`, `Activation memory`,
-        `Training memory`, `Runtime reserve`, `Safety margin`). Rows that round to
-        `0.0 GB` are hidden.
-  - [x] `Formula used` — the inline canonical equation substitution.
-  - [x] `Assumptions used` — visible precision, runtime, execution, known-file
-        override, training, sharding, and KV assumptions when they affect the
-        estimate. Decoder KV assumptions include the context/output/text-image
-        scaling inputs plus concurrency, precision, and resolved head counts.
-        Non-KV families surface their own scaling inputs such as image size,
-        video frames/resolution, audio seconds, tabular dimensions, and custom
-        input multiplier.
-- [x] The hardware-recommendation and fit math (usable VRAM on class, fit headroom,
-      overflow `n/a`, speed) is defined in the Formulas section below.
-- [x] Warnings are conditional only: training, MoE, and sharded-tier speed guidance.
-      Family-specific caveats stay out of warnings; default inference renders no
-      warnings. Sharded-tier speed guidance also appears when an overflow report's
-      speed estimate falls back to the top sharded tier.
-- [x] There is no `Accuracy` output and no separate `Your GPU Fit` panel; both were
-      removed by product decision.
+- [x] First glance hero cards show only `Estimated VRAM Required`, the short
+      usable-VRAM line, and `Recommended GPU Class`; `Estimate confidence` stays
+      visible but outside the hero cards.
+  - [x] `Recommended GPU Class` is visible (e.g. `24 GB GPU hardware tier`).
 
 ## Tests And Checks
 
-- [x] Unit tests pin corrected totals: `47B` MoE `113.1 GB`, default `7B`
-      `19.0 GB`. QLoRA defaults and `2%` cases, long-context GQA KV, and precision comparison.
-- [x] Unit tests cover conversion, precision map, file-size override, MoE resident
-      memory, decoder KV scaling, no encoder KV, encoder-decoder memory,
-      diffusion/video/audio/tabular scaling, LoRA, QLoRA, full training, hardware
-      tier matching (single-GPU vs sharded, overflow), tier-bandwidth speed, and
-      legacy flag removal.
-- [x] Playwright covers accessibility, local report rendering, adaptive controls,
-      no generic `Batch Size`, MoE visibility, escaping, four collapsed result
-      detail cards, hidden secondary math until expansion, expanded-heading cyan
-      color, collapsed one-viewport fit, and expanded advanced-assumptions
-      no-overflow fit on desktop/mobile.
-- [x] Browser e2e pins the default `7B` / `19.0 GB` rendered report
-      across hero, GPU class, confidence, why math, breakdown rows, formula,
-      assumptions, speed, and empty default warnings.
-- [x] Browser e2e pins canonical smoke inputs entered through real controls:
-      47B MoE inference, 8B QLoRA 2%, 7B full training, and 104B exact local
-      GGUF. The checks cover visible totals, GPU class, minimum VRAM,
-      breakdown rows, and assumption rows in `frontend/tests/calculator.spec.ts`.
-- [x] App unit tests cover the real HTML `KV Cache Precision` options, real HTML
-      `Execution Mode` choices, the rendered 32-bit KV estimate, the always-visible
-      `Estimate confidence` label, collapsed output panels, removed `Accuracy` /
-      `Your GPU Fit` surfaces, default empty warnings, and fractional
-      `Total Model Parameters` input cleanup, plus stale hidden-MoE checkbox
-      cleanup when switching away from and back to MoE-applicable families,
-      workload-unit speed labels, and the Naming Contract public labels/options.
-- [x] Report unit tests cover overflow guidance plus the sharded-tier warning used
-      for the fallback speed estimate.
-- [x] Report unit tests pin the confidence label for all ten workload families
-      and pin which families surface decoder `KV Cache precision` assumptions in
-      inference (text generation, encoder-decoder, vision-language only), plus
-      the family-specific KV and non-KV scaling inputs surfaced in assumptions.
-- [x] Report unit tests cover malformed direct numeric state so assumption rows
-      show resolved formula fallbacks instead of raw invalid strings.
-- [x] Report and calculator unit tests cover advanced assumptions that affect
-      estimates: known file size, GPU resident fraction clamping, LoRA trainable
-      percent, direct LoRA/MoE semantic caps, optimizer, gradient checkpointing,
-      and memory sharding.
-- [x] Calculator unit tests cover the workload-size lower bound without breaking
-      the zeroed reset estimate.
-- [x] Calculator unit tests cover invalid/non-positive `Known Model File Size`
-      values falling back to parameter-based weights instead of zeroing memory.
-- [x] Calculator unit tests cover the model-memory boundary: exact known files
-      still estimate when total parameters are unknown, while zero model memory
-      suppresses workload-only activation memory.
-- [x] Calculator unit tests cover family-specific training activation sizing for
-      vision, diffusion, video, audio, tabular, and custom workloads.
-- [x] State and app unit tests cover GPU resident fraction and LoRA trainable
-      percent caps for URL queries and live form input.
-- [x] `frontend/src/calculator.property.test.ts` fast-check properties guard the
-      non-negotiable Research Corrections across random inputs: enabling MoE never
-      changes resident weight memory or required VRAM at inference, weight memory
-      rises monotonically with precision byte-width, and a `Known Model File Size`
-      overrides parameter- and precision-based weights (scaled only by GPU resident
-      fraction). These generalize the single-example pins in `calculator.test.ts`.
-- [x] `calculator.property.test.ts` also pins decoder-KV monotonicity: text
-      generation required VRAM never decreases as context length, concurrency, or
-      KV precision byte-width grows, guarding the KV formula against sign/operator
-      regressions.
-- [x] `calculator.property.test.ts` pins the remaining KV/training Research
-      Corrections: text-encoder required VRAM is identical across all KV precisions
-      (no persistent generation KV), QLoRA weight memory is the frozen 4-bit base
-      scaled by parameter count regardless of the precision control (never a flat
-      4 GB), and full training strictly exceeds LoRA/QLoRA required VRAM for the same
-      model (adapters, not full base-weight training state).
-- [x] `frontend/src/confidence.test.ts` pins the always-visible confidence label
-      mapping: diffusion/video/custom report `Rough`, architecture-derived families
-      report `Estimated`, and every family returns a non-empty label.
-- [x] `frontend/src/legacy-approximations.test.ts` was deleted; do not reintroduce
-      it or any legacy-approximation test.
-- [x] Required commands: `pnpm --dir frontend exec vitest run src/calculator.test.ts`,
+- [x] Default preset `7B` with `19.0 GB` shows correct values in all areas:
+      `frontend/tests/calculator.spec.ts` pins the browser-rendered hero,
+      recommendation math, breakdown rows, formula, assumptions, confidence, and
+      empty default warnings.
+- [x] Browser-entered canonical smoke inputs reflect unit-test values for 47B MoE
+      inference, 8B QLoRA 2%, 7B full training, and 104B exact local GGUF:
+      `frontend/tests/calculator.spec.ts` pins hero totals, GPU class, minimum VRAM,
+      breakdown rows, and assumptions after manipulating real controls.
+- Helpful commands: `pnpm --dir frontend exec vitest run src/calculator.test.ts`,
       `pnpm --dir frontend exec vitest run src/report.test.ts`,
       `pnpm --dir frontend exec vitest run src/app.test.ts`,
       `pnpm --dir frontend exec vitest run src/app.test.ts src/report.test.ts`,
@@ -222,8 +186,7 @@
 
 ## Formulas
 
-- [ ] This is the canonical, implemented formula reference. Variable names and constants below match `frontend/src/calculator-core.ts`,
-      `workload-memory.ts`, and `hardware.ts`.
+- [ ] This is the canonical, implemented formula reference. Variable names and constants below match `frontend/src/calculator-core.ts`, `workload-memory.ts`, and `hardware.ts`.
 
 ## Canonical VRAM Formula
 
@@ -332,8 +295,7 @@ Estimated transformer architecture by total parameter count:
 > 160B:  layers 120, hidden 12288, heads 96, kv_heads 8, head_dim 128
 ```
 
-- [x] Also compute `conservative_kv_heads = attention_heads` and show it in advanced
-      output.
+- [x] Also compute `conservative_kv_heads = attention_heads` and show it in advanced output.
 
 ---
 
@@ -740,82 +702,3 @@ Case Status Scratch-included expected (implemented) Scratch-zero comparison
 - [ ] Ensure frontend has:
 
 execution mode = inference | lora finetune | qlora finetune | full training
-
-### Keep these as the core smoke tests:
-
-- [x] Values are scratch-included (product default), matching calculator.test.ts.
-
-8B LLM inference, 8000 ctx, 16-bit weights, 16-bit KV, server:
-expected = 21.3 GB (scratch-zero comparison: 20.4 GB)
-47B MoE LLM inference, active=1.3B, 8000 ctx, 16-bit:
-expected = 113.1 GB (scratch-zero comparison: 107.9 GB)
-assert active params do not reduce weight memory
-8B QLoRA fine-tuning, 8000 sequence, 2% trainable:
-expected = 21.0 GB
-assert no flat 4 GB QLoRA overhead
-7B full training, 8000 sequence:
-expected = 152.9 GB
-assert includes weights + master weights + gradients + optimizer + activations
-104B GGUF local, exact resident size 52GB, 32000 ctx, 32-bit KV:
-expected = 79.2 GB (scratch-zero comparison: 77.7 GB)
-assert known file size overrides parameter-derived weight estimate
-
-## Design Direction
-
-Status note (factual, current `HEAD`): `styles.css` is no longer a bare box-sizing
-reset. It is a committed full dark design-system stylesheet whose custom properties match
-`DESIGN.md` (background `#09090B`, secondary text `#A1A1AA`, primary `#22C55E`, cyan signal
-`#67E8F9`, Geist Variable body, JetBrains Mono for metrics/formulas/code) plus component
-layout (topbar, two-pane `layout`, hero, collapsible `panel`/`advanced` details, warnings,
-and a narrow-width media query); the responsive Playwright checks pass. This conflicts with
-items #1–#2 and the "styling deferred" framing above — whether that earlier styling should
-stand or be reverted is a product decision left to the owner. The direction below remains the
-reference for the visual pass; Lighthouse and the responsive Playwright suite both pass against
-the current stylesheet, so the remaining unchecked STYLING items are visual-polish and the
-deferred-vs-committed styling conflict — owner product decisions, not execution-blocked. This
-section describes presentation only — no calculation, markup-structure, or label changes (those
-are fixed above).
-
-Hierarchy:
-
-- [x] One dominant result (the hero VRAM number + recommended GPU class). Everything
-      else is demoted: a couple of glanceable numbers, then collapsed `<details>`
-      for the breakdown, why, assumptions, and warnings. Avoid the "debug dashboard"
-      look where every value has equal weight.
-
-Layout:
-
-- [ ] Desktop: two panes (inputs and results) that fit 1440x900 without page scroll.
-- Narrow widths: a clean single-column flow. Do not force a no-scroll mobile by
-  cramming; that would be a behavior change.
-
-Typography:
-
-- [ ] Sans (Geist / system-ui) for headings, result values, and body text.
-- [ ] JetBrains Mono only for HUD/section labels, formulas, code, terminal/status
-      text, and form inputs. Result numbers use `font-variant-numeric: tabular-nums`.
-
-Color:
-
-- [ ] Near-black background; off-white text; muted gray-green secondary text.
-- [ ] Reserve the bright green accent for the final answer and status; use softer
-      gray-green for labels and borders. Keep any grid/glow subtle.
-
-Spacing and shape:
-
-- [ ]- Panel padding ~24px, card padding ~16px; card radius 12-14px, input/button
-  radius 8px; dominant gaps 16/24px; input min-height ~44-52px.
-
-Accessibility:
-
-- [ ] Preserve every test-pinned accessible name and the `aria-label` regions the
-      Playwright suite asserts. The styling pass must keep axe violations at zero and
-      meet the touch-target (>=40px) and readable-text (>=13px) checks in
-      `frontend/tests/responsive.spec.ts`.
-
-Responsive standards met:
-
-- [ ] What Makes An App Responsive June 2026 researched
-- [ ] `scratchpad/responsive_frontend_research.md` read and updated
-- [ ] `scratchpad/responsive_frontend_research.md` reflected in frontend implementation
-- [ ] `scratchpad/responsive_frontend_research.md` verified in app when app is run and viewed in browser on different devices

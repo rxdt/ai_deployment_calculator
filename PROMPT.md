@@ -2,16 +2,16 @@ You are one fresh-context iteration of the loop. The repo is your memory.
 Specs say what to build. You decide what is the next most useful change.
 
 1. Read `specs/*.md` and identify the most important unfinished items.
-3. Inspect the relevant code and tests before editing.
-4. Implement the changes that advance your chosen unfinished items.
-5. Add or update tests that prove behavior and challenge the source; use durable, behavior-focused names and docstrings.
-6. Run `pnpm preflight`.
-7. Commit grouped items.
-8. Fix failures without weakening tests, coverage, typing, security checks, or the gate.
-9. Update the relevant spec and `docs/PROJECT_STATUS.md` to match what changed.
-10. List blockers in `docs/PROJECT_STATUS.md`.
-11. Run `pnpm gate` as a final check.
-12. Commit on the current branch.
+2. Inspect the relevant code and tests before editing.
+3. Implement the changes that advance your chosen unfinished items.
+4. Add or update tests that prove behavior and challenge the source; use durable, behavior-focused names and docstrings.
+5. Run `pnpm preflight`.
+6. Commit grouped items.
+7. Fix failures without weakening tests, coverage, typing, security checks, or the gate.
+8. Update the relevant spec and `docs/PROJECT_STATUS.md` to match what changed.
+9. List blockers in `docs/PROJECT_STATUS.md`.
+10. Run `pnpm gate` as a final check.
+11. Commit on the current branch.
 
 Rules:
 

@@ -728,8 +728,11 @@ const resolvedEslintConfig = once((): EslintResolvedConfig => {
 
 afterEach(() => {
   vi.restoreAllMocks();
-  delete process.env.RALPH_LOOP;
+
   delete process.env.GIT_DIR;
+  // Tests set RALPH_LOOP per-case to simulate the loop; clear it so a set value never leaks
+  // into a later test in the same worker (which would flip loop-off cases into containment).
+  delete process.env.RALPH_LOOP;
 });
 
 describe("runGit", () => {

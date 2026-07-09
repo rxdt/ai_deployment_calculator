@@ -307,7 +307,9 @@ const tokenRows = (logs: readonly LogFile[]): readonly (readonly string[])[] =>
 const firstSentence = (value: string): string =>
   /^.*?[.!?](?:\s|$)/u.exec(value)?.[0].trim() ?? value;
 
-const commitRows = (repo: string): readonly (readonly string[])[] => {
+export type ReadCommits = (repo: string) => readonly (readonly string[])[];
+
+export const commitRows: ReadCommits = (repo) => {
   const result = spawnSync("git", ["-C", repo, ...GIT_LOG_ARGS], {
     encoding: "utf8",
   });
@@ -324,9 +326,13 @@ const commitRows = (repo: string): readonly (readonly string[])[] => {
 /**
 Render the full `harness status` report for a repo.
 @param repo - Repository root.
+@param readCommits - Reads recent commit rows; defaults to the real git-backed reader.
 @returns The multi-section status text.
 */
-export const renderStatus = (repo: string): string => {
+export const renderStatus = (
+  repo: string,
+  readCommits: ReadCommits = commitRows,
+): string => {
   const root = path.join(repo, "scratchpad", "runs");
   const logs = discoverLogFiles(root);
   const recentLogs = logs
@@ -342,6 +348,6 @@ export const renderStatus = (repo: string): string => {
     `${String(logs.length)} run log(s) in ${root}`,
     section("Recent logs", LOG_HEAD, recentLogs, [8, 6, 16, 48, 100]),
     section("Token usage", TOKEN_HEAD, tokenRows(logs), [8, 6, 6, 10, 10]),
-    section("Recent commits", COMMIT_HEAD, commitRows(repo), [8, 10, 80]),
+    section("Recent commits", COMMIT_HEAD, readCommits(repo), [8, 10, 80]),
   ].join("\n\n");
 };

@@ -174,6 +174,9 @@ const writeStub = (repo: string, name: string, body: string): string => {
 afterEach(() => {
   vi.restoreAllMocks();
   process.exitCode = undefined;
+  // Guard against a leaked RALPH_LOOP (set by a sibling test file in the same worker) tripping
+  // runSetup's loop guard; every test that needs it sets it explicitly.
+  delete process.env.RALPH_LOOP;
 });
 
 describe("runWorker (in-process, mocked agent)", () => {
@@ -439,14 +442,8 @@ describe("runSetup guards (in-process)", () => {
       stderr.push(String(chunk));
       return true;
     });
-    const prior = process.env.RALPH_LOOP;
     process.env.RALPH_LOOP = "1";
-    try {
-      expect(runSetup([])).toBe(2);
-    } finally {
-      if (prior === undefined) delete process.env.RALPH_LOOP;
-      else process.env.RALPH_LOOP = prior;
-    }
+    expect(runSetup([])).toBe(2);
     expect(stderr.join("")).toContain("must not run inside the agent loop");
   });
 

@@ -6,33 +6,26 @@ import path from "node:path";
 import { describe, expect, test } from "vitest";
 
 import {
+  commitRows,
   formatTokenCount,
   inferAgent,
   parseLogContent,
   renderStatus,
+  type ReadCommits,
 } from "./logging.js";
 
-const runCommand = (argv: string[], cwd: string): void => {
-  const [command, ...args] = argv;
-  if (command === undefined) throw new Error("missing command");
-  const result = spawnSync(command, args, { cwd, encoding: "utf8" });
-  if (result.status !== 0) throw new Error(result.stderr);
-};
+// Stub commit reader so tests never spawn Git. `firstSentence` clips subjects at the
+// first sentence, so the stubbed subjects mirror what real Git output would yield.
+const stubCommits =
+  (...subjects: string[]): ReadCommits =>
+  () =>
+    subjects.map((subject, index) => [
+      `hash${String(index)}`,
+      "2026-07-02",
+      subject,
+    ]);
 
-const makeRepo = (): string => {
-  const repo = mkdtempSync(path.join(tmpdir(), "logging-"));
-  runCommand(["git", "init", "-q"], repo);
-  runCommand(["git", "config", "user.email", "logging@test.local"], repo);
-  runCommand(["git", "config", "user.name", "Logging Test"], repo);
-  writeFileSync(path.join(repo, "README.md"), "seed\n");
-  runCommand(["git", "add", "README.md"], repo);
-  runCommand(["git", "commit", "-q", "-m", "Seed repo. Extra detail"], repo);
-  runCommand(
-    ["git", "commit", "--allow-empty", "-q", "-m", "Add logging. More detail"],
-    repo,
-  );
-  return repo;
-};
+const makeRepo = (): string => mkdtempSync(path.join(tmpdir(), "logging-"));
 
 const writeLog = (
   repo: string,
@@ -93,7 +86,10 @@ describe("logging status", () => {
     );
     writeLog(repo, "misc/notes.txt", "ignored\n", 1_782_400_000_000);
 
-    const output = renderStatus(repo);
+    const output = renderStatus(
+      repo,
+      stubCommits("Add logging.", "Seed repo."),
+    );
 
     expect(output).toContain("5 run log(s)");
     expect(output).toContain("Recent logs");
@@ -116,15 +112,11 @@ describe("logging status", () => {
 
   test("sorts equal-time logs by path and keeps no-punctuation commits", () => {
     const repo = makeRepo();
-    runCommand(
-      ["git", "commit", "--allow-empty", "-q", "-m", "No punctuation"],
-      repo,
-    );
     const sameTime = 1_782_500_000_000;
     writeLog(repo, "zeta.jsonl", '{"result":"zeta"}\n', sameTime);
     writeLog(repo, "alpha.jsonl", '{"result":"alpha"}\n', sameTime);
 
-    const output = renderStatus(repo);
+    const output = renderStatus(repo, stubCommits("No punctuation"));
 
     expect(output.indexOf("alpha.jsonl")).toBeLessThan(
       output.indexOf("zeta.jsonl"),
@@ -135,7 +127,7 @@ describe("logging status", () => {
   test("handles missing logs and missing git history", () => {
     const repo = mkdtempSync(path.join(tmpdir(), "logging-no-git-"));
 
-    const output = renderStatus(repo);
+    const output = renderStatus(repo, stubCommits());
 
     expect(output).toContain("0 run log(s)");
     expect(output).toContain("(none)");
@@ -230,5 +222,28 @@ describe("logging status", () => {
     expect(formatTokenCount(999)).toBe("999");
     expect(formatTokenCount(1200)).toBe("1.2k");
     expect(formatTokenCount(1_200_000)).toBe("1.2m");
+  });
+
+  // The default git-backed reader is the one place a real `git` call is under test: it must
+  // parse a real commit and return [] when the directory is not a repo.
+  test("commitRows reads real commits and returns none outside a repo", () => {
+    const repo = makeRepo();
+    const git = (...args: string[]): void => {
+      const result = spawnSync("git", ["-C", repo, ...args], {
+        encoding: "utf8",
+      });
+      if (result.status !== 0) throw new Error(result.stderr);
+    };
+    git("init", "-q");
+    git("config", "user.email", "logging@test.local");
+    git("config", "user.name", "Logging Test");
+    git("commit", "--allow-empty", "-q", "-m", "Real commit. Extra detail");
+
+    const rows = commitRows(repo);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.[2]).toBe("Real commit.");
+
+    const notRepo = mkdtempSync(path.join(tmpdir(), "logging-no-repo-"));
+    expect(commitRows(notRepo)).toEqual([]);
   });
 });

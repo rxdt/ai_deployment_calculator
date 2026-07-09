@@ -26,6 +26,11 @@
   seven families never do.
 - Calculator unit tests now also pin the empty-form 7B server inference total at
   `19.0 GB`, completing the corrected-total checklist in `specs/frontend.md`.
+- Calculator unit tests now pin decoder-KV families versus no-KV families and
+  exact scaling for encoder, encoder-decoder, diffusion, video, audio, tabular,
+  and custom working-memory formulas.
+- `specs/frontend.md` marks calculation unit coverage, required commands, and
+  the deleted legacy-approximations test as complete.
 
 ## Commands
 
@@ -33,6 +38,8 @@
   `pnpm --dir frontend exec vitest run src/app.test.ts src/report.test.ts`
 - Focused report unit tests:
   `pnpm --dir frontend exec vitest run src/report.test.ts`
+- Focused calculator unit tests:
+  `pnpm --dir frontend exec vitest run src/calculator.test.ts`
 - Full unit + coverage: `pnpm --prefix frontend run test:coverage`
 - App typecheck:
   `./harness/node_modules/.bin/tsc -p harness/tsconfig.app.json --noEmit --incremental --tsBuildInfoFile .cache_tsbuildinfo_app`
@@ -51,7 +58,7 @@
   passes: 60 tests.
 - `pnpm --dir frontend exec vitest run src/report.test.ts` last recorded 16
   tests.
-- `pnpm --dir frontend exec vitest run src/calculator.test.ts` passes: 50 tests.
+- `pnpm --dir frontend exec vitest run src/calculator.test.ts` passes: 58 tests.
 - App typecheck command above passes.
 - `pnpm preflight` first failed for unstaged work and test-file formatting; after
   formatting and staging, it passed.
@@ -60,8 +67,8 @@
   types, schema, dependency-cruiser, deadcode, spelling, workflow lint, secrets,
   audit, build, e2e, and Lighthouse. `semgrep` is not installed and is skipped.
 - Final `pnpm gate` fails in forbidden harness coverage tests:
-  `harness/cli.test.ts` setup cases expect status `0`, `1`, or `7` but receive
-  status `2`.
+  `harness/cli.test.ts` has six setup cases expecting status `0`, `1`, or `7`
+  but receiving status `2`.
 
 ## Blockers
 

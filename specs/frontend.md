@@ -121,7 +121,7 @@
 
 - [x] Unit tests pin corrected totals: `47B` MoE `113.1 GB`, default `7B`
       `19.0 GB`. QLoRA defaults and `2%` cases, long-context GQA KV, and precision comparison.
-- [ ] Unit tests cover conversion, precision map, file-size override, MoE resident
+- [x] Unit tests cover conversion, precision map, file-size override, MoE resident
       memory, decoder KV scaling, no encoder KV, encoder-decoder memory,
       diffusion/video/audio/tabular scaling, LoRA, QLoRA, full training, hardware
       tier matching (single-GPU vs sharded, overflow), tier-bandwidth speed, and
@@ -140,9 +140,10 @@
 - [x] Report unit tests pin the confidence label for all ten workload families
       and pin which families surface decoder `KV Cache precision` assumptions in
       inference (text generation, encoder-decoder, vision-language only).
-- [ ] `frontend/src/legacy-approximations.test.ts` was deleted; do not reintroduce
+- [x] `frontend/src/legacy-approximations.test.ts` was deleted; do not reintroduce
       it or any legacy-approximation test.
-- [ ] Required commands: `pnpm --dir frontend exec vitest run src/report.test.ts`,
+- [x] Required commands: `pnpm --dir frontend exec vitest run src/calculator.test.ts`,
+      `pnpm --dir frontend exec vitest run src/report.test.ts`,
       `pnpm --dir frontend exec vitest run src/app.test.ts src/report.test.ts`,
       `pnpm --prefix frontend run build`,
       `pnpm --prefix frontend run preview -- --port 5174`,

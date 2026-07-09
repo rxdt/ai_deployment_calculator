@@ -47,7 +47,19 @@ const NO_KV_FAMILIES = new Set<WorkloadFamily>([
   "text_encoder",
   "vision",
   "image_diffusion",
+  "video_generation",
+  "audio",
+  "tabular",
+  "custom",
 ]);
+
+interface WorkingMemoryExpectation {
+  readonly scenario: string;
+  readonly family: WorkloadFamily;
+  readonly overrides: Partial<FormState>;
+  readonly key: keyof ReturnType<typeof inferenceWorkingMemoryGb>;
+  readonly expected: number;
+}
 
 /**
 
@@ -408,6 +420,35 @@ describe("workload-family working memory", () => {
     ).toBeCloseTo(0.42);
   });
 
+  test("decoder families scale persistent KV cache while encoder-like families do not", () => {
+    const text = specFromState(
+      state({ workloadFamily: "text_generation", contextTokens: "16000" }),
+    );
+    const encoderDecoder = specFromState(
+      state({ workloadFamily: "encoder_decoder", outputTokens: "512" }),
+    );
+    const visionLanguage = specFromState(
+      state({ workloadFamily: "vision_language", textContextTokens: "8000" }),
+    );
+
+    expect(
+      inferenceWorkingMemoryGb(text, weightsGb(text)).kvCacheGb,
+    ).toBeCloseTo(2.097152, 9);
+    expect(
+      inferenceWorkingMemoryGb(encoderDecoder, weightsGb(encoderDecoder))
+        .kvCacheGb,
+    ).toBeCloseTo(0.067108864, 9);
+    expect(
+      inferenceWorkingMemoryGb(visionLanguage, weightsGb(visionLanguage))
+        .kvCacheGb,
+    ).toBeGreaterThan(0);
+
+    for (const family of NO_KV_FAMILIES) {
+      const spec = specFromState(state({ workloadFamily: family }));
+      expect(inferenceWorkingMemoryGb(spec, weightsGb(spec)).kvCacheGb).toBe(0);
+    }
+  });
+
   test.each<WorkloadFamily>([
     "text_encoder",
     "encoder_decoder",
@@ -427,6 +468,78 @@ describe("workload-family working memory", () => {
       expect(working.kvCacheGb).toBe(0);
     }
   });
+
+  test.each([
+    {
+      scenario: "encoder input tokens",
+      family: "text_encoder",
+      overrides: { sequenceTokens: "1024" },
+      key: "inputActivationGb",
+      expected: 0.536870912,
+    },
+    {
+      scenario: "encoder-decoder input and cross-attention scratch",
+      family: "encoder_decoder",
+      overrides: { inputTokens: "2048" },
+      key: "inputActivationGb",
+      expected: 1.773741824,
+    },
+    {
+      scenario: "diffusion latent resolution",
+      family: "image_diffusion",
+      overrides: {
+        totalParams: "0.1",
+        imageWidth: "4096",
+        imageHeight: "4096",
+      },
+      key: "inputActivationGb",
+      expected: 0.134217728,
+    },
+    {
+      scenario: "video latent frame count",
+      family: "video_generation",
+      overrides: {
+        totalParams: "0.1",
+        videoFrames: "161",
+        videoResolution: "1080p",
+      },
+      key: "inputActivationGb",
+      expected: 1.0202112,
+    },
+    {
+      scenario: "audio duration tokens",
+      family: "audio",
+      overrides: { audioSeconds: "60" },
+      key: "inputActivationGb",
+      expected: 1.572864,
+    },
+    {
+      scenario: "tabular batch rows",
+      family: "tabular",
+      overrides: { rowsPerBatch: "20000" },
+      key: "inputActivationGb",
+      expected: 0.032,
+    },
+    {
+      scenario: "custom input multiplier",
+      family: "custom",
+      overrides: { inputSizeMultiplier: "2" },
+      key: "inputActivationGb",
+      expected: 7,
+    },
+  ] satisfies readonly WorkingMemoryExpectation[])(
+    "scales $scenario through the $family formula",
+    ({ family, overrides, key, expected }) => {
+      const spec = specFromState(
+        state({ workloadFamily: family, ...overrides }),
+      );
+
+      expect(inferenceWorkingMemoryGb(spec, weightsGb(spec))[key]).toBeCloseTo(
+        expected,
+        9,
+      );
+    },
+  );
 
   test("video 1080p branch and image pixel proxy branch are reachable", () => {
     const video = specFromState(

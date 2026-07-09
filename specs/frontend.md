@@ -178,6 +178,9 @@
       rises monotonically with precision byte-width, and a `Known Model File Size`
       overrides parameter- and precision-based weights (scaled only by GPU resident
       fraction). These generalize the single-example pins in `calculator.test.ts`.
+- [x] `calculator.property.test.ts` also pins decoder-KV monotonicity: text
+      generation required VRAM never decreases as context length or concurrency
+      grows, guarding the KV formula against sign/operator regressions.
 - [x] `frontend/src/legacy-approximations.test.ts` was deleted; do not reintroduce
       it or any legacy-approximation test.
 - [x] Required commands: `pnpm --dir frontend exec vitest run src/calculator.test.ts`,

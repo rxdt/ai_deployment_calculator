@@ -72,6 +72,62 @@ describe("calculator properties", () => {
     );
   });
 
+  test("text-generation required memory does not decrease as context length grows", () => {
+    // Guards decoder KV: it scales linearly with context tokens, so a longer context can
+    // never lower the estimate.
+    fc.assert(
+      fc.property(
+        fc.integer({ min: 0, max: 2_000_000 }),
+        fc.integer({ min: 0, max: 2_000_000 }),
+        (left, right) => {
+          const low = Math.min(left, right);
+          const high = Math.max(left, right);
+
+          expect(
+            requiredGb({
+              workloadFamily: "text_generation",
+              contextTokens: high.toString(),
+            }),
+          ).toBeGreaterThanOrEqual(
+            requiredGb({
+              workloadFamily: "text_generation",
+              contextTokens: low.toString(),
+            }),
+          );
+        },
+      ),
+      { numRuns: 100 },
+    );
+  });
+
+  test("text-generation required memory does not decrease as concurrency grows", () => {
+    // Guards decoder KV: it scales linearly with concurrent requests, so more concurrency
+    // can never lower the estimate.
+    fc.assert(
+      fc.property(
+        fc.integer({ min: 1, max: 1024 }),
+        fc.integer({ min: 1, max: 1024 }),
+        (left, right) => {
+          const low = Math.min(left, right);
+          const high = Math.max(left, right);
+
+          expect(
+            requiredGb({
+              workloadFamily: "text_generation",
+              workloadSize: high.toString(),
+            }),
+          ).toBeGreaterThanOrEqual(
+            requiredGb({
+              workloadFamily: "text_generation",
+              workloadSize: low.toString(),
+            }),
+          );
+        },
+      ),
+      { numRuns: 100 },
+    );
+  });
+
   test("enabling MoE never changes resident weight memory or required VRAM at inference", () => {
     // Non-negotiable Research Correction: active parameters affect rough speed only, not
     // resident weight memory, unless expert offload/sharding is enabled (off here).

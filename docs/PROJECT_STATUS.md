@@ -27,11 +27,12 @@
 - Model-memory gating treats positive `Known Model File Size` as resident memory
   even with unknown total params; zero model memory suppresses workload-only
   activation/runtime/speed.
-- `calculator.property.test.ts` now guards three non-negotiable Research
-  Corrections with fast-check across random inputs (MoE never changes resident
+- `calculator.property.test.ts` now guards the non-negotiable Research
+  Corrections with fast-check across random inputs: MoE never changes resident
   weight/required VRAM at inference, weight memory is monotonic in precision
-  byte-width, known file size overrides parameter/precision weights). Frontend
-  suite: 181 tests, 100% coverage.
+  byte-width, known file size overrides parameter/precision weights, and decoder
+  KV required VRAM never decreases as context length or concurrency grows.
+  Frontend suite: 181 tests, 100% coverage.
 
 ## Commands
 
@@ -87,16 +88,19 @@
   both run and pass this iteration. Remaining STYLING checkboxes are visual-polish/
   product decisions; not safe to change blind in an autonomous loop given the
   owner's revert history.
-- No safe, non-manufactured code change was available: the calc/TS/HTML work is
-  complete and verified green, styling exists, and the only red check is the
-  forbidden-path harness mismatch above. Per loop rules, this iteration recorded
-  verified truth instead of fabricating work.
+- This iteration's safe code change: added fast-check property guards for the
+  spec's non-negotiable calculation invariants (see State). The calc/TS/HTML work
+  was already complete and verified green; the only red check is the forbidden-path
+  harness mismatch above. Remaining unfinished spec items are visual STYLING polish
+  (owner-gated per revert history) and the forbidden-path harness reconcile.
 - Unstaged human-owned forbidden edits remain and were left untouched:
   `PROMPT.md`, `harness/cli.ts`, `harness/gate.ts`, `harness/gate.test.ts`.
   Agents must not stage or alter these. (`specs/frontend.md` is no longer a
   working-tree edit; the prior iteration's spec correction is committed in
   `65d2182`.)
-- Mechanism note for future iterations: `pnpm preflight` / `pnpm gate` invoke the
-  harness, which stages allowed working-tree changes, contains forbidden paths,
-  and creates a real commit under the git user's identity. Running them will
-  commit your pending allowed edits — expect a new `HEAD` after either command.
+- Mechanism note for future iterations (observed this iteration): running
+  `pnpm preflight` / `pnpm gate` directly runs the checks and forbidden-path
+  containment but does NOT create a commit — `HEAD` was unchanged after both.
+  Commits happen when you run `git commit`; the pre-commit hook then runs
+  `harness preflight`, drops any staged forbidden paths, and flags banned patterns.
+  Stage only your intended files so forbidden-path WIP stays out of the commit.

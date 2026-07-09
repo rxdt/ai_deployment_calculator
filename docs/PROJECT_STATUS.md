@@ -19,6 +19,8 @@
 - Result detail speed labels now include the rendered workload unit, e.g.
   `Estimated Speed (tokens/sec)`, `images/min`, `clips/min`, `rows/sec`, or
   `audio tokens/sec`.
+- Secondary result math and formula outputs stay hidden by default and are
+  visible only after their detail panels expand.
 - `specs/plan.md` marks the workload-adaptive speed label complete.
 - `Known Model File Size` now overrides QLoRA base model memory, matching the
   documented resident-file-size override contract.
@@ -40,31 +42,23 @@
   `./harness/node_modules/.bin/lhci autorun --config harness/lighthouserc.cjs`
 - Preflight: `pnpm preflight`
 - Gate: `pnpm gate`
+- `semgrep` is not installed and is skipped.
 
 ## Checks
 
-- Focused app tests pass: `pnpm --dir frontend exec vitest run src/app.test.ts`
-  (47 tests).
-- Focused calculator/report tests pass:
-  `pnpm --dir frontend exec vitest run src/calculator.test.ts src/report.test.ts`.
-- Focused calculator tests pass:
-  `pnpm --dir frontend exec vitest run src/calculator.test.ts`.
-- Full frontend coverage passes:
-  `pnpm --prefix frontend run test:coverage` reports 100%.
+- Focused hidden-math Playwright passes:
+  `pnpm --dir frontend exec playwright test --config ../harness/playwright.config.js frontend/tests/calculator.spec.ts -g "keeps secondary math hidden until detail panels expand"`.
+- Initial `pnpm preflight` was rerun after staging because the harness rejects
+  an empty index.
 - `pnpm preflight` passes after staging this iteration's scoped files.
-- Focused responsive Playwright passes: 48 tests.
-- `pnpm gate` passes format, eslint, style, html, typecheck, harness types,
-  schema, dependency-cruiser, deadcode, spelling, workflow lint, secrets,
-  audit, build, coverage, e2e, and Lighthouse. `semgrep` is not installed and
-  is skipped.
+- `pnpm gate` passes format, lint, style, html, typecheck, schema,
+  dependency-cruiser, deadcode, spelling, workflow lint, secrets, audit, build,
+  coverage, Playwright, and Lighthouse.
 
 ## Blockers
 
 - No current frontend behavior blocker.
 - Existing unstaged forbidden edits remain in `harness/cli.ts` and
   `harness/cli.test.ts`; agents must not stage or alter them.
-
-## Next
-
-- Continue remaining frontend styling checklist only after HTML/TypeScript scope
-  stays green.
+- Existing unstaged forbidden edits remain in `PROMPT.md`; agents must not stage
+  or alter them.

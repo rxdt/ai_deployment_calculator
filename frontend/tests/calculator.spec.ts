@@ -52,8 +52,26 @@ test("reset zeroes inputs and outputs", async ({ page }) => {
   await expect(page.locator('[data-out="total"]')).toHaveText("0.0 GB");
 });
 
-test("expands the secondary detail panels", async ({ page }) => {
+test("keeps secondary math hidden until detail panels expand", async ({
+  page,
+}) => {
   await page.goto("/");
+
+  for (const output of [
+    "why",
+    "min-cap",
+    "usable-target",
+    "usable-on-class",
+    "fit-headroom",
+    "speed",
+    "breakdown",
+    "calc-formula",
+    "assumptions",
+  ]) {
+    await expect(page.locator(`[data-out="${output}"]`)).toBeHidden();
+  }
+  await expect(page.locator('[data-out="total"]')).toBeVisible();
+  await expect(page.locator('[data-out="gpu-class"]')).toBeVisible();
 
   await expect(page.locator('[data-out="calc-formula"]')).toBeHidden();
   await page.getByText("Why this recommendation").click();

@@ -19,7 +19,7 @@
 - [ ] Public UI names follow the Naming Contract in `specs/plan.md`; do not redefine
       them here.
 - [ ] The app is responsive.
-- [ ] Complex underlying formulas only appear in expandable cards.
+- [x] Complex underlying formulas only appear in expandable cards.
 - [ ] The app is accurate and has inputs/outputs an engineer would trust
 - [ ] The app is simple enough for a non-tech user
 
@@ -60,7 +60,7 @@
 - [ ] Result cards loosely follow inspiration from `/specs/this_png_shows_some_ideas_are_ok_not_all.png`
 - [ ] Top hero result looks like a more professional version than in `specs/this_png_shows_some_ideas_are_ok_not_all.png`
 - [x] Small disclaimer should exist below app outputs.
-- [ ] Complex details and formulas are hidden in expandable sections as in this app `specs/light_style_ideas_reflected_in_DESIGN.md.png`
+- [x] Complex details and formulas are hidden in expandable sections as in this app `specs/light_style_ideas_reflected_in_DESIGN.md.png`
 - [ ] **Run lighthouse and Playwright frequently. Both must pass.** Direct
       Playwright and Lighthouse pass; full `pnpm gate` remains blocked by dirty
       human-owned harness changes.
@@ -132,8 +132,9 @@
       legacy flag removal.
 - [x] Playwright covers accessibility, local report rendering, adaptive controls,
       no generic `Batch Size`, MoE visibility, escaping, four collapsed result
-      detail cards, expanded-heading cyan color, collapsed one-viewport fit, and
-      expanded advanced-assumptions no-overflow fit on desktop/mobile.
+      detail cards, hidden secondary math until expansion, expanded-heading cyan
+      color, collapsed one-viewport fit, and expanded advanced-assumptions
+      no-overflow fit on desktop/mobile.
 - [x] App unit tests cover the real HTML `KV Cache Precision` options, real HTML
       `Execution Mode` choices, the rendered 32-bit KV estimate, the always-visible
       `Estimate confidence` label, collapsed output panels, removed `Accuracy` /

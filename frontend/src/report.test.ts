@@ -393,6 +393,135 @@ describe("buildReport", () => {
     );
   });
 
+  /**
+  Non-decoder workload families use family-specific activation inputs. The report
+  should expose those inputs so the assumption panel explains the calculated size.
+  */
+  test("assumptions surface non-KV workload scaling inputs by family", () => {
+    const cases: readonly (readonly [
+      string,
+      Partial<FormState>,
+      readonly { readonly label: string; readonly value: string }[],
+    ])[] = [
+      [
+        "encoder-decoder training tokens",
+        {
+          workloadFamily: "encoder_decoder",
+          executionMode: "LoRA fine-tuning",
+          inputTokens: "1536",
+          outputTokens: "384",
+        },
+        [
+          { label: "Input tokens", value: "1536" },
+          { label: "Output tokens", value: "384" },
+        ],
+      ],
+      [
+        "vision image size",
+        {
+          workloadFamily: "vision",
+          imageWidth: "640",
+          imageHeight: "480",
+          workloadSize: "2",
+        },
+        [
+          { label: "Image size", value: "640 x 480" },
+          { label: "Concurrent requests", value: "2" },
+        ],
+      ],
+      [
+        "vision-language training multimodal shape",
+        {
+          workloadFamily: "vision_language",
+          executionMode: "LoRA fine-tuning",
+          textContextTokens: "6000",
+          imageCount: "2",
+          imageWidth: "1024",
+          imageHeight: "768",
+        },
+        [
+          { label: "Text context tokens", value: "6000" },
+          { label: "Image count", value: "2" },
+          { label: "Image size", value: "1024 x 768" },
+        ],
+      ],
+      [
+        "video shape",
+        {
+          workloadFamily: "video_generation",
+          videoResolution: "1080p",
+          videoFrames: "121",
+        },
+        [
+          { label: "Video resolution", value: "1080p" },
+          { label: "Video frames", value: "121" },
+        ],
+      ],
+      [
+        "audio duration",
+        { workloadFamily: "audio", audioSeconds: "45" },
+        [{ label: "Audio seconds", value: "45" }],
+      ],
+      [
+        "tabular batch shape",
+        {
+          workloadFamily: "tabular",
+          rowsPerBatch: "5000",
+          features: "300",
+        },
+        [
+          { label: "Rows per batch", value: "5000" },
+          { label: "Features", value: "300" },
+        ],
+      ],
+      [
+        "custom multiplier",
+        { workloadFamily: "custom", inputSizeMultiplier: "3" },
+        [{ label: "Input size multiplier", value: "3" }],
+      ],
+    ];
+
+    for (const [scenario, overrides, expectedRows] of cases) {
+      expect(buildReport(state(overrides)).assumptions, scenario).toEqual(
+        expect.arrayContaining([...expectedRows]),
+      );
+    }
+  });
+
+  /**
+  Direct state can contain a zero batch count. The assumption row should match the
+  resolved calculation size instead of echoing the stale raw form value.
+  */
+  test("training assumptions show the resolved micro batch size", () => {
+    expect(
+      buildReport(
+        state({
+          executionMode: "LoRA fine-tuning",
+          workloadSize: "0",
+          contextTokens: "2048",
+        }),
+      ).assumptions,
+    ).toEqual(
+      expect.arrayContaining([
+        { label: "Context tokens", value: "2048" },
+        { label: "Micro batch size", value: "1" },
+      ]),
+    );
+  });
+
+  /**
+  Malformed direct state can carry an unknown workload family at runtime. The
+  report should still fall back to the custom workload assumption rows.
+  */
+  test("malformed workload family uses custom assumption rows", () => {
+    const malformed = state({ inputSizeMultiplier: "4" });
+    Object.defineProperty(malformed, "workloadFamily", { value: "unknown" });
+
+    expect(buildReport(malformed).assumptions).toEqual(
+      expect.arrayContaining([{ label: "Input size multiplier", value: "4" }]),
+    );
+  });
+
   test("assumptions surface advanced inputs that change memory or hardware selection", () => {
     const report = buildReport(
       state({

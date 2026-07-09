@@ -121,6 +121,9 @@
         override, training, sharding, and KV assumptions when they affect the
         estimate. Decoder KV assumptions include the context/output/text-image
         scaling inputs plus concurrency, precision, and resolved head counts.
+        Non-KV families surface their own scaling inputs such as image size,
+        video frames/resolution, audio seconds, tabular dimensions, and custom
+        input multiplier.
 - [x] The hardware-recommendation and fit math (usable VRAM on class, fit headroom,
       overflow `n/a`, speed) is defined in the Formulas section below.
 - [x] Warnings are conditional only: training, MoE, and sharded-tier speed guidance.
@@ -156,7 +159,7 @@
 - [x] Report unit tests pin the confidence label for all ten workload families
       and pin which families surface decoder `KV Cache precision` assumptions in
       inference (text generation, encoder-decoder, vision-language only), plus
-      the family-specific KV scaling inputs surfaced in assumptions.
+      the family-specific KV and non-KV scaling inputs surfaced in assumptions.
 - [x] Report and calculator unit tests cover advanced assumptions that affect
       estimates: known file size, GPU resident fraction clamping, LoRA trainable
       percent, optimizer, gradient checkpointing, and memory sharding.

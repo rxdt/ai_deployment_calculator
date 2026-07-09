@@ -15,26 +15,18 @@
 - Report assumptions show advanced inputs that affect estimates: known file
   size, GPU resident fraction, LoRA trainable percent, optimizer, gradient
   checkpointing, memory sharding, decoder KV scaling inputs, and non-KV
-  workload scaling inputs.
+  workload scaling inputs; malformed direct state shows resolved numeric
+  fallbacks matching the formula inputs.
 - `Known Model File Size` overrides QLoRA base model memory.
-- New this iteration: training activation memory now uses family-specific
-  workload proxies for vision, diffusion, video, audio, tabular, and custom
-  training estimates instead of falling back to text context length.
-- New this iteration: shared workload sizing lives in
-  `frontend/src/workload-sizing.ts` so inference and training parse common
-  image/video/audio/tabular/custom sizing controls consistently.
-- New this iteration: advanced numeric assumptions now enforce their real upper
-  bounds in both live form input and URL state normalization: GPU resident
-  fraction is capped at `1`, and LoRA trainable percent is capped at `100`.
-- New this iteration: direct calculation state also enforces impossible semantic
-  caps: LoRA trainable percent cannot exceed `100`, and MoE active parameters
-  cannot exceed total parameters.
-- New this iteration: model-memory gating now treats a positive
-  `Known Model File Size` as real resident memory even when total parameters are
-  unknown, while zero model memory no longer produces workload-only activation,
-  runtime, or speed estimates.
-- New this iteration: report assumption rows now display resolved numeric
-  fallback values for malformed direct state, matching the formula inputs.
+- Training activation memory uses family-specific workload proxies; shared
+  workload sizing lives in `frontend/src/workload-sizing.ts`.
+- Advanced numeric assumptions enforce real upper bounds in live form input and
+  URL normalization (GPU resident fraction capped at `1`, LoRA trainable percent
+  at `100`); direct state also caps LoRA percent at `100` and MoE active params
+  at total params.
+- Model-memory gating treats positive `Known Model File Size` as resident memory
+  even with unknown total params; zero model memory suppresses workload-only
+  activation/runtime/speed.
 
 ## Commands
 
@@ -42,8 +34,6 @@
   `pnpm --dir frontend exec vitest run src/report.test.ts src/app.test.ts src/calculator.test.ts`
 - Preflight: `pnpm preflight`
 - Full gate: `pnpm gate`
-- Common focused checks:
-  `pnpm --dir frontend exec vitest run src/app.test.ts src/report.test.ts`
 - Full frontend coverage: `pnpm --prefix frontend run test:coverage`
 - Build: `pnpm --prefix frontend run build`
 - Playwright:
@@ -53,46 +43,35 @@
 
 ## Checks
 
-- `pnpm --dir frontend exec vitest run src/calculator.test.ts` passed: 70 tests.
-- `pnpm --dir frontend exec vitest run src/report.test.ts src/app.test.ts src/calculator.test.ts`
-  passed: 140 tests.
-- `pnpm --dir frontend exec vitest run src/state.test.ts src/app.test.ts`
-  passed: 63 tests.
-- `pnpm --dir frontend exec vitest run src/calculator.test.ts` passed: 72 tests.
-- `pnpm --dir frontend exec vitest run src/calculator.test.ts` passed: 74 tests.
-- `pnpm preflight` passed: prettier check, eslint, stylelint, html-validate.
-- `pnpm --dir frontend exec vitest run src/report.test.ts` passed: 23 tests.
-- `pnpm gate` passed: format, lint, typecheck, schema, dependency checks,
-  deadcode, spelling, workflow lint, SAST, secrets, audit, build, coverage,
-  Playwright, and Lighthouse.
+- Last green `pnpm gate` (before the execution blocker): format, lint,
+  typecheck, schema, dependency checks, deadcode, spelling, workflow lint, SAST,
+  secrets, audit, build, coverage, Playwright, and Lighthouse all passed.
+- Pre-commit hook runs `harness preflight` (prettier, eslint, stylelint,
+  html-validate) automatically on every commit; those stay covered.
 
 ## Blockers
 
-- HARD BLOCKER (this iteration): the permission policy in this non-interactive
-  session denies direct code-execution commands from Bash. `pnpm preflight`,
-  `pnpm gate`, `node harness/harness.mjs preflight`, `node -e ...`,
-  `pnpm --dir frontend exec vitest run [...]`, and
-  `frontend/node_modules/.bin/vitest` all return "This command requires
-  approval" and are auto-denied; only read-only inspection (`git`, `ls`, `cat`,
-  `wc`, `grep`, `node --version`) runs. The git pre-commit hook DOES run
-  `harness preflight` automatically (prettier, eslint, stylelint, html-validate
-  passed on the commit that carried this note), so format/lint/html are covered
-  on commit. But the full `pnpm gate` — vitest unit/property tests, typecheck,
-  coverage, build, Playwright, Lighthouse — cannot be invoked directly, so the
-  behavioral correctness of any code change cannot be verified this iteration.
-- This iteration was therefore review-only: a full static read of
-  `calculator-core.ts`, `workload-memory.ts`, `workload-sizing.ts`,
-  `hardware.ts`, `report.ts`, `report-assumptions.ts`, `state.ts`,
-  `numeric-state.ts`, and `workload-visibility.ts` found them conformant to the
-  `specs/frontend.md` formulas (weights, precision map, per-family working
-  memory, training state/activation, MoE speed, hardware tiers, overflow, fit,
-  and assumption rows) with no correctness defect. Remaining unchecked
-  `specs/frontend.md` items are the deferred styling pass and the
-  Lighthouse/Playwright visual runs, neither actionable while execution is
-  blocked.
+- HARD BLOCKER (2nd consecutive iteration): the non-interactive permission
+  policy denies direct code execution from Bash. Re-verified this iteration:
+  `node --version` runs but `node -e ...` and `pnpm --version` both return "This
+  command requires approval" and are auto-denied. So `pnpm preflight`, `pnpm
+  gate`, vitest, typecheck, build, Playwright, and Lighthouse cannot be invoked;
+  behavioral correctness of any code change cannot be verified.
+- This iteration was review-only. A second independent fresh-context static read
+  of `calculator-core.ts`, `workload-memory.ts`, `workload-sizing.ts`,
+  `report-assumptions.ts`, and `numeric-state.ts` re-confirmed conformance to the
+  `specs/frontend.md` formulas (weights/precision, per-family working memory,
+  training state/activation, MoE speed rule, hardware tiers, fit math, clamps,
+  and assumption rows) with no correctness defect. `README.md` is accurate and
+  satisfies acceptance criterion 28.
+- Remaining unchecked `specs/frontend.md` items are the deferred styling pass and
+  the Lighthouse/Playwright visual runs. Styling is explicitly last and the owner
+  reverts premature styling; the visual runs need execution. Neither is
+  actionable while execution is blocked, so no safe verifiable code change is
+  available.
 - To unblock: a human must restore execution permissions (allow `pnpm` and
-  `node <script>` in this session's allowlist) so the loop can run
-  `pnpm preflight` and `pnpm gate` again.
+  `node <script>` in this session's allowlist) so the loop can run `pnpm
+  preflight` and `pnpm gate` again.
 - Existing unstaged human-owned forbidden edits remain in `PROMPT.md`,
   `harness/gate.ts`, and `harness/gate.test.ts`; agents must not stage or alter
   them.

@@ -264,6 +264,26 @@ test("desktop result detail panels stay compact beneath the answer", async ({
   expect(formulaBox.width).toBeLessThan(whyBox.width * 0.75);
 });
 
+test("expanded advanced assumptions stay inside the input pane", async ({
+  page,
+}) => {
+  await page.setViewportSize({ height: 720, width: 1280 });
+  await page.goto("/");
+  await page.getByText("Why this recommendation", { exact: true }).click();
+  await page.getByText("Advanced assumptions", { exact: true }).click();
+
+  const advancedBox = requireBox(
+    await page.locator(".advanced[open] .group").boundingBox(),
+    "advanced assumptions panel",
+  );
+  const resultsBox = requireBox(
+    await page.locator(".results").boundingBox(),
+    "results pane",
+  );
+
+  expect(advancedBox.x + advancedBox.width).toBeLessThanOrEqual(resultsBox.x);
+});
+
 test("checkboxes render selected checks and empty unchecked indicators", async ({
   page,
 }) => {

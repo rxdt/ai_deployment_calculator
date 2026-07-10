@@ -6,8 +6,20 @@ Ship a compact, trustworthy VRAM calculator today. Preserve the naming
 contract in `specs/plan.md`, calculator correctness, accessibility, and the
 current responsive behavior before doing cosmetic work.
 
+### Inspect these examples and figure out if we can use them as examples to derive 'good' html / spacing standards.
+
+- [ ] HTML reflects clean, compact, well-organized flow. Take learnings from inspecting these examples. Clean, compact, well-organized examples or what 'good' looks like to a human user are like these (you may inspect their HTML or styling online):
+  - [ ] `spec/calc1.png` `docs/odoo.html`
+  - [ ] `~/specs/calc2.png` `specs/dispel.html`
+  - [ ] `spec/calc13.png` `specs/groundcover.html`
+
 ## Current Contract
 
+- [ ] The app follows `DESIGN.md` and `specs/this_png_shows_some_ideas_are_ok_not_all.png`
+- [ ] The entire app fits without scrolling when all items are collapsed.
+- [ ] The entire app fits wihout scorlling when all items are expanded.
+- [ ] Elements are well-sized - not overly large.
+- [ ] Model cards like "Why this recommendation" do NOT look like buttons. The are text on a dark background with a standard downward arrow 'v' implying expansion. Then style the arrow to our style tokens.
 - [x] Core calculations run in frontend TypeScript.
 - [x] Public UI names follow the `specs/plan.md` Naming Contract.
 - [x] Main controls are reactive; Reset is the only form action.
@@ -30,28 +42,17 @@ current responsive behavior before doing cosmetic work.
 - [x] Calculator elements should remain compact, not oversized.
 - [ ] Desktop should keep the two-pane input/result shape without page scroll
       where practical.
-- [ ] Expanded `Advanced assumptions` should avoid clashing with result detail
+- [x] Expanded `Advanced assumptions` avoids clashing with result detail
       panels and stay usable on mobile.
 - [ ] Cyan should remain limited to expanded result detail summaries.
 - [ ] Result hero should look more professional while preserving hierarchy.
 - [ ] Styling should continue to follow `specs/DESIGN.md`.
 
-## Formula Smoke Tests
-
-- [x] 8B text-generation inference, 8000 ctx, 16-bit, server: 21.3 GB.
-- [x] 47B MoE inference keeps resident weights independent of active params.
-- [x] 8B QLoRA uses quantized base plus adapter states, not flat overhead.
-- [x] 7B full training includes weights, master weights, gradients,
-      optimizer, activations, overhead, and buffer.
-- [x] 104B GGUF local exact resident size uses file-size override.
-
 ## Checks
 
 - Focused unit loop:
   `pnpm --dir frontend exec vitest run src/report.test.ts src/app.test.ts --config ../harness/vitest.config.js`
-- Focused browser loop:
-  `pnpm --prefix frontend run test:e2e -- calculator.spec.ts`
-- Required loop checks: `pnpm preflight`, then `pnpm gate`.
+- Required loop checks: `pnpm preflight`, then `pnpm gate` (only run once if you made significant changes, very slow on lighthouse).
 
 ## Notes
 

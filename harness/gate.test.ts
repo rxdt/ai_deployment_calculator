@@ -280,11 +280,6 @@ interface VitestConfig {
   };
 }
 
-interface EslintResolvedConfig {
-  linterOptions?: Record<string, unknown>;
-  rules?: Record<string, unknown>;
-}
-
 interface PackageJson {
   name?: string;
   private?: boolean;

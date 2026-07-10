@@ -199,3 +199,49 @@ test("first glance result hierarchy makes the VRAM answer dominant", async ({
     /JetBrains Mono/u,
   );
 });
+
+test("checkboxes render explicit selected and unselected indicators", async ({
+  page,
+}) => {
+  await page.goto("/");
+
+  const moeState = page.locator(
+    'label:has(#moe-enabled) [data-slot="checkbox-indicator"]',
+  );
+  await expect(moeState).toBeVisible();
+  await expect(moeState).toHaveCSS("min-width", "40px");
+  await expect
+    .poll(async () =>
+      moeState.evaluate((node) => getComputedStyle(node, "::before").content),
+    )
+    .toBe('"X"');
+
+  await page.getByLabel("MoE Model", { exact: true }).check();
+  await expect
+    .poll(async () =>
+      moeState.evaluate((node) => getComputedStyle(node, "::before").content),
+    )
+    .toContain("\u{2713}");
+
+  await page.getByText("Advanced assumptions", { exact: true }).click();
+  const gradientState = page.locator(
+    'label:has(#gradient-checkpointing) [data-slot="checkbox-indicator"]',
+  );
+  const shardingState = page.locator(
+    'label:has(#memory-sharding-enabled) [data-slot="checkbox-indicator"]',
+  );
+  await expect
+    .poll(async () =>
+      gradientState.evaluate(
+        (node) => getComputedStyle(node, "::before").content,
+      ),
+    )
+    .toContain("\u{2713}");
+  await expect
+    .poll(async () =>
+      shardingState.evaluate(
+        (node) => getComputedStyle(node, "::before").content,
+      ),
+    )
+    .toBe('"X"');
+});

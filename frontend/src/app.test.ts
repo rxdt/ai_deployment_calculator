@@ -311,6 +311,33 @@ describe("naming contract", () => {
   });
 });
 
+describe("checkbox indicators", () => {
+  test("renders explicit visual state indicators for every checkbox control", () => {
+    loadDom();
+    mountCalculator(document);
+    const checkboxNames = [
+      "moe-enabled",
+      "gradient-checkpointing",
+      "memory-sharding-enabled",
+    ];
+
+    for (const name of checkboxNames) {
+      const control = field(name);
+      const label = control.labels?.[0];
+      if (!(label instanceof HTMLLabelElement)) {
+        throw new TypeError(`Missing checkbox label: ${name}`);
+      }
+      const state = control.nextElementSibling;
+      expect(control).toBeInstanceOf(HTMLInputElement);
+      if (!(state instanceof HTMLSpanElement)) {
+        throw new TypeError(`Missing checkbox indicator: ${name}`);
+      }
+      expect(state.dataset.slot).toBe("checkbox-indicator");
+      expect(state.getAttribute("aria-hidden")).toBe("true");
+    }
+  });
+});
+
 describe("mounted calculator", () => {
   test("renders the compact product brand in the header", () => {
     loadDom();

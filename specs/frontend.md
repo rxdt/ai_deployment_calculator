@@ -26,7 +26,7 @@
       letters/negatives/exponents, and clamp global values to `99999999.9`
       (`99999999` for integer-mode inputs); field caps still apply.
 - [ ] Bare, minimal styles.css only to get tests passing until typescript/html work is complete.
-- [ ] When a checkbox is selected, a styled check or X appears, confirming to the user the cacluclator is using that input
+- [x] When a checkbox is selected, a styled check or X appears, confirming to the user the calculator is using that input.
 - [x] 'Gradient Checkpointing' and 'Memory Sharding' are actually checkable checkboxes and affect outputs to correct values
 - [x] Main form shows `Workload Family`, `Total Model Parameters`,
       `Parameter Unit`, `Precision`, `Execution Mode`, `Runtime Profile`,
@@ -56,11 +56,10 @@
 
 - [ ] When 'Advanced assumptions' is expanded, app fits in one viewport on desktop and mobile.
 - [ ] The app fits in one viewport on desktop and mobile in the collapsed default state; `frontend/tests/responsive.spec.ts:75` passes on all Playwright projects.
-- [ ] Verify the app is responsive  `~/ai_deployment_calculator/scratchpad/responsive_frontend_research.md` with covered desktop/mobile edge content staying in viewport.
+- [ ] Verify the app is responsive `~/ai_deployment_calculator/scratchpad/responsive_frontend_research.md` with covered desktop/mobile edge content staying in viewport.
 - [ ] Styling follows `specs/DESIGN.md` -- Design system defines 24 colors, 7 typography scales, 5 rounding levels, 10 spacing tokens, 25 components.
 - [ ] Styling honors a compact, clean calculator shape. Compact calculator examples are like `spec/calc1.png`, `~/specs/calc2.png`, `spec/calc13.png`.
 - [ ] Styling loosely inspired by `specs/light_style_ideas_reflected_in_DESIGN.md.png`
-
 
 ### Keep these as the core smoke tests:
 
@@ -154,15 +153,15 @@ Responsive standards met:
       `frontend/tests/calculator.spec.ts` pins hero totals, GPU class, minimum VRAM,
       breakdown rows, and assumptions after manipulating real controls.
 - Helpful commands: `pnpm --dir frontend exec vitest run src/calculator.test.ts`,
-      `pnpm --dir frontend exec vitest run src/report.test.ts`,
-      `pnpm --dir frontend exec vitest run src/app.test.ts`,
-      `pnpm --dir frontend exec vitest run src/app.test.ts src/report.test.ts`,
-      `pnpm --prefix frontend run build`,
-      `pnpm --prefix frontend run preview -- --port 5174`,
-      `pnpm --prefix frontend run test:coverage`,
-      `pnpm --dir frontend exec playwright test --config ../harness/playwright.config.js`,
-      `./harness/node_modules/.bin/lhci autorun --config harness/lighthouserc.cjs`,
-      `pnpm --prefix frontend run test:e2e`, `pnpm gate`, `pnpm preflight`.
+  `pnpm --dir frontend exec vitest run src/report.test.ts`,
+  `pnpm --dir frontend exec vitest run src/app.test.ts`,
+  `pnpm --dir frontend exec vitest run src/app.test.ts src/report.test.ts`,
+  `pnpm --prefix frontend run build`,
+  `pnpm --prefix frontend run preview -- --port 5174`,
+  `pnpm --prefix frontend run test:coverage`,
+  `pnpm --dir frontend exec playwright test --config ../harness/playwright.config.js`,
+  `./harness/node_modules/.bin/lhci autorun --config harness/lighthouserc.cjs`,
+  `pnpm --prefix frontend run test:e2e`, `pnpm gate`, `pnpm preflight`.
 
 ## Open Parity Gaps (code review)
 

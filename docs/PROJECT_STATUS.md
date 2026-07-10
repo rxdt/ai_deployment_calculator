@@ -2,24 +2,24 @@
 
 ## State
 
-- Branch: `main`; HEAD before this iteration: `43a6a57`.
-- This iteration completed the output confidence wording cleanup:
-  - The visible label is now `Confidence`.
-  - The old confidence heading wording is gone from frontend source and app view.
-  - Unit and browser tests pin the label while keeping `Estimated` / `Rough`
-    values visible outside collapsed detail panels.
-- `specs/frontend.md` and `specs/plan.md` mark the confidence output item complete.
+- Branch: `main`; HEAD before this iteration: `8682714`.
+- This iteration completed explicit checkbox state indicators:
+  - MoE Model, Gradient Checkpointing, and Memory Sharding labels now show a
+    styled `X` when off and a styled check mark when on.
+  - Native checkbox inputs remain label-associated and keyboard focusable.
+  - `specs/frontend.md` marks the checkbox indicator item complete.
 
 ## Checks
 
 - Focused unit suite passed:
-  `pnpm --dir frontend exec vitest run src/app.test.ts src/confidence.test.ts`.
-- Focused browser suite passed:
-  `pnpm --prefix frontend run test:e2e -- calculator.spec.ts` passed 168 tests.
+  `pnpm --dir frontend exec vitest run src/app.test.ts`.
+- Focused browser suite passed: `pnpm --prefix frontend run test:e2e --
+  responsive.spec.ts` passed 174 tests.
 - Preflight: `pnpm preflight` passed.
-- Final gate: `pnpm gate` is RED only on `harness/cli.test.ts:798`; format,
-  lint, style, html, typecheck, harnessTypes, schema, cruise, deadcode,
-  spelling, workflow, sast, secrets, audit, build, e2e, and Lighthouse passed.
+- Final gate: `pnpm gate` is RED only on `harness/cli.test.ts:798` during
+  coverage; format, lint, style, html, typecheck, harnessTypes, schema, cruise,
+  deadcode, spelling, workflow, sast, secrets, audit, build, e2e, and Lighthouse
+  passed.
 
 ## Blockers
 

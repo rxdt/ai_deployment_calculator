@@ -286,7 +286,12 @@
             >
               <label>
                 <input id="moe-enabled" name="moe-enabled" type="checkbox" />
-                MoE Model
+                <span
+                  class="checkbox-state"
+                  data-slot="checkbox-indicator"
+                  aria-hidden="true"
+                ></span>
+                <span>MoE Model</span>
               </label>
             </p>
             <p class="field" data-active hidden>
@@ -365,7 +370,12 @@
                     type="checkbox"
                     checked
                   />
-                  Gradient Checkpointing
+                  <span
+                    class="checkbox-state"
+                    data-slot="checkbox-indicator"
+                    aria-hidden="true"
+                  ></span>
+                  <span>Gradient Checkpointing</span>
                 </label>
               </p>
               <p class="field field--check">
@@ -375,7 +385,12 @@
                     name="memory-sharding-enabled"
                     type="checkbox"
                   />
-                  Memory Sharding
+                  <span
+                    class="checkbox-state"
+                    data-slot="checkbox-indicator"
+                    aria-hidden="true"
+                  ></span>
+                  <span>Memory Sharding</span>
                 </label>
               </p>
             </div>

@@ -248,10 +248,53 @@ summary,
 }
 
 .field--check label {
+  position: relative;
   min-height: var(--layout-control-size);
   display: flex;
   align-items: center;
   gap: var(--space-sm);
+}
+
+.field--check input {
+  position: absolute;
+  inset-inline-start: 0;
+  flex: 0 0 auto;
+  margin: 0;
+  opacity: 0;
+}
+
+.checkbox-state {
+  min-width: var(--layout-control-size);
+  min-height: var(--layout-control-size);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: var(--layout-border) solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-raised);
+  color: var(--color-muted);
+  font-family: var(--font-mono);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--font-line-solid);
+}
+
+.checkbox-state::before {
+  content: "X";
+}
+
+.field--check input:checked + .checkbox-state {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: var(--color-primary-text);
+}
+
+[type="checkbox"]:checked + .checkbox-state::before {
+  content: "\2713";
+}
+
+.field--check input:focus-visible + .checkbox-state {
+  outline: var(--layout-border) solid var(--color-cyan);
+  outline-offset: var(--space-2xs);
 }
 
 .advanced summary,

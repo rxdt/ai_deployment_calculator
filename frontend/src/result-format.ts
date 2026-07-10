@@ -30,7 +30,16 @@ Format the recommended GPU class for the hero card.
 export function recommendedGpuClass(tier: string): string {
   const short = shortHardwareClass(tier);
   const capacity = leadingCapacity(short);
-  return capacity === "" ? short : `${capacity} GPU hardware tier`;
+  if (capacity === "") {
+    return short;
+  }
+  // Aggregate sharded tiers are several GPUs, not one card of this capacity.
+  // Collapsing them to "N GB GPU hardware tier" would imply a single GPU that
+  // does not exist, so keep the descriptive "sharded" label instead.
+  if (short.includes("sharded")) {
+    return short;
+  }
+  return `${capacity} GPU hardware tier`;
 }
 
 // "24 GB high-end consumer class, e.g. RTX 3090 / RTX 4090 class" ->

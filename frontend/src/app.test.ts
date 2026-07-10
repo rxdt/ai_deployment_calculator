@@ -793,6 +793,27 @@ describe("recommended GPU examples", () => {
     expect(out("gpu-examples")).toBe("");
     expect(dataSlot("gpu-examples-row").hidden).toBe(true);
   });
+
+  test("keeps the sharded qualifier in the class card instead of implying one GPU", () => {
+    loadDom();
+    mountCalculator(document);
+    fireChange("runtime-profile", "Local / Edge");
+    fireInput("total-params", "62");
+    const sharding = field("memory-sharding-enabled");
+    if (sharding instanceof HTMLInputElement) {
+      sharding.checked = true;
+    }
+    sharding.dispatchEvent(new Event("change", { bubbles: true }));
+
+    // The tier is 2x 80 GB GPUs, so the class card must say "sharded" rather
+    // than "160 GB GPU hardware tier", which would read as a single 160 GB card
+    // that does not exist. The multi-GPU makeup stays in the examples row.
+    expect(out("gpu-class")).toBe("160 GB sharded datacenter class");
+    expect(out("gpu-class")).not.toContain("GPU hardware tier");
+    expect(out("gpu-examples")).toBe(
+      "2x 80 GB GPUs with tensor/model parallelism",
+    );
+  });
 });
 
 describe("QLoRA precision switching", () => {

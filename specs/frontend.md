@@ -25,6 +25,10 @@ linted `specs/` tree; reference it there and do not commit it as source.
       enabled, name that tier and its GPU count instead of dead-ending at "Enable
       memory sharding or use offload".
 
+- [x] Stop the "Recommended GPU Class" card from flattening a sharded tier to
+      "160 GB GPU hardware tier" (implying a single 160 GB card). Keep the
+      "sharded" qualifier so the hero matches the multi-GPU examples row.
+
 ## Current Contract
 
 - [ ] The entire app fits without scrolling when all items are collapsed.

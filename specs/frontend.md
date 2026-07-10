@@ -23,13 +23,15 @@ linted `specs/` tree; reference it there and do not commit it as source. Use it 
 - [x] Keyboard focus uses the cyan token on controls and disclosures without
       changing control size.
 - [x] Header shows a compact live model/mode/precision/fit summary.
+- [x] Expanded result detail rows keep labels/values aligned within the current
+      responsive overflow contract; warning rows stay readable as prose.
 
 ## Remaining UI Work
 
 - [ ] Final visual pass from the valid reference notes:
       `docs/odoo.html`, `specs/dispel.html`, `specs/groundcover.html`. Focus
-      and compact status polish are done; continue with only similarly scoped
-      gaps.
+      compact status, and result-row polish are done; continue with only
+      similarly scoped gaps.
 - [x] Cyan remains limited to focus and expanded detail-panel state.
 - [x] Result hero uses compact raised answer cards while preserving hierarchy.
 - [ ] Styling should continue to follow `specs/DESIGN.md`.

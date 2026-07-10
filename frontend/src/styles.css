@@ -550,9 +550,6 @@ summary,
 .metric,
 .fit li {
   min-width: 0;
-  display: flex;
-  justify-content: space-between;
-  gap: var(--space-md);
 }
 
 .metric strong,
@@ -563,6 +560,38 @@ code {
 
 code {
   overflow-wrap: anywhere;
+}
+
+.warnings .metric {
+  display: block;
+}
+
+.calculation .metric,
+.assumptions .metric,
+.fit li {
+  display: grid;
+  grid-template-columns: minmax(0, 70%) minmax(0, 30%);
+  gap: var(--space-md);
+  align-items: baseline;
+  padding-block: var(--space-xs);
+  border-bottom: var(--layout-border) solid var(--color-border);
+}
+
+.calculation .metric:last-child,
+.assumptions .metric:last-child,
+.fit li:last-child {
+  border-bottom: 0;
+}
+
+.fit strong,
+.assumptions .metric strong,
+.calculation .metric strong {
+  overflow-wrap: anywhere;
+  text-align: right;
+}
+
+.warnings .metric strong {
+  display: none;
 }
 
 [hidden] {

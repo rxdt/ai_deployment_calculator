@@ -413,6 +413,44 @@ test("desktop result detail panels stay compact beneath the answer", async ({
   expect(formulaBox.width).toBeLessThan(whyBox.width * 0.75);
 });
 
+/**
+ Ensure expanded supporting rows keep labels and technical values aligned while
+ warning prose remains readable as a single column.
+*/
+test("expanded result rows preserve alignment and warning prose", async ({
+  page,
+}) => {
+  await page.setViewportSize({ height: 720, width: 1280 });
+  await page.goto("/");
+
+  await page.getByText("Why this recommendation", { exact: true }).click();
+  await page.getByText("Calculation used", { exact: true }).click();
+  await page.getByText("Assumptions used", { exact: true }).click();
+
+  const fitRow = page.locator(".fit li").first();
+  const calculationRow = page.locator(".calculation .metric").first();
+  const assumptionRow = page.locator(".assumptions .metric").first();
+  const rows = [fitRow, calculationRow, assumptionRow];
+
+  for (const row of rows) {
+    await expect(row).toHaveCSS("display", "grid");
+    await expect(row).toHaveCSS("border-bottom-style", "solid");
+  }
+  await expect(fitRow.locator("strong")).toHaveCSS("text-align", "right");
+  await expect(calculationRow.locator("strong")).toHaveCSS(
+    "text-align",
+    "right",
+  );
+  await expect(assumptionRow.locator("strong")).toHaveCSS(
+    "text-align",
+    "right",
+  );
+  await page.getByLabel("Execution Mode").selectOption("Full training");
+  const warning = page.locator(".warnings .metric").first();
+  await expect(warning).toHaveCSS("display", "block");
+  await expect(warning.locator("strong")).toHaveCSS("display", "none");
+});
+
 test("expanded advanced assumptions stay inside the input pane", async ({
   page,
 }) => {

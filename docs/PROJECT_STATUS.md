@@ -2,22 +2,21 @@
 
 ## State
 
-- Branch: `stub-real-tools-in-tests`; HEAD before this iteration: `1e114c1`.
-- Iteration 2/3 scope: compact shippability visual pass from
+- Branch: `stub-real-tools-in-tests`; HEAD before this iteration: `fed1c09`.
+- Iteration 3/3 scope: compact shippability visual pass from
   `specs/frontend.md`.
-- Fix: header now shows live model, mode, precision, and fit status without
-  changing calculator math.
-- Refactor: moved app DOM helpers and status formatters into small frontend
-  modules so `app.ts` stays below lint limits.
-- Tests: `frontend/src/app.test.ts` proves default and changed-input status
-  values, including QLoRA precision forcing and multi-GPU overflow.
-- Spec: `specs/frontend.md` records compact status polish as complete.
+- Fix: expanded result detail rows now use compact label/value alignment with
+  row dividers; warning rows render as readable prose.
+- Tests: `frontend/tests/responsive.spec.ts` proves aligned detail rows and
+  single-column warnings; existing responsive tests cover overflow.
+- Spec: `specs/frontend.md` records result-row polish as complete.
 - Commit: this iteration commit.
 
 ## Checks
 
 - `pnpm --dir frontend exec vitest run src/app.test.ts src/report.test.ts --config ../harness/vitest.config.js`: PASS.
-- `pnpm preflight`: PASS after lint/style/html fixes.
+- `pnpm --prefix harness exec playwright test --config playwright.config.js ../frontend/tests/responsive.spec.ts -g "expanded result rows preserve alignment"`: PASS.
+- `pnpm preflight`: PASS after formatting/style fixes.
 - `pnpm gate`: PASS.
 
 ## Blockers
@@ -27,7 +26,7 @@
   auth that is unavailable in this run.
 - Unrelated unstaged `PROMPT.md` changes are forbidden for agents and left for
   human review.
-- No code blocker for the scoped status polish.
+- No code blocker for the scoped result-row polish.
 
 ## Next
 

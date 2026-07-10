@@ -609,6 +609,30 @@ code {
   border-bottom: var(--layout-border) solid var(--color-border);
 }
 
+/* Memory breakdown: the computed VRAM composition as compact stat cards. Each
+   label/value pair reads as a small bordered tile so the split is scannable at
+   a glance; the cards wrap to fit the panel column. Values stay foreground
+   mono, never the green answer accent, per the design spec's color reservation. */
+.breakdown {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.breakdown .metric {
+  flex: 1 1 var(--layout-half);
+  display: grid;
+  gap: var(--space-2xs);
+  padding: var(--space-sm);
+  border: var(--layout-border) solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  font-variant-numeric: tabular-nums;
+}
+
 .calculation .metric:last-child,
 .assumptions .metric:last-child,
 .fit li:last-child {

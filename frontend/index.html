@@ -508,6 +508,17 @@
             </div>
           </details>
 
+          <details class="panel" data-slot="breakdown-panel">
+            <summary>Memory breakdown</summary>
+            <div class="panel-body">
+              <ul
+                class="breakdown"
+                data-out="breakdown-rows"
+                aria-busy="true"
+              ></ul>
+            </div>
+          </details>
+
           <ul class="warnings" data-out="warnings" aria-busy="true"></ul>
           <p class="disclaimer" data-slot="output-disclaimer">
             Estimates are planning guidance; validate against the target runtime

@@ -241,6 +241,7 @@ export class CalculatorApp {
       speedLabel(report.speed),
     );
     this.setText("speed", formatSpeed(report.speed));
+    this.fillRows("breakdown-rows", report.breakdown);
     this.fillRows("calculation-rows", report.calculationRows);
     this.setText("calc-formula", report.calculation);
     this.fillRows("assumptions", report.assumptions);

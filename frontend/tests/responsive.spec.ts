@@ -192,6 +192,9 @@ for (const viewport of onePageViewports) {
     await expect(
       page.getByText("Assumptions used", { exact: true }),
     ).toBeInViewport();
+    await expect(
+      page.getByText("Memory breakdown", { exact: true }),
+    ).toBeInViewport();
   });
 
   test(`all expanded panels avoid page scroll on ${viewport.name}`, async ({
@@ -421,7 +424,7 @@ test("desktop result detail panels stay compact beneath the answer", async ({
   await page.goto("/");
 
   const panels = page.locator(".results > details.panel");
-  await expect(panels).toHaveCount(4);
+  await expect(panels).toHaveCount(5);
 
   const whyBox = requireBox(await panels.nth(0).boundingBox(), "why panel");
   const calculationBox = requireBox(
@@ -432,11 +435,23 @@ test("desktop result detail panels stay compact beneath the answer", async ({
     await panels.nth(2).boundingBox(),
     "formula panel",
   );
+  const assumptionsBox = requireBox(
+    await panels.nth(3).boundingBox(),
+    "assumptions panel",
+  );
+  const breakdownBox = requireBox(
+    await panels.nth(4).boundingBox(),
+    "breakdown panel",
+  );
 
   expect(calculationBox.y).toBe(formulaBox.y);
   expect(formulaBox.x).toBeGreaterThan(calculationBox.x);
   expect(calculationBox.width).toBeLessThan(whyBox.width * 0.75);
   expect(formulaBox.width).toBeLessThan(whyBox.width * 0.75);
+  // The breakdown fills the empty cell beside the assumptions panel, so it adds
+  // no new collapsed row to the one-viewport result stack.
+  expect(breakdownBox.y).toBe(assumptionsBox.y);
+  expect(breakdownBox.x).toBeGreaterThan(assumptionsBox.x);
 });
 
 /**

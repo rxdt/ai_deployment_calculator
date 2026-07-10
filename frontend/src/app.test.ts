@@ -252,6 +252,18 @@ function isRowHidden(name: string): boolean {
   return row instanceof HTMLElement && row.hidden === true;
 }
 
+/**
+ Read the rendered breakdown stat cards as label/value pairs.
+@returns one entry per rendered card, in DOM order
+*/
+function breakdownCards(): { label: string; value: string }[] {
+  // Each card is a row-template clone: the label cell then the value cell.
+  return [...outSlot("breakdown-rows").children].map((card) => ({
+    label: card.firstElementChild?.textContent ?? "",
+    value: card.lastElementChild?.textContent ?? "",
+  }));
+}
+
 afterEach(() => {
   document.body.replaceChildren();
 });
@@ -790,6 +802,47 @@ describe("hero fit meter", () => {
     expect(meter.hidden).toBe(true);
     expect(meter.value).toBe(0);
     expect(out("vram-say")).toMatch(/^The workload needs .* usable VRAM\.$/u);
+  });
+});
+
+describe("memory breakdown", () => {
+  test("surfaces each non-zero memory component as a labeled stat card", () => {
+    loadDom();
+    mountCalculator(document);
+    const cards = breakdownCards();
+
+    expect(cards.map((card) => card.label)).toEqual([
+      "Model memory",
+      "Context memory",
+      "Activation memory",
+      "Runtime reserve",
+      "Safety margin",
+    ]);
+    // 7B at 16-bit resides as 7 * 2 bytes of weights, independent of workload.
+    expect(cards[0]).toEqual({ label: "Model memory", value: "14.0 GB" });
+    for (const card of cards) {
+      expect(card.value).toMatch(/^\d+\.\d+ GB$/u);
+    }
+  });
+
+  test("keeps the breakdown collapsed behind its own contracted summary", () => {
+    loadDom();
+    mountCalculator(document);
+    const panel = containingDetails(outSlot("breakdown-rows"));
+
+    expect(panel.firstElementChild?.textContent).toBe("Memory breakdown");
+    expect(panel.open).toBe(false);
+  });
+
+  test("clears the breakdown cards when the model is reset away", () => {
+    loadDom();
+    mountCalculator(document);
+    expect(breakdownCards()).not.toHaveLength(0);
+
+    requireButton().click();
+
+    expect(breakdownCards()).toHaveLength(0);
+    expect(outSlot("breakdown-rows").hidden).toBe(true);
   });
 });
 

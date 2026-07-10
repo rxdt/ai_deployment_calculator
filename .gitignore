@@ -17,3 +17,5 @@ scratchpad/
 .pnpm-store/
 *.png
 *.png
+
+specs/professional-calculator-redesign/

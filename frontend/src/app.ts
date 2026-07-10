@@ -1,5 +1,12 @@
 import { buildReport } from "./report";
 import { sanitizeNumberInput } from "./input-sanitizer";
+import {
+  formatSpeed,
+  gpuExamples,
+  recommendedGpuClass,
+  speedLabel,
+  whyText,
+} from "./result-format";
 import { normalizedState, zeroState } from "./state";
 import type { DisplayRow, FormState, ReportPayload } from "./types";
 import { hasDecoderKvCache, hasMoeControl } from "./workload-visibility";
@@ -68,66 +75,6 @@ function searchFromForm(form: HTMLFormElement): URLSearchParams {
     }
   }
   return search;
-}
-
-/**
-
-@param value
-*/
-function shortHardwareClass(value: string): string {
-  const index = value.indexOf(", e.g.");
-  return index === -1 ? value : value.slice(0, index);
-}
-
-// "24 GB high-end consumer class" -> "24 GB"; "" when there is no GB capacity
-// prefix (e.g. "No model loaded", overflow guidance).
-/**
-
-@param value
-*/
-function leadingCapacity(value: string): string {
-  const index = value.indexOf(" GB");
-  return index === -1 ? "" : `${value.slice(0, index)} GB`;
-}
-
-/**
-
-@param tier
-*/
-function recommendedGpuClass(tier: string): string {
-  const short = shortHardwareClass(tier);
-  const capacity = leadingCapacity(short);
-  return capacity === "" ? short : `${capacity} GPU hardware tier`;
-}
-
-/**
-
-@param report
-*/
-function whyText(report: Readonly<ReportPayload>): string {
-  const fit = report.recommendedHardware;
-  const capacity = leadingCapacity(shortHardwareClass(fit.recommendedTier));
-  if (capacity === "") {
-    return fit.math;
-  }
-  return `At an ${fit.usableVramTarget} usable VRAM target, ${report.totalRequiredMemory} requires a GPU with at least ${report.minimumRawVramNeeded} advertised VRAM. The next common class is ${capacity}.`;
-}
-
-/**
-
-@param speed
-*/
-function formatSpeed(speed: string): string {
-  return speed.replaceAll("/second", "/sec");
-}
-
-/**
-@param speed
-*/
-function speedLabel(speed: string): string {
-  const formatted = formatSpeed(speed);
-  const unit = formatted.replace(/^[\d.]+ /u, "");
-  return `Estimated Speed (${unit.replaceAll("/minute", "/min")})`;
 }
 
 /**
@@ -279,6 +226,17 @@ export class CalculatorApp {
     this.slot(name).textContent = value;
   }
 
+  // Concrete example cards for the recommended tier are a trust signal, so name
+  // them in the reasoning panel; drop the whole row when the tier has none (no
+  // model, or an overflow recommendation with no single-card fit).
+  private renderGpuExamples(examples: string): void {
+    this.setText("gpu-examples", examples);
+    dataSlot(this.root, "gpu-examples-row")?.toggleAttribute(
+      "hidden",
+      examples === "",
+    );
+  }
+
   private setControlValue(name: string, value: string): void {
     const element = this.form.elements.namedItem(name);
     if (!(
@@ -324,6 +282,7 @@ export class CalculatorApp {
       `The workload needs ${report.totalRequiredMemory} usable VRAM.`,
     );
     this.setText("gpu-class", recommendedGpuClass(fit.recommendedTier));
+    this.renderGpuExamples(gpuExamples(fit.recommendedTier));
     this.setText("why", whyText(report));
     this.setText("min-cap", report.minimumRawVramNeeded);
     this.setText("usable-target", fit.usableVramTarget);

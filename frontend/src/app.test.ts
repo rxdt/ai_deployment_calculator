@@ -744,6 +744,52 @@ describe("mounted calculator", () => {
   });
 });
 
+describe("recommended GPU examples", () => {
+  test("names concrete example cards for the recommended tier in the why panel", () => {
+    loadDom();
+    mountCalculator(document);
+    const row = dataSlot("gpu-examples-row");
+
+    expect(out("gpu-class")).toBe("24 GB GPU hardware tier");
+    expect(out("gpu-examples")).toBe("RTX 3090 / RTX 4090 class");
+    expect(row.hidden).toBe(false);
+    // The example cards belong with the reasoning, not the first-glance answer.
+    expect(containingDetails(outSlot("gpu-examples")).open).toBe(false);
+    expect(dataSlot("why-panel").contains(row)).toBe(true);
+  });
+
+  test("moves the example cards to match a changed recommendation tier", () => {
+    loadDom();
+    mountCalculator(document);
+    expect(out("gpu-examples")).toContain("RTX 4090");
+
+    fireInput("total-params", "1");
+
+    expect(out("gpu-class")).toBe("8 GB GPU hardware tier");
+    expect(out("gpu-examples")).toBe("RTX 4060 / older 8 GB GPUs");
+  });
+
+  test("drops the example row when no model is loaded", () => {
+    loadDom();
+    mountCalculator(document);
+    requireButton().click();
+
+    expect(out("gpu-class")).toBe("No model loaded");
+    expect(out("gpu-examples")).toBe("");
+    expect(dataSlot("gpu-examples-row").hidden).toBe(true);
+  });
+
+  test("drops the example row when the workload overflows single-GPU tiers", () => {
+    loadDom();
+    mountCalculator(document);
+    fireInput("total-params", "104");
+
+    expect(out("gpu-class")).toContain("No single-GPU fit");
+    expect(out("gpu-examples")).toBe("");
+    expect(dataSlot("gpu-examples-row").hidden).toBe(true);
+  });
+});
+
 describe("QLoRA precision switching", () => {
   test("switching precision away from QLoRA resets to an inference deployment", () => {
     loadDom();

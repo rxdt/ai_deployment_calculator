@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import type { Page } from "@playwright/test";
+import type { Locator, Page } from "@playwright/test";
 import { AxeBuilder } from "@axe-core/playwright";
 
 const pages = ["/"];
@@ -65,6 +65,28 @@ function requireBox(box: ElementBox | null, name: string): ElementBox {
     throw new Error(`Missing ${name} box`);
   }
   return box;
+}
+
+/**
+ Assert a first-glance result card does not use the cyan detail accent.
+@param card Playwright locator for the result card.
+*/
+async function expectNoCyanHeroPaint(card: Locator): Promise<void> {
+  const paints = await card.evaluate((node) => {
+    const base = getComputedStyle(node);
+    const before = getComputedStyle(node, "::before");
+    const after = getComputedStyle(node, "::after");
+
+    return [
+      base.backgroundColor,
+      base.borderColor,
+      base.color,
+      before.backgroundColor,
+      after.backgroundColor,
+    ];
+  });
+
+  expect(paints).not.toContain("rgb(103, 232, 249)");
 }
 
 for (const path of pages) {
@@ -292,6 +314,8 @@ test("first glance result hierarchy makes the VRAM answer dominant", async ({
   expect(totalBox).not.toBeNull();
   expect(gpuBox).not.toBeNull();
   expect(totalBox?.width ?? 0).toBeGreaterThan((gpuBox?.width ?? 0) * 1.5);
+  expect(totalBox?.height ?? 0).toBeLessThan(120);
+  expect(gpuBox?.height ?? 0).toBeLessThan(120);
   await expect(page.locator('[data-out="total"]')).toHaveCSS(
     "font-variant-numeric",
     "tabular-nums",
@@ -322,6 +346,13 @@ test("first glance result hierarchy makes the VRAM answer dominant", async ({
       ),
     )
     .toBe("rgb(59, 130, 246)");
+  await expect
+    .poll(async () =>
+      totalCard.evaluate((node) => getComputedStyle(node, "::before").height),
+    )
+    .toBe("4px");
+  await expectNoCyanHeroPaint(totalCard);
+  await expectNoCyanHeroPaint(gpuCard);
 });
 
 test("desktop result detail panels stay compact beneath the answer", async ({

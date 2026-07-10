@@ -12,6 +12,7 @@
   --color-primary-text: #0a0a0f;
   --color-blue: #3b82f6;
   --color-cyan: #67e8f9;
+  --color-hero-line: #30303a;
   --color-shadow: #0006;
   --color-topbar: #09090bcc;
   --font-body: 0.8125rem;
@@ -409,29 +410,27 @@ summary,
 .hero {
   position: relative;
   display: grid;
-  gap: var(--space-sm);
-  padding: var(--space-lg);
-  background: linear-gradient(
-    180deg,
-    var(--color-raised),
-    var(--color-surface)
-  );
+  align-content: space-between;
+  gap: var(--space-md);
+  padding: var(--space-lg) var(--space-lg) var(--space-md);
+  background: var(--color-raised);
+  box-shadow: inset 0 0.0625rem 0 #ffffff0a;
 }
 
 .hero::before {
   position: absolute;
-  inset: 0 auto 0 0;
-  width: var(--space-xs);
+  inset: 0 0 auto;
+  height: var(--space-xs);
   background: var(--color-primary);
   content: "";
 }
 
-.hero--secondary {
-  background: linear-gradient(
-    180deg,
-    var(--color-surface),
-    var(--color-raised)
-  );
+.hero::after {
+  position: absolute;
+  inset: auto var(--space-lg) 0;
+  height: var(--layout-border);
+  background: var(--color-hero-line);
+  content: "";
 }
 
 .hero--secondary::before {

@@ -2,25 +2,25 @@
 
 ## State
 
-- Branch: `stub-real-tools-in-tests`; HEAD before this iteration: `a411372`.
-- Iteration 2/3 scope: make the frontend keep its compact two-pane calculator
-  shell inside the viewport for the collapsed and fully expanded disclosure
-  states.
-- Fix: `frontend/src/styles.css` now gives the app a fixed viewport shell,
-  contains result overflow inside the results pane, keeps the desktop two-pane
-  layout, and renders the narrow advanced assumptions panel as a viewport
-  overlay so its controls stay reachable.
-- Test: `frontend/tests/responsive.spec.ts` now asserts the document itself has
-  no vertical overflow for collapsed defaults and for all disclosures expanded.
-- Spec: `specs/frontend.md` marks the page-scroll and desktop two-pane contract
-  complete.
+- Branch: `stub-real-tools-in-tests`; HEAD before this iteration: `3fa3045`.
+- Iteration 3/3 scope: finish the shippability visual pass for the result hero
+  without changing calculator behavior.
+- Fix: `frontend/src/styles.css` now renders the first-glance result cards as
+  compact raised answer panels with restrained top accent rules; the VRAM
+  estimate stays primary and the GPU class stays secondary.
+- Test: `frontend/tests/responsive.spec.ts` asserts the first-glance result
+  cards preserve hierarchy, stay compact, use a compact accent rule, and do not
+  spend the cyan detail accent.
+- Spec: `specs/frontend.md` marks element sizing, cyan restraint, and
+  result-hero polish done.
 - Commit: this iteration commit.
 
 ## Checks
 
 - `pnpm --dir frontend test:e2e -- tests/responsive.spec.ts`: PASS.
 - `pnpm preflight`: PASS.
-- `pnpm gate`: PASS.
+- `pnpm gate`: PASS after rerun. First run hit a 5s timeout in
+  harness-owned `harness/gate.test.ts`; rerun passed without code changes.
 
 ## Blockers
 
@@ -28,10 +28,8 @@
   claude_design MCP at `https://api.anthropic.com/v1/design/mcp`, auth via
   `/design-login`) cannot be actioned in this non-interactive run: that MCP
   server is not connected and its OAuth flow cannot run headless.
-- Remaining visual polish still needs a pass against `docs/odoo.html`,
-  `specs/dispel.html`, and `specs/groundcover.html`; this iteration stayed on
-  the shippability-critical viewport contract.
+- No current code blocker for the scoped result-hero polish.
 
 ## Next
 
-- Continue the final visual pass without changing calculator behavior.
+- Commit iteration 3/3 on the current branch.

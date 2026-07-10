@@ -21,11 +21,13 @@
 
 ## Checks
 
-- `pnpm --dir frontend exec vitest run src/report.test.ts src/app.test.ts`:
-  PASS (101 tests). Full `test:coverage` expected green (only additive test).
+- `pnpm --prefix frontend run test:coverage`: PASS — 100% statements / branches /
+  functions / lines held (the brand test is additive).
+- Playwright `calculator.spec` + `responsive.spec`: PASS (240), incl. every
+  all-collapsed / all-expanded no-scroll contract and the hero fit-meter case.
 - `pnpm preflight`: PASS (0 issues) — prettier, eslint, stylelint, html-validate.
-- `pnpm gate`: run at the end of this iteration (Lighthouse is slow); glow and
-  marker add no layout box, so CLS / no-scroll are expected to hold.
+- `pnpm gate`: PASS (0 issues) — glow and marker add no layout box, so CLS and
+  the no-scroll contract held; Lighthouse stayed green.
 
 ## Blockers
 

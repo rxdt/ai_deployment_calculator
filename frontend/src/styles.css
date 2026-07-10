@@ -15,6 +15,8 @@
   --color-amber: #f97316;
   --color-hero-line: #30303a;
   --color-shadow: #0006;
+  --color-glow-primary: #22c55e2b;
+  --color-glow-blue: #3b82f62b;
   --color-topbar: #09090bcc;
   --font-body: 0.8125rem;
   --font-heading: 1.375rem;
@@ -227,6 +229,13 @@ summary,
 .fit strong {
   min-width: 0;
   overflow-wrap: anywhere;
+}
+
+/* The brand reads like a shell prompt: green is reserved for the leading prompt
+   marker so the primary accent points at the running tool, never at the product
+   name itself (per the design spec's "green only on the prompt marker"). */
+.brand-mark {
+  color: var(--color-primary);
 }
 
 .layout {
@@ -505,7 +514,20 @@ summary,
   gap: var(--space-md);
   padding: var(--space-lg) var(--space-lg) var(--space-md);
   background: var(--color-raised);
-  box-shadow: inset 0 0.0625rem 0 #ffffff0a;
+
+  /* Depth comes from a top highlight plus a low-contrast colored glow that
+     carries the card's role: green for the primary answer, blue for the
+     alternate class (per the design spec's elevation language). The glow is a
+     soft halo — no layout box — so it never shifts the one-viewport stack. */
+  box-shadow:
+    inset 0 0.0625rem 0 #ffffff0a,
+    0 0 2.5rem -1.25rem var(--color-glow-primary);
+}
+
+.hero--secondary {
+  box-shadow:
+    inset 0 0.0625rem 0 #ffffff0a,
+    0 0 2.5rem -1.25rem var(--color-glow-blue);
 }
 
 .hero::before {

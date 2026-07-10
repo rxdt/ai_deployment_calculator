@@ -35,6 +35,12 @@ linted `specs/` tree; reference it there and do not commit it as source. Use it 
 - [x] One-click preset chips (Gemma 2B, Llama 8B, 70B, Mixtral) load a known
       deployment into the reactive form without submitting; they carry no green
       primary accent and Reset clears them back to the empty estimate.
+- [x] The header brand reads like a shell prompt: green is reserved for the
+      leading prompt marker (its "~") in its own element, so the primary accent
+      never lands on the product name. The naming contract text is unchanged.
+- [x] The hero answer cards carry a low-contrast, role-colored depth glow (green
+      on the primary total card, blue on the alternate GPU-class card) that adds
+      no layout box, so the one-viewport result stack is unaffected.
 
 ## Remaining UI Work
 

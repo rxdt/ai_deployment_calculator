@@ -422,12 +422,21 @@ describe("checkbox indicators", () => {
 });
 
 describe("mounted calculator", () => {
-  test("renders the compact product brand in the header", () => {
+  test("renders the compact product brand with an isolated prompt marker", () => {
     loadDom();
     mountCalculator(document);
     const brand = dataSlot("brand");
     expect(brand.textContent).toBe("~VRAM-calculator");
     expect(brand).not.toBeInstanceOf(HTMLAnchorElement);
+    // The prompt marker sits in its own element so the stylesheet greens only
+    // the marker (its "~") and never the product name outside it. One marker
+    // holding just "~" plus the full "~VRAM-calculator" text proves the name
+    // stays unwrapped.
+    const marks = [
+      ...brand.querySelectorAll<HTMLElement>("[data-slot]"),
+    ].filter((node) => node.dataset.slot === "brand-mark");
+    expect(marks).toHaveLength(1);
+    expect(dataSlot("brand-mark").textContent).toBe("~");
   });
 
   test("renders a labeled GitHub repository link with a logo", () => {

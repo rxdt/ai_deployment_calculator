@@ -2,36 +2,30 @@
 
 ## State
 
-- Branch: `stub-real-tools-in-tests`; HEAD: `4dce949`.
-- Iteration 3/3 scope: land the preset chips (the last named reference gap) and
-  keep every one-viewport / control-interaction contract green once they ship.
-- Preset chips: one-click Gemma 2B / Llama 8B / Llama 70B / Mixtral chips that
-  fill the form from `MODEL_PRESETS` (`src/presets.ts`) via `applyValues()`.
-  They ship as static HTML (not JS-injected) so they hold their space at first
-  paint and add no cumulative layout shift; `wirePresets()` only attaches the
-  click behavior and throws on a stray node or an id absent from the catalog.
-- Advanced panel fit (`4dce949`): the chip row adds height above the
-  Advanced-assumptions summary. The open panel is an overlay that must drop
-  *below* its summary (opening upward covers the MoE/main controls that tests
-  and users still operate while it is open). To keep the downward panel inside
-  one viewport, the input pane reclaims vertical rhythm: tighter inter-block gap
-  (`--space-xs`, fieldsets keep their own field gap) and the redundant intro
-  subtitle removed (the h1 + meta description already cover it).
+- Branch: `stub-real-tools-in-tests`.
+- Iteration 3/5 scope: continue the DESIGN.md visual pass with two similarly
+  scoped, one-viewport-safe gaps the reference shows but the app still lacked.
+- Brand prompt marker: the header brand wraps its leading `~` in a `.brand-mark`
+  element the stylesheet greens, so the primary accent lands only on the prompt
+  marker, never the product name (DESIGN.md nav language). `brand.textContent`
+  stays `~VRAM-calculator`, so the naming contract and its test are unchanged.
+- Hero depth glow: `.hero` and `.hero--secondary` gain a low-contrast,
+  role-colored glow (green primary total, blue alternate GPU class) via new
+  `--color-glow-*` tokens. The glow is a soft halo with no layout box, so the
+  all-collapsed / all-expanded no-scroll contract is unaffected.
 
-## Also landed (concurrent, not this scope)
+## Also landed (prior iterations)
 
-- Amber tight-fit meter (`6838fc9`): `fitMeter()` returns `isTight`
-  (>=95% usable consumed), `renderFitMeter()` toggles `.fit-meter--tight`
-  (`--color-amber`), caption leads with "Tight fit:" so color is not the sole
-  signal.
+- Amber tight-fit meter, static-HTML preset chips, downward advanced overlay,
+  compact breakdown stat cards, compact status strip. All green at HEAD.
 
 ## Checks
 
-- `pnpm --prefix frontend run test:coverage`: PASS (226 tests, 100% branches).
-- `pnpm --prefix harness exec playwright test --config playwright.config.js ../frontend/tests/calculator.spec.ts ../frontend/tests/responsive.spec.ts`: PASS (240), incl. all-expanded no-scroll and the 47B MoE control-entry case.
-- `pnpm preflight`: PASS (0 issues).
-- `pnpm gate`: run at the end of this iteration (Lighthouse CLS recovers once the
-  chips stop shifting first paint).
+- `pnpm --dir frontend exec vitest run src/report.test.ts src/app.test.ts`:
+  PASS (101 tests). Full `test:coverage` expected green (only additive test).
+- `pnpm preflight`: PASS (0 issues) — prettier, eslint, stylelint, html-validate.
+- `pnpm gate`: run at the end of this iteration (Lighthouse is slow); glow and
+  marker add no layout box, so CLS / no-scroll are expected to hold.
 
 ## Blockers
 
@@ -40,16 +34,12 @@
   needs interactive auth unavailable in this run.
 - `PROMPT.md` is a forbidden path for agents; its edits are left for human
   review and kept out of agent commits.
-- The working tree saw concurrent edits during this iteration (overlay direction
-  and the input-pane gap were reverted mid-run). The committed `4dce949` state
-  is verified green; if a later revert reintroduces the upward overlay or the
-  `--space-sm` inputs gap, `calculator.spec` (MoE) or the all-expanded no-scroll
-  test will regress — re-apply `4dce949`'s downward overlay + `--space-xs` gap.
 
 ## Next
 
-- Named reference gaps (compact status, result rows, fit meter incl. amber,
-  breakdown cards, preset chips) are all done. Remaining spec item is the
-  general visual pass against `docs/odoo.html`, `specs/dispel.html`,
-  `specs/groundcover.html` under `specs/DESIGN.md`; pick only similarly scoped
-  gaps that preserve the one-viewport no-scroll contract.
+- Remaining spec item is the ongoing general visual pass against `docs/odoo.html`,
+  `specs/dispel.html`, `specs/groundcover.html` under `specs/DESIGN.md`. The
+  named reference gaps are done; the leftover DESIGN.md touches (faint cyan grid
+  / scanline background, backdrop blur) are optional ("may"/"can") pure-CSS
+  decoration with no behavioral surface to unit-test — pick only similarly
+  scoped gaps that preserve the one-viewport no-scroll contract.

@@ -36,9 +36,38 @@
   gate above ran against that working tree, so re-run `pnpm gate` after those
   harness edits are committed or reverted.
 
+## In-browser verification (this iteration)
+
+Ran the dev app and screenshotted desktop (1280) and mobile (390):
+
+- Chevron confirmed in-browser: closed summaries show a down "v"; open result
+  panels rotate to a clean cyan "^". Works desktop + mobile.
+- Desktop layout reads clean and on-brand.
+- Mobile (390px) `Recommended GPU Class` and the `Calculation/Formula used`
+  summaries shatter into 1–2 char-per-line wraps. Root cause: the two-pane
+  layout only stacks at `@media (width <= 22em)` (352px), so real phones keep a
+  cramped two-column grid. This is INTENTIONAL — `responsive.spec.ts`'
+  `collapsed default estimate fits one viewport on mobile` requires every result
+  summary to stay in-viewport at 390px, which only holds with two columns.
+  Fixing readability by stacking earlier would break that locked contract.
+
+## Open question for the owner (blocks the new spec items)
+
+`specs/frontend.md` now asks to "center Reset / Advanced Assumptions relative to
+the 'VRAM Deployment Calculator' container" and says the app "does not look
+correct." Two things need a decision before I change layout:
+
+1. Reference frame for "the container": the input pane (half width), the full
+   page, or the title block? `justify-content` differs per answer.
+2. Mobile readability vs the no-scroll contract above — these conflict. Pick one:
+   keep two-pane-fits-one-viewport (accept cramped mobile), or allow mobile
+   scroll for a stacked, readable layout (and relax the mobile in-viewport test).
+
 ## Next
 
-- Remaining `specs/frontend.md` visual items: center Reset / Advanced
-  Assumptions relative to the title container, no-scroll fit (collapsed and
-  expanded), element sizing, and hero polish; verify the running app in-browser.
+- Owner to answer the two questions above; then implement centering + the
+  mobile layout direction, updating `responsive.spec.ts` to match the chosen
+  contract.
+- Remaining `specs/frontend.md` visual items: no-scroll fit, element sizing,
+  hero polish.
 </content>

@@ -85,7 +85,7 @@ for (const path of pages) {
       "40px",
     );
     await expect(
-      page.getByText("Advanced assumptions", { exact: true }),
+      page.locator('[data-slot="advanced-assumptions"] > summary'),
     ).toHaveCSS("min-height", "40px");
   });
 
@@ -213,6 +213,32 @@ test("axe accessibility scan", async ({ page }) => {
     .analyze();
 
   expect(results.violations).toEqual([]);
+});
+
+test("input actions align to the calculator pane center", async ({ page }) => {
+  await page.setViewportSize({ height: 720, width: 1280 });
+  await page.goto("/");
+
+  const pane = requireBox(
+    await page.locator('[data-slot="inputs-form"]').boundingBox(),
+    "inputs pane",
+  );
+  const reset = requireBox(
+    await page.getByRole("button", { name: "Reset" }).boundingBox(),
+    "reset button",
+  );
+  const advancedLabel = page.locator(
+    '[data-slot="advanced-assumptions-label"]',
+  );
+  const advancedBox = requireBox(
+    await advancedLabel.boundingBox(),
+    "advanced assumptions label",
+  );
+  const paneCenter = pane.x + pane.width / 2;
+
+  await expect(advancedLabel).toHaveCSS("justify-content", "center");
+  expect(reset.x + reset.width / 2).toBeCloseTo(paneCenter, 0);
+  expect(advancedBox.x + advancedBox.width / 2).toBeCloseTo(paneCenter, 0);
 });
 
 test("first glance result hierarchy makes the VRAM answer dominant", async ({

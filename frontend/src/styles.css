@@ -322,6 +322,16 @@ summary,
   transform: translateY(-0.0625rem) rotate(45deg);
 }
 
+.advanced summary {
+  position: relative;
+  justify-content: center;
+}
+
+.advanced summary::after {
+  position: absolute;
+  inset-inline-end: var(--space-md);
+}
+
 .advanced[open] summary::after,
 .panel[open] summary::after {
   transform: translateY(0.0625rem) rotate(225deg);
@@ -360,8 +370,10 @@ summary,
 }
 
 .actions {
+  min-width: 0;
+  flex: 1 1 100%;
   display: flex;
-  justify-content: flex-end;
+  justify-content: center;
 }
 
 .results {

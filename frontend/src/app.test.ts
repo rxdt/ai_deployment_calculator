@@ -333,7 +333,7 @@ describe("naming contract", () => {
     }
     expect(optionText("workload-family")).toEqual(PUBLIC_WORKLOAD_NAMES);
     expect(
-      dataSlot("advanced-assumptions").firstElementChild?.textContent,
+      dataSlot("advanced-assumptions").firstElementChild?.textContent.trim(),
     ).toBe("Advanced assumptions");
     for (const oldName of REPLACED_PUBLIC_NAMES) {
       expect(document.body.textContent).not.toContain(oldName);
@@ -473,7 +473,7 @@ describe("mounted calculator", () => {
       "memory-sharding-enabled",
     ];
 
-    expect(advanced.firstElementChild?.textContent).toBe(
+    expect(advanced.firstElementChild?.textContent.trim()).toBe(
       "Advanced assumptions",
     );
     for (const name of rareControlNames) {

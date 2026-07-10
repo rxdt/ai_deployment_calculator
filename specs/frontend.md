@@ -16,8 +16,10 @@ current responsive behavior before doing cosmetic work.
 ## Current Contract
 
 - [ ] View the app while it is running in the browser. It does not look correct. Verify.
-- [ ] The 'Reset' button should be centered relative to the 'VRAM Deployment Calculator' containter
-- [ ] 'Advanced Assumptions' should be centered relative to the 'VRAM Deployment Calculator' containter
+- [x] The 'Reset' button is centered relative to the input pane for the
+      `VRAM Deployment Calculator` container.
+- [x] `Advanced assumptions` is centered relative to the input pane for the
+      `VRAM Deployment Calculator` container.
 - [ ] The app follows `DESIGN.md` and `specs/this_png_shows_some_ideas_are_ok_not_all.png`
 - [ ] The entire app fits without scrolling when all items are collapsed.
 - [ ] The entire app fits wihout scorlling when all items are expanded.
@@ -47,7 +49,7 @@ current responsive behavior before doing cosmetic work.
       where practical.
 - [x] Expanded `Advanced assumptions` avoids clashing with result detail
       panels and stay usable on mobile.
-- [ ] Cyan should remain limited to expanded result detail summaries.
+- [x] Cyan should remain limited to expanded result detail summaries.
 - [ ] Result hero should look more professional while preserving hierarchy.
 - [ ] Styling should continue to follow `specs/DESIGN.md`.
 

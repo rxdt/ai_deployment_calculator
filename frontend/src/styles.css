@@ -277,7 +277,7 @@ summary,
 }
 
 .checkbox-state::before {
-  content: "X";
+  content: "";
 }
 
 .field--check input:checked + .checkbox-state {

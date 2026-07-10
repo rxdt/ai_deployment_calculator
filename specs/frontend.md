@@ -1,6 +1,7 @@
 # Frontend Spec
 
-1. [ ] TYPESCRPT AND HTML WORK COMPLETED%
+1. [ ] This document is updated for clarity so agents do not waste time reading or begin implementing finished work, or worse, skip work that is assumed finished. Review the code before updating this document. Be clear and accurate.
+2. [ ] TYPESCRPT AND HTML WORK COMPLETED%
 2. [ ] Styling based on examples and design tokens DESIGN.md.
 
 > Checkbox checked on completed items to clarify what is done
@@ -9,54 +10,34 @@
 
 **Build and run the app to "view" it as you make changes.** If built and previewed the production app; `5173` was occupied, the Vite preview can be inspected at `http://127.0.0.1:5174/`.
 
-- [x] The Vite app is static.
-- [x] There is NO fast-api or WSGI app.
-- [x] `CalculatorApp` normalizes form state, calls local TypeScript
-      `buildReport(state)`, and renders synchronously.
-- [x] Public UI names follow the Naming Contract in `specs/plan.md`; do not redefine
+- [ ] Public UI names follow the Naming Contract in `specs/plan.md`; do not redefine
       them here.
-- [x] The app is responsive.
-- [x] Complex underlying formulas only appear in expandable cards.
+- [ ] The app is responsive.
 - [ ] The app is accurate and has expected inputs/outputs
 
 ## UI
 
-- [x] Advanced assumptions expanded section shows additional options.
-- [x] Numeric fields accept only digits plus at most one decimal digit, reject
-      letters/negatives/exponents, and clamp global values to `99999999.9`
-      (`99999999` for integer-mode inputs); field caps still apply.
 - [ ] Bare, minimal styles.css only to get tests passing until typescript/html work is complete.
-- [x] When a checkbox is selected, a styled check or X appears, confirming to the user the calculator is using that input.
-- [x] 'Gradient Checkpointing' and 'Memory Sharding' are actually checkable checkboxes and affect outputs to correct values
-- [x] Main form shows `Model Family`, `Total Model Parameters`,
-      `Parameter Unit`, `Precision`, `Execution Mode`, `Runtime Profile`,
-      adaptive input controls, adaptive workload size, and relevant `MoE Model`.
-- [x] Rare controls live in `<details><summary>Advanced assumptions</summary>`.
-- [x] `QLoRA fine-tuning` visibly snaps `Precision` to `4-bit` and
-      `Runtime Profile` to `Local / Edge`, matching the forced calculation state.
-- [x] If 'Execution Mode' is set to `QLoRA fine-tuning`, switching precision from `4-bit` in `Precision` resets inputs and `Deployment` to `Inference`
-- [x] `KV Cache Precision` lives in advanced assumptions, is visible only for
-      inference decoder-KV workloads, and offers `8-bit / FP8`, `16-bit`, and
-      `32-bit`.
-- [x] Selecting a different `KV Cache Precision` in the dropdown in advanced assumptions changes outputs accurately
+- [x] When a checkbox is selected, a styled check appears, confirming to the user the calculator is using that input for the calculations and outputs. When a checkbox is unselected, it is empty and does not affect outputs.
+- [x] When `MoE Model`, `Gradient Checkpointing`, and `Memory Sharding` are unchecked, no `X` is present. If they are checked, they affect outputs. If they are not checked, they do not affect output.
 - [x] The app is responsive according to `/scratchpad/responsive_frontend_research.md`; Playwright checks default,
       long workload names, and expanded advanced assumptions keep edge content in viewport.
-- [x] Workload size label is `Concurrent Batch Requests` for inference and `Micro Batch Size` for training; never reintroduce generic `Batch Size`.
-- [ ] HTML reflects clean, compact, well-organized flow. Clean, compact, well-organized examples are like `spec/calc1.png`, `~/specs/calc2.png`, `spec/calc13.png` -> do not follow those exactly, they are loose examples of what 'good' looks like to a human user.
+- [ ] HTML reflects clean, compact, well-organized flow. Take learnings from inspecting these examples. Clean, compact, well-organized examples or what 'good' looks like to a human user are like these (you may inspect their HTML or styling online):
+  - [ ] `spec/calc1.png` https://design.odoo.com/calculator
+  - [ ] `~/specs/calc2.png` https://dispel.com/roi
+  - [ ] `spec/calc13.png` https://www.groundcover.com/calculator
 - [ ] Calculator elements are not overly big.
 - [ ] Cyan is used minimally for headings and ONLY for when elements are expanded only e.g. when `Why this recommendation` is expanded its text color uses the cyan color in DESIGN.md. Otherwise text headings do not use cyan.
 - [ ] 'Advanced Assumptions' container does not span too far right where it clashes with the expanded detail model cards like 'Assumptions Used'
 - [ ] Result cards loosely styling inspiration from `/specs/this_png_shows_some_ideas_are_ok_not_all.png`
 - [ ] Top hero result looks like a more professional version than in `specs/this_png_shows_some_ideas_are_ok_not_all.png`
-- [x] Complex details and formulas are hidden in expandable sections as in this app `specs/light_style_ideas_reflected_in_DESIGN.md.png`
 - [ ] 'Calculation used' card when expanded shows the full calculation in an organized format for human-readability
 - [ ] 'Calculation used' and 'Formula used' are clear in how they are different and show different information. Both are useful to users.
 
 ## STYLING
 
 - [ ] When 'Advanced assumptions' is expanded, app fits in one viewport on desktop and mobile.
-- [ ] The app fits in one viewport on desktop and mobile in the collapsed default state; `frontend/tests/responsive.spec.ts:75` passes on all Playwright projects.
-- [ ] Verify the app is responsive `~/ai_deployment_calculator/scratchpad/responsive_frontend_research.md` with covered desktop/mobile edge content staying in viewport.
+- [x] The app fits in one viewport on desktop and mobile in the collapsed default state; `frontend/tests/responsive.spec.ts` passes on all Playwright projects.
 - [ ] Styling follows `specs/DESIGN.md` -- Design system defines 24 colors, 7 typography scales, 5 rounding levels, 10 spacing tokens, 25 components.
 - [ ] Styling honors a compact, clean calculator shape. Compact calculator examples are like `spec/calc1.png`, `~/specs/calc2.png`, `spec/calc13.png`.
 - [ ] Styling loosely inspired by `specs/light_style_ideas_reflected_in_DESIGN.md.png`
@@ -109,13 +90,6 @@ Responsive standards met:
 - [ ] `scratchpad/responsive_frontend_research.md` read and updated
 - [ ] `scratchpad/responsive_frontend_research.md` reflected in frontend implementation
 - [ ] `scratchpad/responsive_frontend_research.md` verified in app when app is run and viewed in browser on different devices
-
-## Outputs
-
-- [x] First glance hero cards show only `Estimated VRAM Required`, the short
-      usable-VRAM line, and `Recommended GPU Class`
-- [x] `Confidence` is removed from the rendered estimate and report payload.
-- [x] `Recommended GPU Class` is visible (e.g. `24 GB GPU hardware tier`).
 
 ## Tests And Checks
 

@@ -1,5 +1,4 @@
-You are one fresh-context iteration of the loop. The repo is your memory.
-Specs say what to build. You decide what is the next most useful change.
+The repo is your memory. Specs say what to build. You decide what is the next most useful change.
 
 1. Read `specs/*.md` and identify the most important unfinished items. The app needs to be shippable TODAY.
 2. Inspect the relevant code and tests before editing.

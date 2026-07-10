@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import type { Page } from "@playwright/test";
 import { AxeBuilder } from "@axe-core/playwright";
 
 const pages = ["/"];
@@ -21,6 +22,18 @@ const readableLabels = [
   "Estimated VRAM Required",
   "Recommended GPU Class",
 ] as const;
+
+/**
+ Assert the rendered document does not produce horizontal page scroll.
+@param page - Playwright page under test
+*/
+async function expectNoHorizontalDocumentOverflow(page: Page): Promise<void> {
+  const overflow = await page.evaluate(() => ({
+    body: document.body.scrollWidth,
+    viewport: document.documentElement.clientWidth,
+  }));
+  expect(overflow.body).toBeLessThanOrEqual(overflow.viewport);
+}
 
 for (const path of pages) {
   test(`core collapsed controls stay visible: ${path}`, async ({ page }) => {
@@ -160,6 +173,19 @@ for (const viewport of onePageViewports) {
     await expect(page.getByLabel("Known Model File Size")).toBeInViewport();
     await expect(page.getByLabel("Memory Sharding")).toBeInViewport();
   });
+
+  test(`content changes do not create horizontal overflow on ${viewport.name}`, async ({
+    page,
+  }) => {
+    await page.setViewportSize(viewport);
+    await page.goto("/");
+
+    await expectNoHorizontalDocumentOverflow(page);
+    await page.locator("#workload-family").selectOption("text_encoder");
+    await expectNoHorizontalDocumentOverflow(page);
+    await page.getByText("Advanced assumptions", { exact: true }).click();
+    await expectNoHorizontalDocumentOverflow(page);
+  });
 }
 
 test("axe accessibility scan", async ({ page }) => {
@@ -195,7 +221,7 @@ test("first glance result hierarchy makes the VRAM answer dominant", async ({
   );
 });
 
-test("checkboxes render explicit selected and unselected indicators", async ({
+test("checkboxes render selected checks and empty unchecked indicators", async ({
   page,
 }) => {
   await page.goto("/");
@@ -209,7 +235,7 @@ test("checkboxes render explicit selected and unselected indicators", async ({
     .poll(async () =>
       moeState.evaluate((node) => getComputedStyle(node, "::before").content),
     )
-    .toBe('"X"');
+    .toBe('""');
 
   await page.getByLabel("MoE Model", { exact: true }).check();
   await expect
@@ -232,11 +258,19 @@ test("checkboxes render explicit selected and unselected indicators", async ({
       ),
     )
     .toContain("\u{2713}");
+  await page.getByLabel("Gradient Checkpointing", { exact: true }).uncheck();
+  await expect
+    .poll(async () =>
+      gradientState.evaluate(
+        (node) => getComputedStyle(node, "::before").content,
+      ),
+    )
+    .toBe('""');
   await expect
     .poll(async () =>
       shardingState.evaluate(
         (node) => getComputedStyle(node, "::before").content,
       ),
     )
-    .toBe('"X"');
+    .toBe('""');
 });

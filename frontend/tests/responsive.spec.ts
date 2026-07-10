@@ -241,6 +241,10 @@ test("input actions align to the calculator pane center", async ({ page }) => {
   expect(advancedBox.x + advancedBox.width / 2).toBeCloseTo(paneCenter, 0);
 });
 
+/**
+ Ensure the first-glance result cards present one primary answer and one
+ secondary recommendation instead of two competing green metrics.
+*/
 test("first glance result hierarchy makes the VRAM answer dominant", async ({
   page,
 }) => {
@@ -259,10 +263,32 @@ test("first glance result hierarchy makes the VRAM answer dominant", async ({
     "font-variant-numeric",
     "tabular-nums",
   );
+  await expect(page.locator('[data-out="total"]')).toHaveCSS(
+    "color",
+    "rgb(34, 197, 94)",
+  );
+  await expect(page.locator('[data-out="gpu-class"]')).toHaveCSS(
+    "color",
+    "rgb(248, 250, 252)",
+  );
   await expect(page.locator('[data-out="total"]')).not.toHaveCSS(
     "font-family",
     /JetBrains Mono/u,
   );
+  await expect
+    .poll(async () =>
+      totalCard.evaluate(
+        (node) => getComputedStyle(node, "::before").backgroundColor,
+      ),
+    )
+    .toBe("rgb(34, 197, 94)");
+  await expect
+    .poll(async () =>
+      gpuCard.evaluate(
+        (node) => getComputedStyle(node, "::before").backgroundColor,
+      ),
+    )
+    .toBe("rgb(59, 130, 246)");
 });
 
 test("desktop result detail panels stay compact beneath the answer", async ({

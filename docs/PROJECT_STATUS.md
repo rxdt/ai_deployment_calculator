@@ -2,25 +2,21 @@
 
 ## State
 
-- Branch: `stub-real-tools-in-tests`; HEAD before this iteration: `7f33b42`.
-- Iteration scope: centered the Reset action and `Advanced assumptions` label
-  relative to the input pane for the `VRAM Deployment Calculator` container.
-- Markup: `Advanced assumptions` now has a stable summary slot while preserving
-  the exact public label text.
-- Styling: the action row spans the input pane and centers Reset; the advanced
-  summary centers its label while keeping the token chevron on the right.
-- Tests: added Playwright coverage that measures Reset and `Advanced
-  assumptions` against the input-pane center. Existing responsive coverage still
-  checks touch target size and no horizontal overflow.
-- Specs: `specs/frontend.md` now marks Reset centering, Advanced assumptions
-  centering, and cyan-limited detail summaries as complete.
+- Branch: `stub-real-tools-in-tests`; HEAD before this iteration: `3f0ac60`.
+- Iteration scope: result hero visual pass for the first-glance estimate.
+- Styling: hero cards now use compact raised surfaces with a green primary
+  answer rail and blue secondary recommendation rail.
+- Styling: recommended GPU class text is foreground, so it reads as supporting
+  guidance instead of a second primary green metric.
+- Verification: viewed the running app at `1280x720`; collapsed desktop layout
+  still fits and the result hierarchy reads cleanly.
+- Specs: `specs/frontend.md` now marks the running-app visual check and result
+  hero polish as complete.
 
 ## Checks
 
 - `pnpm --prefix frontend test:e2e -- frontend/tests/responsive.spec.ts`: PASS
   (210 tests).
-- `pnpm --dir frontend exec vitest run src/app.test.ts --config
-  ../harness/vitest.config.js`: PASS (54 tests).
 - `pnpm preflight`: PASS.
 - `pnpm gate`: PASS (0 issues, includes coverage, e2e, and Lighthouse).
 
@@ -30,10 +26,9 @@
   two-pane, one-viewport mobile contract, or allow a stacked mobile layout with
   vertical scroll for readability.
 - The full visual pass remains open because the no-scroll/readability tradeoff
-  above controls how much the result pane can be rebalanced.
+  above controls how much the input/result layout can be rebalanced.
 
 ## Next
 
 - Resolve the mobile no-scroll/readability direction before changing the layout
   contract.
-- Continue the result hero visual pass after that direction is settled.

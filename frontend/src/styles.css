@@ -10,6 +10,7 @@
   --color-input: #1c1c24;
   --color-primary: #22c55e;
   --color-primary-text: #0a0a0f;
+  --color-blue: #3b82f6;
   --color-cyan: #67e8f9;
   --color-shadow: #0006;
   --color-topbar: #09090bcc;
@@ -396,13 +397,39 @@ summary,
 }
 
 .hero {
+  position: relative;
   display: grid;
-  gap: var(--space-xs);
-  padding: var(--space-md);
+  gap: var(--space-sm);
+  padding: var(--space-lg);
+  background: linear-gradient(
+    180deg,
+    var(--color-raised),
+    var(--color-surface)
+  );
+}
+
+.hero::before {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--space-xs);
+  background: var(--color-primary);
+  content: "";
 }
 
 .hero--secondary {
-  background: var(--color-raised);
+  background: linear-gradient(
+    180deg,
+    var(--color-surface),
+    var(--color-raised)
+  );
+}
+
+.hero--secondary::before {
+  background: var(--color-blue);
+}
+
+.hero-label {
+  font-weight: var(--font-weight-bold);
 }
 
 .hero-value {
@@ -416,6 +443,7 @@ summary,
 }
 
 .hero-value-small {
+  color: var(--color-text);
   font-size: var(--font-hero-small);
 }
 

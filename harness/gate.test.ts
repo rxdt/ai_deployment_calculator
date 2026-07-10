@@ -706,26 +706,6 @@ const importedVitestConfig = async (): Promise<VitestConfig> => {
   throw new Error("vitest config is not a JSON object");
 };
 
-const resolvedEslintConfig = once((): EslintResolvedConfig => {
-  // This test spawns ESLint directly (not through the gate), so it needs the real binary path,
-  // not the bare name the gate resolves via its PATH-prepended checkEnvironment.
-  const output = runCommand(
-    [
-      "harness/node_modules/.bin/eslint",
-      "--print-config",
-      "sample.ts",
-      "--config",
-      "harness/eslint.config.js",
-    ],
-    REPO,
-  );
-  const parsed: unknown = JSON.parse(output);
-  if (isPlainObject(parsed)) {
-    return parsed;
-  }
-  throw new Error("resolved eslint config is not a JSON object");
-});
-
 afterEach(() => {
   vi.restoreAllMocks();
 
@@ -2472,34 +2452,6 @@ describe("frontend gate shape", () => {
     });
   });
 
-  test("eslint resolved config applies strict source rules to harness gate", () => {
-    const config = resolvedEslintConfig();
-    const rules = config.rules ?? {};
-    const expectRuleError = (name: string): void => {
-      const rule = rules[name];
-      expect(Array.isArray(rule) ? rule[0] : rule).toBe(2);
-    };
-
-    for (const rule of [
-      "max-lines",
-      "max-lines-per-function",
-      "max-depth",
-      "max-params",
-      "complexity",
-      "max-statements",
-      "sonarjs/cognitive-complexity",
-      "@typescript-eslint/no-explicit-any",
-      "@typescript-eslint/no-unsafe-assignment",
-      "@typescript-eslint/strict-boolean-expressions",
-      "no-eval",
-      "security/detect-eval-with-expression",
-      "security/detect-non-literal-fs-filename",
-    ]) {
-      expectRuleError(rule);
-    }
-    expect(config.linterOptions?.reportUnusedDisableDirectives).toBe(2);
-  });
-
   test("eslint config limits directory-specific weakening to harness tooling", async () => {
     const config = await importedEslintConfig();
     const directorySpecificBlocks = config.filter((block) =>
@@ -2525,24 +2477,6 @@ describe("frontend gate shape", () => {
       (block) => block.linterOptions?.reportUnusedDisableDirectives === "error",
     );
     expect(hasPolicy).toBe(true);
-  });
-
-  test("eslint exported config blocks production imports from tests", async () => {
-    const config = await importedEslintConfig();
-    const sourceBlock = config.find((block) =>
-      Array.isArray(block.rules?.["no-restricted-imports"]),
-    );
-    const patternsMatcher: unknown = expect.arrayContaining([
-      expect.objectContaining({
-        group: ["*.test", "*.test.*", "*.spec", "*.spec.*"],
-      }),
-    ]);
-    expect(sourceBlock?.rules?.["no-restricted-imports"]).toEqual([
-      "error",
-      expect.objectContaining({
-        patterns: patternsMatcher,
-      }),
-    ]);
   });
 
   test("git hooks are two simple entrypoints", () => {

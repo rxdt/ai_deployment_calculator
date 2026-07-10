@@ -2,32 +2,34 @@
 
 ## State
 
-- Branch: `stub-real-tools-in-tests`; HEAD before this iteration: `b8e904b`.
-- Iteration scope: begin the professional-calculator-redesign by surfacing the
-  concrete recommended-GPU examples the app already computes but was discarding.
-- Feature: the "Why this recommendation" panel now lists an "Example GPUs" row
-  (e.g. `RTX 3090 / RTX 4090 class`) sourced from the recommended
-  `HardwareTier.examples`. The row hides when there is no single-card fit (no
-  model loaded, or an overflow recommendation).
-- Refactor: pure result-string helpers (`recommendedGpuClass`, `gpuExamples`,
-  `whyText`, `formatSpeed`, `speedLabel`) moved from `app.ts` into a new
-  `frontend/src/result-format.ts` to keep `app.ts` under the 300-line cap and
-  give the presentation logic a testable home.
-- Design bundle relocated: the untracked `professional-calculator-redesign`
-  handoff (a raw claude.ai/design export with `{{ }}` templates + inline styles
-  + upload `.ts`) was moved from `specs/` to `scratchpad/`. It cannot pass
-  `eslint .` / `html-validate`, and those checks walk the whole tree; `scratchpad/`
-  is git-ignored and excluded from every linter. `specs/frontend.md` now points
-  at the new location.
+- Branch: `stub-real-tools-in-tests`; HEAD before this iteration: `d6a703d`.
+- Iteration scope: make the single-GPU overflow recommendation actionable
+  instead of a dead end (calculator trustworthiness, `specs/plan.md` acceptance
+  criteria #20/#21), with no layout-contract risk.
+- Feature: when a workload overflows every single-GPU tier but a sharded tier
+  would fit once sharding is enabled, the "Recommended GPU Class" card now names
+  that tier and its GPU count, e.g. "No single-GPU fit. Enable memory sharding to
+  fit a 320 GB sharded datacenter class (4x 80 GB GPUs ...), or use offload."
+  `describeOverflow` gained an optional `shardedFit` tier; `hardwareRecommendation`
+  computes the would-fit sharded tier for the overflow branch. The beyond-table
+  (> 320 GB) message is unchanged.
+- Prior iteration (still current): concrete "Example GPUs" row in the "Why"
+  panel; presentation helpers live in `frontend/src/result-format.ts`; the raw
+  claude.ai design bundle lives under git-ignored `scratchpad/`, not `specs/`.
 
 ## Checks
 
-- `pnpm --dir frontend test:coverage`: PASS (197 tests, 100% stmts/branch/func/line).
+- `pnpm --dir frontend test:coverage`: PASS (199 tests, 100% stmts/branch/func/line).
 - `pnpm preflight`: PASS (0 issues).
 - `pnpm gate`: see the run at the end of this iteration.
 
 ## Blockers
 
+- The top `specs/frontend.md` item (import `VRAM Calculator.dc.html` via the
+  claude_design MCP at `https://api.anthropic.com/v1/design/mcp`, auth via
+  `/design-login`) cannot be actioned in this non-interactive run: that MCP
+  server is not connected and its OAuth flow cannot run headless. It needs an
+  interactive session to authorize before the import is possible.
 - The redesign's marquee additions that grow the input pane (presets row, HUD
   status strip) or add a note to the narrow secondary hero card are effectively
   blocked on the same unresolved mobile owner-decision below: the responsive

@@ -10,15 +10,16 @@ function shortHardwareClass(value: string): string {
   return index === -1 ? value : value.slice(0, index);
 }
 
-// "24 GB high-end consumer class" -> "24 GB"; "" when there is no GB capacity
-// prefix (e.g. "No model loaded", overflow guidance).
+// "24 GB high-end consumer class" -> "24 GB"; "" when the label does not open
+// with a numeric capacity (e.g. "No model loaded", or overflow guidance that
+// mentions a "320 GB" tier only mid-sentence).
 /**
 @param value - hardware class label
-@returns the leading "N GB" capacity, or "" when absent
+@returns the leading "N GB" capacity, or "" when the label does not start with one
 */
 function leadingCapacity(value: string): string {
-  const index = value.indexOf(" GB");
-  return index === -1 ? "" : `${value.slice(0, index)} GB`;
+  const match = /^\d+ GB/u.exec(value);
+  return match === null ? "" : match[0];
 }
 
 /**

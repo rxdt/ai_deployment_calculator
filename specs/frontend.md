@@ -8,7 +8,8 @@ current responsive behavior before doing cosmetic work.
 
 ### Inspect these examples and figure out if we can use them as examples to derive 'good' html / spacing standards.
 
-- [ ] Implement this within our ruleset and linting `scratchpad/professional-calculator-redesign` and `specs/Screenshot 2026-07-09 at 11.23.19 PM.png`
+- [ ] Implement this within our ruleset and linting `scratchpad/professional-calculator-redesign` and `specs/Screenshot 2026-07-09 at 11.23.19 PM.png` Use the claude_design MCP (https://api.anthropic.com/v1/design/mcp, auth via /design-login) to import this project:
+      https://claude.ai/design/p/b368203b-856d-480e-8103-b1977a6fe1a3?file=VRAM+Calculator.dc.html. Implement: VRAM Calculator.dc.html
 
 The design bundle is a raw claude.ai/design export (`{{ }}` templates, inline
 styles, upload `.ts`) and cannot pass `eslint .` or `html-validate`. It lives
@@ -18,6 +19,11 @@ linted `specs/` tree; reference it there and do not commit it as source.
 - [x] Surface the recommended tier's concrete example GPUs (already computed in
       `hardware.ts`, previously discarded) inside the "Why this recommendation"
       panel so engineers can see which cards fit the estimate.
+
+- [x] Make the single-GPU overflow recommendation actionable: when a workload
+      exceeds every single-GPU tier but a sharded tier would fit once sharding is
+      enabled, name that tier and its GPU count instead of dead-ending at "Enable
+      memory sharding or use offload".
 
 ## Current Contract
 

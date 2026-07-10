@@ -151,12 +151,21 @@ export function hardware(
 }
 
 /**
- 
-@param rawVramGb
+ Describe a workload that no eligible tier fits. When a sharded tier would fit
+ once sharding is enabled, name it so the guidance is a concrete next step
+ instead of a dead end.
+@param rawVramGb - minimum raw VRAM the workload needs
+@param shardedFit - the sharded tier that fits once sharding is enabled, or null
 */
-export function describeOverflow(rawVramGb: number): string {
+export function describeOverflow(
+  rawVramGb: number,
+  shardedFit: Readonly<HardwareTier> | null = null,
+): string {
   if (rawVramGb > 320) {
     return "> 320 GB: distributed multi-node, larger GPU pool, or heavy offload";
+  }
+  if (shardedFit !== null) {
+    return `No single-GPU fit. Enable memory sharding to fit a ${shardedFit.label} (${shardedFit.examples}), or use offload.`;
   }
   return "No single-GPU fit. Enable memory sharding or use offload.";
 }
@@ -229,13 +238,17 @@ export function hardwareRecommendation(
   const minimum = minimumRawVramGb(requiredGb, utilization);
   const tier = hardware(minimum, options);
   if (tier === "overflow") {
+    const shardedFit = hardware(minimum, { allowSharding: true });
     return {
       requiredMemory: formatGb(requiredGb),
       usableVramTarget: usableTarget,
       usableVramOnClass: "n/a",
       fitHeadroom: "n/a",
       minimumRawVram: formatGb(minimum),
-      recommendedTier: describeOverflow(minimum),
+      recommendedTier: describeOverflow(
+        minimum,
+        shardedFit === "overflow" ? null : shardedFit,
+      ),
       math: `Estimated workload memory is ${formatGb(requiredGb)}. With a ${usableTarget} usable VRAM target, use a GPU with at least ${formatGb(minimum)} of physical VRAM so the workload does not consume the entire card.`,
     };
   }

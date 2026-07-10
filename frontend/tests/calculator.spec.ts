@@ -149,7 +149,8 @@ const CANONICAL_BROWSER_CASES = [
     name: "7B full training includes training state and activations",
     controls: [["#execution-mode", "Full training", "select"]],
     total: "152.9 GB",
-    gpuClass: "No single-GPU fit. Enable memory sharding or use offload.",
+    gpuClass:
+      "No single-GPU fit. Enable memory sharding to fit a 320 GB sharded datacenter class (4x 80 GB GPUs with tensor/model parallelism), or use offload.",
     minimumRawVram: "191.1 GB",
     calculationRows: [
       ["Weights_GB (model memory)", "14.0 GB"],

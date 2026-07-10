@@ -77,6 +77,16 @@ describe("matching required VRAM to a hardware tier", () => {
       "> 320 GB: distributed multi-node, larger GPU pool, or heavy offload",
     );
   });
+
+  test("names the fitting sharded tier when one is supplied", () => {
+    expect(describeOverflow(200, tier(320))).toBe(
+      "No single-GPU fit. Enable memory sharding to fit a 320 GB sharded datacenter class (4x 80 GB GPUs with tensor/model parallelism), or use offload.",
+    );
+    // Beyond the whole table, no sharded tier helps, so the hint is ignored.
+    expect(describeOverflow(321, tier(320))).toBe(
+      "> 320 GB: distributed multi-node, larger GPU pool, or heavy offload",
+    );
+  });
 });
 
 describe("speed bandwidth comes from the matched tier", () => {
@@ -137,6 +147,20 @@ describe("hardwareRecommendation display", () => {
     });
     expect(recommendation.recommendedTier).toBe(
       "> 320 GB: distributed multi-node, larger GPU pool, or heavy offload",
+    );
+    expect(recommendation.usableVramOnClass).toBe("n/a");
+    expect(recommendation.fitHeadroom).toBe("n/a");
+  });
+
+  test("points a sharding-off single-GPU overflow at the tier that would fit", () => {
+    // 200 GB required at 80% target -> 250 GB minimum: no single GPU fits, but a
+    // sharded tier does, so the guidance names it instead of dead-ending.
+    const recommendation = hardwareRecommendation(200, 0.8, {
+      allowSharding: false,
+    });
+    expect(recommendation.minimumRawVram).toBe("250.0 GB");
+    expect(recommendation.recommendedTier).toBe(
+      "No single-GPU fit. Enable memory sharding to fit a 320 GB sharded datacenter class (4x 80 GB GPUs with tensor/model parallelism), or use offload.",
     );
     expect(recommendation.usableVramOnClass).toBe("n/a");
     expect(recommendation.fitHeadroom).toBe("n/a");

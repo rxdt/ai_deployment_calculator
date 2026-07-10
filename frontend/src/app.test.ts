@@ -779,12 +779,17 @@ describe("recommended GPU examples", () => {
     expect(dataSlot("gpu-examples-row").hidden).toBe(true);
   });
 
-  test("drops the example row when the workload overflows single-GPU tiers", () => {
+  test("renders the sharded-fit overflow guidance verbatim without a tier suffix", () => {
     loadDom();
     mountCalculator(document);
     fireInput("total-params", "104");
 
-    expect(out("gpu-class")).toContain("No single-GPU fit");
+    // The guidance names a "320 GB" tier mid-sentence; the class card must show
+    // it verbatim, not mistake that for a leading capacity and append
+    // "GPU hardware tier".
+    expect(out("gpu-class")).toBe(
+      "No single-GPU fit. Enable memory sharding to fit a 320 GB sharded datacenter class (4x 80 GB GPUs with tensor/model parallelism), or use offload.",
+    );
     expect(out("gpu-examples")).toBe("");
     expect(dataSlot("gpu-examples-row").hidden).toBe(true);
   });

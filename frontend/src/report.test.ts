@@ -145,7 +145,7 @@ describe("buildReport", () => {
     );
   });
 
-  test("overflows to no-single-GPU guidance when nothing in the table fits", () => {
+  test("names the sharded tier that fits when a single-GPU overflow could shard", () => {
     const report = buildReport(
       state({
         totalParams: "90",
@@ -155,7 +155,7 @@ describe("buildReport", () => {
     );
 
     expect(report.recommendedHardware.recommendedTier).toBe(
-      "No single-GPU fit. Enable memory sharding or use offload.",
+      "No single-GPU fit. Enable memory sharding to fit a 320 GB sharded datacenter class (4x 80 GB GPUs with tensor/model parallelism), or use offload.",
     );
     expect(report.recommendedHardware.usableVramOnClass).toBe("n/a");
     expect(report.recommendedHardware.fitHeadroom).toBe("n/a");

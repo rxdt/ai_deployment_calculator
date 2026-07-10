@@ -18,6 +18,36 @@
   --color-glow-primary: #22c55e2b;
   --color-glow-blue: #3b82f62b;
   --color-topbar: #09090bcc;
+  --color-grid-line: #60f7ff0a;
+  --color-glow-ambient-primary: #22c55e14;
+  --color-glow-ambient-blue: #3b82f614;
+
+  /* Command-center atmosphere: a faint cyan grid over low-contrast green/blue
+     corner glows, layered behind the app so the calculator stays the focus (per
+     the design spec's "faint cyan grid plus green/blue radial glow, kept low
+     contrast"). Composed as background-image tokens so the paint stays purely
+     decorative and adds no layout box. */
+  --background-grid:
+    linear-gradient(
+      var(--color-grid-line) var(--layout-border),
+      transparent var(--layout-border)
+    ),
+    linear-gradient(
+      90deg,
+      var(--color-grid-line) var(--layout-border),
+      transparent var(--layout-border)
+    );
+  --background-glow:
+    radial-gradient(
+      60rem 40rem at 0% -8%,
+      var(--color-glow-ambient-primary),
+      transparent 60%
+    ),
+    radial-gradient(
+      64rem 42rem at 100% -8%,
+      var(--color-glow-ambient-blue),
+      transparent 62%
+    );
   --font-body: 0.8125rem;
   --font-heading: 1.375rem;
   --font-hero: 1.5rem;
@@ -31,6 +61,7 @@
   --font-mono:
     "JetBrains Mono", ui-monospace, sfmono-regular, consolas, monospace;
   --layout-border: 0.0625rem;
+  --layout-grid-size: 2.125rem;
   --layout-control-size: 2.5rem;
   --layout-chip-size: 1.75rem;
   --layout-advanced-height: calc(100vh - 6rem);
@@ -59,7 +90,14 @@ html {
 body {
   min-height: 100vh;
   margin: 0;
-  background: var(--color-background);
+  background-color: var(--color-background);
+  background-image: var(--background-grid), var(--background-glow);
+  background-size:
+    var(--layout-grid-size) var(--layout-grid-size),
+    var(--layout-grid-size) var(--layout-grid-size),
+    100% 100%,
+    100% 100%;
+  background-repeat: repeat, repeat, no-repeat, no-repeat;
   color: var(--color-text);
   font-family:
     Geist,
@@ -145,6 +183,12 @@ a {
   padding: 0 var(--space-md);
   border-bottom: var(--layout-border) solid var(--color-border);
   background: var(--color-topbar);
+
+  /* The fake top nav is translucent with a backdrop blur so the atmosphere grid
+     softens behind it (per the design spec's nav treatment). Blur is a
+     progressive enhancement; the translucent fill carries the effect alone where
+     backdrop-filter is unsupported. */
+  backdrop-filter: blur(var(--space-md));
 }
 
 .topnav,

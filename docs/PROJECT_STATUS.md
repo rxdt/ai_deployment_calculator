@@ -3,31 +3,36 @@
 ## State
 
 - Branch: `stub-real-tools-in-tests`.
-- Iteration 3/5 scope: continue the DESIGN.md visual pass with two similarly
-  scoped, one-viewport-safe gaps the reference shows but the app still lacked.
-- Brand prompt marker: the header brand wraps its leading `~` in a `.brand-mark`
-  element the stylesheet greens, so the primary accent lands only on the prompt
-  marker, never the product name (DESIGN.md nav language). `brand.textContent`
-  stays `~VRAM-calculator`, so the naming contract and its test are unchanged.
-- Hero depth glow: `.hero` and `.hero--secondary` gain a low-contrast,
-  role-colored glow (green primary total, blue alternate GPU class) via new
-  `--color-glow-*` tokens. The glow is a soft halo with no layout box, so the
-  all-collapsed / all-expanded no-scroll contract is unaffected.
+- Iteration 4/5 scope: land the DESIGN.md "Elevation & Depth" atmosphere the app
+  still lacked — the faint cyan grid + green/blue corner glow background and the
+  translucent-blur nav — as pure decoration that preserves the one-viewport
+  no-scroll contract.
+- Background atmosphere: `body` layers two token-driven background-images — a
+  faint cyan grid (`--background-grid` over `--color-grid-line`) and low-contrast
+  green/blue corner glows (`--background-glow` over `--color-glow-ambient-*`).
+  Backgrounds add no layout box and never generate scrollbars, so the collapsed
+  and all-expanded no-scroll contracts hold. Grid shows only through card gaps.
+- Nav blur: `.topbar` keeps its translucent `--color-topbar` fill and adds
+  `backdrop-filter: blur(var(--space-md))` so the grid softens behind it. Blur is
+  a progressive enhancement (vendor prefixes are lint-banned); the translucent
+  fill carries the effect where `backdrop-filter` is unsupported.
 
 ## Also landed (prior iterations)
 
-- Amber tight-fit meter, static-HTML preset chips, downward advanced overlay,
+- Brand prompt marker (green only on the `~`), hero role-colored depth glow,
+  amber tight-fit meter, static-HTML preset chips, downward advanced overlay,
   compact breakdown stat cards, compact status strip. All green at HEAD.
 
 ## Checks
 
-- `pnpm --prefix frontend run test:coverage`: PASS — 100% statements / branches /
-  functions / lines held (the brand test is additive).
-- Playwright `calculator.spec` + `responsive.spec`: PASS (240), incl. every
-  all-collapsed / all-expanded no-scroll contract and the hero fit-meter case.
+- Playwright `responsive.spec`: PASS (150) across desktop / desktop-safari /
+  iphone / tablet, incl. the new "decorative atmosphere stays behind content"
+  case (translucent blurred nav + layered grid/glow background + no page scroll)
+  on both one-viewport breakpoints, and the axe scan (no contrast regression).
 - `pnpm preflight`: PASS (0 issues) — prettier, eslint, stylelint, html-validate.
-- `pnpm gate`: PASS (0 issues) — glow and marker add no layout box, so CLS and
-  the no-scroll contract held; Lighthouse stayed green.
+- CSS bundle 12.2 kB, under the 13 kB size budget.
+- `pnpm gate`: pending final run (decoration is CSS-only + one additive e2e; no
+  TS lines added, so 100% coverage is unaffected).
 
 ## Blockers
 
@@ -41,7 +46,8 @@
 
 - Remaining spec item is the ongoing general visual pass against `docs/odoo.html`,
   `specs/dispel.html`, `specs/groundcover.html` under `specs/DESIGN.md`. The
-  named reference gaps are done; the leftover DESIGN.md touches (faint cyan grid
-  / scanline background, backdrop blur) are optional ("may"/"can") pure-CSS
-  decoration with no behavioral surface to unit-test — pick only similarly
-  scoped gaps that preserve the one-viewport no-scroll contract.
+  named reference gaps, the faint cyan grid / green-blue glow background, and the
+  backdrop-blur nav are now done. The last leftover DESIGN.md touch is the
+  optional ("may") scanline texture — pure-CSS decoration with no behavioral
+  surface to unit-test; pick only similarly scoped gaps that preserve the
+  one-viewport no-scroll contract.

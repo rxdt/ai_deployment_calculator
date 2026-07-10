@@ -41,14 +41,21 @@ linted `specs/` tree; reference it there and do not commit it as source. Use it 
 - [x] The hero answer cards carry a low-contrast, role-colored depth glow (green
       on the primary total card, blue on the alternate GPU-class card) that adds
       no layout box, so the one-viewport result stack is unaffected.
+- [x] The page renders a command-center atmosphere behind the app: a faint cyan
+      grid over low-contrast green/blue corner glows, composed as body
+      background-image layers so it adds no layout box and never scrolls. The
+      fake top nav stays translucent and applies a backdrop blur so the grid
+      softens behind it; both are pure decoration and keep the calculator the
+      focus.
 
 ## Remaining UI Work
 
 - [ ] Final visual pass from the valid reference notes:
       `docs/odoo.html`, `specs/dispel.html`, `specs/groundcover.html`. Focus
       compact status, result-row polish, the hero fit meter (incl. its amber
-      tight-fit signal), the compact breakdown stat cards, and the preset chips
-      are done; continue with only similarly scoped gaps.
+      tight-fit signal), the compact breakdown stat cards, the preset chips, and
+      the command-center background atmosphere plus translucent-blur nav are
+      done; continue with only similarly scoped gaps.
 - [x] The computed memory breakdown (model memory / context / activation /
       training / runtime reserve / safety margin) renders as compact bordered
       stat cards inside a collapsed "Memory breakdown" disclosure. The panel

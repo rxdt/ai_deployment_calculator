@@ -417,6 +417,33 @@ test("hero fit meter shows class usage and hides when nothing fits", async ({
   );
 });
 
+/**
+ Ensure the command-center atmosphere renders as pure decoration: the nav stays
+ translucent and blurred over a layered grid/glow background, and the added paint
+ never introduces page scroll on either one-viewport breakpoint.
+*/
+for (const viewport of onePageViewports) {
+  test(`decorative atmosphere stays behind content on ${viewport.name}`, async ({
+    page,
+  }) => {
+    await page.setViewportSize(viewport);
+    await page.goto("/");
+
+    const topbar = page.locator(".topbar");
+    await expect(topbar).toHaveCSS("background-color", /^rgba\(/u);
+    await expect(topbar).toHaveCSS("backdrop-filter", /blur/u);
+
+    const backgroundImage = await page
+      .locator("body")
+      .evaluate((node) => getComputedStyle(node).backgroundImage);
+    expect(backgroundImage).toContain("linear-gradient");
+    expect(backgroundImage).toContain("radial-gradient");
+
+    await expectNoVerticalDocumentOverflow(page);
+    await expectNoHorizontalDocumentOverflow(page);
+  });
+}
+
 test("desktop result detail panels stay compact beneath the answer", async ({
   page,
 }) => {

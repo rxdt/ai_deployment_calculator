@@ -31,8 +31,9 @@
   on both one-viewport breakpoints, and the axe scan (no contrast regression).
 - `pnpm preflight`: PASS (0 issues) — prettier, eslint, stylelint, html-validate.
 - CSS bundle 12.2 kB, under the 13 kB size budget.
-- `pnpm gate`: pending final run (decoration is CSS-only + one additive e2e; no
-  TS lines added, so 100% coverage is unaffected).
+- `pnpm gate`: PASS (0 issues) — decoration is CSS-only + one additive e2e, so
+  100% coverage held and Lighthouse stayed green; backgrounds add no layout box,
+  so CLS and the no-scroll contract were unaffected.
 
 ## Blockers
 

@@ -34,8 +34,8 @@ linted `specs/` tree; reference it there and do not commit it as source.
 
 ## Current Contract
 
-- [ ] The entire app fits without scrolling when all items are collapsed.
-- [ ] The entire app fits wihout scorlling when all items are expanded.
+- [x] The entire app avoids page scrolling when all items are collapsed.
+- [x] The entire app avoids page scrolling when all items are expanded.
 - [ ] Elements are well-sized - not overly large.
 - [x] Model cards like "Why this recommendation" do NOT look like buttons. They are text on a dark background with a standard downward arrow 'v' implying expansion, drawn from spacing tokens and inheriting the summary color (foreground, cyan when the panel is open).
 
@@ -43,7 +43,7 @@ linted `specs/` tree; reference it there and do not commit it as source.
 
 - [ ] Final visual pass from the valid reference notes:
       `docs/odoo.html`, `specs/dispel.html`, `specs/groundcover.html`.
-- [ ] Desktop should keep the two-pane input/result shape without page scroll
+- [x] Desktop should keep the two-pane input/result shape without page scroll
       where practical.
 - [ ] Cyan should remain limited
 - [ ] Result hero should look more professional while preserving hierarchy.

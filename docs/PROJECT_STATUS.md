@@ -3,23 +3,22 @@
 ## State
 
 - Branch: `stub-real-tools-in-tests`; HEAD before this iteration: `a411372`.
-- Iteration scope: fix the remaining sharded recommendation copy so the "Why
-  this recommendation" panel no longer describes aggregate sharded VRAM as one
-  GPU card.
-- Fix: `whyText` (`frontend/src/result-format.ts`) now says sharded fits need a
-  sharded GPU pool with aggregate advertised VRAM and calls the target "the next
-  common sharded class." Single-GPU wording stays unchanged.
-- Test: `frontend/src/result-format.test.ts` covers both the sharded wording and
-  the unchanged single-GPU wording.
-- Prior iterations (still current): sharded hero label keeps "sharded";
-  single-GPU overflow guidance names the would-fit sharded tier; concrete
-  example GPUs render in the "Why" panel; presentation helpers live in
-  `frontend/src/result-format.ts`; the raw claude.ai design bundle lives under
-  git-ignored `scratchpad/`, not `specs/`.
+- Iteration 2/3 scope: make the frontend keep its compact two-pane calculator
+  shell inside the viewport for the collapsed and fully expanded disclosure
+  states.
+- Fix: `frontend/src/styles.css` now gives the app a fixed viewport shell,
+  contains result overflow inside the results pane, keeps the desktop two-pane
+  layout, and renders the narrow advanced assumptions panel as a viewport
+  overlay so its controls stay reachable.
+- Test: `frontend/tests/responsive.spec.ts` now asserts the document itself has
+  no vertical overflow for collapsed defaults and for all disclosures expanded.
+- Spec: `specs/frontend.md` marks the page-scroll and desktop two-pane contract
+  complete.
+- Commit: this iteration commit.
 
 ## Checks
 
-- `pnpm --dir frontend exec vitest run src/report.test.ts src/app.test.ts src/result-format.test.ts --config ../harness/vitest.config.js`: PASS.
+- `pnpm --dir frontend test:e2e -- tests/responsive.spec.ts`: PASS.
 - `pnpm preflight`: PASS.
 - `pnpm gate`: PASS.
 
@@ -28,16 +27,11 @@
 - The top `specs/frontend.md` item (import `VRAM Calculator.dc.html` via the
   claude_design MCP at `https://api.anthropic.com/v1/design/mcp`, auth via
   `/design-login`) cannot be actioned in this non-interactive run: that MCP
-  server is not connected and its OAuth flow cannot run headless. It needs an
-  interactive session to authorize before the import is possible.
-- Remaining mobile visual work still needs an owner decision: keep the current
-  two-pane, one-viewport mobile contract, or allow a stacked mobile layout with
-  vertical scroll for readability.
-- If the raw design bundle is re-dropped into `specs/` (not `scratchpad/`), it
-  will re-break `eslint .` and `html-validate`; the durable fix (a `specs/**`
-  globalIgnore) lives in the forbidden `harness/` config.
+  server is not connected and its OAuth flow cannot run headless.
+- Remaining visual polish still needs a pass against `docs/odoo.html`,
+  `specs/dispel.html`, and `specs/groundcover.html`; this iteration stayed on
+  the shippability-critical viewport contract.
 
 ## Next
 
-- Resolve the mobile no-scroll/readability direction, then bring the presets row
-  and HUD status strip over from the design bundle.
+- Continue the final visual pass without changing calculator behavior.

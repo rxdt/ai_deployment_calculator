@@ -111,7 +111,8 @@ a {
 }
 
 .app {
-  min-height: 100vh;
+  height: 100vh;
+  min-height: 0;
   display: flex;
   flex-direction: column;
 }
@@ -119,6 +120,7 @@ a {
 .topbar {
   min-width: 0;
   min-height: var(--layout-control-size);
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -175,6 +177,8 @@ summary,
 }
 
 .layout {
+  position: relative;
+  flex: 1 1 auto;
   min-height: 0;
   min-width: 0;
   display: flex;
@@ -182,17 +186,19 @@ summary,
   padding: var(--space-md);
 }
 
-.inputs,
-.results {
-  min-width: 0;
-  flex: 1 1 0;
-}
-
 .inputs {
+  min-width: 0;
+  max-height: 100%;
+  flex: 1 1 0;
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-sm);
   align-content: flex-start;
+  overflow: auto;
+}
+
+.inputs:has(.advanced[open]) {
+  overflow: visible;
 }
 
 .intro,
@@ -378,12 +384,16 @@ summary,
 }
 
 .results {
+  min-width: 0;
+  max-height: 100%;
+  flex: 1 1 0;
   display: grid;
   grid-template-columns:
     minmax(0, var(--layout-primary-result))
     minmax(0, var(--layout-secondary-result));
   gap: var(--space-sm);
   align-content: start;
+  overflow-y: auto;
 }
 
 .hero,
@@ -511,7 +521,14 @@ code {
 }
 
 @media (width <= 48em) {
+  .advanced[open] {
+    position: static;
+  }
+
   .advanced[open] .group {
-    width: var(--layout-advanced-width);
+    position: absolute;
+    inset: var(--space-md) var(--space-md) auto;
+    width: auto;
+    max-height: calc(100% - (var(--space-md) * 2));
   }
 }

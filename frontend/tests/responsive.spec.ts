@@ -33,6 +33,20 @@ async function expectNoHorizontalDocumentOverflow(page: Page): Promise<void> {
   await expect(page.locator('[data-out="gpu-class"]')).toBeInViewport();
 }
 
+/**
+ Assert vertical overflow is contained inside panes by trying to scroll the page.
+@param page - Playwright page under test.
+*/
+async function expectNoVerticalDocumentOverflow(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    window.scrollTo(0, 0);
+  });
+  await page.evaluate(() => {
+    window.scrollBy(0, 800);
+  });
+  await expect.poll(async () => page.evaluate(() => window.scrollY)).toBe(0);
+}
+
 interface ElementBox {
   readonly height: number;
   readonly width: number;
@@ -142,6 +156,7 @@ for (const viewport of onePageViewports) {
   }) => {
     await page.setViewportSize(viewport);
     await page.goto("/");
+    await expectNoVerticalDocumentOverflow(page);
 
     await expect(
       page.getByRole("heading", { name: "VRAM Deployment Calculator" }),
@@ -155,6 +170,24 @@ for (const viewport of onePageViewports) {
     await expect(
       page.getByText("Assumptions used", { exact: true }),
     ).toBeInViewport();
+  });
+
+  test(`all expanded panels avoid page scroll on ${viewport.name}`, async ({
+    page,
+  }) => {
+    await page.setViewportSize(viewport);
+    await page.goto("/");
+
+    await page.locator("details").evaluateAll((nodes) => {
+      for (const node of nodes) {
+        node.setAttribute("open", "");
+      }
+    });
+
+    await expectNoVerticalDocumentOverflow(page);
+    await expect(page.getByLabel("GitHub repository")).toBeInViewport();
+    await expect(page.getByLabel("Model Family")).toBeInViewport();
+    await expect(page.locator('[data-out="total"]')).toBeInViewport();
   });
 
   test(`expanded advanced assumptions keep key content visible on ${viewport.name}`, async ({

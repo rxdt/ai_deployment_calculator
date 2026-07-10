@@ -376,7 +376,7 @@ summary,
   font-size: var(--font-hero-small);
 }
 
-.panel {
+.panel--wide {
   grid-column: 1 / -1;
 }
 

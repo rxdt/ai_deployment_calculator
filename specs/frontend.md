@@ -20,12 +20,14 @@ current responsive behavior before doing cosmetic work.
       expanded advanced assumptions for horizontal overflow.
 - [x] `Calculation used` renders the substituted calculation rows in order.
 - [x] `Formula used` renders the symbolic equation separately from values.
+- [x] Desktop result detail panels keep recommendation context wide while
+      compacting calculation/formula summaries into the result grid.
 
 ## Remaining UI Work
 
 - [ ] Final visual pass from the valid reference notes:
       `docs/odoo.html`, `specs/dispel.html`, `specs/groundcover.html`.
-- [ ] Calculator elements should remain compact, not oversized.
+- [x] Calculator elements should remain compact, not oversized.
 - [ ] Desktop should keep the two-pane input/result shape without page scroll
       where practical.
 - [ ] Expanded `Advanced assumptions` should avoid clashing with result detail

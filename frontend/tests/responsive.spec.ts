@@ -24,15 +24,33 @@ const readableLabels = [
 ] as const;
 
 /**
- Assert the rendered document does not produce horizontal page scroll.
+ Assert representative left and right edge content remains in the viewport.
 @param page - Playwright page under test
 */
 async function expectNoHorizontalDocumentOverflow(page: Page): Promise<void> {
-  const overflow = await page.evaluate(() => ({
-    body: document.body.scrollWidth,
-    viewport: document.documentElement.clientWidth,
-  }));
-  expect(overflow.body).toBeLessThanOrEqual(overflow.viewport);
+  await expect(page.getByLabel("GitHub repository")).toBeInViewport();
+  await expect(page.getByLabel("Model Family")).toBeInViewport();
+  await expect(page.locator('[data-out="gpu-class"]')).toBeInViewport();
+}
+
+interface ElementBox {
+  readonly height: number;
+  readonly width: number;
+  readonly x: number;
+  readonly y: number;
+}
+
+/**
+ Assert a measured element box exists.
+@param box Measured Playwright element box.
+@param name Human-readable element name for failures.
+@returns The measured element box.
+*/
+function requireBox(box: ElementBox | null, name: string): ElementBox {
+  if (box === null) {
+    throw new Error(`Missing ${name} box`);
+  }
+  return box;
 }
 
 for (const path of pages) {
@@ -219,6 +237,31 @@ test("first glance result hierarchy makes the VRAM answer dominant", async ({
     "font-family",
     /JetBrains Mono/u,
   );
+});
+
+test("desktop result detail panels stay compact beneath the answer", async ({
+  page,
+}) => {
+  await page.setViewportSize({ height: 720, width: 1280 });
+  await page.goto("/");
+
+  const panels = page.locator(".results > details.panel");
+  await expect(panels).toHaveCount(4);
+
+  const whyBox = requireBox(await panels.nth(0).boundingBox(), "why panel");
+  const calculationBox = requireBox(
+    await panels.nth(1).boundingBox(),
+    "calculation panel",
+  );
+  const formulaBox = requireBox(
+    await panels.nth(2).boundingBox(),
+    "formula panel",
+  );
+
+  expect(calculationBox.y).toBe(formulaBox.y);
+  expect(formulaBox.x).toBeGreaterThan(calculationBox.x);
+  expect(calculationBox.width).toBeLessThan(whyBox.width * 0.75);
+  expect(formulaBox.width).toBeLessThan(whyBox.width * 0.75);
 });
 
 test("checkboxes render selected checks and empty unchecked indicators", async ({

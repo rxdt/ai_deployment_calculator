@@ -6,6 +6,7 @@ import {
 } from "./app-dom";
 import { buildReport } from "./report";
 import { sanitizeNumberInput } from "./input-sanitizer";
+import { MODEL_PRESETS } from "./presets";
 import {
   fitMeter,
   formatSpeed,
@@ -14,7 +15,7 @@ import {
   speedLabel,
   whyText,
 } from "./result-format";
-import { normalizedState, zeroState } from "./state";
+import { defaultState, normalizedState, zeroState } from "./state";
 import {
   statusFitLabel,
   statusModeLabel,
@@ -33,6 +34,7 @@ export class CalculatorApp {
   private readonly form: HTMLFormElement;
   private readonly rowTemplate: HTMLTemplateElement;
   private readonly kvCacheRow: HTMLElement;
+  private readonly presets: HTMLElement;
 
   public constructor(root: ParentNode) {
     const form = dataSlot(root, "inputs-form");
@@ -51,13 +53,19 @@ export class CalculatorApp {
     if (kvCacheRow === null) {
       throw new Error("Missing KV cache row");
     }
+    const presets = dataSlot(root, "presets");
+    if (presets === null) {
+      throw new Error("Missing presets container");
+    }
     this.root = root;
     this.form = form;
     this.rowTemplate = rowTemplate;
     this.kvCacheRow = kvCacheRow;
+    this.presets = presets;
   }
 
   public mount(): void {
+    this.buildPresets();
     this.form.addEventListener("input", (event) => {
       if (event.target instanceof HTMLInputElement) {
         sanitizeNumberInput(event.target);
@@ -84,11 +92,32 @@ export class CalculatorApp {
     this.render(state, buildReport(state));
   }
 
-  private reset(
+  // Quick-start chips that fill the form with a well-known model deployment.
+  // They complement the manual controls, so they carry no green primary accent
+  // and load a preset in one click rather than submitting the reactive form.
+  private buildPresets(): void {
+    for (const preset of MODEL_PRESETS) {
+      const chip = document.createElement("button");
+      chip.type = "button";
+      chip.className = "preset";
+      chip.dataset.preset = preset.id;
+      chip.textContent = preset.label;
+      chip.addEventListener("click", () => {
+        this.applyValues(defaultState(), preset.overrides);
+      });
+      this.presets.append(chip);
+    }
+  }
+
+  // Load a full deployment into the form by seeding every control from `base`
+  // and layering `overrides` on top, then recompute. Reset seeds from the empty
+  // state; a preset seeds from the default deployment so unset fields stay sane.
+  private applyValues(
+    base: Readonly<FormState>,
     overrides: Readonly<Record<string, string | boolean>> = {},
   ): void {
     const values = new Map<string, string | boolean>([
-      ...Object.entries(zeroState()),
+      ...Object.entries(base),
       ...Object.entries(overrides),
     ]);
     for (const element of this.form.elements) {
@@ -102,6 +131,12 @@ export class CalculatorApp {
       }
     }
     this.update();
+  }
+
+  private reset(
+    overrides: Readonly<Record<string, string | boolean>> = {},
+  ): void {
+    this.applyValues(zeroState(), overrides);
   }
 
   private exitQloRAOnPrecisionChange(event: Event): boolean {

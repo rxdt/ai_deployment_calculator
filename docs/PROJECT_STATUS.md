@@ -2,27 +2,30 @@
 
 ## State
 
-- Branch: `stub-real-tools-in-tests`; HEAD before this iteration: `c116cbb`.
-- Iteration 1/3 scope: compact shippability visual pass from
-  `specs/frontend.md` — the reference's hero usage/fit bar.
-- Add: hero fit meter. A slim green `<meter>` reads the recommended GPU class
-  as a consumed budget; the hero caption now reads
-  "Fits a N GB card with N GB usable headroom (N% spare)". The bar hides and the
-  caption reverts to "The workload needs N GB usable VRAM" when no single class
-  fits (no model, overflow, or a sharded pool with no fit).
-- Pure logic: `fitMeter()` in `src/result-format.ts` (fill percent + summary,
-  or null). Rendering: `renderFitMeter()` in `src/app.ts`. Styling: `.fit-meter`
-  in `src/styles.css` (green primary = fit/health per `specs/DESIGN.md`).
-- Tests: `src/result-format.test.ts` covers single-card, 8B, sharded-pool, and
-  no-fit cases; `src/app.test.ts` (`hero fit meter` describe) proves the meter
-  value/hidden state and caption; `tests/responsive.spec.ts` proves the meter is
-  visible, in viewport, value 93, and hides on overflow without breaking the
-  one-viewport / hero-height contracts. Axe passes on all viewports.
+- Branch: `stub-real-tools-in-tests`; HEAD before this iteration: `6d99e4c`.
+- Iteration 2/3 scope: compact shippability visual pass from
+  `specs/frontend.md` — the reference's compact breakdown stat cards.
+- Add: "Memory breakdown" disclosure surfacing `report.breakdown`, which was
+  computed but never rendered (dead data). Each non-zero memory component
+  (model memory / context / activation / training / runtime reserve / safety
+  margin) renders as a bordered mono stat card; values stay foreground, never
+  the green answer accent, per `specs/DESIGN.md`.
+- Layout: the panel fills the previously-empty result-grid cell beside
+  "Assumptions used", so it adds no new collapsed row and keeps the
+  one-viewport no-scroll contract. Cards wrap via flex (`--layout-half` basis)
+  because the linter bans `fr` units and `repeat(auto-fit, ...)`.
+- Wiring: `render()` in `src/app.ts` reuses `fillRows("breakdown-rows", ...)`
+  and the shared row template; styling is `.breakdown` in `src/styles.css`.
+
+## Prior iterations
+
+- Iter 1: hero fit meter (`fitMeter()` in `src/result-format.ts`,
+  `renderFitMeter()` in `src/app.ts`, `.fit-meter` in `src/styles.css`).
 
 ## Checks
 
-- `pnpm --dir frontend exec vitest run src/result-format.test.ts src/app.test.ts src/report.test.ts --config ../harness/vitest.config.js`: PASS.
-- `pnpm --prefix harness exec playwright test --config playwright.config.js ../frontend/tests/responsive.spec.ts -g "fit meter|answer dominant|collapsed default estimate fits|axe accessibility"`: PASS.
+- `pnpm --dir frontend exec vitest run src/report.test.ts src/app.test.ts src/result-format.test.ts --config ../harness/vitest.config.js`: PASS (97).
+- `pnpm --prefix harness exec playwright test --config playwright.config.js ../frontend/tests/responsive.spec.ts -g "stay compact|collapsed default estimate fits|avoid page scroll|axe accessibility|fit meter"`: PASS (42).
 - `pnpm preflight`: PASS.
 - `pnpm gate`: see final run in this iteration.
 
@@ -33,14 +36,10 @@
   `/design-login` needs interactive auth unavailable in this run.
 - Unrelated unstaged `PROMPT.md` changes are forbidden for agents and left for
   human review.
-- No code blocker for the scoped fit-meter work.
+- No code blocker for the scoped breakdown-cards work.
 
 ## Next
 
-- Reference gaps still open: compact breakdown stat cards (model weights / KV
-  cache / concurrency / spare) and preset chips (Llama 8B, 70B, Mixtral, ...).
-  Both must respect the one-viewport no-scroll contract before landing.
-- Optional: turn the fit meter amber when the workload is a tight fit (near the
-  class budget) to signal constraint per `specs/DESIGN.md`.
-</content>
-</invoke>
+- Preset chips (Llama 8B, 70B, Mixtral, ...) remain the last named reference
+  gap; must respect the one-viewport no-scroll contract before landing.
+- Optional: turn the fit meter amber on a tight fit near the class budget.

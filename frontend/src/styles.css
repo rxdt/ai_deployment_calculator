@@ -253,9 +253,40 @@ summary,
 }
 
 .intro,
+.presets,
 .advanced,
 .actions {
   grid-column: 1 / -1;
+}
+
+/* Preset chips: compact secondary buttons that load a known model deployment.
+   Per the design spec they use a bordered muted surface (never the green
+   primary fill) and turn green only on hover; focus keeps the shared cyan
+   outline. They sit below the control-size token because they are shortcuts,
+   not primary touch targets, which keeps the collapsed form within one
+   viewport. */
+.presets {
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.preset {
+  min-height: 1.75rem;
+  width: auto;
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--color-raised);
+  color: var(--color-muted);
+  font-family: var(--font-mono);
+  font-size: var(--font-body);
+  font-weight: var(--font-weight-bold);
+}
+
+.preset:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
 }
 
 .intro h1,

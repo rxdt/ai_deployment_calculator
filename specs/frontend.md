@@ -34,10 +34,15 @@ linted `specs/` tree; reference it there and do not commit it as source. Use it 
 
 - [ ] Final visual pass from the valid reference notes:
       `docs/odoo.html`, `specs/dispel.html`, `specs/groundcover.html`. Focus
-      compact status, result-row polish, and the hero fit meter are done;
-      continue with only similarly scoped gaps. The reference's compact
-      breakdown stat cards (model weights / KV cache / concurrency / spare) and
-      the preset chips remain unbuilt.
+      compact status, result-row polish, the hero fit meter, and the compact
+      breakdown stat cards are done; continue with only similarly scoped gaps.
+      The preset chips (Llama 8B, 70B, Mixtral, ...) remain unbuilt.
+- [x] The computed memory breakdown (model memory / context / activation /
+      training / runtime reserve / safety margin) renders as compact bordered
+      stat cards inside a collapsed "Memory breakdown" disclosure. The panel
+      fills the empty grid cell beside "Assumptions used" so it adds no new
+      collapsed row to the one-viewport result stack; zero-GB components and the
+      no-model state drop their cards.
 - [x] Cyan remains limited to focus and expanded detail-panel state.
 - [x] Result hero uses compact raised answer cards while preserving hierarchy.
 - [ ] Styling should continue to follow `specs/DESIGN.md`.

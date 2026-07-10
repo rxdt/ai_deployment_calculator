@@ -3,6 +3,7 @@ import { afterEach, describe, expect, test } from "vitest";
 import indexHtml from "../index.html?raw";
 import { CalculatorApp, mountCalculator } from "./app";
 import { sanitizeNumberInput } from "./input-sanitizer";
+import { MODEL_PRESETS } from "./presets";
 
 const CONTRACTED_LABELS = new Map([
   ["workload-family", "Model Family"],
@@ -316,6 +317,12 @@ describe("CalculatorApp construction", () => {
     loadDom();
     dataSlot("kv-cache-row").remove();
     expect(() => mountCalculator(document)).toThrow("Missing KV cache row");
+  });
+
+  test("throws when the presets container is missing", () => {
+    loadDom();
+    dataSlot("presets").remove();
+    expect(() => mountCalculator(document)).toThrow("Missing presets container");
   });
 
   test("throws when a required header status slot is missing", () => {
@@ -1211,6 +1218,105 @@ describe("sanitizeNumberInput", () => {
     input.value = "100000000";
     sanitizeNumberInput(input);
     expect(input.value).toBe("99999999");
+  });
+});
+
+/**
+ Return the preset chip buttons rendered into the presets group.
+@returns preset chip buttons in DOM order
+*/
+function presetChips(): HTMLButtonElement[] {
+  return [
+    ...dataSlot("presets").querySelectorAll<HTMLButtonElement>("button"),
+  ];
+}
+
+/**
+ Click a preset chip by its visible label.
+@param label - the chip's text label
+*/
+function clickPreset(label: string): void {
+  const chip = presetChips().find((button) => button.textContent === label);
+  if (chip === undefined) {
+    throw new TypeError(`Missing preset chip: ${label}`);
+  }
+  chip.click();
+}
+
+describe("model presets", () => {
+  test("renders a non-submitting chip for every catalog entry", () => {
+    loadDom();
+    mountCalculator(document);
+    const chips = presetChips();
+
+    expect(chips.map((chip) => chip.textContent)).toEqual(
+      MODEL_PRESETS.map((preset) => preset.label),
+    );
+    expect(chips.map((chip) => chip.dataset.preset)).toEqual(
+      MODEL_PRESETS.map((preset) => preset.id),
+    );
+    for (const chip of chips) {
+      // type="button" keeps a chip from submitting the reactive form.
+      expect(chip.type).toBe("button");
+    }
+  });
+
+  test("loads a dense model deployment into the form and estimate on click", () => {
+    loadDom();
+    mountCalculator(document);
+
+    clickPreset("Llama 70B");
+
+    expect(field("total-params").value).toBe("70");
+    expect(field("workload-family").value).toBe("text_generation");
+    expect(field("precision").value).toBe("16-bit");
+    expect(field("moe-enabled")).toHaveProperty("checked", false);
+    expect(out("total")).toBe("166.2 GB");
+    expect(dataSlot("status-model").textContent).toBe("70B");
+    expect(out("gpu-class")).toContain("memory sharding");
+  });
+
+  test("loads a mixture-of-experts preset with its active parameters", () => {
+    loadDom();
+    mountCalculator(document);
+
+    clickPreset("Mixtral");
+
+    const moe = field("moe-enabled");
+    expect(moe).toHaveProperty("checked", true);
+    expect(field("total-params").value).toBe("46.7");
+    expect(field("active-params").value).toBe("12.9");
+    expect(isRowHidden("active-params")).toBe(false);
+    expect(dataSlot("status-model").textContent).toBe("46.7B MoE");
+    expect(out("total")).toBe("112.4 GB");
+  });
+
+  test("applies a preset without submitting or navigating the form", () => {
+    loadDom();
+    mountCalculator(document);
+    let submitCount = 0;
+    inputsForm().addEventListener("submit", (event) => {
+      event.preventDefault();
+      submitCount += 1;
+    });
+
+    clickPreset("Gemma 2B");
+
+    expect(submitCount).toBe(0);
+    expect(field("total-params").value).toBe("2");
+    expect(out("total")).toBe("7.3 GB");
+  });
+
+  test("reset clears a loaded preset back to the empty estimate", () => {
+    loadDom();
+    mountCalculator(document);
+    clickPreset("Llama 8B");
+    expect(out("total")).toBe("21.3 GB");
+
+    requireButton().click();
+
+    expect(field("total-params").value).toBe("0");
+    expect(out("total")).toBe("0.0 GB");
   });
 });
 

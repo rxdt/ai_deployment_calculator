@@ -41,6 +41,23 @@ function compactRows(
 }
 
 /**
+
+@param label
+@param value
+*/
+function requiredRow(label: string, value: number): DisplayRow {
+  return { label, value: formatGb(value) };
+}
+
+/**
+
+@param value
+*/
+function multiplierRow(value: number): DisplayRow {
+  return { label: "Buffer multiplier", value: `${value.toFixed(2)}x` };
+}
+
+/**
  
 @param state
 */
@@ -80,24 +97,39 @@ function weightsLabel(state: Readonly<FormState>): string {
 }
 
 /**
- 
+Return the symbolic formula shown separately from substituted values.
+*/
+function formulaText(): string {
+  return "Required_GB = (Weights_GB + Working_Memory_GB + Training_State_GB + Runtime_Overhead_GB) * Buffer; Safety_Buffer_GB = Base_GB * (Buffer - 1)";
+}
+
+/**
+
 @param breakdown
-@param required
 @param buffer
 */
-function formulaText(
+function calculationRows(
   breakdown: Readonly<MemoryBreakdown>,
-  required: number,
   buffer: number,
-): string {
+): DisplayRow[] {
   const working = breakdown.kvCacheGb + breakdown.inputActivationGb;
-  const terms = [
-    `Weights_GB ${formatGb(breakdown.weightsGb)}`,
-    `Working_Memory_GB ${formatGb(working)}`,
-    `Training_State_GB ${formatGb(breakdown.trainingStateGb)}`,
-    `Runtime_Overhead_GB ${formatGb(breakdown.runtimeOverheadGb)}`,
-  ].join(" + ");
-  return `Required_GB = (${terms}) * Buffer ${buffer.toFixed(2)} = ${formatGb(required)}; Safety_Buffer_GB = ${formatGb(breakdown.safetyBufferGb)}`;
+  const base =
+    breakdown.weightsGb +
+    working +
+    breakdown.trainingStateGb +
+    breakdown.runtimeOverheadGb;
+  return [
+    requiredRow("Weights_GB (model memory)", breakdown.weightsGb),
+    requiredRow("Context memory", breakdown.kvCacheGb),
+    requiredRow("Activation memory", breakdown.inputActivationGb),
+    requiredRow("Working_Memory_GB subtotal", working),
+    requiredRow("Training_State_GB", breakdown.trainingStateGb),
+    requiredRow("Runtime_Overhead_GB", breakdown.runtimeOverheadGb),
+    requiredRow("Base_GB before buffer", base),
+    multiplierRow(buffer),
+    requiredRow("Safety_Buffer_GB", breakdown.safetyBufferGb),
+    requiredRow("Required_GB", breakdown.requiredGb),
+  ];
 }
 
 /**
@@ -135,8 +167,9 @@ export function buildReport(state: Readonly<FormState>): ReportPayload {
       row("Runtime reserve", breakdown.runtimeOverheadGb),
       row("Safety margin", breakdown.safetyBufferGb),
     ]),
+    calculationRows: calculationRows(breakdown, spec.runtime.buffer),
     assumptions: assumptionRows(state, spec),
     warnings,
-    calculation: formulaText(breakdown, required, spec.runtime.buffer),
+    calculation: formulaText(),
   };
 }

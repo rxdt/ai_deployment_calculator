@@ -501,7 +501,7 @@ describe("mounted calculator", () => {
     );
     expect(out("min-cap")).toBe("22.4 GB");
     expect(out("speed")).toMatch(/tokens\/sec$/u);
-    expect(outSlot("breakdown").children).toHaveLength(5);
+    expect(outSlot("calculation-rows").children).toHaveLength(10);
   });
 
   test("renders reset as the only form action because estimates are reactive", () => {
@@ -536,7 +536,7 @@ describe("mounted calculator", () => {
     loadDom();
     mountCalculator(document);
     const whyPanel = containingDetails(outSlot("why"));
-    const calculationPanel = containingDetails(outSlot("breakdown"));
+    const calculationPanel = containingDetails(outSlot("calculation-rows"));
     const formulaPanel = containingDetails(outSlot("calc-formula"));
     const assumptionsPanel = containingDetails(outSlot("assumptions"));
     const summaries = [
@@ -592,7 +592,7 @@ describe("mounted calculator", () => {
       "usable-on-class",
       "fit-headroom",
       "speed",
-      "breakdown",
+      "calculation-rows",
       "calc-formula",
       "assumptions",
     ];
@@ -612,8 +612,10 @@ describe("mounted calculator", () => {
     expect(out("usable-on-class")).toBe("20.4 GB");
     expect(out("fit-headroom")).toBe("1.4 GB usable margin");
     expect(out("speed")).toMatch(/tokens\/sec$/u);
-    expect(out("breakdown")).toContain("Model memory");
-    expect(out("calc-formula")).toContain("Required_GB");
+    expect(out("calculation-rows")).toContain("Required_GB");
+    expect(out("calculation-rows")).toContain("19.0 GB");
+    expect(out("calc-formula")).toContain("Working_Memory_GB");
+    expect(out("calc-formula")).not.toContain("19.0 GB");
     expect(out("assumptions")).toContain("Precision16-bit");
     for (const name of detailSlots) {
       expect(containingDetails(outSlot(name)).open).toBe(false);

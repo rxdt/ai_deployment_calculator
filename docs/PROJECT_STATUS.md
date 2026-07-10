@@ -2,19 +2,23 @@
 
 ## State
 
-- Branch: `main`; HEAD before this iteration: `53ec216`.
-- This iteration added a responsive browser regression proving document width
-  does not overflow the viewport in default, long workload-name, and expanded
-  advanced-assumptions states.
-- `specs/frontend.md` now marks the responsive Playwright coverage and
-  collapsed one-viewport contract complete.
+- Branch: `main`; HEAD before this iteration: `c06cd9e`.
+- This iteration separated result math UX: `Calculation used` now renders
+  ordered substituted rows, while `Formula used` stays symbolic.
+- `specs/frontend.md` was condensed to current frontend truth and marks the
+  calculation/formula distinction complete.
+- Raw calculator-reference HTML snippets were converted into valid distilled
+  notes at the same paths.
 
 ## Checks
 
+- Focused unit tests passed:
+  `pnpm --dir frontend exec vitest run src/report.test.ts src/app.test.ts --config ../harness/vitest.config.js`.
 - Focused browser suite passed:
-  `pnpm --prefix frontend run test:e2e -- responsive.spec.ts` passed 186 tests.
-- Preflight: `pnpm preflight` passed.
-- Final gate: `pnpm gate` is RED only on forbidden harness-owned
+  `pnpm --prefix frontend run test:e2e -- calculator.spec.ts` passed 186 tests.
+- `pnpm preflight` passed after converting raw reference HTML and fixing one
+  local JSDoc issue.
+- Final `pnpm gate` is RED only on forbidden harness-owned
   `harness/cli.test.ts:798`; format, lint, style, html, typecheck,
   harnessTypes, schema, cruise, deadcode, spelling, workflow, sast, secrets,
   audit, build, e2e, and Lighthouse passed.
@@ -29,5 +33,5 @@
 
 ## Next
 
-- Remove excess lines from `specs/frontend.md` after reviewing `plan.md` and the codebase to determine what is done and what remains.
-- Continue remaining visual-polish items in `specs/frontend.md`.
+- Continue remaining visual polish in `specs/frontend.md`.
+- Fix the harness-owned preset assertion, then rerun `pnpm gate`.

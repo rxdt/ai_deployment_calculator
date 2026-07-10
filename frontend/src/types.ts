@@ -80,6 +80,7 @@ export interface ReportPayload {
   readonly minimumRawVramNeeded: string;
   readonly speed: string;
   readonly breakdown: readonly DisplayRow[];
+  readonly calculationRows: readonly DisplayRow[];
   readonly assumptions: readonly DisplayRow[];
   readonly warnings: readonly string[];
   readonly calculation: string;

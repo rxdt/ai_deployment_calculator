@@ -38,9 +38,21 @@ describe("buildReport", () => {
       expect.objectContaining({ label: "Task overhead" }),
     );
     expect(report.calculation).toBe(
-      "Required_GB = (Weights_GB 16.0 GB + Working_Memory_GB 1.8 GB + Training_State_GB 0.0 GB + Runtime_Overhead_GB 1.5 GB) * Buffer 1.10 = 21.3 GB; Safety_Buffer_GB = 1.9 GB",
+      "Required_GB = (Weights_GB + Working_Memory_GB + Training_State_GB + Runtime_Overhead_GB) * Buffer; Safety_Buffer_GB = Base_GB * (Buffer - 1)",
     );
     expect(report.calculation).not.toContain("Task_Overhead");
+    expect(report.calculationRows).toEqual([
+      { label: "Weights_GB (model memory)", value: "16.0 GB" },
+      { label: "Context memory", value: "1.0 GB" },
+      { label: "Activation memory", value: "0.8 GB" },
+      { label: "Working_Memory_GB subtotal", value: "1.8 GB" },
+      { label: "Training_State_GB", value: "0.0 GB" },
+      { label: "Runtime_Overhead_GB", value: "1.5 GB" },
+      { label: "Base_GB before buffer", value: "19.3 GB" },
+      { label: "Buffer multiplier", value: "1.10x" },
+      { label: "Safety_Buffer_GB", value: "1.9 GB" },
+      { label: "Required_GB", value: "21.3 GB" },
+    ]);
   });
 
   test("sizes a 47B MoE high-context high-concurrency server stress case", () => {
@@ -71,8 +83,11 @@ describe("buildReport", () => {
       { label: "Runtime reserve", value: "1.5 GB" },
       { label: "Safety margin", value: "7.2 GB" },
     ]);
-    expect(report.calculation).toBe(
-      "Required_GB = (Weights_GB 27.0 GB + Working_Memory_GB 43.3 GB + Training_State_GB 0.0 GB + Runtime_Overhead_GB 1.5 GB) * Buffer 1.10 = 79.0 GB; Safety_Buffer_GB = 7.2 GB",
+    expect(report.calculationRows).toEqual(
+      expect.arrayContaining([
+        { label: "Working_Memory_GB subtotal", value: "43.3 GB" },
+        { label: "Required_GB", value: "79.0 GB" },
+      ]),
     );
   });
 
@@ -267,6 +282,7 @@ describe("buildReport", () => {
         "assumptions",
         "breakdown",
         "calculation",
+        "calculationRows",
         "minimumRawVramNeeded",
         "recommendedHardware",
         "speed",

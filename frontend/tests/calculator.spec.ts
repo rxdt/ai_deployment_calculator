@@ -23,6 +23,32 @@ async function expectReportRows(
 }
 
 /**
+Assert selected label/value rows rendered inside a report list.
+@param page Browser page.
+@param slot Output slot name.
+@param rows Expected label/value pairs.
+*/
+async function expectReportRowsContaining(
+  page: Page,
+  slot: string,
+  rows: readonly [string, string][],
+): Promise<void> {
+  const values = await page
+    .locator(`[data-out="${slot}"] li`)
+    .evaluateAll((items) =>
+      items.map((item) => {
+        const [labelNode, valueNode] = item.children;
+        const label = labelNode?.textContent ?? "";
+        const value = valueNode?.textContent ?? "";
+        return [label, value] as const;
+      }),
+    );
+  for (const row of rows) {
+    expect(values).toContainEqual(row);
+  }
+}
+
+/**
 Assert the retired confidence output is absent without targeting unlisted selectors.
 @param page Browser page.
 */
@@ -56,7 +82,7 @@ interface BrowserCalculationCase {
   readonly total: string;
   readonly gpuClass: string;
   readonly minimumRawVram: string;
-  readonly breakdown: readonly [string, string][];
+  readonly calculationRows: readonly [string, string][];
   readonly assumptions: readonly [string, string][];
 }
 
@@ -71,12 +97,13 @@ const CANONICAL_BROWSER_CASES = [
     total: "113.1 GB",
     gpuClass: "141 GB GPU hardware tier",
     minimumRawVram: "133.1 GB",
-    breakdown: [
-      ["Model memory", "94.0 GB"],
+    calculationRows: [
+      ["Weights_GB (model memory)", "94.0 GB"],
       ["Context memory", "2.6 GB"],
       ["Activation memory", "4.7 GB"],
-      ["Runtime reserve", "1.5 GB"],
-      ["Safety margin", "10.3 GB"],
+      ["Runtime_Overhead_GB", "1.5 GB"],
+      ["Safety_Buffer_GB", "10.3 GB"],
+      ["Required_GB", "113.1 GB"],
     ],
     assumptions: [
       ["Precision", "16-bit"],
@@ -99,12 +126,13 @@ const CANONICAL_BROWSER_CASES = [
     total: "21.0 GB",
     gpuClass: "48 GB GPU hardware tier",
     minimumRawVram: "26.3 GB",
-    breakdown: [
-      ["QLoRA base model memory", "4.6 GB"],
+    calculationRows: [
+      ["Weights_GB (model memory)", "4.6 GB"],
       ["Activation memory", "6.3 GB"],
-      ["Training memory", "1.9 GB"],
-      ["Runtime reserve", "4.0 GB"],
-      ["Safety margin", "4.2 GB"],
+      ["Training_State_GB", "1.9 GB"],
+      ["Runtime_Overhead_GB", "4.0 GB"],
+      ["Safety_Buffer_GB", "4.2 GB"],
+      ["Required_GB", "21.0 GB"],
     ],
     assumptions: [
       ["Precision", "4-bit"],
@@ -123,12 +151,13 @@ const CANONICAL_BROWSER_CASES = [
     total: "152.9 GB",
     gpuClass: "No single-GPU fit. Enable memory sharding or use offload.",
     minimumRawVram: "191.1 GB",
-    breakdown: [
-      ["Model memory", "14.0 GB"],
+    calculationRows: [
+      ["Weights_GB (model memory)", "14.0 GB"],
       ["Activation memory", "6.3 GB"],
-      ["Training memory", "98.0 GB"],
-      ["Runtime reserve", "4.0 GB"],
-      ["Safety margin", "30.6 GB"],
+      ["Training_State_GB", "98.0 GB"],
+      ["Runtime_Overhead_GB", "4.0 GB"],
+      ["Safety_Buffer_GB", "30.6 GB"],
+      ["Required_GB", "152.9 GB"],
     ],
     assumptions: [
       ["Precision", "16-bit"],
@@ -153,11 +182,12 @@ const CANONICAL_BROWSER_CASES = [
     total: "79.2 GB",
     gpuClass: "141 GB GPU hardware tier",
     minimumRawVram: "88.0 GB",
-    breakdown: [
-      ["Model memory", "52.0 GB"],
+    calculationRows: [
+      ["Weights_GB (model memory)", "52.0 GB"],
       ["Context memory", "25.2 GB"],
       ["Activation memory", "1.6 GB"],
-      ["Runtime reserve", "0.5 GB"],
+      ["Runtime_Overhead_GB", "0.5 GB"],
+      ["Required_GB", "79.2 GB"],
     ],
     assumptions: [
       ["Precision", "4-bit"],
@@ -218,7 +248,9 @@ test("renders the default deployment computed locally", async ({ page }) => {
   );
   await expect(page.locator('[data-out="min-cap"]')).toHaveText("22.4 GB");
   await expect(page.locator('[data-out="speed"]')).toContainText("tokens/sec");
-  await expect(page.locator('[data-out="breakdown"] li')).toHaveCount(5);
+  await expect(page.locator('[data-out="calculation-rows"] li')).toHaveCount(
+    10,
+  );
 });
 
 test("renders the default 7B estimate consistently across the full report", async ({
@@ -252,17 +284,22 @@ test("renders the default 7B estimate consistently across the full report", asyn
   );
 
   await page.getByText("Calculation used").click();
-  await expectReportRows(page, "breakdown", [
-    ["Model memory", "14.0 GB"],
+  await expectReportRows(page, "calculation-rows", [
+    ["Weights_GB (model memory)", "14.0 GB"],
     ["Context memory", "1.0 GB"],
     ["Activation memory", "0.7 GB"],
-    ["Runtime reserve", "1.5 GB"],
-    ["Safety margin", "1.7 GB"],
+    ["Working_Memory_GB subtotal", "1.7 GB"],
+    ["Training_State_GB", "0.0 GB"],
+    ["Runtime_Overhead_GB", "1.5 GB"],
+    ["Base_GB before buffer", "17.2 GB"],
+    ["Buffer multiplier", "1.10x"],
+    ["Safety_Buffer_GB", "1.7 GB"],
+    ["Required_GB", "19.0 GB"],
   ]);
 
   await page.getByText("Formula used").click();
   await expect(page.locator('[data-out="calc-formula"]')).toHaveText(
-    "Required_GB = (Weights_GB 14.0 GB + Working_Memory_GB 1.7 GB + Training_State_GB 0.0 GB + Runtime_Overhead_GB 1.5 GB) * Buffer 1.10 = 19.0 GB; Safety_Buffer_GB = 1.7 GB",
+    "Required_GB = (Weights_GB + Working_Memory_GB + Training_State_GB + Runtime_Overhead_GB) * Buffer; Safety_Buffer_GB = Base_GB * (Buffer - 1)",
   );
 
   await page.getByText("Assumptions used").click();
@@ -301,7 +338,11 @@ for (const scenario of CANONICAL_BROWSER_CASES) {
     );
 
     await page.getByText("Calculation used").click();
-    await expectReportRows(page, "breakdown", scenario.breakdown);
+    await expectReportRowsContaining(
+      page,
+      "calculation-rows",
+      scenario.calculationRows,
+    );
 
     await page.getByText("Assumptions used").click();
     await expectReportRows(page, "assumptions", scenario.assumptions);
@@ -350,7 +391,7 @@ test("keeps secondary math hidden until detail panels expand", async ({
     "usable-on-class",
     "fit-headroom",
     "speed",
-    "breakdown",
+    "calculation-rows",
     "calc-formula",
     "assumptions",
   ]) {
@@ -365,8 +406,10 @@ test("keeps secondary math hidden until detail panels expand", async ({
   await expect(page.locator('[data-out="fit-headroom"]')).toBeVisible();
 
   await page.getByText("Calculation used").click();
-  await expect(page.locator('[data-out="breakdown"]')).toBeVisible();
-  await expect(page.locator('[data-out="breakdown"] li')).toHaveCount(5);
+  await expect(page.locator('[data-out="calculation-rows"]')).toBeVisible();
+  await expect(page.locator('[data-out="calculation-rows"] li')).toHaveCount(
+    10,
+  );
 
   await page.getByText("Formula used").click();
   await expect(page.locator('[data-out="calc-formula"]')).toBeVisible();

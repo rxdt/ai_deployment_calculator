@@ -300,6 +300,14 @@ describe("CalculatorApp construction", () => {
     expect(() => mountCalculator(document)).toThrow("Missing KV cache row");
   });
 
+  test("throws when a required header status slot is missing", () => {
+    loadDom();
+    dataSlot("status-model").remove();
+    expect(() => mountCalculator(document)).toThrow(
+      "Missing data slot: status-model",
+    );
+  });
+
   test("throws when a required synchronized form control is missing", () => {
     loadDom();
     field("precision").remove();
@@ -741,6 +749,36 @@ describe("mounted calculator", () => {
     expect(out("usable-on-class")).not.toBe("");
     expect(out("fit-headroom")).not.toBe("");
     expect(out("why")).toContain("advertised VRAM");
+  });
+});
+
+describe("header status strip", () => {
+  test("renders a compact summary for the default estimate", () => {
+    loadDom();
+    mountCalculator(document);
+
+    expect(dataSlot("status-model").textContent).toBe("7B");
+    expect(dataSlot("status-mode").textContent).toBe("INFERENCE");
+    expect(dataSlot("status-precision").textContent).toBe("16-BIT");
+    expect(dataSlot("status-fit").textContent).toBe("24 GB");
+  });
+
+  test("updates model, mode, precision, and fit after input changes", () => {
+    loadDom();
+    mountCalculator(document);
+
+    fireInput("total-params", "104");
+    fireChange("execution-mode", "QLoRA fine-tuning");
+    const moe = field("moe-enabled");
+    if (moe instanceof HTMLInputElement) {
+      moe.checked = true;
+    }
+    moe.dispatchEvent(new Event("change", { bubbles: true }));
+
+    expect(dataSlot("status-model").textContent).toBe("104B MoE");
+    expect(dataSlot("status-mode").textContent).toBe("QLORA");
+    expect(dataSlot("status-precision").textContent).toBe("4-BIT");
+    expect(dataSlot("status-fit").textContent).toBe("multi-GPU");
   });
 });
 

@@ -1,3 +1,9 @@
+import {
+  dataSlot,
+  searchFromForm,
+  setHiddenWithControls,
+  toStateKey,
+} from "./app-dom";
 import { buildReport } from "./report";
 import { sanitizeNumberInput } from "./input-sanitizer";
 import {
@@ -8,118 +14,13 @@ import {
   whyText,
 } from "./result-format";
 import { normalizedState, zeroState } from "./state";
+import {
+  statusFitLabel,
+  statusModeLabel,
+  statusModelLabel,
+} from "./status-format";
 import type { DisplayRow, FormState, ReportPayload } from "./types";
 import { hasDecoderKvCache, hasMoeControl } from "./workload-visibility";
-
-/**
- Convert a kebab-case wire name (HTML `name` attribute) to the camelCase
- FormState key used internally.
-@param name - kebab-case wire name
-@returns the camelCase state key
-*/
-function toStateKey(name: string): string {
-  return name.replaceAll(/-([a-z])/gu, (fullMatch, c: string) =>
-    fullMatch.slice(-c.length).toUpperCase(),
-  );
-}
-
-/**
-
-@param element
-*/
-function selectEntry(element: HTMLSelectElement): [string, string] | null {
-  if (element.disabled) {
-    return null;
-  }
-  return [element.name, element.value];
-}
-
-/**
-
-@param element
-*/
-function inputEntry(element: HTMLInputElement): [string, string] | null {
-  if (element.disabled) {
-    return null;
-  }
-  if (element.type === "checkbox") {
-    return element.checked ? [element.name, "on"] : null;
-  }
-  return [element.name, element.value];
-}
-
-/**
-
-@param element
-*/
-function controlEntry(element: Element): [string, string] | null {
-  if (element instanceof HTMLSelectElement) {
-    return selectEntry(element);
-  }
-  if (element instanceof HTMLInputElement) {
-    return inputEntry(element);
-  }
-  return null;
-}
-
-/**
-
-@param form
-*/
-function searchFromForm(form: HTMLFormElement): URLSearchParams {
-  const search = new URLSearchParams();
-  for (const element of form.elements) {
-    const entry = controlEntry(element);
-    if (entry !== null) {
-      search.set(entry[0], entry[1]);
-    }
-  }
-  return search;
-}
-
-/**
-Look up an element by its data-slot value.
-@param root - DOM root to search
-@param name - data-slot value
-*/
-function dataSlot(root: ParentNode, name: string): HTMLElement | null {
-  for (const node of root.querySelectorAll<HTMLElement>("[data-slot]")) {
-    if (node.dataset.slot === name) {
-      return node;
-    }
-  }
-  return null;
-}
-
-/**
-
-@param node
-@param isDisabled
-*/
-function setDescendantControlsDisabled(
-  node: Element,
-  isDisabled: boolean,
-): void {
-  for (const child of node.children) {
-    if (
-      child instanceof HTMLInputElement ||
-      child instanceof HTMLSelectElement
-    ) {
-      child.disabled = isDisabled;
-    }
-    setDescendantControlsDisabled(child, isDisabled);
-  }
-}
-
-/**
-
-@param node
-@param isHidden
-*/
-function setHiddenWithControls(node: HTMLElement, isHidden: boolean): void {
-  node.hidden = isHidden;
-  setDescendantControlsDisabled(node, isHidden);
-}
 
 export class CalculatorApp {
   private readonly root: ParentNode;
@@ -174,7 +75,7 @@ export class CalculatorApp {
   private update(): void {
     const state = normalizedState(searchFromForm(this.form));
     this.syncControls(state);
-    this.render(buildReport(state));
+    this.render(state, buildReport(state));
   }
 
   private reset(
@@ -226,6 +127,24 @@ export class CalculatorApp {
     this.slot(name).textContent = value;
   }
 
+  private setDataSlotText(name: string, value: string): void {
+    const slot = dataSlot(this.root, name);
+    if (slot === null) {
+      throw new Error(`Missing data slot: ${name}`);
+    }
+    slot.textContent = value;
+  }
+
+  private renderStatus(
+    state: Readonly<FormState>,
+    report: Readonly<ReportPayload>,
+  ): void {
+    this.setDataSlotText("status-model", statusModelLabel(state));
+    this.setDataSlotText("status-mode", statusModeLabel(state));
+    this.setDataSlotText("status-precision", state.precision.toUpperCase());
+    this.setDataSlotText("status-fit", statusFitLabel(report));
+  }
+
   // Concrete example cards for the recommended tier are a trust signal, so name
   // them in the reasoning panel; drop the whole row when the tier has none (no
   // model, or an overflow recommendation with no single-card fit).
@@ -274,8 +193,12 @@ export class CalculatorApp {
     }
   }
 
-  private render(report: Readonly<ReportPayload>): void {
+  private render(
+    state: Readonly<FormState>,
+    report: Readonly<ReportPayload>,
+  ): void {
     const fit = report.recommendedHardware;
+    this.renderStatus(state, report);
     this.setText("total", report.totalRequiredMemory);
     this.setText(
       "vram-say",

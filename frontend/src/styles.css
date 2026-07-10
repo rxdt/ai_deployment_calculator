@@ -19,6 +19,7 @@
   --font-heading: 1.375rem;
   --font-hero: 1.5rem;
   --font-hero-small: 1.125rem;
+  --font-status: 0.625rem;
   --font-line-body: 1.25;
   --font-line-heading: 1.05;
   --font-line-solid: 1;
@@ -142,7 +143,8 @@ a {
   background: var(--color-topbar);
 }
 
-.topnav {
+.topnav,
+.topstatus {
   min-width: 0;
 }
 
@@ -171,6 +173,43 @@ summary {
   align-items: center;
   gap: var(--space-sm);
   text-decoration: none;
+}
+
+.topstatus {
+  flex: 1 1 auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs) var(--space-lg);
+  font-family: var(--font-mono);
+  font-size: var(--font-status);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--font-line-body);
+}
+
+.status-item {
+  min-width: 0;
+  display: inline-flex;
+  gap: var(--space-xs);
+  align-items: baseline;
+  white-space: nowrap;
+}
+
+.status-item span {
+  color: var(--color-muted);
+}
+
+.status-item span::before {
+  color: var(--color-border);
+  content: ">";
+  margin-inline-end: var(--space-xs);
+}
+
+.status-item strong {
+  min-width: 0;
+  color: var(--color-primary);
+  font-weight: var(--font-weight-bold);
 }
 
 .topnav span,

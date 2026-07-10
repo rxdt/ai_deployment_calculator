@@ -14,6 +14,21 @@
     <div class="app">
       <header class="topbar">
         <span class="brand" data-slot="brand">~VRAM-calculator</span>
+        <div class="topstatus">
+          <span class="status-item">
+            <span>MODEL</span><strong data-slot="status-model">7B</strong>
+          </span>
+          <span class="status-item">
+            <span>MODE</span><strong data-slot="status-mode">INFERENCE</strong>
+          </span>
+          <span class="status-item">
+            <span>PRECISION</span
+            ><strong data-slot="status-precision">16-BIT</strong>
+          </span>
+          <span class="status-item">
+            <span>FIT</span><strong data-slot="status-fit">24 GB</strong>
+          </span>
+        </div>
         <nav class="topnav">
           <a
             href="https://github.com/rxdt/ai_deployment_calculator/"

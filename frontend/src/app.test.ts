@@ -759,6 +759,24 @@ describe("QLoRA precision switching", () => {
     expect(field("total-params").value).toBe("0");
     expect(out("total")).toBe("0.0 GB");
   });
+
+  test("a bare precision change event also exits QLoRA to an inference deployment", () => {
+    loadDom();
+    mountCalculator(document);
+
+    fireInput("total-params", "8");
+    fireChange("execution-mode", "QLoRA fine-tuning");
+    expect(field("precision").value).toBe("4-bit");
+
+    // Some engines emit a change without a preceding input; the change listener
+    // must run the same QLoRA-exit guard rather than leaving a stale base state.
+    fireChange("precision", "16-bit");
+
+    expect(field("execution-mode").value).toBe("Inference");
+    expect(field("precision").value).toBe("16-bit");
+    expect(field("total-params").value).toBe("0");
+    expect(out("total")).toBe("0.0 GB");
+  });
 });
 
 describe("adaptive controls", () => {

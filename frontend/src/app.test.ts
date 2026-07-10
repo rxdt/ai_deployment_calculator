@@ -283,6 +283,12 @@ describe("CalculatorApp construction", () => {
     );
   });
 
+  test("throws when the fit meter slot is missing", () => {
+    loadDom();
+    dataSlot("fit-meter").remove();
+    expect(() => mountCalculator(document)).toThrow("Missing fit meter");
+  });
+
   test("throws when the row template lacks slots", () => {
     loadDom();
     const template = dataSlot("row-template");
@@ -502,7 +508,9 @@ describe("mounted calculator", () => {
     loadDom();
     mountCalculator(document);
     expect(out("total")).toBe("19.0 GB");
-    expect(out("vram-say")).toBe("The workload needs 19.0 GB usable VRAM.");
+    expect(out("vram-say")).toBe(
+      "Fits a 24 GB card with 1.4 GB usable headroom (7% spare).",
+    );
     expect(out("gpu-class")).toBe("24 GB GPU hardware tier");
     expect(dataSlot("gpu-class-label").textContent.trim()).toBe(
       "Recommended GPU Class",
@@ -606,7 +614,9 @@ describe("mounted calculator", () => {
     ];
 
     expect(out("total")).toBe("19.0 GB");
-    expect(out("vram-say")).toBe("The workload needs 19.0 GB usable VRAM.");
+    expect(out("vram-say")).toBe(
+      "Fits a 24 GB card with 1.4 GB usable headroom (7% spare).",
+    );
     expect(out("gpu-class")).toBe("24 GB GPU hardware tier");
     for (const name of firstGlanceSlots) {
       expect(() => containingDetails(outSlot(name))).toThrow(
@@ -749,6 +759,37 @@ describe("mounted calculator", () => {
     expect(out("usable-on-class")).not.toBe("");
     expect(out("fit-headroom")).not.toBe("");
     expect(out("why")).toContain("advertised VRAM");
+  });
+});
+
+describe("hero fit meter", () => {
+  test("shows a fit meter summarizing spare VRAM on the recommended class", () => {
+    loadDom();
+    mountCalculator(document);
+    const meter = dataSlot("fit-meter");
+    if (!(meter instanceof HTMLMeterElement)) {
+      throw new TypeError("Missing fit meter");
+    }
+
+    expect(meter.hidden).toBe(false);
+    expect(meter.value).toBe(93);
+    expect(out("vram-say")).toBe(
+      "Fits a 24 GB card with 1.4 GB usable headroom (7% spare).",
+    );
+  });
+
+  test("hides the fit meter and states the raw need when no class fits", () => {
+    loadDom();
+    mountCalculator(document);
+    fireInput("total-params", "400");
+    const meter = dataSlot("fit-meter");
+    if (!(meter instanceof HTMLMeterElement)) {
+      throw new TypeError("Missing fit meter");
+    }
+
+    expect(meter.hidden).toBe(true);
+    expect(meter.value).toBe(0);
+    expect(out("vram-say")).toMatch(/^The workload needs .* usable VRAM\.$/u);
   });
 });
 

@@ -1,4 +1,9 @@
-import type { ReportPayload } from "./types";
+import type { HardwareRecommendation, ReportPayload } from "./types";
+
+export interface FitMeter {
+  readonly fillPercent: number;
+  readonly summary: string;
+}
 
 /**
 Drop the ", e.g. ..." example suffix from a recommended-tier string.
@@ -71,6 +76,48 @@ export function whyText(report: Readonly<ReportPayload>): string {
     return `At an ${fit.usableVramTarget} usable VRAM target, ${report.totalRequiredMemory} requires a sharded GPU pool with at least ${report.minimumRawVramNeeded} aggregate advertised VRAM. The next common sharded class is ${capacity}.`;
   }
   return `At an ${fit.usableVramTarget} usable VRAM target, ${report.totalRequiredMemory} requires a GPU with at least ${report.minimumRawVramNeeded} advertised VRAM. The next common class is ${capacity}.`;
+}
+
+/**
+Parse a leading "N.N GB" measurement from a formatted value.
+@param value - a formatted memory string such as "20.4 GB" or "n/a"
+@returns the numeric gigabytes, or null when the value carries no measurement
+*/
+function leadingGb(value: string): number | null {
+  const match = /^(\d+\.\d+) GB/u.exec(value);
+  return match === null ? null : Number(match[1]);
+}
+
+/**
+Summarize how much of the recommended GPU class the workload consumes so the
+hero can show an at-a-glance fit meter. Returns null when there is no concrete
+single-class fit to measure (no model loaded, or an overflow recommendation
+whose usable VRAM on class is "n/a").
+@param fit - the computed hardware recommendation
+@returns the meter fill percent and a plain-language fit summary, or null
+*/
+export function fitMeter(
+  fit: Readonly<HardwareRecommendation>,
+): FitMeter | null {
+  const usable = leadingGb(fit.usableVramOnClass);
+  const required = leadingGb(fit.requiredMemory);
+  const capacity = leadingCapacity(shortHardwareClass(fit.recommendedTier));
+  if (usable === null || usable <= 0 || required === null || capacity === "") {
+    return null;
+  }
+  const fillPercent = Math.min(
+    100,
+    Math.max(0, Math.round((required / usable) * 100)),
+  );
+  const sparePercent = 100 - fillPercent;
+  const headroom = fit.fitHeadroom.replace(" usable margin", "");
+  const surface = fit.recommendedTier.includes("sharded")
+    ? `${capacity} sharded pool`
+    : `${capacity} card`;
+  return {
+    fillPercent,
+    summary: `Fits a ${surface} with ${headroom} usable headroom (${sparePercent.toString()}% spare).`,
+  };
 }
 
 /**

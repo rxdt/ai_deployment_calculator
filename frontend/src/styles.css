@@ -506,6 +506,38 @@ summary,
   font-size: var(--font-hero-small);
 }
 
+.hero-fit {
+  min-width: 0;
+  display: grid;
+  gap: var(--space-xs);
+}
+
+/* Fit meter: a slim usage bar reading the recommended class as a budget the
+   workload consumes. Green primary is the fit/health signal per the design
+   spec; the exact spare figures live in the adjacent caption. */
+.fit-meter {
+  appearance: none;
+  inline-size: 100%;
+  block-size: var(--space-sm);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: var(--color-input);
+}
+
+.fit-meter::-webkit-meter-bar {
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: var(--color-input);
+}
+
+.fit-meter::-webkit-meter-optimum-value {
+  background: var(--color-primary);
+}
+
+.fit-meter::-moz-meter-bar {
+  background: var(--color-primary);
+}
+
 .panel--wide {
   grid-column: 1 / -1;
 }

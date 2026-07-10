@@ -25,13 +25,19 @@ linted `specs/` tree; reference it there and do not commit it as source. Use it 
 - [x] Header shows a compact live model/mode/precision/fit summary.
 - [x] Expanded result detail rows keep labels/values aligned within the current
       responsive overflow contract; warning rows stay readable as prose.
+- [x] The hero shows an at-a-glance fit meter: a slim green usage bar plus a
+      plain-language "Fits a N GB card with N GB usable headroom (N% spare)"
+      caption. The bar hides and the caption falls back to the raw need when no
+      single class fits (no model, overflow, or sharded pool without a fit).
 
 ## Remaining UI Work
 
 - [ ] Final visual pass from the valid reference notes:
       `docs/odoo.html`, `specs/dispel.html`, `specs/groundcover.html`. Focus
-      compact status, and result-row polish are done; continue with only
-      similarly scoped gaps.
+      compact status, result-row polish, and the hero fit meter are done;
+      continue with only similarly scoped gaps. The reference's compact
+      breakdown stat cards (model weights / KV cache / concurrency / spare) and
+      the preset chips remain unbuilt.
 - [x] Cyan remains limited to focus and expanded detail-panel state.
 - [x] Result hero uses compact raised answer cards while preserving hierarchy.
 - [ ] Styling should continue to follow `specs/DESIGN.md`.

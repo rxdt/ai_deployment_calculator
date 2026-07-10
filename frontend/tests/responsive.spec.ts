@@ -388,6 +388,32 @@ test("first glance result hierarchy makes the VRAM answer dominant", async ({
   await expectNoCyanHeroPaint(gpuCard);
 });
 
+/**
+ Ensure the hero fit meter reads the recommended class as a consumed budget and
+ disappears cleanly when no single class can hold the workload.
+*/
+test("hero fit meter shows class usage and hides when nothing fits", async ({
+  page,
+}) => {
+  await page.setViewportSize({ height: 720, width: 1280 });
+  await page.goto("/");
+
+  const meter = page.locator('[data-slot="fit-meter"]');
+  await expect(meter).toBeVisible();
+  await expect(meter).toBeInViewport();
+  await expect(meter).toHaveJSProperty("max", 100);
+  await expect(meter).toHaveJSProperty("value", 93);
+  await expect(page.locator('[data-out="vram-say"]')).toHaveText(
+    "Fits a 24 GB card with 1.4 GB usable headroom (7% spare).",
+  );
+
+  await page.getByLabel("Total Model Parameters").fill("400");
+  await expect(meter).toBeHidden();
+  await expect(page.locator('[data-out="vram-say"]')).toContainText(
+    "usable VRAM",
+  );
+});
+
 test("desktop result detail panels stay compact beneath the answer", async ({
   page,
 }) => {

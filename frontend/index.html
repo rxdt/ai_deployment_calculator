@@ -424,7 +424,18 @@
           <div class="hero" data-slot="hero-total-card">
             <p class="hero-label">Estimated VRAM Required</p>
             <p class="hero-value"><output data-out="total">0.0 GB</output></p>
-            <p class="hero-say" data-out="vram-say"></p>
+            <div class="hero-fit">
+              <meter
+                class="fit-meter"
+                data-slot="fit-meter"
+                min="0"
+                max="100"
+                value="0"
+                aria-label="Usable VRAM budget consumed on the recommended GPU class"
+                hidden
+              ></meter>
+              <p class="hero-say" data-out="vram-say"></p>
+            </div>
           </div>
 
           <div class="hero hero--secondary" data-slot="hero-gpu-card">

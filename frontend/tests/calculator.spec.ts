@@ -261,7 +261,7 @@ test("renders the default 7B estimate consistently across the full report", asyn
 
   await expect(page.locator('[data-out="total"]')).toHaveText("19.0 GB");
   await expect(page.locator('[data-out="vram-say"]')).toHaveText(
-    "The workload needs 19.0 GB usable VRAM.",
+    "Fits a 24 GB card with 1.4 GB usable headroom (7% spare).",
   );
   await expect(page.locator('[data-out="gpu-class"]')).toHaveText(
     "24 GB GPU hardware tier",

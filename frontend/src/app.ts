@@ -7,6 +7,7 @@ import {
 import { buildReport } from "./report";
 import { sanitizeNumberInput } from "./input-sanitizer";
 import {
+  fitMeter,
   formatSpeed,
   gpuExamples,
   recommendedGpuClass,
@@ -19,7 +20,12 @@ import {
   statusModeLabel,
   statusModelLabel,
 } from "./status-format";
-import type { DisplayRow, FormState, ReportPayload } from "./types";
+import type {
+  DisplayRow,
+  FormState,
+  HardwareRecommendation,
+  ReportPayload,
+} from "./types";
 import { hasDecoderKvCache, hasMoeControl } from "./workload-visibility";
 
 export class CalculatorApp {
@@ -156,6 +162,29 @@ export class CalculatorApp {
     );
   }
 
+  // The hero meter turns the answer into an at-a-glance fit signal: how much of
+  // the recommended class the workload consumes. When no single class fits (no
+  // model, or an overflow recommendation) there is nothing to measure, so hide
+  // the bar and keep the plain "needs N GB usable VRAM" sentence instead.
+  private renderFitMeter(
+    report: Readonly<ReportPayload>,
+    fit: Readonly<HardwareRecommendation>,
+  ): void {
+    const meter = fitMeter(fit);
+    const bar = dataSlot(this.root, "fit-meter");
+    if (!(bar instanceof HTMLMeterElement)) {
+      throw new TypeError("Missing fit meter");
+    }
+    bar.hidden = meter === null;
+    bar.value = meter?.fillPercent ?? 0;
+    this.setText(
+      "vram-say",
+      meter === null
+        ? `The workload needs ${report.totalRequiredMemory} usable VRAM.`
+        : meter.summary,
+    );
+  }
+
   private setControlValue(name: string, value: string): void {
     const element = this.form.elements.namedItem(name);
     if (!(
@@ -200,10 +229,7 @@ export class CalculatorApp {
     const fit = report.recommendedHardware;
     this.renderStatus(state, report);
     this.setText("total", report.totalRequiredMemory);
-    this.setText(
-      "vram-say",
-      `The workload needs ${report.totalRequiredMemory} usable VRAM.`,
-    );
+    this.renderFitMeter(report, fit);
     this.setText("gpu-class", recommendedGpuClass(fit.recommendedTier));
     this.renderGpuExamples(gpuExamples(fit.recommendedTier));
     this.setText("why", whyText(report));

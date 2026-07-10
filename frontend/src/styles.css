@@ -245,7 +245,11 @@ summary,
   flex: 1 1 0;
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-sm);
+
+  /* Tight inter-block rhythm (fieldsets keep their own inner field gap). Keeping
+     the major blocks close reclaims the room the preset chip row needs, so the
+     open advanced panel still drops below its summary within one viewport. */
+  gap: var(--space-xs);
   align-content: flex-start;
   overflow: auto;
 }
@@ -446,18 +450,14 @@ summary,
   margin-bottom: var(--space-sm);
 }
 
-/* The open advanced panel floats above its summary rather than dropping below
-   it. The summary sits near the bottom of a full-height input pane, so opening
-   downward pinned the panel's foot to the viewport edge with zero slack; any
-   content added above the summary (e.g. the preset chips) then spilled the
-   panel past the fold and scrolled the page. Anchoring the panel's foot to the
-   summary keeps it inside the viewport no matter what precedes it. */
+/* The open advanced panel drops below its summary as an overlay so it never
+   covers the main controls above it (which tests and users still operate while
+   it is open). The pane reclaims enough vertical rhythm above the summary that
+   the panel's foot stays within one viewport instead of scrolling the page. */
 .advanced[open] .group {
   position: absolute;
-  inset-block-end: 100%;
   z-index: var(--z-disclosure);
   margin-top: 0;
-  margin-bottom: var(--space-xs);
   width: min(100%, var(--layout-advanced-width));
   max-height: var(--layout-advanced-height);
   overflow-y: auto;

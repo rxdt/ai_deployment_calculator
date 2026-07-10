@@ -338,6 +338,13 @@ describe("CalculatorApp construction", () => {
     );
   });
 
+  test("throws when the presets group holds a non-HTML element", () => {
+    loadDom();
+    const stray = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    dataSlot("presets").append(stray);
+    expect(() => mountCalculator(document)).toThrow("Unknown preset chip");
+  });
+
   test("throws when a required header status slot is missing", () => {
     loadDom();
     dataSlot("status-model").remove();

@@ -133,7 +133,6 @@ a {
 
 .brand,
 .hero-label,
-.result-meta strong,
 legend,
 summary {
   font-size: var(--font-body);
@@ -166,7 +165,6 @@ legend,
 summary,
 .hero-label,
 .hero-say,
-.result-meta,
 .metric span,
 .metric strong,
 .fit span,
@@ -345,7 +343,6 @@ summary,
 }
 
 .hero,
-.result-meta,
 .panel,
 .warnings,
 .disclaimer {
@@ -355,8 +352,7 @@ summary,
   background: var(--color-surface);
 }
 
-.hero,
-.result-meta {
+.hero {
   display: grid;
   gap: var(--space-xs);
   padding: var(--space-md);
@@ -364,14 +360,6 @@ summary,
 
 .hero--secondary {
   background: var(--color-raised);
-}
-
-.result-meta {
-  grid-column: 1 / -1;
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-sm);
-  align-items: baseline;
 }
 
 .hero-value {

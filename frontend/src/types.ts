@@ -78,7 +78,6 @@ export interface ReportPayload {
   readonly totalRequiredMemory: string;
   readonly recommendedHardware: HardwareRecommendation;
   readonly minimumRawVramNeeded: string;
-  readonly confidence: string;
   readonly speed: string;
   readonly breakdown: readonly DisplayRow[];
   readonly assumptions: readonly DisplayRow[];

@@ -28,7 +28,7 @@
 - [ ] Bare, minimal styles.css only to get tests passing until typescript/html work is complete.
 - [x] When a checkbox is selected, a styled check or X appears, confirming to the user the calculator is using that input.
 - [x] 'Gradient Checkpointing' and 'Memory Sharding' are actually checkable checkboxes and affect outputs to correct values
-- [x] Main form shows `Workload Family`, `Total Model Parameters`,
+- [x] Main form shows `Model Family`, `Total Model Parameters`,
       `Parameter Unit`, `Precision`, `Execution Mode`, `Runtime Profile`,
       adaptive input controls, adaptive workload size, and relevant `MoE Model`.
 - [x] Rare controls live in `<details><summary>Advanced assumptions</summary>`.
@@ -82,19 +82,7 @@ assert known file size overrides parameter-derived weight estimate
 
 ## Design Direction
 
-Status note (factual, current `HEAD`): `styles.css` is no longer a bare box-sizing
-reset. It is a committed full dark design-system stylesheet whose custom properties match
-`DESIGN.md` (background `#09090B`, secondary text `#A1A1AA`, primary `#22C55E`, cyan signal
-`#67E8F9`, Geist Variable body, JetBrains Mono for metrics/formulas/code) plus component
-layout (topbar, two-pane `layout`, hero, collapsible `panel`/`advanced` details, warnings,
-and a narrow-width media query); the responsive Playwright checks pass. This conflicts with
-items #1–#2 and the "styling deferred" framing above — whether that earlier styling should
-stand or be reverted is a product decision left to the owner. The direction below remains the
-reference for the visual pass; Lighthouse and the responsive Playwright suite both pass against
-the current stylesheet, so the remaining unchecked STYLING items are visual-polish and the
-deferred-vs-committed styling conflict — owner product decisions, not execution-blocked. This
-section describes presentation only — no calculation, markup-structure, or label changes (those
-are fixed above).
+See `specs/DESIGN.md`
 
 Hierarchy:
 
@@ -105,27 +93,15 @@ Hierarchy:
 
 Layout:
 
-- [ ] Desktop: two panes (inputs and results) that fit 1440x900 without page scroll.
-- Narrow widths: a clean single-column flow. Do not force a no-scroll mobile by
+- [ ] Desktop: two panes (inputs and results) that fit without page scroll.
+- [ ] Narrow widths: a clean single-column flow. Do not force a no-scroll mobile by
   cramming; that would be a behavior change.
-
-Color:
-
-- [ ] Near-black background; off-white text; muted gray-green secondary text.
-- [ ] Reserve the bright green accent for the final answer and status; use softer
-      gray-green for labels and borders. Keep any grid/glow subtle.
-
-Spacing and shape:
-
-- [ ]- Panel padding ~24px, card padding ~16px; card radius 12-14px, input/button
-  radius 8px; dominant gaps 16/24px; input min-height ~44-52px.
 
 Accessibility:
 
 - [ ] Preserve every test-pinned accessible name and the `aria-label` regions the
       Playwright suite asserts. The styling pass must keep axe violations at zero and
-      meet the touch-target (>=40px) and readable-text (>=13px) checks in
-      `frontend/tests/responsive.spec.ts`.
+      meet the touch-target checks in `frontend/tests/responsive.spec.ts`.
 
 Responsive standards met:
 
@@ -138,20 +114,11 @@ Responsive standards met:
 
 - [x] First glance hero cards show only `Estimated VRAM Required`, the short
       usable-VRAM line, and `Recommended GPU Class`
-- [x] Confidence output uses the visible label `Confidence`; retired wording is
-      gone from source and app view.
+- [x] `Confidence` is removed from the rendered estimate and report payload.
 - [x] `Recommended GPU Class` is visible (e.g. `24 GB GPU hardware tier`).
 
 ## Tests And Checks
 
-- [x] Default preset `7B` with `19.0 GB` shows correct values in all areas:
-      `frontend/tests/calculator.spec.ts` pins the browser-rendered hero,
-      recommendation math, breakdown rows, formula, assumptions, confidence, and
-      empty default warnings.
-- [x] Browser-entered canonical smoke inputs reflect unit-test values for 47B MoE
-      inference, 8B QLoRA 2%, 7B full training, and 104B exact local GGUF:
-      `frontend/tests/calculator.spec.ts` pins hero totals, GPU class, minimum VRAM,
-      breakdown rows, and assumptions after manipulating real controls.
 - Helpful commands: `pnpm --dir frontend exec vitest run src/calculator.test.ts`,
   `pnpm --dir frontend exec vitest run src/report.test.ts`,
   `pnpm --dir frontend exec vitest run src/app.test.ts`,
@@ -165,9 +132,7 @@ Responsive standards met:
 
 ## Open Parity Gaps (code review)
 
-- [ ] Gaps #1-#4 and minor parity items are closed and verified plan-conformant by
-      code review (expected values hand-recomputed from `docs/plan.md`). No reviewed
-      frontend calculation parity gaps remain.
+- [ ] Frontend follows `docs/plan.md`. No gaps remain.
 
 ## Formulas
 
@@ -175,9 +140,7 @@ Responsive standards met:
 
 ## Canonical VRAM Formula
 
-- [ ] There is one base equation:
-
-`Required_GB = (Weights_GB + Working_Memory_GB + Training_State_GB + Runtime_Overhead_GB) * Buffer`
+- [ ] There is one base equation: `Required_GB = (Weights_GB + Working_Memory_GB + Training_State_GB + Runtime_Overhead_GB) * Buffer`
 
 Where:
 
@@ -196,44 +159,6 @@ Display:
 `Safety_Buffer_GB = (Weights_GB + Working_Memory_GB + Training_State_GB + Runtime_Overhead_GB) * (Buffer - 1)`
 
 `Required_GB = round(Required_GB, 1)`
-
----
-
-## Unit Conversion
-
-`Total_Params_B = input_value * unit_multiplier`
-
-`unit_multiplier = 1` for billions (`B`).
-
-`unit_multiplier = 0.001` for millions (`M`).
-
-- [x] The UI exposes only `B` and `M` (`ParameterUnit = "B" | "M"`).
-
----
-
-## Weight Memory
-
-Default:
-
-`Weights_GB = Resident_Params_B * Weight_Bytes * Weight_Overhead`
-
-If exact file size is supplied:
-
-`Weights_GB = Known_Model_Size_GB * GPU_Resident_Fraction`
-
-Precision presets:
-
-`32-bit: Weight_Bytes = 4, Weight_Overhead = 1.00`
-
-`16-bit: Weight_Bytes = 2, Weight_Overhead = 1.00`
-
-`8-bit: Weight_Bytes = 1, Weight_Overhead = 1.05`
-
-`6-bit GGUF: Weight_Bytes = 0.75, Weight_Overhead = 1.10`
-
-`5-bit GGUF: Weight_Bytes = 0.625, Weight_Overhead = 1.12`
-
-`4-bit: Weight_Bytes = 0.5, Weight_Overhead = 1.15`
 
 ---
 
@@ -267,7 +192,7 @@ Training / fine-tuning override:
 
 ## Architecture Buckets
 
-Estimated transformer architecture by total parameter count:
+- [ ] Estimated transformer architecture by total parameter count incorporated & implemented
 
 ```txt
 <= 1B:   layers 16, hidden 2048, heads 32, kv_heads 8, head_dim 64
@@ -280,13 +205,12 @@ Estimated transformer architecture by total parameter count:
 > 160B:  layers 120, hidden 12288, heads 96, kv_heads 8, head_dim 128
 ```
 
-- [x] Also compute `conservative_kv_heads = attention_heads` and show it in advanced output.
-
 ---
 
 ## Training Defaults
 
-```txt
+- [ ] Incorporated & implemented
+
 AdamW optimizer_bytes = 8
 8-bit Adam optimizer_bytes = 2
 SGD-like optimizer_bytes = 4
@@ -297,13 +221,10 @@ adapter_weight_bytes = 2
 gradient_checkpointing checked -> activation_factor_training = 3
 gradient_checkpointing unchecked -> activation_factor_training = 8
 lora_trainable_percent options = 0.1%, 0.5%, 1%, 2%
-```
 
 ---
 
-## LLM / Text Generation Formula
-
-Use this for decoder/chat/autoregressive generation.
+ - [ ] LLM / Text Generation Formula (decoder/chat/autoregressive generation) is incorporated
 
 `KV_GB = Concurrent_Requests * Context_Tokens * 2 * Num_Layers * Num_KV_Heads * Head_Dim * KV_Bytes / 1e9`
 
@@ -321,9 +242,7 @@ For a simpler deterministic test mode, set:
 
 ---
 
-## Text Encoder Formula
-
-Use this for embeddings, rerankers, classifiers.
+ - [ ] Text Encoder Formula (embeddings, rerankers, classifiers) Formula is incorporated
 
 `Encoder_Activation_GB = Activation_Factor_Inference * Concurrent_Requests * Sequence_Tokens * Num_Layers * Hidden_Size * Activation_Bytes / 1e9`
 
@@ -339,9 +258,7 @@ No persistent KV cache.
 
 ---
 
-## Encoder-Decoder Formula
-
-Use this for translation, summarization, T5-style generation.
+ - [ ] Encoder-Decoder: translation, summarization, T5-style generation Formula is incorporated
 
 `Encoder_Activation_GB = Activation_Factor_Inference * Concurrent_Requests * Input_Tokens * Num_Layers * Hidden_Size * Activation_Bytes / 1e9`
 
@@ -353,9 +270,7 @@ Use this for translation, summarization, T5-style generation.
 
 ---
 
-## Vision Formula
-
-Use this for ViT-like vision models.
+ - [ ] Vision / ViT-like vision Formula is incorporated
 
 `Image_Tokens = ceil(Image_Width / Patch_Size) * ceil(Image_Height / Patch_Size) + 1`
 
@@ -379,7 +294,7 @@ Final:
 
 ---
 
-## Vision-Language / Multimodal Formula
+ - [ ] Vision-Language / Multimodal Formula is incorporated
 
 `Image_Tokens = Image_Count * ceil(Image_Width / Patch_Size) * ceil(Image_Height / Patch_Size)`
 
@@ -399,7 +314,7 @@ architecture activations.
 
 ---
 
-## Image Diffusion Formula
+ - [ ] Image Diffusion Formula is incorporated
 
 `Latent_Height = ceil(Output_Image_Height / Latent_Downsample)`
 
@@ -421,7 +336,7 @@ Defaults:
 
 ---
 
-## Video Generation Formula
+- [ ] Video Generation Formula is incorporated
 
 `Latent_Height = ceil(Video_Height / Latent_Downsample)`
 
@@ -443,7 +358,7 @@ Defaults:
 
 ---
 
-## Audio Formula
+- [ ] Audio Formula is incorporated
 
 `Audio_Tokens = Audio_Seconds * Audio_Tokens_Per_Second`
 
@@ -563,18 +478,6 @@ Defaults:
 
 ---
 
-## MoE Rule
-
-`Resident_Params_B = Total_Params_B`
-
-`Active_Params_B = Active_Params_Input_B if MoE enabled else Total_Params_B`
-
-- [x] Active parameters affect rough speed estimates only.
-
-They do not reduce weight memory unless expert offload or sharding is explicitly enabled.
-
----
-
 ## Hardware Recommendation
 
 `Minimum_Raw_VRAM_GB = Required_GB / GPU_Utilization_Target`
@@ -638,22 +541,6 @@ Bandwidth comes from the recommended tier in `HARDWARE_TIERS`, not a global
 constant. On overflow, use the largest tier's bandwidth. This is rough only.
 
 ---
-
-## Do Not Restore These Old Formulas
-
-Do not use:
-
-`KV_GB = Active_Params_B / 10`
-
-`KV_GB = (Active_Params_B / 10) * (Context_Tokens / 8000) * (KV_Bits / 16)`
-
-`QLoRA_Overhead_GB = 4`
-
-`Full_Training_GB = Total_Params_B * 16`
-
-`Required_GB = (Weights + KV + Task_Overhead + Runtime_Tax) * Buffer` as the real internal model
-
-- [ ] The simpler equation can appear only as a simplified explanation if its labels map to the canonical terms.
 
 ## Canonical test cases
 

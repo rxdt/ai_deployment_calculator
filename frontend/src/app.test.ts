@@ -5,7 +5,7 @@ import { CalculatorApp, mountCalculator } from "./app";
 import { sanitizeNumberInput } from "./input-sanitizer";
 
 const CONTRACTED_LABELS = new Map([
-  ["workload-family", "Workload Family"],
+  ["workload-family", "Model Family"],
   ["total-params", "Total Model Parameters"],
   ["parameter-unit", "Parameter Unit"],
   ["precision", "Precision"],
@@ -15,6 +15,20 @@ const CONTRACTED_LABELS = new Map([
 ]);
 
 const PUBLIC_WORKLOAD_NAMES = [
+  "text-generation / chat",
+  "text embeddings / reranking / classification",
+  "encoder-decoder generation",
+  "vision understanding",
+  "vision-language / multimodal",
+  "image-generation / diffusion",
+  "video-generation",
+  "speech / audio",
+  "tabular / classical ml",
+  "custom / unknown",
+];
+
+const REPLACED_PUBLIC_NAMES = [
+  "Workload Family",
   "Text generation / chat",
   "Text embeddings / reranking / classification",
   "Encoder-decoder generation",
@@ -25,10 +39,6 @@ const PUBLIC_WORKLOAD_NAMES = [
   "Speech / audio",
   "Tabular / classical ML",
   "Custom / unknown",
-];
-
-const REPLACED_PUBLIC_NAMES = [
-  "Model Family",
   "LLM / text generation",
   "Text encoder / embeddings / reranking / classification",
   "Known Resident Model Size",
@@ -85,6 +95,26 @@ function outSlot(name: string): HTMLElement {
 */
 function out(name: string): string {
   return outSlot(name).textContent;
+}
+
+/**
+ Return all output slot names present in the document.
+@returns data-out names in DOM order
+*/
+function outputNames(): string[] {
+  return [...document.querySelectorAll<HTMLElement>("[data-out]")].map((node) =>
+    String(node.dataset.out),
+  );
+}
+
+/**
+ Return all data-slot names present in the document.
+@returns data-slot names in DOM order
+*/
+function dataSlotNames(): string[] {
+  return [...document.querySelectorAll<HTMLElement>("[data-slot]")].map(
+    (node) => String(node.dataset.slot),
+  );
 }
 
 /**
@@ -470,8 +500,6 @@ describe("mounted calculator", () => {
       "Recommended GPU Class",
     );
     expect(out("min-cap")).toBe("22.4 GB");
-    expect(out("confidence")).toBe("Estimated");
-    expect(dataSlot("confidence-label").textContent.trim()).toBe("Confidence");
     expect(out("speed")).toMatch(/tokens\/sec$/u);
     expect(outSlot("breakdown").children).toHaveLength(5);
   });
@@ -491,25 +519,17 @@ describe("mounted calculator", () => {
     expect(requireButton().textContent.trim()).toBe("Reset");
   });
 
-  test("keeps the confidence label visible outside the hero cards and adapts it to the workload", () => {
+  test("omits the retired confidence output from the rendered estimate", () => {
     loadDom();
     mountCalculator(document);
-    // The confidence label remains visible, but it is demoted out of the hero
-    // cards so the first-glance result hierarchy stays focused on VRAM and GPU.
-    let ancestor = outSlot("confidence").parentElement;
-    while (ancestor !== null) {
-      expect(ancestor.tagName).not.toBe("DETAILS");
-      ancestor = ancestor.parentElement;
-    }
-    expect(dataSlot("hero-total-card").contains(outSlot("confidence"))).toBe(
-      false,
-    );
-    expect(dataSlot("hero-gpu-card").contains(outSlot("confidence"))).toBe(
-      false,
-    );
-    expect(out("confidence")).toBe("Estimated");
+
+    expect(document.body.textContent).not.toContain("Confidence");
+    expect(dataSlotNames()).not.toContain("confidence-label");
+    expect(outputNames()).not.toContain("confidence");
+
     fireChange("workload-family", "image_diffusion");
-    expect(out("confidence")).toBe("Rough");
+    expect(document.body.textContent).not.toContain("Confidence");
+    expect(outputNames()).not.toContain("confidence");
   });
 
   test("keeps secondary result sections collapsed behind contracted summaries", () => {
@@ -564,7 +584,7 @@ describe("mounted calculator", () => {
   test("renders only first-glance results outside the collapsed detail panels", () => {
     loadDom();
     mountCalculator(document);
-    const firstGlanceSlots = ["total", "vram-say", "confidence", "gpu-class"];
+    const firstGlanceSlots = ["total", "vram-say", "gpu-class"];
     const detailSlots = [
       "why",
       "min-cap",
@@ -579,15 +599,7 @@ describe("mounted calculator", () => {
 
     expect(out("total")).toBe("19.0 GB");
     expect(out("vram-say")).toBe("The workload needs 19.0 GB usable VRAM.");
-    expect(out("confidence")).toBe("Estimated");
     expect(out("gpu-class")).toBe("24 GB GPU hardware tier");
-    expect(dataSlot("confidence-label").textContent.trim()).toBe("Confidence");
-    expect(dataSlot("hero-total-card").contains(outSlot("confidence"))).toBe(
-      false,
-    );
-    expect(dataSlot("hero-gpu-card").contains(outSlot("confidence"))).toBe(
-      false,
-    );
     for (const name of firstGlanceSlots) {
       expect(() => containingDetails(outSlot(name))).toThrow(
         "Missing containing details panel",

@@ -7,7 +7,7 @@ const onePageViewports = [
   { height: 844, name: "mobile", width: 390 },
 ] as const;
 const primaryControls = [
-  "Workload Family",
+  "Model Family",
   "Total Model Parameters",
   "Parameter Unit",
   "Precision",
@@ -17,7 +17,7 @@ const primaryControls = [
   "Concurrent Batch Requests",
 ] as const;
 const readableLabels = [
-  "Workload Family",
+  "Model Family",
   "Estimated VRAM Required",
   "Recommended GPU Class",
 ] as const;
@@ -89,7 +89,7 @@ for (const path of pages) {
       "font-family",
       /JetBrains Mono/u,
     );
-    await expect(page.getByLabel("Workload Family")).toHaveCSS(
+    await expect(page.getByLabel("Model Family")).toHaveCSS(
       "font-family",
       /JetBrains Mono/u,
     );
@@ -97,11 +97,6 @@ for (const path of pages) {
       "font-family",
       /JetBrains Mono/u,
     );
-    await expect(page.locator('[data-out="confidence"]')).toHaveCSS(
-      "font-family",
-      /JetBrains Mono/u,
-    );
-
     await page.getByText("Formula used", { exact: true }).click();
     await expect(page.locator('[data-out="calc-formula"]')).toHaveCSS(
       "font-family",
@@ -154,11 +149,11 @@ for (const viewport of onePageViewports) {
     await page.goto("/");
 
     await expect(page.getByLabel("GitHub repository")).toBeInViewport();
-    await expect(page.getByLabel("Workload Family")).toBeInViewport();
+    await expect(page.getByLabel("Model Family")).toBeInViewport();
     await expect(page.locator('[data-out="gpu-class"]')).toBeInViewport();
 
     await page.locator("#workload-family").selectOption("text_encoder");
-    await expect(page.getByLabel("Workload Family")).toBeInViewport();
+    await expect(page.getByLabel("Model Family")).toBeInViewport();
     await expect(page.locator('[data-out="gpu-class"]')).toBeInViewport();
 
     await page.getByText("Advanced assumptions", { exact: true }).click();

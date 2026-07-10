@@ -21,34 +21,23 @@ Do not pretend one equation covers all AI workloads.
 
 Use these names in the UI, docs, labels, and tests:
 
-```txt
-Workload Family
-Text generation / chat
-Text embeddings / reranking / classification
-Encoder-decoder generation
-Vision understanding
-Vision-language / multimodal
-Image generation / diffusion
-Video generation
-Speech / audio
-Tabular / classical ML
-Custom / unknown
-Known Model File Size
-Total Model Parameters
-Precision
-Execution Mode
-Runtime Profile
-Advanced assumptions
-```
-
-Mapping from addendum/internal terms:
-
-```txt
-Model Family -> Workload Family
-LLM / text generation -> Text generation / chat
-Text encoder / embeddings / reranking / classification -> Text embeddings / reranking / classification
-Known Resident Model Size -> Known Model File Size
-```
+workload family
+text-generation / chat
+text embeddings / reranking / classification
+encoder-decoder generation
+vision understanding
+vision-language / multimodal
+image-generation / diffusion
+video-generation
+speech / audio
+tabular / classical ml
+custom / unknown
+known model file size
+total model parameters
+precision
+execution mode
+runtime profile
+advanced assumptions
 
 Internal enum may stay concise:
 
@@ -76,18 +65,16 @@ live in `specs/frontend.md`.
 
 These are non-negotiable:
 
-```txt
-Required_GB = (Weights_GB + Working_Memory_GB + Training_State_GB + Runtime_Overhead_GB) * Buffer is the canonical equation.
-KV cache is only for autoregressive/generative transformer workloads.
-KV cache must use architecture, sequence length, concurrency, and KV precision.
-Never use KV = Active_P / 10.
-Training VRAM is not a single P * 16 result.
-LoRA trains adapters, not all base weights.
-QLoRA uses a frozen 4-bit base plus adapter state, not a flat 4 GB overhead.
-Diffusion/video memory is pipeline-specific and lower confidence by default.
-Known Model File Size should override parameter-based weight estimates for GGUF/exact files.
-MoE active parameters affect rough speed, not resident weight memory, unless expert offload/sharding is enabled.
-```
+- Required_GB = (Weights_GB + Working_Memory_GB + Training_State_GB + Runtime_Overhead_GB) * Buffer is the canonical equation.
+- KV cache is only for autoregressive/generative transformer workloads.
+- KV cache must use architecture, sequence length, concurrency, and KV precision.
+- Never use KV = Active_P / 10.
+- Training VRAM is not a single P * 16 result.
+- LoRA trains adapters, not all base weights.
+- QLoRA uses a frozen 4-bit base plus adapter state, not a flat 4 GB overhead.
+- Diffusion/video memory is pipeline-specific and lower certainty by default.
+- Known Model File Size should override parameter-based weight estimates for GGUF/exact files.
+- MoE active parameters affect rough speed, not resident weight memory, unless expert offload/sharding is enabled.
 
 > ~~strikethrough~~ strikethrough completed items to clarify what is done
 
@@ -95,9 +82,8 @@ MoE active parameters affect rough speed, not resident weight memory, unless exp
 
 Done means:
 
-```txt
 1. The calculator supports non-LLM workload families.
-2. Workload Family is the first/main selector.
+2. Model Family is the first/main selector.
 3. Context Window is not shown for all workloads.
 4. KV cache is not visible globally.
 5. KV cache is used only for generative transformer-style families.
@@ -109,7 +95,6 @@ Done means:
 11. Decoder KV uses architecture-based formula.
 12. Encoder models do not use persistent generation KV.
 13. Diffusion/video models do not show KV as the main memory concept.
-14. Diffusion/video outputs show Rough or Estimated confidence.
 15. GGUF can use a Known Model File Size override.
 16. LoRA formula uses adapter states.
 17. QLoRA formula uses quantized base + adapter states, not flat 4 GB.
@@ -117,14 +102,11 @@ Done means:
 19. Full training includes weights, master weights, gradients, optimizer state, activations, overhead, and buffer.
 20. Hardware recommendation comes from required_gb / utilization target.
 21. Outputs show enough math to explain recommendations without overwhelming the user.
-~~23. Speed estimate label adapts by workload.~~
-~~25. Confidence label is always visible.~~
 26. Correct formulas remain.
 27. All calculations run in frontend TypeScript.
 28. README is updated.
 29. Unit tests pass.
 30. Build passes.
 32. Gate passes
-```
 
 > ~~strikethrough~~ strikethrough completed items to clarify what is done

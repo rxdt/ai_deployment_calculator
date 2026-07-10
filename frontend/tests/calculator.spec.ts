@@ -22,6 +22,30 @@ async function expectReportRows(
   }
 }
 
+/**
+Assert the retired confidence output is absent without targeting unlisted selectors.
+@param page Browser page.
+*/
+async function expectNoConfidenceOutput(page: Page): Promise<void> {
+  const outputNames = await page
+    .locator("[data-out]")
+    .evaluateAll((nodes) =>
+      nodes.map((node) =>
+        node instanceof HTMLElement ? node.dataset.out : null,
+      ),
+    );
+  const slotNames = await page
+    .locator("[data-slot]")
+    .evaluateAll((nodes) =>
+      nodes.map((node) =>
+        node instanceof HTMLElement ? node.dataset.slot : null,
+      ),
+    );
+
+  expect(outputNames).not.toContain("confidence");
+  expect(slotNames).not.toContain("confidence-label");
+}
+
 interface BrowserCalculationCase {
   readonly name: string;
   readonly controls: readonly (readonly [
@@ -32,7 +56,6 @@ interface BrowserCalculationCase {
   readonly total: string;
   readonly gpuClass: string;
   readonly minimumRawVram: string;
-  readonly confidence: string;
   readonly breakdown: readonly [string, string][];
   readonly assumptions: readonly [string, string][];
 }
@@ -48,7 +71,6 @@ const CANONICAL_BROWSER_CASES = [
     total: "113.1 GB",
     gpuClass: "141 GB GPU hardware tier",
     minimumRawVram: "133.1 GB",
-    confidence: "Estimated",
     breakdown: [
       ["Model memory", "94.0 GB"],
       ["Context memory", "2.6 GB"],
@@ -77,7 +99,6 @@ const CANONICAL_BROWSER_CASES = [
     total: "21.0 GB",
     gpuClass: "48 GB GPU hardware tier",
     minimumRawVram: "26.3 GB",
-    confidence: "Estimated",
     breakdown: [
       ["QLoRA base model memory", "4.6 GB"],
       ["Activation memory", "6.3 GB"],
@@ -102,7 +123,6 @@ const CANONICAL_BROWSER_CASES = [
     total: "152.9 GB",
     gpuClass: "No single-GPU fit. Enable memory sharding or use offload.",
     minimumRawVram: "191.1 GB",
-    confidence: "Estimated",
     breakdown: [
       ["Model memory", "14.0 GB"],
       ["Activation memory", "6.3 GB"],
@@ -133,7 +153,6 @@ const CANONICAL_BROWSER_CASES = [
     total: "79.2 GB",
     gpuClass: "141 GB GPU hardware tier",
     minimumRawVram: "88.0 GB",
-    confidence: "Estimated",
     breakdown: [
       ["Model memory", "52.0 GB"],
       ["Context memory", "25.2 GB"],
@@ -214,10 +233,7 @@ test("renders the default 7B estimate consistently across the full report", asyn
   await expect(page.locator('[data-out="gpu-class"]')).toHaveText(
     "24 GB GPU hardware tier",
   );
-  await expect(page.locator('[data-slot="confidence-label"]')).toHaveText(
-    "Confidence",
-  );
-  await expect(page.locator('[data-out="confidence"]')).toHaveText("Estimated");
+  await expectNoConfidenceOutput(page);
 
   await page.getByText("Why this recommendation").click();
   await expect(page.locator('[data-out="why"]')).toContainText(
@@ -277,9 +293,7 @@ for (const scenario of CANONICAL_BROWSER_CASES) {
     await expect(page.locator('[data-out="gpu-class"]')).toHaveText(
       scenario.gpuClass,
     );
-    await expect(page.locator('[data-out="confidence"]')).toHaveText(
-      scenario.confidence,
-    );
+    await expectNoConfidenceOutput(page);
 
     await page.getByText("Why this recommendation").click();
     await expect(page.locator('[data-out="min-cap"]')).toHaveText(

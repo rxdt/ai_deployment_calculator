@@ -42,26 +42,26 @@
             <legend>Model</legend>
 
             <p class="field field--wide">
-              <label for="workload-family">Workload Family</label>
+              <label for="workload-family">Model Family</label>
               <select id="workload-family" name="workload-family">
-                <option value="text_generation">Text generation / chat</option>
+                <option value="text_generation">text-generation / chat</option>
                 <option value="text_encoder">
-                  Text embeddings / reranking / classification
+                  text embeddings / reranking / classification
                 </option>
                 <option value="encoder_decoder">
-                  Encoder-decoder generation
+                  encoder-decoder generation
                 </option>
-                <option value="vision">Vision understanding</option>
+                <option value="vision">vision understanding</option>
                 <option value="vision_language">
-                  Vision-language / multimodal
+                  vision-language / multimodal
                 </option>
                 <option value="image_diffusion">
-                  Image generation / diffusion
+                  image-generation / diffusion
                 </option>
-                <option value="video_generation">Video generation</option>
-                <option value="audio">Speech / audio</option>
-                <option value="tabular">Tabular / classical ML</option>
-                <option value="custom">Custom / unknown</option>
+                <option value="video_generation">video-generation</option>
+                <option value="audio">speech / audio</option>
+                <option value="tabular">tabular / classical ml</option>
+                <option value="custom">custom / unknown</option>
               </select>
             </p>
 
@@ -416,12 +416,6 @@
             </p>
             <p class="hero-value hero-value-small" data-out="gpu-class"></p>
           </div>
-
-          <p class="result-meta">
-            <span class="hero-label" data-slot="confidence-label"
-              >Confidence</span
-            ><strong data-out="confidence"></strong>
-          </p>
 
           <!-- Tier 2: the reasoning and numbers, hidden until asked for -->
           <details class="panel">

@@ -267,7 +267,6 @@ describe("buildReport", () => {
         "assumptions",
         "breakdown",
         "calculation",
-        "confidence",
         "minimumRawVramNeeded",
         "recommendedHardware",
         "speed",
@@ -277,21 +276,24 @@ describe("buildReport", () => {
     );
   });
 
-  test("labels every workload family Estimated except the pipeline/open-ended Rough ones", () => {
-    const cases: readonly (readonly [FormState["workloadFamily"], string])[] = [
-      ["text_generation", "Estimated"],
-      ["text_encoder", "Estimated"],
-      ["encoder_decoder", "Estimated"],
-      ["vision", "Estimated"],
-      ["vision_language", "Estimated"],
-      ["image_diffusion", "Rough"],
-      ["video_generation", "Rough"],
-      ["audio", "Estimated"],
-      ["tabular", "Estimated"],
-      ["custom", "Rough"],
+  test("does not expose the retired confidence field for any workload family", () => {
+    const workloadFamilies: readonly FormState["workloadFamily"][] = [
+      "text_generation",
+      "text_encoder",
+      "encoder_decoder",
+      "vision",
+      "vision_language",
+      "image_diffusion",
+      "video_generation",
+      "audio",
+      "tabular",
+      "custom",
     ];
-    for (const [workloadFamily, expected] of cases) {
-      expect(buildReport(state({ workloadFamily })).confidence).toBe(expected);
+
+    for (const workloadFamily of workloadFamilies) {
+      expect(buildReport(state({ workloadFamily }))).not.toHaveProperty(
+        "confidence",
+      );
     }
   });
 

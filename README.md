@@ -10,16 +10,16 @@ load, power, storage, networking, or provider availability.
 
 ## Supported Workloads
 
-- Text generation / chat
-- Text embeddings / reranking / classification
-- Encoder-decoder generation
-- Vision understanding
-- Vision-language / multimodal
-- Image generation / diffusion
-- Video generation
-- Speech / audio
-- Tabular / classical ML
-- Custom / unknown
+- text-generation / chat
+- text embeddings / reranking / classification
+- encoder-decoder generation
+- vision understanding
+- vision-language / multimodal
+- image-generation / diffusion
+- video-generation
+- speech / audio
+- tabular / classical ml
+- custom / unknown
 
 ## What It Calculates
 

@@ -29,6 +29,9 @@ linted `specs/` tree; reference it there and do not commit it as source.
       "160 GB GPU hardware tier" (implying a single 160 GB card). Keep the
       "sharded" qualifier so the hero matches the multi-GPU examples row.
 
+- [x] For sharded fits, word the "Why this recommendation" panel as an
+      aggregate sharded GPU pool instead of "a GPU" with aggregate VRAM.
+
 ## Current Contract
 
 - [ ] The entire app fits without scrolling when all items are collapsed.

@@ -62,9 +62,13 @@ Explain the recommendation for the "Why this recommendation" panel.
 */
 export function whyText(report: Readonly<ReportPayload>): string {
   const fit = report.recommendedHardware;
-  const capacity = leadingCapacity(shortHardwareClass(fit.recommendedTier));
+  const hardwareClass = shortHardwareClass(fit.recommendedTier);
+  const capacity = leadingCapacity(hardwareClass);
   if (capacity === "") {
     return fit.math;
+  }
+  if (hardwareClass.includes("sharded")) {
+    return `At an ${fit.usableVramTarget} usable VRAM target, ${report.totalRequiredMemory} requires a sharded GPU pool with at least ${report.minimumRawVramNeeded} aggregate advertised VRAM. The next common sharded class is ${capacity}.`;
   }
   return `At an ${fit.usableVramTarget} usable VRAM target, ${report.totalRequiredMemory} requires a GPU with at least ${report.minimumRawVramNeeded} advertised VRAM. The next common class is ${capacity}.`;
 }

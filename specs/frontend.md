@@ -29,14 +29,20 @@ linted `specs/` tree; reference it there and do not commit it as source. Use it 
       plain-language "Fits a N GB card with N GB usable headroom (N% spare)"
       caption. The bar hides and the caption falls back to the raw need when no
       single class fits (no model, overflow, or sharded pool without a fit).
+- [x] A near-budget fit (>=95% of usable VRAM consumed, <=5% spare) turns the
+      meter amber and leads the caption with "Tight fit:", so the warning never
+      rests on color alone; comfortable fits keep the green bar.
+- [x] One-click preset chips (Gemma 2B, Llama 8B, 70B, Mixtral) load a known
+      deployment into the reactive form without submitting; they carry no green
+      primary accent and Reset clears them back to the empty estimate.
 
 ## Remaining UI Work
 
 - [ ] Final visual pass from the valid reference notes:
       `docs/odoo.html`, `specs/dispel.html`, `specs/groundcover.html`. Focus
-      compact status, result-row polish, the hero fit meter, and the compact
-      breakdown stat cards are done; continue with only similarly scoped gaps.
-      The preset chips (Llama 8B, 70B, Mixtral, ...) remain unbuilt.
+      compact status, result-row polish, the hero fit meter (incl. its amber
+      tight-fit signal), the compact breakdown stat cards, and the preset chips
+      are done; continue with only similarly scoped gaps.
 - [x] The computed memory breakdown (model memory / context / activation /
       training / runtime reserve / safety margin) renders as compact bordered
       stat cards inside a collapsed "Memory breakdown" disclosure. The panel

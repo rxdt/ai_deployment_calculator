@@ -99,7 +99,7 @@ export class CalculatorApp {
     for (const preset of MODEL_PRESETS) {
       const chip = document.createElement("button");
       chip.type = "button";
-      chip.className = "preset";
+      chip.classList.add("preset");
       chip.dataset.preset = preset.id;
       chip.textContent = preset.label;
       chip.addEventListener("click", () => {
@@ -212,6 +212,9 @@ export class CalculatorApp {
     }
     bar.hidden = meter === null;
     bar.value = meter?.fillPercent ?? 0;
+    // A tight fit turns the bar amber; the caption's "Tight fit" prefix carries
+    // the same signal for anyone not perceiving the color.
+    bar.classList.toggle("fit-meter--tight", meter?.isTight === true);
     this.setText(
       "vram-say",
       meter === null

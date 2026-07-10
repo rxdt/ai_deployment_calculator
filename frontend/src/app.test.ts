@@ -322,7 +322,9 @@ describe("CalculatorApp construction", () => {
   test("throws when the presets container is missing", () => {
     loadDom();
     dataSlot("presets").remove();
-    expect(() => mountCalculator(document)).toThrow("Missing presets container");
+    expect(() => mountCalculator(document)).toThrow(
+      "Missing presets container",
+    );
   });
 
   test("throws when a required header status slot is missing", () => {
@@ -792,9 +794,44 @@ describe("hero fit meter", () => {
 
     expect(meter.hidden).toBe(false);
     expect(meter.value).toBe(93);
+    // A comfortable fit keeps the healthy green bar, not the amber tight signal.
+    expect(meter.classList.contains("fit-meter--tight")).toBe(false);
     expect(out("vram-say")).toBe(
       "Fits a 24 GB card with 1.4 GB usable headroom (7% spare).",
     );
+  });
+
+  test("marks the meter amber and leads with a tight-fit caption near the budget", () => {
+    loadDom();
+    mountCalculator(document);
+    fireInput("total-params", "16");
+    const meter = dataSlot("fit-meter");
+    if (!(meter instanceof HTMLMeterElement)) {
+      throw new TypeError("Missing fit meter");
+    }
+
+    expect(meter.hidden).toBe(false);
+    expect(meter.value).toBe(98);
+    expect(meter.classList.contains("fit-meter--tight")).toBe(true);
+    expect(out("vram-say")).toBe(
+      "Tight fit: 0.7 GB usable headroom on a 48 GB card (2% spare).",
+    );
+  });
+
+  test("drops the tight signal after a tight fit relaxes to a comfortable one", () => {
+    loadDom();
+    mountCalculator(document);
+    fireInput("total-params", "16");
+    const meter = dataSlot("fit-meter");
+    if (!(meter instanceof HTMLMeterElement)) {
+      throw new TypeError("Missing fit meter");
+    }
+    expect(meter.classList.contains("fit-meter--tight")).toBe(true);
+
+    fireInput("total-params", "7");
+
+    expect(meter.classList.contains("fit-meter--tight")).toBe(false);
+    expect(out("vram-say")).toContain("Fits a 24 GB card");
   });
 
   test("hides the fit meter and states the raw need when no class fits", () => {
@@ -1226,9 +1263,11 @@ describe("sanitizeNumberInput", () => {
 @returns preset chip buttons in DOM order
 */
 function presetChips(): HTMLButtonElement[] {
-  return [
-    ...dataSlot("presets").querySelectorAll<HTMLButtonElement>("button"),
-  ];
+  // The presets group holds only chip buttons; read them as direct children so
+  // the query stays on an allowed data-* slot rather than a tag selector.
+  return [...dataSlot("presets").children].filter(
+    (node): node is HTMLButtonElement => node instanceof HTMLButtonElement,
+  );
 }
 
 /**

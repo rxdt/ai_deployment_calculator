@@ -2,8 +2,16 @@ import type { HardwareRecommendation, ReportPayload } from "./types";
 
 export interface FitMeter {
   readonly fillPercent: number;
+  readonly isTight: boolean;
   readonly summary: string;
 }
+
+// The recommended class is the tightest standard tier that fits, so healthy fits
+// already sit high on the meter. Reserve the tight signal for a fit consuming at
+// least 95% of usable VRAM (<=5% spare after the usable-VRAM reserve), where
+// real-world fragmentation could push it over. The default 7B/24 GB example sits
+// at 93% and stays healthy.
+const TIGHT_FILL_PERCENT = 95;
 
 /**
 Drop the ", e.g. ..." example suffix from a recommended-tier string.
@@ -114,10 +122,13 @@ export function fitMeter(
   const surface = fit.recommendedTier.includes("sharded")
     ? `${capacity} sharded pool`
     : `${capacity} card`;
-  return {
-    fillPercent,
-    summary: `Fits a ${surface} with ${headroom} usable headroom (${sparePercent.toString()}% spare).`,
-  };
+  const isTight = fillPercent >= TIGHT_FILL_PERCENT;
+  // A tight fit leads with a plain-language cue so the amber bar never carries
+  // the warning by color alone.
+  const summary = isTight
+    ? `Tight fit: ${headroom} usable headroom on a ${surface} (${sparePercent.toString()}% spare).`
+    : `Fits a ${surface} with ${headroom} usable headroom (${sparePercent.toString()}% spare).`;
+  return { fillPercent, isTight, summary };
 }
 
 /**

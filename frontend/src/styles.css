@@ -12,6 +12,7 @@
   --color-primary-text: #0a0a0f;
   --color-blue: #3b82f6;
   --color-cyan: #67e8f9;
+  --color-amber: #f97316;
   --color-hero-line: #30303a;
   --color-shadow: #0006;
   --color-topbar: #09090bcc;
@@ -29,6 +30,7 @@
     "JetBrains Mono", ui-monospace, sfmono-regular, consolas, monospace;
   --layout-border: 0.0625rem;
   --layout-control-size: 2.5rem;
+  --layout-chip-size: 1.75rem;
   --layout-advanced-height: calc(100vh - 6rem);
   --layout-advanced-width: min(42rem, calc(100vw - (var(--space-md) * 2)));
   --layout-half: calc(50% - var(--space-sm));
@@ -274,7 +276,7 @@ summary,
 }
 
 .preset {
-  min-height: 1.75rem;
+  min-height: var(--layout-chip-size);
   width: auto;
   padding: var(--space-xs) var(--space-sm);
   background: var(--color-raised);
@@ -444,10 +446,18 @@ summary,
   margin-bottom: var(--space-sm);
 }
 
+/* The open advanced panel floats above its summary rather than dropping below
+   it. The summary sits near the bottom of a full-height input pane, so opening
+   downward pinned the panel's foot to the viewport edge with zero slack; any
+   content added above the summary (e.g. the preset chips) then spilled the
+   panel past the fold and scrolled the page. Anchoring the panel's foot to the
+   summary keeps it inside the viewport no matter what precedes it. */
 .advanced[open] .group {
   position: absolute;
+  inset-block-end: 100%;
   z-index: var(--z-disclosure);
   margin-top: 0;
+  margin-bottom: var(--space-xs);
   width: min(100%, var(--layout-advanced-width));
   max-height: var(--layout-advanced-height);
   overflow-y: auto;
@@ -567,6 +577,17 @@ summary,
 
 .fit-meter::-moz-meter-bar {
   background: var(--color-primary);
+}
+
+/* A fit consuming nearly all usable VRAM turns amber so the tight budget reads
+   at a glance; the caption's "Tight fit" prefix and "(N% spare)" carry the same
+   signal without relying on color alone. */
+.fit-meter--tight::-webkit-meter-optimum-value {
+  background: var(--color-amber);
+}
+
+.fit-meter--tight::-moz-meter-bar {
+  background: var(--color-amber);
 }
 
 .panel--wide {

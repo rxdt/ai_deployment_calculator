@@ -2,44 +2,53 @@
 
 ## State
 
-- Branch: `stub-real-tools-in-tests`; HEAD before this iteration: `6d99e4c`.
-- Iteration 2/3 scope: compact shippability visual pass from
-  `specs/frontend.md` — the reference's compact breakdown stat cards.
-- Add: "Memory breakdown" disclosure surfacing `report.breakdown`, which was
-  computed but never rendered (dead data). Each non-zero memory component
-  (model memory / context / activation / training / runtime reserve / safety
-  margin) renders as a bordered mono stat card; values stay foreground, never
-  the green answer accent, per `specs/DESIGN.md`.
-- Layout: the panel fills the previously-empty result-grid cell beside
-  "Assumptions used", so it adds no new collapsed row and keeps the
-  one-viewport no-scroll contract. Cards wrap via flex (`--layout-half` basis)
-  because the linter bans `fr` units and `repeat(auto-fit, ...)`.
-- Wiring: `render()` in `src/app.ts` reuses `fillRows("breakdown-rows", ...)`
-  and the shared row template; styling is `.breakdown` in `src/styles.css`.
+- Branch: `stub-real-tools-in-tests`; HEAD before this iteration: `54a3f84`.
+- Iteration 1/5 scope: the documented next fit-meter item — turn the hero fit
+  meter amber on a tight fit near the recommended-class budget.
+- Add: `fitMeter()` in `src/result-format.ts` now returns `isTight` (true at
+  >=95% of usable VRAM consumed, i.e. <=5% spare) and, when tight, leads the
+  caption with "Tight fit:" so the amber bar never signals by color alone.
+  `renderFitMeter()` toggles `.fit-meter--tight`; `.fit-meter--tight` paints the
+  value with the new `--color-amber` (`#f97316`, DESIGN.md `amber-accent`).
+  The default 7B/24 GB fit sits at 93% and stays green.
+
+## Inherited gate repair
+
+- HEAD `54a3f84` (the presets commit, folded in by the harness) failed
+  `pnpm gate`: `chip.className` tripped `unicorn/no-keyword-prefix` and
+  `.preset { min-height: 1.75rem }` tripped the stylelint length disallow-list.
+  The presets test helper also queried `querySelectorAll("button")`, which the
+  harness commit check rejects (non-`data-*` selector). All three were required
+  to land any change, so this iteration fixed them: `chip.classList.add`, a
+  `--layout-chip-size` token, and reading the chips via `.children`. No behavior
+  change; the preset tests still pass.
 
 ## Prior iterations
 
-- Iter 1: hero fit meter (`fitMeter()` in `src/result-format.ts`,
-  `renderFitMeter()` in `src/app.ts`, `.fit-meter` in `src/styles.css`).
+- Presets: one-click chips (Gemma 2B, Llama 8B, 70B, Mixtral) in `src/presets.ts`
+  + `buildPresets()`/`applyValues()` in `src/app.ts`.
+- Breakdown stat cards (`.breakdown`); hero fit meter (`fitMeter()`).
 
 ## Checks
 
-- `pnpm --dir frontend exec vitest run src/report.test.ts src/app.test.ts src/result-format.test.ts --config ../harness/vitest.config.js`: PASS (97).
-- `pnpm --prefix harness exec playwright test --config playwright.config.js ../frontend/tests/responsive.spec.ts -g "stay compact|collapsed default estimate fits|avoid page scroll|axe accessibility|fit meter"`: PASS (42).
-- `pnpm preflight`: PASS.
+- `pnpm --dir frontend exec vitest run src/report.test.ts src/app.test.ts src/result-format.test.ts --config ../harness/vitest.config.js`: PASS (106).
+- `pnpm preflight`: PASS (0 issues).
 - `pnpm gate`: see final run in this iteration.
 
 ## Blockers
 
-- The claude_design MCP import in `specs/frontend.md` remains blocked: the
-  `design` MCP server surfaces tools but is not authenticated, and
-  `/design-login` needs interactive auth unavailable in this run.
-- Unrelated unstaged `PROMPT.md` changes are forbidden for agents and left for
-  human review.
-- No code blocker for the scoped breakdown-cards work.
+- The claude_design MCP import in `specs/frontend.md` stays blocked: the
+  `design` MCP server surfaces tools but is unauthenticated, and `/design-login`
+  needs interactive auth unavailable in this run.
+- Unstaged `PROMPT.md` edits are forbidden for agents and left for human review.
+- No code blocker for the scoped tight-fit-meter work.
 
 ## Next
 
-- Preset chips (Llama 8B, 70B, Mixtral, ...) remain the last named reference
-  gap; must respect the one-viewport no-scroll contract before landing.
-- Optional: turn the fit meter amber on a tight fit near the class budget.
+- Named reference gaps (compact status, result rows, fit meter incl. amber,
+  breakdown cards, preset chips) are all done. Remaining spec item is the
+  general visual pass against `docs/odoo.html`, `specs/dispel.html`,
+  `specs/groundcover.html` under `specs/DESIGN.md`; pick only similarly scoped
+  gaps that preserve the one-viewport no-scroll contract.
+</content>
+</invoke>

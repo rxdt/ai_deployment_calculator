@@ -51,8 +51,25 @@ describe("fitMeter", () => {
       throw new Error("Expected a fit meter for the default workload");
     }
     expect(meter.fillPercent).toBe(93);
+    expect(meter.isTight).toBe(false);
     expect(meter.summary).toBe(
       "Fits a 24 GB card with 1.4 GB usable headroom (7% spare).",
+    );
+  });
+
+  test("flags a near-budget fit as tight and leads the caption with it", () => {
+    // 16B at 16-bit needs 40.1 GB and the smallest fitting class offers 40.8 GB
+    // usable, consuming 98% of the budget with only 0.7 GB spare.
+    const report = buildReport(state({ totalParams: "16" }));
+    const meter = fitMeter(report.recommendedHardware);
+
+    if (meter === null) {
+      throw new Error("Expected a fit meter for a near-budget workload");
+    }
+    expect(meter.fillPercent).toBe(98);
+    expect(meter.isTight).toBe(true);
+    expect(meter.summary).toBe(
+      "Tight fit: 0.7 GB usable headroom on a 48 GB card (2% spare).",
     );
   });
 

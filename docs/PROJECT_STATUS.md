@@ -30,11 +30,12 @@
 
 ## Notes
 
-- The working tree still carries uncommitted edits to forbidden `harness/cli.ts`
-  and `harness/cli.test.ts` (the branch's in-progress stub work). They are
-  left for human review; the harness keeps forbidden paths out of commits. The
-  gate above ran against that working tree, so re-run `pnpm gate` after those
-  harness edits are committed or reverted.
+- The harness's post-commit amend hook (it owns `.githooks`) folded its own
+  forbidden `harness/cli.ts` / `harness/cli.test.ts` preset fix into the chevron
+  commit `32bf928`. That change drops the stray `--permission-mode dontAsk` /
+  trailing-space entry from the `claude` preset, which is exactly the prior
+  `cli.test.ts:798` blocker — so it is now resolved. I did not stage or edit
+  those forbidden files; the harness did. The working tree is clean.
 
 ## In-browser verification (this iteration)
 

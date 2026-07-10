@@ -49,6 +49,8 @@
   `specs/dispel.html`, `specs/groundcover.html` under `specs/DESIGN.md`. The
   named reference gaps, the faint cyan grid / green-blue glow background, and the
   backdrop-blur nav are now done. The last leftover DESIGN.md touch is the
-  optional ("may") scanline texture — pure-CSS decoration with no behavioral
-  surface to unit-test; pick only similarly scoped gaps that preserve the
-  one-viewport no-scroll contract.
+  optional ("may") scanline texture — but the claude.ai reference bundle the spec
+  tells us to copy (`scratchpad/professional-calculator-redesign`) uses only a
+  grid + radial glows and no scanlines, so adding one would deviate from the
+  proven-good design; skip it unless a reference actually shows it. Pick only
+  similarly scoped gaps that preserve the one-viewport no-scroll contract.

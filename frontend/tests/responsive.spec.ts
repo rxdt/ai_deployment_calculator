@@ -444,6 +444,46 @@ for (const viewport of onePageViewports) {
   });
 }
 
+/**
+ Ensure the structural HUD labels (top status strip and section legends) render
+ the DESIGN.md hud-label treatment: uppercased, widely letter-spaced, and still
+ within the one-viewport no-overflow contract on both breakpoints.
+*/
+for (const viewport of onePageViewports) {
+  test(`HUD labels render the widely-spaced uppercase treatment on ${viewport.name}`, async ({
+    page,
+  }) => {
+    await page.setViewportSize(viewport);
+    await page.goto("/");
+
+    const statusLabel = page.locator(".status-item span").first();
+    const legend = page.getByText("Model", { exact: true });
+
+    const statusSpacing = await statusLabel.evaluate(
+      (node) => getComputedStyle(node).letterSpacing,
+    );
+    const legendStyle = await legend.evaluate((node) => {
+      const style = getComputedStyle(node);
+      return {
+        letterSpacing: style.letterSpacing,
+        textTransform: style.textTransform,
+      };
+    });
+
+    // A widely-spaced HUD label resolves to a positive px value, never the
+    // "normal" default or a collapsed "0px".
+    expect(statusSpacing).not.toBe("normal");
+    expect(statusSpacing).not.toBe("0px");
+    expect(legendStyle.textTransform).toBe("uppercase");
+    expect(legendStyle.letterSpacing).not.toBe("normal");
+    expect(legendStyle.letterSpacing).not.toBe("0px");
+
+    // Wider labels must not break the one-viewport or horizontal-edge contract.
+    await expectNoHorizontalDocumentOverflow(page);
+    await expectNoVerticalDocumentOverflow(page);
+  });
+}
+
 test("desktop result detail panels stay compact beneath the answer", async ({
   page,
 }) => {

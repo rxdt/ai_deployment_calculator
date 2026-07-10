@@ -53,6 +53,11 @@
   --font-hero: 1.5rem;
   --font-hero-small: 1.125rem;
   --font-status: 0.625rem;
+
+  /* DESIGN.md hud-label letter-spacing: HUD labels are uppercase, monospace,
+     and widely spaced. Applied to the top status strip and section legends so
+     the structural labels read as a running-tool HUD, never negative spacing. */
+  --font-hud-spacing: 0.12em;
   --font-line-body: 1.25;
   --font-line-heading: 1.05;
   --font-line-solid: 1;
@@ -214,6 +219,13 @@ summary {
   font-weight: var(--font-weight-bold);
 }
 
+/* Section legends read as HUD labels: uppercased and widely spaced per DESIGN.md.
+   Color stays foreground so the primary green accent remains reserved. */
+legend {
+  text-transform: uppercase;
+  letter-spacing: var(--font-hud-spacing);
+}
+
 .topnav a {
   min-width: 0;
   min-height: var(--layout-control-size);
@@ -233,6 +245,7 @@ summary {
   font-family: var(--font-mono);
   font-size: var(--font-status);
   font-weight: var(--font-weight-bold);
+  letter-spacing: var(--font-hud-spacing);
   line-height: var(--font-line-body);
 }
 

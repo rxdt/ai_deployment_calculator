@@ -21,26 +21,6 @@ Do not pretend one equation covers all AI workloads.
 
 Use these names in the UI, docs, labels, and tests:
 
-workload family
-text-generation / chat
-text embeddings / reranking / classification
-encoder-decoder generation
-vision understanding
-vision-language / multimodal
-image-generation / diffusion
-video-generation
-speech / audio
-tabular / classical ml
-custom / unknown
-known model file size
-total model parameters
-precision
-execution mode
-runtime profile
-advanced assumptions
-
-Internal enum may stay concise:
-
 ```ts
 type WorkloadFamily =
   | "text_generation"
@@ -65,11 +45,11 @@ live in `specs/frontend.md`.
 
 These are non-negotiable:
 
-- Required_GB = (Weights_GB + Working_Memory_GB + Training_State_GB + Runtime_Overhead_GB) * Buffer is the canonical equation.
+- Required_GB = (Weights_GB + Working_Memory_GB + Training_State_GB + Runtime_Overhead_GB) \* Buffer is the canonical equation.
 - KV cache is only for autoregressive/generative transformer workloads.
 - KV cache must use architecture, sequence length, concurrency, and KV precision.
 - Never use KV = Active_P / 10.
-- Training VRAM is not a single P * 16 result.
+- Training VRAM is not a single P \* 16 result.
 - LoRA trains adapters, not all base weights.
 - QLoRA uses a frozen 4-bit base plus adapter state, not a flat 4 GB overhead.
 - Diffusion/video memory is pipeline-specific and lower certainty by default.
@@ -95,18 +75,18 @@ Done means:
 11. Decoder KV uses architecture-based formula.
 12. Encoder models do not use persistent generation KV.
 13. Diffusion/video models do not show KV as the main memory concept.
-15. GGUF can use a Known Model File Size override.
-16. LoRA formula uses adapter states.
-17. QLoRA formula uses quantized base + adapter states, not flat 4 GB.
-18. Full training is not modeled as final Total_P * 16.
-19. Full training includes weights, master weights, gradients, optimizer state, activations, overhead, and buffer.
-20. Hardware recommendation comes from required_gb / utilization target.
-21. Outputs show enough math to explain recommendations without overwhelming the user.
-26. Correct formulas remain.
-27. All calculations run in frontend TypeScript.
-28. README is updated.
-29. Unit tests pass.
-30. Build passes.
-32. Gate passes
+14. GGUF can use a Known Model File Size override.
+15. LoRA formula uses adapter states.
+16. QLoRA formula uses quantized base + adapter states, not flat 4 GB.
+17. Full training is not modeled as final Total_P \* 16.
+18. Full training includes weights, master weights, gradients, optimizer state, activations, overhead, and buffer.
+19. Hardware recommendation comes from required_gb / utilization target.
+20. Outputs show enough math to explain recommendations without overwhelming the user.
+21. Correct formulas remain.
+22. All calculations run in frontend TypeScript.
+23. README is updated.
+24. Unit tests pass.
+25. Build passes.
+26. Gate passes
 
 > ~~strikethrough~~ strikethrough completed items to clarify what is done

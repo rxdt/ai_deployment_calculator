@@ -20,11 +20,14 @@ linted `specs/` tree; reference it there and do not commit it as source. Use it 
 - [x] The entire app avoids page scrolling when all items are collapsed.
 - [x] The entire app avoids page scrolling when all items are expanded.
 - [x] Elements are well-sized - not overly large.
+- [x] Keyboard focus uses the cyan token on controls and disclosures without
+      changing control size.
 
 ## Remaining UI Work
 
 - [ ] Final visual pass from the valid reference notes:
-      `docs/odoo.html`, `specs/dispel.html`, `specs/groundcover.html`.
+      `docs/odoo.html`, `specs/dispel.html`, `specs/groundcover.html`. Focus
+      affordance polish is done; continue with only similarly scoped gaps.
 - [x] Cyan remains limited to focus and expanded detail-panel state.
 - [x] Result hero uses compact raised answer cards while preserving hierarchy.
 - [ ] Styling should continue to follow `specs/DESIGN.md`.

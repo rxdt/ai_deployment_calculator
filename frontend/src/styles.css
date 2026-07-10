@@ -96,9 +96,20 @@ button {
   font-weight: var(--font-weight-bold);
 }
 
+button:focus-visible {
+  outline: var(--layout-border) solid var(--color-cyan);
+  outline-offset: var(--space-2xs);
+}
+
 input,
 select {
   padding: 0 var(--space-md);
+}
+
+input:focus-visible,
+select:focus-visible {
+  outline: var(--layout-border) solid var(--color-cyan);
+  outline-offset: var(--space-2xs);
 }
 
 [type="checkbox"] {
@@ -462,6 +473,12 @@ summary,
 
 .panel[open] > summary {
   color: var(--color-cyan);
+}
+
+.advanced summary:focus-visible,
+.panel summary:focus-visible {
+  outline: var(--layout-border) solid var(--color-cyan);
+  outline-offset: var(--space-2xs);
 }
 
 .panel-body {

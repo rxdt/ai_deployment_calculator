@@ -297,6 +297,39 @@ test("input actions align to the calculator pane center", async ({ page }) => {
 });
 
 /**
+ Ensure keyboard users get the same restrained cyan affordance promised by the
+ design tokens on real controls and disclosure summaries.
+*/
+test("keyboard focus uses the cyan token without resizing calculator controls", async ({
+  page,
+}) => {
+  await page.setViewportSize({ height: 720, width: 1280 });
+  await page.goto("/");
+
+  const modelFamily = page.getByLabel("Model Family", { exact: true });
+  const reset = page.getByRole("button", { name: "Reset" });
+  const advanced = page.locator('[data-slot="advanced-assumptions-label"]');
+  const why = page.getByText("Why this recommendation", { exact: true });
+  const focusedControls = [modelFamily, reset, advanced, why];
+  const baselineHeights = await Promise.all(
+    focusedControls.map(
+      async (control) =>
+        requireBox(await control.boundingBox(), "focused control").height,
+    ),
+  );
+
+  for (const [index, control] of focusedControls.entries()) {
+    await control.focus();
+    await expect(control).toHaveCSS("outline-color", "rgb(103, 232, 249)");
+    await expect(control).toHaveCSS("outline-style", "solid");
+    await expect(control).toHaveCSS("outline-width", "1px");
+    expect(
+      requireBox(await control.boundingBox(), "focused control").height,
+    ).toBe(baselineHeights[index]);
+  }
+});
+
+/**
  Ensure the first-glance result cards present one primary answer and one
  secondary recommendation instead of two competing green metrics.
 */

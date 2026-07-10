@@ -432,6 +432,53 @@ test("uses cyan only for expanded result detail headings", async ({ page }) => {
   await expect(formula).toHaveCSS("color", "rgb(248, 250, 252)");
 });
 
+test("marks expandable detail panels with a token chevron, not a button", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const summary = page.getByText("Why this recommendation", { exact: true });
+
+  // The native disclosure triangle is suppressed so the styled chevron is the
+  // only expansion marker the reader sees.
+  await expect(summary).toHaveCSS("list-style-type", "none");
+
+  const readChevron = async (): Promise<{
+    content: string;
+    borderBottomStyle: string;
+    borderBottomWidth: string;
+    transform: string;
+  }> =>
+    summary.evaluate((node) => {
+      const style = getComputedStyle(node, "::after");
+      return {
+        content: style.content,
+        borderBottomStyle: style.borderBottomStyle,
+        borderBottomWidth: style.borderBottomWidth,
+        transform: style.transform,
+      };
+    });
+
+  const closed = await readChevron();
+  expect(closed.borderBottomStyle).toBe("solid");
+  expect(closed.borderBottomWidth).not.toBe("0px");
+  expect(closed.transform).not.toBe("none");
+
+  // Expanding the panel rotates the same chevron so the affordance tracks
+  // state. Toggle the disclosure directly to avoid mobile tap emulation quirks.
+  await page.locator('[data-slot="why-panel"]').evaluate((node) => {
+    if (node instanceof HTMLDetailsElement) {
+      node.open = true;
+    }
+  });
+  // Poll past the rotation transition so the settled open transform is read.
+  await expect
+    .poll(async () => {
+      const chevron = await readChevron();
+      return chevron.transform;
+    })
+    .not.toBe(closed.transform);
+});
+
 test("ignores reflected query values without injecting markup", async ({
   page,
 }) => {

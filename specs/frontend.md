@@ -15,11 +15,14 @@ current responsive behavior before doing cosmetic work.
 
 ## Current Contract
 
+- [ ] View the app while it is running in the browser. It does not look correct. Verify.
+- [ ] The 'Reset' button should be centered relative to the 'VRAM Deployment Calculator' containter
+- [ ] 'Advanced Assumptions' should be centered relative to the 'VRAM Deployment Calculator' containter
 - [ ] The app follows `DESIGN.md` and `specs/this_png_shows_some_ideas_are_ok_not_all.png`
 - [ ] The entire app fits without scrolling when all items are collapsed.
 - [ ] The entire app fits wihout scorlling when all items are expanded.
 - [ ] Elements are well-sized - not overly large.
-- [ ] Model cards like "Why this recommendation" do NOT look like buttons. The are text on a dark background with a standard downward arrow 'v' implying expansion. Then style the arrow to our style tokens.
+- [x] Model cards like "Why this recommendation" do NOT look like buttons. They are text on a dark background with a standard downward arrow 'v' implying expansion, drawn from spacing tokens and inheriting the summary color (foreground, cyan when the panel is open).
 - [x] Core calculations run in frontend TypeScript.
 - [x] Public UI names follow the `specs/plan.md` Naming Contract.
 - [x] Main controls are reactive; Reset is the only form action.

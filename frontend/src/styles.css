@@ -300,9 +300,38 @@ summary,
   min-height: var(--layout-control-size);
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
   padding: 0 var(--space-md);
   cursor: pointer;
   color: var(--color-text);
+  list-style: none;
+}
+
+/* Disclosure affordance: a downward "v" chevron drawn from tokens so the
+   summary reads as expandable text, not a button. It inherits the summary
+   color (foreground, cyan on open) and rotates up once expanded. */
+.advanced summary::after,
+.panel summary::after {
+  flex: 0 0 auto;
+  width: var(--space-sm);
+  height: var(--space-sm);
+  border-right: var(--space-2xs) solid currentcolor;
+  border-bottom: var(--space-2xs) solid currentcolor;
+  content: "";
+  transform: translateY(-0.0625rem) rotate(45deg);
+}
+
+.advanced[open] summary::after,
+.panel[open] summary::after {
+  transform: translateY(0.0625rem) rotate(225deg);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .advanced summary::after,
+  .panel summary::after {
+    transition: transform 120ms ease;
+  }
 }
 
 .advanced .group {

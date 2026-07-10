@@ -23,7 +23,7 @@ const CODEX_COMMAND = (
 
 export const AGENTS: Record<string, string[]> = {
   claude:
-    "claude -p --dangerously-skip-permissions with --permission-mode dontAsk --no-session-persistence --output-format stream-json --verbose".split(
+    "claude -p --dangerously-skip-permissions --no-session-persistence --output-format stream-json --verbose".split(
       " ",
     ),
   codex: CODEX_COMMAND,

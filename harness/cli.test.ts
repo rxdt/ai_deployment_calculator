@@ -799,13 +799,10 @@ describe("run helpers", () => {
       "claude",
       "-p",
       "--dangerously-skip-permissions",
-      "with",
-      "--permission-mode",
       "--no-session-persistence",
       "--output-format",
       "stream-json",
       "--verbose",
-      " ",
     ]);
     expect(AGENTS.codex).toEqual([
       "env",

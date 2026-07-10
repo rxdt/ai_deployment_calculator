@@ -327,6 +327,17 @@ describe("CalculatorApp construction", () => {
     );
   });
 
+  test("throws when a preset chip names an unknown catalog id", () => {
+    loadDom();
+    const rogue = document.createElement("button");
+    rogue.type = "button";
+    rogue.dataset.preset = "not-a-real-model";
+    dataSlot("presets").append(rogue);
+    expect(() => mountCalculator(document)).toThrow(
+      "Unknown preset chip: not-a-real-model",
+    );
+  });
+
   test("throws when a required header status slot is missing", () => {
     loadDom();
     dataSlot("status-model").remove();
@@ -1275,7 +1286,9 @@ function presetChips(): HTMLButtonElement[] {
 @param label - the chip's text label
 */
 function clickPreset(label: string): void {
-  const chip = presetChips().find((button) => button.textContent === label);
+  const chip = presetChips().find(
+    (button) => button.textContent.trim() === label,
+  );
   if (chip === undefined) {
     throw new TypeError(`Missing preset chip: ${label}`);
   }
@@ -1288,7 +1301,7 @@ describe("model presets", () => {
     mountCalculator(document);
     const chips = presetChips();
 
-    expect(chips.map((chip) => chip.textContent)).toEqual(
+    expect(chips.map((chip) => chip.textContent.trim())).toEqual(
       MODEL_PRESETS.map((preset) => preset.label),
     );
     expect(chips.map((chip) => chip.dataset.preset)).toEqual(

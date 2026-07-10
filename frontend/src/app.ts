@@ -65,7 +65,7 @@ export class CalculatorApp {
   }
 
   public mount(): void {
-    this.buildPresets();
+    this.wirePresets();
     this.form.addEventListener("input", (event) => {
       if (event.target instanceof HTMLInputElement) {
         sanitizeNumberInput(event.target);
@@ -92,20 +92,22 @@ export class CalculatorApp {
     this.render(state, buildReport(state));
   }
 
-  // Quick-start chips that fill the form with a well-known model deployment.
-  // They complement the manual controls, so they carry no green primary accent
-  // and load a preset in one click rather than submitting the reactive form.
-  private buildPresets(): void {
-    for (const preset of MODEL_PRESETS) {
-      const chip = document.createElement("button");
-      chip.type = "button";
-      chip.classList.add("preset");
-      chip.dataset.preset = preset.id;
-      chip.textContent = preset.label;
+  // Attach one-click load behavior to the static preset chips by matching each
+  // chip's data-preset id to the catalog. The chips ship in the HTML (not
+  // injected) so they hold their space at first paint and add no layout shift.
+  // The presets group holds only chip buttons, so read them as direct children
+  // rather than a tag or data-* query the DOM-selector gate would reject; an id
+  // absent from the catalog throws so the HTML and catalog cannot drift apart.
+  private wirePresets(): void {
+    for (const chip of this.presets.children) {
+      const id = chip instanceof HTMLElement ? chip.dataset.preset : undefined;
+      const preset = MODEL_PRESETS.find((entry) => entry.id === id);
+      if (preset === undefined) {
+        throw new Error(`Unknown preset chip: ${String(id)}`);
+      }
       chip.addEventListener("click", () => {
         this.applyValues(defaultState(), preset.overrides);
       });
-      this.presets.append(chip);
     }
   }
 

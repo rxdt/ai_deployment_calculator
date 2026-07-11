@@ -10,6 +10,8 @@
   Cache/Activations, Concurrency/Micro Batch, Spare %), sourced from the report
   breakdown + fit meter. `ReportPayload` gains a `statChips` field. Grid is 4
   across on the wide layout, 2x2 at <= 48em; no horizontal overflow at 320–1440.
+- Restored the intro subtitle ("Estimate VRAM footprint and hardware fit for an
+  AI workload.") the `.intro p` styles already targeted but the HTML had dropped.
 
 ## Checks
 
@@ -26,4 +28,18 @@
 
 ## Blockers
 
+- Design import via the claude_design MCP (`/design-login`) is unavailable in
+  this non-interactive session; matched the design from the checked-in
+  `scratchpad/professional-calculator-redesign` bundle + screenshots instead.
+
 ## Next
+
+Largest remaining screenshot gap (rendered current app is rougher than the
+design): the input pane's field layout. The design puts related controls in a
+6-column grid (e.g. Total Parameters | Unit | Precision on one row) inside
+bordered cards; our `.group` fieldsets still stack fields full-width. This is
+the dominant visual difference left and the highest-value next increment, but it
+touches the responsive layout broadly — budget time to re-verify the 264 e2e
+no-scroll / no-overflow contracts across all four breakpoints.
+Smaller follow-ups: surface GPU examples ("e.g. RTX 4090, L4") on the hero GPU
+card as the design does (currently only in the "Why" panel).

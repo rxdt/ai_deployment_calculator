@@ -13,17 +13,16 @@
 
 ## Checks
 
-- Playwright `responsive.spec`: PASS (162) across desktop / desktop-safari /
-  iphone / tablet, incl. the new "HUD labels render the widely-spaced uppercase
-  treatment" case (status-strip letter-spacing + uppercased/spaced legends, with
-  the no-scroll and no-horizontal-overflow contracts re-checked) on both
-  one-viewport breakpoints, plus the "decorative atmosphere stays behind content"
-  case and the axe scan (no contrast regression).
-- `pnpm preflight`: PASS (0 issues) — prettier, eslint, stylelint, html-validate.
-- CSS bundle 12.2 kB, under the 13 kB size budget.
-- `pnpm gate`: PASS (0 issues) — decoration is CSS-only + one additive e2e, so
-  100% coverage held and Lighthouse stayed green; backgrounds add no layout box,
-  so CLS and the no-scroll contract were unaffected.
+- `pnpm gate`: PASS (0 issues) — format, eslint, stylelint, html-validate,
+  typecheck, schema, depcruise, knip, cspell, spectral, semgrep, secretlint,
+  audit, build, coverage, e2e, Lighthouse.
+- Unit tests: PASS (233), coverage 100% stmts/branches/funcs/lines. New
+  `statChips` branches (KV vs activations, concurrency vs micro batch, spare vs
+  em dash) are covered in `report.test.ts`; chip rendering is covered in
+  `app.test.ts`.
+- Playwright e2e: PASS (264) across desktop / desktop-safari / iphone / tablet.
+  Stat-chip row added no horizontal overflow at 320–1440 (4-across, 2x2 <=48em).
+- CSS bundle 12.9 kB, under the 13 kB size budget.
 
 ## Blockers
 

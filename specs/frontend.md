@@ -16,9 +16,6 @@ Ship a compact, trustworthy VRAM calculator today. Preserve naming, calculator c
     training), and Spare %. Values come from the calculator's own breakdown and
     fit meter, so they stay consistent with the estimate. Four across on the
     wide layout, 2x2 once the results column narrows (<= 48em).
-  - [x] Intro subtitle under the h1 ("Estimate VRAM footprint and hardware fit
-    for an AI workload."), restoring the copy the `.intro p` styles already
-    targeted.
 
 The design bundle is a raw claude.ai/design export (`{{ }}` templates, inline
 styles, upload `.ts`) and cannot pass `eslint .` or `html-validate`. It lives

@@ -2,6 +2,11 @@
 
 ## State
 
+- Preset row now matches the design/screenshot: five chips in order Llama 8B,
+  Llama 70B, Mixtral, Gemma (9B), SDXL. SDXL is the first `image_diffusion`
+  preset (switches the workload family). Old "Gemma 2B" chip replaced by the
+  design's "Gemma" (9B).
+
 ## Checks
 
 - Playwright `responsive.spec`: PASS (162) across desktop / desktop-safari /

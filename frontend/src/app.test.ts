@@ -1368,11 +1368,25 @@ describe("model presets", () => {
       submitCount += 1;
     });
 
-    clickPreset("Gemma 2B");
+    clickPreset("Gemma");
 
     expect(submitCount).toBe(0);
-    expect(field("total-params").value).toBe("2");
-    expect(out("total")).toBe("7.3 GB");
+    expect(field("total-params").value).toBe("9");
+    expect(out("total")).toBe("23.6 GB");
+  });
+
+  test("loads an image-diffusion preset that leaves the text-generation family", () => {
+    loadDom();
+    mountCalculator(document);
+
+    clickPreset("SDXL");
+
+    expect(field("workload-family").value).toBe("image_diffusion");
+    expect(field("total-params").value).toBe("3.5");
+    expect(field("precision").value).toBe("16-bit");
+    // image_diffusion has no decoder KV cache, so the MoE control is not applicable.
+    expect(field("moe-enabled")).toHaveProperty("checked", false);
+    expect(out("total")).toBe("12.0 GB");
   });
 
   test("reset clears a loaded preset back to the empty estimate", () => {

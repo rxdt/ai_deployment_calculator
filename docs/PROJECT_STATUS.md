@@ -32,15 +32,16 @@
   typecheck, schema, depcruise, knip, cspell, spectral, semgrep, secretlint,
   audit, build, coverage, e2e, Lighthouse (CLS back within budget after seeding
   the hero GPU card).
-- Unit tests: PASS (458), coverage 100% stmts/branches/funcs/lines (gate
-  enforced). This iteration rewrote the recommended-GPU-examples test in
-  `app.test.ts` to prove the examples render on the hero card (not the collapsed
-  Why panel).
+- Unit tests: PASS (462), coverage 100% stmts/branches/funcs/lines (gate
+  enforced). This iteration added `hardware.test.ts` cases proving each tier's
+  `GpuCard[]` marks a card linkable only when it has a URL, and `app.test.ts`
+  cases proving linked cards render as anchors (correct href / `target=_blank` /
+  `rel="noopener noreferrer"`) while name-only cards stay muted text.
 - Playwright e2e: PASS across desktop-chrome / desktop-safari / iphone / pixel /
-  small-320 / tablet. New: the recommended-GPU examples render on the hero GPU
-  card without expanding a panel (calculator.spec); the one-viewport
-  no-scroll / no-overflow contracts and the sub-120px hero-card height still hold
-  on every breakpoint (responsive.spec).
+  small-320 / tablet. The default deployment's hero examples now assert the
+  RTX 4090 link's href (calculator.spec); the one-viewport no-scroll /
+  no-overflow contracts and the sub-120px hero-card height still hold on every
+  breakpoint (responsive.spec).
 - CSS bundle 13.2 kB raw / 3.1 kB gzip, under the 13 kB size-limit budget
   (size-limit measures the compressed payload).
 

@@ -72,6 +72,7 @@
   --layout-advanced-height: calc(100vh - 6rem);
   --layout-advanced-width: min(42rem, calc(100vw - (var(--space-md) * 2)));
   --layout-half: calc(50% - var(--space-sm));
+  --layout-third: calc((100% - var(--space-sm) * 2) / 3);
   --layout-primary-result: calc(67% - var(--space-sm));
   --layout-secondary-result: calc(33% - var(--space-sm));
   --layout-quarter: calc(25% - var(--space-sm));
@@ -404,6 +405,15 @@ summary,
 
 .field--wide {
   flex-basis: 100%;
+}
+
+/* The Model group's parameter count, unit, and precision read as one setting, so
+   they sit three-across on a single row (the design's Total Parameters | Unit |
+   Precision layout) instead of wrapping two-then-one. The basis subtracts the two
+   inter-column gaps so the trio fills the row exactly without wrapping; min-width:0
+   on .field lets them shrink to share a narrow input pane rather than overflow. */
+.field--third {
+  flex-basis: var(--layout-third);
 }
 
 .field--check label {

@@ -496,6 +496,20 @@ test("ignores reflected query values without injecting markup", async ({
   await expect(page.locator('[data-out="total"]')).toHaveText("19.0 GB");
 });
 
+test("introduces the calculator with its purpose subtitle in the input pane", async ({
+  page,
+}) => {
+  await page.goto("/");
+
+  const subtitle = page
+    .locator(".inputs .intro p")
+    .filter({ hasText: "Estimate VRAM footprint" });
+  await expect(subtitle).toBeVisible();
+  await expect(subtitle).toHaveText(
+    "Estimate VRAM footprint and hardware fit for an AI workload.",
+  );
+});
+
 test("swaps adaptive inputs and hides MoE per workload family", async ({
   page,
 }) => {

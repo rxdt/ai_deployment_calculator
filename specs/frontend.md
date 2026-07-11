@@ -16,6 +16,16 @@ Ship a compact, trustworthy VRAM calculator today. Preserve naming, calculator c
     training), and Spare %. Values come from the calculator's own breakdown and
     fit meter, so they stay consistent with the estimate. Four across on the
     wide layout, 2x2 once the results column narrows (<= 48em).
+  - [x] Model group parameter row matches the design's three-across layout:
+    Total Parameters | Unit | Precision share one row beneath the full-width
+    Model Family select, instead of wrapping two-then-one. Fields keep
+    `min-width: 0` so the trio shrinks to fit a narrow input pane rather than
+    overflow.
+  - [x] Intro subtitle under the h1 ("Estimate VRAM footprint and hardware fit
+    for an AI workload."), restoring the copy the `.intro p` styles already
+    targeted. The reclaimed row from the three-across params layout gives the
+    input pane the vertical headroom the subtitle needs to stay within one
+    viewport.
 
 The design bundle is a raw claude.ai/design export (`{{ }}` templates, inline
 styles, upload `.ts`) and cannot pass `eslint .` or `html-validate`. It lives

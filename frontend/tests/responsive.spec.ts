@@ -579,6 +579,53 @@ test("expanded advanced assumptions stay inside the input pane", async ({
   expect(advancedBox.x + advancedBox.width).toBeLessThanOrEqual(resultsBox.x);
 });
 
+/**
+ Ensure the Model group's parameter count, unit, and precision sit three-across
+ on one row (the design's Total Parameters | Unit | Precision layout) rather than
+ wrapping two-then-one, and that the model-family control still spans the row above.
+*/
+test("model parameter, unit, and precision fields share one three-across row", async ({
+  page,
+}) => {
+  await page.setViewportSize({ height: 720, width: 1280 });
+  await page.goto("/");
+
+  const modelGroup = requireBox(
+    await page.locator("fieldset.group").first().boundingBox(),
+    "model fieldset",
+  );
+  const family = requireBox(
+    await page.locator("p.field:has(#workload-family)").boundingBox(),
+    "model family field",
+  );
+  const total = requireBox(
+    await page.locator("p.field:has(#total-params)").boundingBox(),
+    "total parameters field",
+  );
+  const unit = requireBox(
+    await page.locator("p.field:has(#parameter-unit)").boundingBox(),
+    "parameter unit field",
+  );
+  const precision = requireBox(
+    await page.locator("p.field:has(#precision)").boundingBox(),
+    "precision field",
+  );
+
+  // The three parameter fields align on one row beneath the full-width family
+  // select; equal tops distinguish three-across from the old two-then-one wrap
+  // that would drop precision onto its own lower row.
+  expect(total.y).toBeCloseTo(unit.y, 0);
+  expect(unit.y).toBeCloseTo(precision.y, 0);
+  expect(family.y).toBeLessThan(total.y);
+  expect(family.width).toBeGreaterThan(modelGroup.width * 0.8);
+
+  // Each of the three shares roughly a third of the row, so every field stays
+  // well under the half-width a two-across wrap would give it.
+  for (const field of [total, unit, precision]) {
+    expect(field.width).toBeLessThan(modelGroup.width * 0.4);
+  }
+});
+
 test("checkboxes render selected checks and empty unchecked indicators", async ({
   page,
 }) => {

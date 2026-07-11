@@ -10,6 +10,12 @@
   Cache/Activations, Concurrency/Micro Batch, Spare %), sourced from the report
   breakdown + fit meter. `ReportPayload` gains a `statChips` field. Grid is 4
   across on the wide layout, 2x2 at <= 48em; no horizontal overflow at 320–1440.
+- Model group parameter row now matches the design: Total Parameters | Unit |
+  Precision sit three-across on one row (new `.field--third` / `--layout-third`
+  token) beneath the full-width Model Family select, replacing the old
+  two-then-one wrap. The reclaimed row freed the headroom to restore the intro
+  subtitle ("Estimate VRAM footprint and hardware fit for an AI workload."),
+  which had been reverted for pushing the pane past the one-viewport contract.
 
 ## Checks
 
@@ -20,8 +26,10 @@
   `statChips` branches (KV vs activations, concurrency vs micro batch, spare vs
   em dash) are covered in `report.test.ts`; chip rendering is covered in
   `app.test.ts`.
-- Playwright e2e: PASS (264) across desktop / desktop-safari / iphone / tablet.
-  Stat-chip row added no horizontal overflow at 320–1440 (4-across, 2x2 <=48em).
+- Playwright e2e: PASS (276) across desktop-chrome / desktop-safari / iphone /
+  pixel / small-320 / tablet. New: three-across params row shares one row
+  (responsive.spec) and the intro subtitle renders (calculator.spec); the
+  one-viewport no-scroll / no-overflow contracts still hold on every breakpoint.
 - CSS bundle 12.9 kB, under the 13 kB size budget.
 
 ## Blockers
@@ -32,16 +40,14 @@
 
 ## Next
 
-- Largest remaining screenshot gap: the input pane's field layout. The design
-  puts related controls in a multi-column grid (e.g. Total Parameters | Unit |
-  Precision on one row) inside bordered cards; our `.group` fieldsets still
-  stack fields full-width. Highest-value next increment, but it touches the
-  responsive layout broadly — re-verify the 264 e2e no-scroll / no-overflow
-  contracts across all four breakpoints.
-- The design's intro subtitle ("Estimate VRAM footprint and hardware fit for an
-  AI workload.") was tried and reverted: the extra line pushes the input pane
-  past `responsive.spec` "expanded panels avoid page scroll on desktop" on every
-  breakpoint. `.intro p` styling already exists — re-add the subtitle only once
-  the pane has vertical headroom (e.g. after the field grid compaction above).
 - Surface GPU examples ("e.g. RTX 4090, L4") on the hero GPU card as the design
-  does (currently only in the "Why" panel).
+  does (currently only in the "Why" panel). Contained result-side change; the
+  examples data already exists via `gpuExamples()` — watch the collapsed
+  one-viewport result stack (`.results` scrolls internally, so keep "Memory
+  breakdown" `toBeInViewport` on desktop 720).
+- Center the fieldset legends (design centers "MODEL" / "DEPLOYMENT"); ours are
+  left-aligned. Low-risk, no responsive impact — the HUD-label e2e checks only
+  uppercase + letter-spacing, not alignment.
+- Deployment group already matches the design's two-across layout; the only
+  remaining input-pane grid gap was the Model params row, now done. Advanced
+  panel keeps its quarter-width flex layout (`.advanced[open] .field`).

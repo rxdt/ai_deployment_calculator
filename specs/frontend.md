@@ -32,8 +32,10 @@ Ship a compact, trustworthy VRAM calculator today. Preserve naming, calculator c
     class group at the bottom of the secondary hero card so the space-between
     layout keeps them together; the card's example row still drops out when no
     tier has concrete examples (no model, or an overflow recommendation). The
-    added line stays inside the one-viewport contract because the taller primary
-    hero card still drives the shared row height.
+    class + examples text is seeded into the static HTML (matching the default
+    estimate) so first paint equals the hydrated render, keeping Lighthouse CLS
+    within budget; both stay inside the one-viewport contract and the sub-120px
+    hero-card height.
 
 The design bundle is a raw claude.ai/design export (`{{ }}` templates, inline
 styles, upload `.ts`) and cannot pass `eslint .` or `html-validate`. It lives

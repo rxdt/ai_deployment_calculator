@@ -20,15 +20,19 @@
   RTX 4090 class") beneath the class value, matching the design, instead of only
   inside the collapsed "Why this recommendation" panel. Class + examples are
   wrapped in `.hero-gpu-detail` so the card's space-between layout keeps them
-  grouped at the bottom, aligned with the primary card's fit line. The added
-  line stays within the one-viewport contract because the taller primary hero
-  card still drives the shared hero-row height (verified at desktop 720).
+  grouped at the bottom, aligned with the primary card's fit line. The examples
+  line makes the secondary card the taller of the two, so its class + examples
+  text is seeded into the static HTML (matching the default estimate) to keep
+  first paint equal to the hydrated render — without the seed the post-load fill
+  grew the hero row and pushed Lighthouse CLS to 0.81 (< 0.9). Both stay within
+  the one-viewport contract and the sub-120px hero-card height at desktop 720.
 
 ## Checks
 
 - `pnpm gate`: PASS (0 issues) — format, eslint, stylelint, html-validate,
   typecheck, schema, depcruise, knip, cspell, spectral, semgrep, secretlint,
-  audit, build, coverage, e2e, Lighthouse.
+  audit, build, coverage, e2e, Lighthouse (CLS back within budget after seeding
+  the hero GPU card).
 - Unit tests: PASS (233), coverage 100% stmts/branches/funcs/lines. New
   `statChips` branches (KV vs activations, concurrency vs micro batch, spare vs
   em dash) are covered in `report.test.ts`; chip rendering is covered in

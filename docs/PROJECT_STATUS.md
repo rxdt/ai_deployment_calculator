@@ -38,16 +38,17 @@
   typecheck, schema, depcruise, knip, cspell, spectral, semgrep, secretlint,
   audit, build, coverage, e2e, Lighthouse (CLS back within budget after seeding
   the hero GPU card).
-- Unit tests: PASS (233), coverage 100% stmts/branches/funcs/lines. New
-  `statChips` branches (KV vs activations, concurrency vs micro batch, spare vs
-  em dash) are covered in `report.test.ts`; chip rendering is covered in
-  `app.test.ts`.
+- Unit tests: PASS (458), coverage 100% stmts/branches/funcs/lines (gate
+  enforced). This iteration rewrote the recommended-GPU-examples test in
+  `app.test.ts` to prove the examples render on the hero card (not the collapsed
+  Why panel).
 - Playwright e2e: PASS across desktop-chrome / desktop-safari / iphone / pixel /
   small-320 / tablet. New: the recommended-GPU examples render on the hero GPU
   card without expanding a panel (calculator.spec); the one-viewport
   no-scroll / no-overflow contracts and the sub-120px hero-card height still hold
   on every breakpoint (responsive.spec).
-- CSS bundle 12.9 kB, under the 13 kB size budget.
+- CSS bundle 13.2 kB raw / 3.1 kB gzip, under the 13 kB size-limit budget
+  (size-limit measures the compressed payload).
 
 ## Blockers
 

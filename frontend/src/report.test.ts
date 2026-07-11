@@ -144,6 +144,8 @@ describe("buildReport", () => {
       "180 GB datacenter class, e.g. B200",
     );
     expect(singleGpu.warnings.join(" ")).not.toContain("sharded-tier");
+    // A single-GPU fit needs no parallelism guidance.
+    expect(singleGpu.parallelismStrategies).toEqual([]);
 
     const sharded = buildReport(
       state({ ...base, memoryShardingEnabled: true }),
@@ -154,6 +156,17 @@ describe("buildReport", () => {
     expect(sharded.warnings).toContain(
       "Rough sharded-tier speed estimate. Assumes memory sharding / model parallelism works.",
     );
+    // A sharded recommendation surfaces the framework links for splitting the
+    // workload across cards.
+    expect(sharded.parallelismStrategies).toEqual([
+      { label: "FSDP", url: "https://pytorch.org/docs/stable/fsdp.html" },
+      { label: "ZeRO", url: "https://www.deepspeed.ai/tutorials/zero/" },
+      { label: "vLLM", url: "https://docs.vllm.ai/en/latest/" },
+      {
+        label: "TP",
+        url: "https://huggingface.co/docs/transformers/en/perf_train_gpu_many#tensor-parallelism",
+      },
+    ]);
   });
 
   test("names the sharded tier that fits when a single-GPU overflow could shard", () => {
@@ -174,6 +187,14 @@ describe("buildReport", () => {
     expect(report.warnings).toContain(
       "Rough sharded-tier speed estimate. Assumes memory sharding / model parallelism works.",
     );
+    // A single-GPU overflow (sharding disabled) still needs multi-GPU, so the
+    // parallelism strategies surface even before the user enables sharding.
+    expect(report.parallelismStrategies.map((s) => s.label)).toEqual([
+      "FSDP",
+      "ZeRO",
+      "vLLM",
+      "TP",
+    ]);
   });
 
   test("uses the known file size for local runtime", () => {
@@ -295,6 +316,7 @@ describe("buildReport", () => {
         "calculation",
         "calculationRows",
         "minimumRawVramNeeded",
+        "parallelismStrategies",
         "recommendedHardware",
         "speed",
         "statChips",
@@ -302,6 +324,12 @@ describe("buildReport", () => {
         "warnings",
       ].sort((a, b) => a.localeCompare(b)),
     );
+  });
+
+  test("omits parallelism guidance for a workload that fits one card", () => {
+    // The default 7B inference workload fits a single 24 GB card, so no sharding
+    // strategies apply and the callout stays empty.
+    expect(buildReport(state()).parallelismStrategies).toEqual([]);
   });
 
   test("does not expose the retired confidence field for any workload family", () => {

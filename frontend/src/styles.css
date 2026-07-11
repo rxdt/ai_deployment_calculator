@@ -13,6 +13,8 @@
   --color-blue: #3b82f6;
   --color-cyan: #67e8f9;
   --color-amber: #f97316;
+  --color-amber-line: #f9731640;
+  --color-amber-surface: #f9731612;
   --color-hero-line: #30303a;
   --color-shadow: #0006;
   --color-glow-primary: #22c55e2b;
@@ -855,6 +857,44 @@ code {
 
 .warnings .metric strong {
   display: none;
+}
+
+/* Multi-GPU parallelism callout: an amber note beneath the stat chips, shown
+   only when no single card holds the workload. Amber marks it as caution
+   (echoing the tight-fit meter) so the primary green stays reserved for the
+   answer; it spans the full results width like the stat-chip row above it. */
+.callout {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: var(--space-sm);
+  align-items: flex-start;
+  padding: var(--space-sm) var(--space-md);
+  border: var(--layout-border) solid var(--color-amber-line);
+  border-radius: var(--radius-sm);
+  background: var(--color-amber-surface);
+  color: var(--color-text);
+}
+
+.callout-mark {
+  flex: 0 0 auto;
+  color: var(--color-amber);
+  font-family: var(--font-mono);
+  font-weight: var(--font-weight-bold);
+}
+
+.callout-text {
+  min-width: 0;
+  margin: 0;
+  font-size: var(--font-body);
+  line-height: var(--font-line-body);
+}
+
+/* Strategy links carry the amber accent (not the reserved green) with an
+   underline so they read as links without relying on color alone. */
+.callout-links a {
+  color: var(--color-amber);
+  text-decoration: underline;
+  text-underline-offset: var(--space-2xs);
 }
 
 [hidden] {

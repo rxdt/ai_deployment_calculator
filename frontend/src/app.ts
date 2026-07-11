@@ -1,6 +1,7 @@
 import {
   dataSlot,
-  gpuExampleNodes,
+  renderGpuExamples,
+  renderParallelismCallout,
   searchFromForm,
   setHiddenWithControls,
   toStateKey,
@@ -24,7 +25,6 @@ import {
 import type {
   DisplayRow,
   FormState,
-  GpuCard,
   HardwareRecommendation,
   ReportPayload,
 } from "./types";
@@ -189,19 +189,6 @@ export class CalculatorApp {
     this.setDataSlotText("status-fit", statusFitLabel(report));
   }
 
-  // Concrete example cards for the recommended tier are a trust signal, so name
-  // them on the hero GPU card beneath the class; drop the whole line when the
-  // tier has none (no model, or an overflow recommendation with no single-card
-  // fit). Cards with a product page render as links so a name doubles as a way
-  // out to the card; the rest stay muted text.
-  private renderGpuExamples(cards: readonly GpuCard[]): void {
-    this.slot("gpu-examples").replaceChildren(...gpuExampleNodes(cards));
-    dataSlot(this.root, "gpu-examples-row")?.toggleAttribute(
-      "hidden",
-      cards.length === 0,
-    );
-  }
-
   // The hero meter turns the answer into an at-a-glance fit signal: how much of
   // the recommended class the workload consumes. When no single class fits (no
   // model, or an overflow recommendation) there is nothing to measure, so hide
@@ -274,7 +261,8 @@ export class CalculatorApp {
     this.setText("total", report.totalRequiredMemory);
     this.renderFitMeter(report, fit);
     this.setText("gpu-class", recommendedGpuClass(fit.recommendedTier));
-    this.renderGpuExamples(fit.exampleCards);
+    renderGpuExamples(this.root, fit.exampleCards);
+    renderParallelismCallout(this.root, report.parallelismStrategies);
     this.setText("why", whyText(report));
     this.setText("min-cap", report.minimumRawVramNeeded);
     this.setText("usable-target", fit.usableVramTarget);

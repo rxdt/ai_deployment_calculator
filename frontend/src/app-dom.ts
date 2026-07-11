@@ -1,4 +1,4 @@
-import type { GpuCard } from "./types";
+import type { GpuCard, ParallelismStrategy } from "./types";
 
 /**
  Convert a kebab-case wire name (HTML `name` attribute) to the camelCase
@@ -86,11 +86,42 @@ Build the hero example-card nodes, " / "-separated, for one recommended tier.
 @param cards - the tier's example GPU cards
 @returns interleaved card nodes and separators, ready to append
 */
-export function gpuExampleNodes(cards: readonly GpuCard[]): Node[] {
+function gpuExampleNodes(cards: readonly GpuCard[]): Node[] {
   return cards.flatMap((card, index) =>
     index === 0
       ? [gpuCardNode(card)]
       : [document.createTextNode(" / "), gpuCardNode(card)],
+  );
+}
+
+// Build one parallelism-strategy link: a new-tab anchor to the framework's
+// docs. rel="noopener noreferrer" keeps the opened page from reaching back
+// through window.opener, matching the hero GPU links.
+/**
+@param strategy - the parallelism strategy
+@returns an anchor to the strategy's docs
+*/
+function parallelismLinkNode(strategy: Readonly<ParallelismStrategy>): Node {
+  const link = document.createElement("a");
+  link.href = strategy.url;
+  link.textContent = strategy.label;
+  link.target = "_blank";
+  link.rel = "noopener noreferrer";
+  return link;
+}
+
+/**
+Build the sharding-callout strategy links, " · "-separated.
+@param strategies - the multi-GPU parallelism strategies
+@returns interleaved link nodes and separators, ready to append
+*/
+function parallelismLinkNodes(
+  strategies: readonly ParallelismStrategy[],
+): Node[] {
+  return strategies.flatMap((strategy, index) =>
+    index === 0
+      ? [parallelismLinkNode(strategy)]
+      : [document.createTextNode(" · "), parallelismLinkNode(strategy)],
   );
 }
 
@@ -106,6 +137,59 @@ export function dataSlot(root: ParentNode, name: string): HTMLElement | null {
     }
   }
   return null;
+}
+
+/**
+Look up an element by its data-out value, matching the generic `[data-out]`
+selector the repo allows rather than a per-value selector.
+@param root - DOM root to search
+@param name - data-out value
+*/
+function dataOut(root: ParentNode, name: string): HTMLElement | null {
+  for (const node of root.querySelectorAll<HTMLElement>("[data-out]")) {
+    if (node.dataset.out === name) {
+      return node;
+    }
+  }
+  return null;
+}
+
+// Render one recommended tier's concrete example cards onto the hero GPU card,
+// then drop the whole "e.g. ..." row when the tier has none (no model, or an
+// overflow recommendation with no single-card fit).
+/**
+@param root - DOM root to search
+@param cards - the recommended tier's example GPU cards
+*/
+export function renderGpuExamples(
+  root: ParentNode,
+  cards: readonly GpuCard[],
+): void {
+  dataOut(root, "gpu-examples")?.replaceChildren(...gpuExampleNodes(cards));
+  dataSlot(root, "gpu-examples-row")?.toggleAttribute(
+    "hidden",
+    cards.length === 0,
+  );
+}
+
+// Fill the parallelism callout's links and reveal it only when strategies apply
+// (no single card fits), so a single-GPU fit hides the callout entirely rather
+// than leaving a bare header. Mirrors the hero GPU-examples wiring.
+/**
+@param root - DOM root to search
+@param strategies - the multi-GPU parallelism strategies
+*/
+export function renderParallelismCallout(
+  root: ParentNode,
+  strategies: readonly ParallelismStrategy[],
+): void {
+  dataOut(root, "parallelism-links")?.replaceChildren(
+    ...parallelismLinkNodes(strategies),
+  );
+  dataSlot(root, "parallelism")?.toggleAttribute(
+    "hidden",
+    strategies.length === 0,
+  );
 }
 
 /**

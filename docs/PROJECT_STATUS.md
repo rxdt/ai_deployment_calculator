@@ -9,11 +9,28 @@
   (Total Parameters | Unit | Precision); the intro subtitle; and centered
   "MODEL"/"DEPLOYMENT" legends. Legend color stays foreground so the primary
   green accent stays reserved for the answer.
+- Multi-GPU parallelism callout (the design's amber `warn.png` banner) now
+  ships: when the recommended/speed tier requires sharding (a sharded tier is
+  recommended, or a single-GPU overflow needs sharding), an amber note beneath
+  the stat-chip row reads "Exceeds single-GPU capacity — needs tensor / pipeline
+  parallelism:" followed by FSDP · ZeRO · vLLM · TP links (new-tab, `rel`
+  guarded, underlined). `buildReport` sets `ReportPayload.parallelismStrategies`
+  (empty for any single-GPU fit); `renderParallelismCallout` (in `app-dom.ts`,
+  co-located with the relocated `renderGpuExamples`) fills the links and toggles
+  the callout `hidden`. Both relocated helpers resolve their target through a
+  new module-local `dataOut(root, name)` (mirroring `dataSlot`) that matches the
+  harness-allowlisted generic `[data-out]` selector, since per-value
+  `[data-out="…"]` selectors are rejected by the DOM-preference check. It stays
+  hidden for the default 7B fit, so it adds no
+  height or CLS to the common case. Amber reuses the tight-fit meter's
+  `--color-amber` (not the design's `#fbbf24`) so the primary green stays
+  reserved for the answer.
 - Hero GPU examples are per-card, matching the design's linked-name /
   muted-name split. Each `HardwareTier` carries a `GpuCard[]` (`{ name, url? }`)
   instead of one `examples` string; `HardwareRecommendation` gains
-  `exampleCards`, and the hero renders each card via `gpuExampleNodes` (in
-  `app-dom.ts`) — a green external link (`target=_blank`,
+  `exampleCards`, and the hero renders each card via `renderGpuExamples` (in
+  `app-dom.ts`, wrapping the internal `gpuExampleNodes`) — a green external link
+  (`target=_blank`,
   `rel="noopener noreferrer"`, underlined for a non-color cue) when the card has
   a product page, muted text otherwise. Product URLs reuse the design bundle's
   deep links where it named them (RTX 4060 / 4080 / 4090 / 6000 Ada) and
@@ -33,26 +50,28 @@
 
 - `pnpm gate`: PASS (0 issues) — format, eslint, stylelint, html-validate,
   typecheck, schema, depcruise, knip, cspell, spectral, semgrep, secretlint,
-  audit, build, coverage, e2e, Lighthouse (CLS back within budget after seeding
-  the hero GPU card).
-- Unit tests: PASS (463), coverage 100% stmts/branches/funcs/lines (gate
-  enforced). This iteration retargeted the linkable-only-when-URL case at the
-  8 GB tier (RTX 4060 linked / "older 8 GB GPUs" muted) now that the 48 GB trio
-  all links, and added a `hardware.test.ts` case pinning B200/H800 as
-  deliberately name-only for lack of a canonical single-GPU page.
+  audit, build, coverage, e2e, Lighthouse (callout is hidden by default, so CLS
+  stays within budget).
+- Unit tests: PASS (467), coverage 100% stmts/branches/funcs/lines (gate
+  enforced). This iteration added `report.test.ts` coverage that the parallelism
+  strategies appear for a sharded tier and a single-GPU overflow but stay empty
+  for a single-GPU fit, plus `app.test.ts` coverage that the callout stays
+  hidden by default and renders the four framework links (href/target/rel) once
+  the workload exceeds a single card, then hides again when it fits.
 - Playwright e2e: PASS across desktop-chrome / desktop-safari / iphone / pixel /
-  small-320 / tablet. The default deployment's hero examples now assert the
-  RTX 4090 link's href (calculator.spec); the one-viewport no-scroll /
-  no-overflow contracts and the sub-120px hero-card height still hold on every
-  breakpoint (responsive.spec).
+  small-320 / tablet. The default deployment now also asserts the parallelism
+  callout is hidden, and a new case drives Full training to assert the amber
+  callout surfaces with the FSDP/ZeRO/vLLM/TP links (calculator.spec); the
+  one-viewport no-scroll / no-overflow contracts and the sub-120px hero-card
+  height still hold on every breakpoint (responsive.spec).
 - CSS bundle 13.2 kB raw / 3.1 kB gzip, under the 13 kB size-limit budget
   (size-limit measures the compressed payload).
 
 ## Blockers
 
 - Design import via the claude_design MCP (`/design-login`) is unavailable in
-  this non-interactive session; matched the design from the checked-in
-  `scratchpad/professional-calculator-redesign` bundle + screenshots instead.
+  this non-interactive session; matched the design from the checked-in `docs/PROJECT_STATUS.md` and
+  `docs/frontend` bundle + screenshot `docs/Screenshot 2026-07-10 at 12.29.26 AM.png` instead.
 
 ## Next
 

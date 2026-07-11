@@ -17,6 +17,7 @@ import type {
   DisplayRow,
   FormState,
   HardwareRecommendation,
+  ParallelismStrategy,
   ReportPayload,
 } from "./types";
 import { memoryBreakdown, speedEstimate } from "./workload-memory";
@@ -74,8 +75,22 @@ function trainingWarning(state: Readonly<FormState>): string | null {
   return null;
 }
 
+// Actionable multi-GPU parallelism strategies, surfaced when no single card
+// holds the workload. Each links its framework's canonical docs so the guidance
+// is a concrete next step rather than a dead end, matching the design's sharding
+// callout.
+const PARALLELISM_STRATEGIES: readonly ParallelismStrategy[] = [
+  { label: "FSDP", url: "https://pytorch.org/docs/stable/fsdp.html" },
+  { label: "ZeRO", url: "https://www.deepspeed.ai/tutorials/zero/" },
+  { label: "vLLM", url: "https://docs.vllm.ai/en/latest/" },
+  {
+    label: "TP",
+    url: "https://huggingface.co/docs/transformers/en/perf_train_gpu_many#tensor-parallelism",
+  },
+];
+
 /**
- 
+
 @param state
 */
 function warningsFor(state: Readonly<FormState>): string[] {
@@ -194,8 +209,9 @@ export function buildReport(state: Readonly<FormState>): ReportPayload {
     allowSharding: canShard,
   });
   const speedTier = speedTierFor(tier);
+  const requiresMultiGpu = speedTier.requiresSharding;
   const warnings = warningsFor(state);
-  if (speedTier.requiresSharding) {
+  if (requiresMultiGpu) {
     warnings.push(speedLabel(speedTier));
   }
   return {
@@ -215,6 +231,7 @@ export function buildReport(state: Readonly<FormState>): ReportPayload {
     calculationRows: calculationRows(breakdown, spec.runtime.buffer),
     assumptions: assumptionRows(state, spec),
     warnings,
+    parallelismStrategies: requiresMultiGpu ? PARALLELISM_STRATEGIES : [],
     calculation: formulaText(),
   };
 }

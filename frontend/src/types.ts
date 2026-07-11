@@ -72,6 +72,14 @@ export interface GpuCard {
   readonly url?: string;
 }
 
+// One actionable multi-GPU parallelism strategy: a framework name plus its
+// canonical docs. Surfaced only when a workload cannot fit a single GPU, so the
+// answer names concrete next steps for sharding it across cards.
+export interface ParallelismStrategy {
+  readonly label: string;
+  readonly url: string;
+}
+
 export interface HardwareRecommendation {
   readonly requiredMemory: string;
   readonly usableVramTarget: string;
@@ -93,5 +101,6 @@ export interface ReportPayload {
   readonly calculationRows: readonly DisplayRow[];
   readonly assumptions: readonly DisplayRow[];
   readonly warnings: readonly string[];
+  readonly parallelismStrategies: readonly ParallelismStrategy[];
   readonly calculation: string;
 }

@@ -496,6 +496,23 @@
           <!-- Tier 1.5: the answer's biggest levers as at-a-glance stat chips -->
           <ul class="stats" data-out="stat-chips" aria-busy="true"></ul>
 
+          <!-- Actionable multi-GPU guidance: shown only when no single card
+               holds the workload, so the answer names the parallelism
+               strategies needed to shard it across cards. -->
+          <aside
+            class="callout"
+            data-slot="parallelism"
+            role="note"
+            aria-label="Multi-GPU deployment guidance"
+            hidden
+          >
+            <span class="callout-mark" aria-hidden="true">!</span>
+            <p class="callout-text">
+              Exceeds single-GPU capacity — needs tensor / pipeline parallelism:
+              <span class="callout-links" data-out="parallelism-links"></span>
+            </p>
+          </aside>
+
           <!-- Tier 2: the reasoning and numbers, hidden until asked for -->
           <details class="panel panel--wide" data-slot="why-panel">
             <summary>Why this recommendation</summary>

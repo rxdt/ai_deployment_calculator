@@ -330,6 +330,33 @@ test("renders the default 7B estimate consistently across the full report", asyn
     ["Conservative KV heads", "32"],
   ]);
   await expect(page.locator('[data-out="warnings"]')).toBeHidden();
+  await expect(page.locator('[data-slot="parallelism"]')).toBeHidden();
+});
+
+test("surfaces the multi-GPU parallelism callout when no single card fits", async ({
+  page,
+}) => {
+  await page.goto("/");
+
+  // A single-GPU workload keeps the callout out of the way.
+  const callout = page.locator('[data-slot="parallelism"]');
+  await expect(callout).toBeHidden();
+
+  // Full training of the default 7B overflows every single-GPU tier.
+  await page.locator("#execution-mode").selectOption("Full training");
+  await expect(callout).toBeVisible();
+  await expect(callout).toContainText(
+    "Exceeds single-GPU capacity — needs tensor / pipeline parallelism",
+  );
+
+  const links = callout.locator('[data-out="parallelism-links"] a');
+  await expect(links).toHaveText(["FSDP", "ZeRO", "vLLM", "TP"]);
+  await expect(links.first()).toHaveAttribute(
+    "href",
+    "https://pytorch.org/docs/stable/fsdp.html",
+  );
+  await expect(links.first()).toHaveAttribute("target", "_blank");
+  await expect(links.first()).toHaveAttribute("rel", "noopener noreferrer");
 });
 
 /**

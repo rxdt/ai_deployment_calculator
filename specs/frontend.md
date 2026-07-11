@@ -50,6 +50,17 @@ Ship a compact, trustworthy VRAM calculator today. Preserve naming, calculator c
     matching the design's centered HUD headers instead of the default left edge.
     Legend color stays foreground (not the design's green) so the primary green
     accent remains reserved for the answer.
+  - [x] Multi-GPU parallelism callout (the design's amber `warn.png` banner):
+    when no single card holds the workload, an amber note beneath the stat-chip
+    row reads "Exceeds single-GPU capacity — needs tensor / pipeline
+    parallelism:" followed by the framework links FSDP · ZeRO · vLLM · TP (each
+    `target=_blank`, `rel="noopener noreferrer"`, underlined). It fires whenever
+    the recommended/speed tier requires sharding — a sharded tier is
+    recommended, or a single-GPU overflow needs sharding — and stays hidden for
+    any single-GPU fit, so it adds no height (and no CLS) to the common case.
+    `ReportPayload.parallelismStrategies` carries the links; the amber accent
+    (the tight-fit meter's `--color-amber`, not the design's `#fbbf24`) keeps
+    the primary green reserved for the answer.
 
 The design bundle is a raw claude.ai/design export (`{{ }}` templates, inline
 styles, upload `.ts`) and cannot pass `eslint .` or `html-validate`. It lives

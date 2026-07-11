@@ -833,6 +833,56 @@ describe("mounted calculator", () => {
   });
 });
 
+describe("multi-GPU parallelism callout", () => {
+  test("stays hidden and empty for a workload that fits one card", () => {
+    loadDom();
+    mountCalculator(document);
+    const callout = dataSlot("parallelism");
+    expect(callout.hidden).toBe(true);
+    expect(out("parallelism-links")).toBe("");
+  });
+
+  test("surfaces the parallelism strategies as new-tab links when no single card fits", () => {
+    loadDom();
+    mountCalculator(document);
+    fireInput("total-params", "200");
+
+    const callout = dataSlot("parallelism");
+    expect(callout.hidden).toBe(false);
+    expect(callout.textContent).toContain(
+      "Exceeds single-GPU capacity — needs tensor / pipeline parallelism",
+    );
+
+    const links = [...outSlot("parallelism-links").children].filter(
+      (child): child is HTMLAnchorElement => child instanceof HTMLAnchorElement,
+    );
+    expect(links.map((link) => link.textContent)).toEqual([
+      "FSDP",
+      "ZeRO",
+      "vLLM",
+      "TP",
+    ]);
+    expect(links[0]?.getAttribute("href")).toBe(
+      "https://pytorch.org/docs/stable/fsdp.html",
+    );
+    for (const link of links) {
+      expect(link.target).toBe("_blank");
+      expect(link.rel).toBe("noopener noreferrer");
+    }
+  });
+
+  test("drops the callout again once the workload fits a single card", () => {
+    loadDom();
+    mountCalculator(document);
+    fireInput("total-params", "200");
+    expect(dataSlot("parallelism").hidden).toBe(false);
+
+    fireInput("total-params", "7");
+    expect(dataSlot("parallelism").hidden).toBe(true);
+    expect(out("parallelism-links")).toBe("");
+  });
+});
+
 describe("hero fit meter", () => {
   test("shows a fit meter summarizing spare VRAM on the recommended class", () => {
     loadDom();

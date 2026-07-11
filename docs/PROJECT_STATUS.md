@@ -26,4 +26,22 @@
 
 ## Blockers
 
+- Design import via the claude_design MCP (`/design-login`) is unavailable in
+  this non-interactive session; matched the design from the checked-in
+  `scratchpad/professional-calculator-redesign` bundle + screenshots instead.
+
 ## Next
+
+- Largest remaining screenshot gap: the input pane's field layout. The design
+  puts related controls in a multi-column grid (e.g. Total Parameters | Unit |
+  Precision on one row) inside bordered cards; our `.group` fieldsets still
+  stack fields full-width. Highest-value next increment, but it touches the
+  responsive layout broadly — re-verify the 264 e2e no-scroll / no-overflow
+  contracts across all four breakpoints.
+- The design's intro subtitle ("Estimate VRAM footprint and hardware fit for an
+  AI workload.") was tried and reverted: the extra line pushes the input pane
+  past `responsive.spec` "expanded panels avoid page scroll on desktop" on every
+  breakpoint. `.intro p` styling already exists — re-add the subtitle only once
+  the pane has vertical headroom (e.g. after the field grid compaction above).
+- Surface GPU examples ("e.g. RTX 4090, L4") on the hero GPU card as the design
+  does (currently only in the "Why" panel).

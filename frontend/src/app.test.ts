@@ -265,6 +265,17 @@ function breakdownCards(): { label: string; value: string }[] {
   }));
 }
 
+/**
+ Read the rendered headline stat chips as label/value pairs.
+@returns one entry per rendered chip, in DOM order
+*/
+function statChipCards(): { label: string; value: string }[] {
+  return [...outSlot("stat-chips").children].map((card) => ({
+    label: card.firstElementChild?.textContent ?? "",
+    value: card.lastElementChild?.textContent ?? "",
+  }));
+}
+
 afterEach(() => {
   document.body.replaceChildren();
 });
@@ -1399,6 +1410,39 @@ describe("model presets", () => {
 
     expect(field("total-params").value).toBe("0");
     expect(out("total")).toBe("0.0 GB");
+  });
+});
+
+describe("headline stat chips", () => {
+  test("renders four stat chips under the hero on mount", () => {
+    loadDom();
+    mountCalculator(document);
+
+    // The seed 7B decoder deployment headlines weights, KV cache, the batch
+    // count, and the fit meter's spare budget.
+    expect(statChipCards().map((chip) => chip.label)).toEqual([
+      "Model Weights",
+      "KV Cache",
+      "Concurrency",
+      "Spare",
+    ]);
+    expect(outSlot("stat-chips").getAttribute("aria-busy")).toBeNull();
+  });
+
+  test("recomputes the chips when the workload family changes", () => {
+    loadDom();
+    mountCalculator(document);
+
+    fireChange("workload-family", "image_diffusion");
+
+    // Image diffusion has no decoder KV cache, so the working-memory chip
+    // switches to activations without disturbing the surrounding chips.
+    expect(statChipCards().map((chip) => chip.label)).toEqual([
+      "Model Weights",
+      "Activations",
+      "Concurrency",
+      "Spare",
+    ]);
   });
 });
 

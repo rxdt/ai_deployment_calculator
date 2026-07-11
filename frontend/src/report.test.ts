@@ -286,6 +286,7 @@ describe("buildReport", () => {
         "minimumRawVramNeeded",
         "recommendedHardware",
         "speed",
+        "statChips",
         "totalRequiredMemory",
         "warnings",
       ].sort((a, b) => a.localeCompare(b)),
@@ -624,5 +625,48 @@ describe("buildReport", () => {
       buildReport(state({ totalParams: "70" })),
     ).toLowerCase();
     expect(haystack).not.toMatch(/\$|\/hr\b|per hour|\bcost\b|\bprice\b/u);
+  });
+});
+
+describe("headline stat chips", () => {
+  test("headlines weights, KV cache, concurrency, and spare for decoder inference", () => {
+    const chips = buildReport(state({ totalParams: "8" })).statChips;
+
+    // Weights and KV cache mirror the breakdown's two largest text-generation
+    // terms; concurrency is the batch count; spare is the fit meter's leftover.
+    expect(chips).toEqual([
+      { label: "Model Weights", value: "16.0 GB" },
+      { label: "KV Cache", value: "1.0 GB" },
+      { label: "Concurrency", value: "1" },
+      { label: "Spare", value: "48%" },
+    ]);
+  });
+
+  test("swaps KV cache for activations and concurrency for micro batch when training", () => {
+    const chips = buildReport(
+      state({ executionMode: "Full training", workloadSize: "4" }),
+    ).statChips;
+
+    // Training has no decoder KV cache, so the working-memory chip reads
+    // activations, and the batch chip reads the training micro-batch size.
+    expect(chips[1]?.label).toBe("Activations");
+    expect(chips[2]).toEqual({ label: "Micro Batch", value: "4" });
+  });
+
+  test("reads activations for a non-decoder family such as image diffusion", () => {
+    const chips = buildReport(
+      state({ workloadFamily: "image_diffusion", totalParams: "3.5" }),
+    ).statChips;
+
+    expect(chips[1]?.label).toBe("Activations");
+    expect(chips[2]?.label).toBe("Concurrency");
+  });
+
+  test("shows an em dash for spare when no single card class fits", () => {
+    const chips = buildReport(state({ totalParams: "0" })).statChips;
+
+    // With no model there is no usable-VRAM budget to divide, so the fit meter
+    // yields nothing and the spare chip degrades to a neutral placeholder.
+    expect(chips[3]).toEqual({ label: "Spare", value: "—" });
   });
 });

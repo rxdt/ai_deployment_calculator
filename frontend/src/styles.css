@@ -764,6 +764,41 @@ code {
   font-variant-numeric: tabular-nums;
 }
 
+/* Headline stat chips: the answer's biggest levers as scannable tiles spanning
+   the full results width beneath the hero, echoing the memory-breakdown card
+   look. Labels read as HUD text; values stay foreground mono, never the green
+   answer accent, per the design spec's color reservation. Four across on the
+   wide two-column layout, dropping to a 2x2 grid once the results column
+   narrows so labels wrap at word boundaries rather than mid-word. The columns
+   cap at an even share of the row but shrink to fit the gaps, so they never
+   overflow the results width. */
+.stats {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 25%));
+  gap: var(--space-sm);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stats .metric {
+  display: grid;
+  gap: var(--space-2xs);
+  padding: var(--space-sm);
+  border: var(--layout-border) solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  font-variant-numeric: tabular-nums;
+}
+
+.stats .metric span {
+  overflow-wrap: break-word;
+  font-size: var(--font-status);
+  text-transform: uppercase;
+  letter-spacing: var(--font-hud-spacing);
+}
+
 .calculation .metric:last-child,
 .assumptions .metric:last-child,
 .fit li:last-child {
@@ -792,6 +827,11 @@ code {
 }
 
 @media (width <= 48em) {
+  /* Once the results column narrows, drop the four chips to a 2x2 grid. */
+  .stats {
+    grid-template-columns: repeat(2, minmax(0, 50%));
+  }
+
   .advanced[open] {
     position: static;
   }

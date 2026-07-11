@@ -6,6 +6,10 @@
   Llama 70B, Mixtral, Gemma (9B), SDXL. SDXL is the first `image_diffusion`
   preset (switches the workload family). Old "Gemma 2B" chip replaced by the
   design's "Gemma" (9B).
+- Added the design's headline stat-chip row under the hero (Model Weights, KV
+  Cache/Activations, Concurrency/Micro Batch, Spare %), sourced from the report
+  breakdown + fit meter. `ReportPayload` gains a `statChips` field. Grid is 4
+  across on the wide layout, 2x2 at <= 48em; no horizontal overflow at 320–1440.
 
 ## Checks
 

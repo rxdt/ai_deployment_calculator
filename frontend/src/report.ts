@@ -12,9 +12,15 @@ import {
   speedTierFor,
 } from "./hardware";
 import { assumptionRows } from "./report-assumptions";
-import type { DisplayRow, FormState, ReportPayload } from "./types";
+import { fitMeter } from "./result-format";
+import type {
+  DisplayRow,
+  FormState,
+  HardwareRecommendation,
+  ReportPayload,
+} from "./types";
 import { memoryBreakdown, speedEstimate } from "./workload-memory";
-import { hasMoeControl } from "./workload-visibility";
+import { hasDecoderKvCache, hasMoeControl } from "./workload-visibility";
 
 export { specFromState } from "./calculator-core";
 
@@ -133,7 +139,45 @@ function calculationRows(
 }
 
 /**
- 
+The four headline stat chips shown under the hero: the answer's biggest levers
+at a glance. Model weights and the dominant working-memory term (KV cache for
+decoders, else activations) are the two largest contributors; the batch chip
+reads as "Concurrency" for inference and "Micro Batch" for training; "Spare"
+mirrors the fit meter's leftover budget, or "—" when no single card fits and
+there is no usable-VRAM budget to divide.
+@param state - normalized form state
+@param breakdown - the computed memory breakdown
+@param concurrency - the parsed batch/concurrency count
+@param recommendation - the computed hardware recommendation
+@returns the four chip label/value rows in display order
+*/
+function statChips(
+  state: Readonly<FormState>,
+  breakdown: Readonly<MemoryBreakdown>,
+  concurrency: number,
+  recommendation: Readonly<HardwareRecommendation>,
+): DisplayRow[] {
+  const meter = fitMeter(recommendation);
+  const working = hasDecoderKvCache(state)
+    ? { label: "KV Cache", value: formatGb(breakdown.kvCacheGb) }
+    : { label: "Activations", value: formatGb(breakdown.inputActivationGb) };
+  return [
+    { label: "Model Weights", value: formatGb(breakdown.weightsGb) },
+    working,
+    {
+      label:
+        state.executionMode === "Inference" ? "Concurrency" : "Micro Batch",
+      value: String(concurrency),
+    },
+    {
+      label: "Spare",
+      value: meter === null ? "—" : `${(100 - meter.fillPercent).toString()}%`,
+    },
+  ];
+}
+
+/**
+
 @param state
 */
 export function buildReport(state: Readonly<FormState>): ReportPayload {
@@ -159,6 +203,7 @@ export function buildReport(state: Readonly<FormState>): ReportPayload {
     recommendedHardware: recommendation,
     minimumRawVramNeeded: recommendation.minimumRawVram,
     speed: speedEstimate(spec, weights, speedTier),
+    statChips: statChips(state, breakdown, spec.workloadSize, recommendation),
     breakdown: compactRows([
       row(weightsLabel(state), breakdown.weightsGb),
       row("Context memory", breakdown.kvCacheGb),

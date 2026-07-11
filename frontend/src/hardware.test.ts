@@ -25,8 +25,28 @@ describe("canonical hardware table", () => {
     expect(HARDWARE_TIERS.map((row) => row.vramGb)).toEqual([
       8, 12, 16, 24, 48, 80, 141, 160, 180, 320,
     ]);
-    expect(tier(141).examples).toBe("H200 class");
-    expect(tier(180).examples).toBe("B200 class");
+    expect(tier(141).examples).toEqual([
+      { name: "H200", url: "https://www.nvidia.com/en-us/data-center/h200/" },
+    ]);
+    expect(tier(180).examples).toEqual([{ name: "B200" }]);
+  });
+
+  test("marks example cards linkable only when they have a product page", () => {
+    // The 48 GB tier mixes both: the RTX 6000 Ada links to its product page,
+    // while the A6000 and L40S stay name-only for the muted, unlinked render.
+    expect(tier(48).examples).toEqual([
+      { name: "RTX A6000" },
+      {
+        name: "RTX 6000 Ada",
+        url: "https://www.nvidia.com/en-us/design-visualization/rtx-6000/",
+      },
+      { name: "L40S" },
+    ]);
+    // Sharded aggregate tiers are several GPUs, not one SKU, so they stay
+    // name-only rather than linking a card that does not exist.
+    expect(tier(160).examples).toEqual([
+      { name: "2x 80 GB GPUs with tensor/model parallelism" },
+    ]);
   });
 
   test("only the 160 and 320 aggregate tiers require sharding", () => {
@@ -124,7 +144,17 @@ describe("hardwareRecommendation display", () => {
       fitHeadroom: "0.0 GB usable margin",
       minimumRawVram: "24.0 GB",
       recommendedTier:
-        "24 GB high-end consumer class, e.g. RTX 3090 / RTX 4090 class",
+        "24 GB high-end consumer class, e.g. RTX 3090 / RTX 4090",
+      exampleCards: [
+        {
+          name: "RTX 3090",
+          url: "https://www.nvidia.com/en-us/geforce/graphics-cards/30-series/",
+        },
+        {
+          name: "RTX 4090",
+          url: "https://www.nvidia.com/en-us/geforce/graphics-cards/40-series/rtx-4090/",
+        },
+      ],
       math: "Estimated workload memory is 20.4 GB. With a 85% usable VRAM target, use a GPU with at least 24.0 GB of physical VRAM so the workload does not consume the entire card.",
     });
   });
@@ -174,7 +204,15 @@ describe("hardwareRecommendation display", () => {
       fitHeadroom: "n/a",
       minimumRawVram: "0.0 GB",
       recommendedTier: "No model loaded",
+      exampleCards: [],
       math: "Estimated workload memory is 0.0 GB. Enter model and workload inputs above 0 to size GPU VRAM.",
     });
+  });
+
+  test("carries no example cards for an overflow recommendation", () => {
+    const recommendation = hardwareRecommendation(400, 0.8, {
+      allowSharding: true,
+    });
+    expect(recommendation.exampleCards).toEqual([]);
   });
 });

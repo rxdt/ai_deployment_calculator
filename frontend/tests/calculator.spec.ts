@@ -251,10 +251,17 @@ test("renders the default deployment computed locally", async ({ page }) => {
   // without expanding any reasoning panel.
   const examples = page.locator('[data-slot="gpu-examples-row"]');
   await expect(examples).toBeVisible();
-  await expect(examples).toHaveText("e.g. RTX 3090 / RTX 4090 class");
+  await expect(examples).toHaveText("e.g. RTX 3090 / RTX 4090");
   await expect(
     page.locator('[data-slot="hero-gpu-card"] [data-slot="gpu-examples-row"]'),
   ).toHaveCount(1);
+  // Each named card links out to its product page in a new tab.
+  await expect(
+    examples.getByRole("link", { name: "RTX 4090" }),
+  ).toHaveAttribute(
+    "href",
+    "https://www.nvidia.com/en-us/geforce/graphics-cards/40-series/rtx-4090/",
+  );
   await expect(page.locator('[data-out="min-cap"]')).toHaveText("22.4 GB");
   await expect(page.locator('[data-out="speed"]')).toContainText("tokens/sec");
   await expect(page.locator('[data-out="calculation-rows"] li')).toHaveCount(

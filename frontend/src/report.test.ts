@@ -24,7 +24,15 @@ describe("buildReport", () => {
       fitHeadroom: "19.5 GB usable margin",
       minimumRawVram: "25.1 GB",
       recommendedTier:
-        "48 GB workstation / pro inference class, e.g. RTX A6000 / RTX 6000 Ada / L40S class",
+        "48 GB workstation / pro inference class, e.g. RTX A6000 / RTX 6000 Ada / L40S",
+      exampleCards: [
+        { name: "RTX A6000" },
+        {
+          name: "RTX 6000 Ada",
+          url: "https://www.nvidia.com/en-us/design-visualization/rtx-6000/",
+        },
+        { name: "L40S" },
+      ],
       math: "Estimated workload memory is 21.3 GB. With a 85% usable VRAM target, use a GPU with at least 25.1 GB of physical VRAM so the workload does not consume the entire card.",
     });
     expect(report.breakdown.map((row) => row.label)).toEqual([
@@ -72,7 +80,7 @@ describe("buildReport", () => {
     expect(report.totalRequiredMemory).toBe("79.0 GB");
     expect(report.minimumRawVramNeeded).toBe("92.9 GB");
     expect(report.recommendedHardware.recommendedTier).toBe(
-      "141 GB datacenter class, e.g. H200 class",
+      "141 GB datacenter class, e.g. H200",
     );
     // MoE compute weight = active 12B * 0.5 * 1.15 = 6.9 GB; H200 4800 / 6.9 = 695.7.
     expect(report.speed).toBe("695.7 tokens/second");
@@ -130,7 +138,7 @@ describe("buildReport", () => {
     const singleGpu = buildReport(state(base));
     expect(singleGpu.minimumRawVramNeeded).toBe("145.3 GB");
     expect(singleGpu.recommendedHardware.recommendedTier).toBe(
-      "180 GB datacenter class, e.g. B200 class",
+      "180 GB datacenter class, e.g. B200",
     );
     expect(singleGpu.warnings.join(" ")).not.toContain("sharded-tier");
 

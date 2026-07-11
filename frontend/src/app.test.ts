@@ -99,6 +99,18 @@ function out(name: string): string {
 }
 
 /**
+ Return the anchor children of the hero GPU-examples slot. Linked cards render
+ as anchor elements; separators and name-only cards are text nodes, so element
+ children are exactly the links.
+@returns the example-card link elements in DOM order
+*/
+function exampleCardLinks(): HTMLAnchorElement[] {
+  return [...outSlot("gpu-examples").children].filter(
+    (child): child is HTMLAnchorElement => child instanceof HTMLAnchorElement,
+  );
+}
+
+/**
  Return all output slot names present in the document.
 @returns data-out names in DOM order
 */
@@ -965,15 +977,51 @@ describe("recommended GPU examples", () => {
     const row = dataSlot("gpu-examples-row");
 
     expect(out("gpu-class")).toBe("24 GB GPU hardware tier");
-    expect(out("gpu-examples")).toBe("RTX 3090 / RTX 4090 class");
+    expect(out("gpu-examples")).toBe("RTX 3090 / RTX 4090");
     expect(row.hidden).toBe(false);
     // The examples read at first glance on the hero card, prefixed "e.g." and
     // not tucked inside a collapsed reasoning panel.
     expect(row.textContent.replaceAll(/\s+/gu, " ").trim()).toBe(
-      "e.g. RTX 3090 / RTX 4090 class",
+      "e.g. RTX 3090 / RTX 4090",
     );
     expect(dataSlot("hero-gpu-card").contains(row)).toBe(true);
     expect(() => containingDetails(row)).toThrow();
+  });
+
+  test("links example cards that have a product page and opens them safely", () => {
+    loadDom();
+    mountCalculator(document);
+    // Card names render as element children; " / " separators are text nodes,
+    // so the element children are exactly the linked cards.
+    const links = exampleCardLinks();
+
+    // Both default 24 GB cards carry a product page, so each name is a link out
+    // to it; every external link opens in a new tab without leaking the opener.
+    expect(links.map((link) => link.textContent)).toEqual([
+      "RTX 3090",
+      "RTX 4090",
+    ]);
+    expect(links.map((link) => link.getAttribute("href"))).toEqual([
+      "https://www.nvidia.com/en-us/geforce/graphics-cards/30-series/",
+      "https://www.nvidia.com/en-us/geforce/graphics-cards/40-series/rtx-4090/",
+    ]);
+    for (const link of links) {
+      expect(link.target).toBe("_blank");
+      expect(link.rel).toBe("noopener noreferrer");
+    }
+  });
+
+  test("renders a card with no product page as muted text, not a link", () => {
+    loadDom();
+    mountCalculator(document);
+    fireInput("total-params", "1");
+
+    // The 8 GB tier pairs a linked SKU with a generic descriptor; only the SKU
+    // is a link (an element child), and the descriptor stays plain text.
+    expect(out("gpu-examples")).toBe("RTX 4060 / older 8 GB GPUs");
+    expect(exampleCardLinks().map((link) => link.textContent)).toEqual([
+      "RTX 4060",
+    ]);
   });
 
   test("moves the example cards to match a changed recommendation tier", () => {

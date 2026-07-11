@@ -1,3 +1,5 @@
+import type { GpuCard } from "./types";
+
 /**
  Convert a kebab-case wire name (HTML `name` attribute) to the camelCase
  FormState key used internally.
@@ -58,6 +60,38 @@ export function searchFromForm(form: HTMLFormElement): URLSearchParams {
     }
   }
   return search;
+}
+
+// Build the hero node for one example GPU: a new-tab link when the card has a
+// product page, otherwise plain muted text. Links carry rel="noopener
+// noreferrer" so the opened page cannot reach back through window.opener.
+/**
+@param card - the example GPU card
+@returns an anchor for a linked card, or a text node for a name-only card
+*/
+function gpuCardNode(card: Readonly<GpuCard>): Node {
+  if (card.url === undefined) {
+    return document.createTextNode(card.name);
+  }
+  const link = document.createElement("a");
+  link.href = card.url;
+  link.textContent = card.name;
+  link.target = "_blank";
+  link.rel = "noopener noreferrer";
+  return link;
+}
+
+/**
+Build the hero example-card nodes, " / "-separated, for one recommended tier.
+@param cards - the tier's example GPU cards
+@returns interleaved card nodes and separators, ready to append
+*/
+export function gpuExampleNodes(cards: readonly GpuCard[]): Node[] {
+  return cards.flatMap((card, index) =>
+    index === 0
+      ? [gpuCardNode(card)]
+      : [document.createTextNode(" / "), gpuCardNode(card)],
+  );
 }
 
 /**

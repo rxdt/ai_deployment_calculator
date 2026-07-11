@@ -1,5 +1,6 @@
 import {
   dataSlot,
+  gpuExampleNodes,
   searchFromForm,
   setHiddenWithControls,
   toStateKey,
@@ -10,7 +11,6 @@ import { MODEL_PRESETS } from "./presets";
 import {
   fitMeter,
   formatSpeed,
-  gpuExamples,
   recommendedGpuClass,
   speedLabel,
   whyText,
@@ -24,6 +24,7 @@ import {
 import type {
   DisplayRow,
   FormState,
+  GpuCard,
   HardwareRecommendation,
   ReportPayload,
 } from "./types";
@@ -191,12 +192,13 @@ export class CalculatorApp {
   // Concrete example cards for the recommended tier are a trust signal, so name
   // them on the hero GPU card beneath the class; drop the whole line when the
   // tier has none (no model, or an overflow recommendation with no single-card
-  // fit).
-  private renderGpuExamples(examples: string): void {
-    this.setText("gpu-examples", examples);
+  // fit). Cards with a product page render as links so a name doubles as a way
+  // out to the card; the rest stay muted text.
+  private renderGpuExamples(cards: readonly GpuCard[]): void {
+    this.slot("gpu-examples").replaceChildren(...gpuExampleNodes(cards));
     dataSlot(this.root, "gpu-examples-row")?.toggleAttribute(
       "hidden",
-      examples === "",
+      cards.length === 0,
     );
   }
 
@@ -272,7 +274,7 @@ export class CalculatorApp {
     this.setText("total", report.totalRequiredMemory);
     this.renderFitMeter(report, fit);
     this.setText("gpu-class", recommendedGpuClass(fit.recommendedTier));
-    this.renderGpuExamples(gpuExamples(fit.recommendedTier));
+    this.renderGpuExamples(fit.exampleCards);
     this.setText("why", whyText(report));
     this.setText("min-cap", report.minimumRawVramNeeded);
     this.setText("usable-target", fit.usableVramTarget);

@@ -2,35 +2,29 @@
 
 ## State
 
-- Preset row now matches the design/screenshot: five chips in order Llama 8B,
-  Llama 70B, Mixtral, Gemma (9B), SDXL. SDXL is the first `image_diffusion`
-  preset (switches the workload family). Old "Gemma 2B" chip replaced by the
-  design's "Gemma" (9B).
-- Added the design's headline stat-chip row under the hero (Model Weights, KV
-  Cache/Activations, Concurrency/Micro Batch, Spare %), sourced from the report
-  breakdown + fit meter. `ReportPayload` gains a `statChips` field. Grid is 4
-  across on the wide layout, 2x2 at <= 48em; no horizontal overflow at 320–1440.
-- Model group parameter row now matches the design: Total Parameters | Unit |
-  Precision sit three-across on one row (new `.field--third` / `--layout-third`
-  token) beneath the full-width Model Family select, replacing the old
-  two-then-one wrap. The reclaimed row freed the headroom to restore the intro
-  subtitle ("Estimate VRAM footprint and hardware fit for an AI workload."),
-  which had been reverted for pushing the pane past the one-viewport contract.
-- Recommended-GPU examples now surface on the hero GPU card ("e.g. RTX 3090 /
-  RTX 4090 class") beneath the class value, matching the design, instead of only
-  inside the collapsed "Why this recommendation" panel. Class + examples are
-  wrapped in `.hero-gpu-detail` so the card's space-between layout keeps them
-  grouped at the bottom, aligned with the primary card's fit line. The examples
-  line makes the secondary card the taller of the two, so its class + examples
-  text is seeded into the static HTML (matching the default estimate) to keep
-  first paint equal to the hydrated render — without the seed the post-load fill
-  grew the hero row and pushed Lighthouse CLS to 0.81 (< 0.9). Both stay within
-  the one-viewport contract and the sub-120px hero-card height at desktop 720.
-- Section legends ("MODEL" / "DEPLOYMENT") now center over their fieldset
-  (`legend { width: 100%; text-align: center }`), matching the design's centered
-  HUD headers. Legend color stays foreground, not the design's green, so the
-  primary green accent stays reserved for the answer. Covered by the HUD-label
-  e2e test (now asserts `text-align: center`).
+- App matches the design/screenshot: five preset chips (Llama 8B, Llama 70B,
+  Mixtral, Gemma 9B, SDXL — SDXL switches to `image_diffusion`); headline
+  stat-chip row (Model Weights, KV Cache/Activations, Concurrency/Micro Batch,
+  Spare %) from the report breakdown + fit meter; three-across Model params row
+  (Total Parameters | Unit | Precision); the intro subtitle; and centered
+  "MODEL"/"DEPLOYMENT" legends. Legend color stays foreground so the primary
+  green accent stays reserved for the answer.
+- Hero GPU examples are per-card, matching the design's linked-name /
+  muted-name split. Each `HardwareTier` carries a `GpuCard[]` (`{ name, url? }`)
+  instead of one `examples` string; `HardwareRecommendation` gains
+  `exampleCards`, and the hero renders each card via `gpuExampleNodes` (in
+  `app-dom.ts`) — a green external link (`target=_blank`,
+  `rel="noopener noreferrer"`, underlined for a non-color cue) when the card has
+  a product page, muted text otherwise. Product URLs reuse the design bundle's
+  deep links where it named them (RTX 4060 / 4080 / 4090 / 6000 Ada) and
+  otherwise point at NVIDIA's stable series / data-center landing pages; SKUs
+  without a canonical page, sharded pools, and generic descriptors stay
+  name-only. This removed the old string round-trip: `hardware.ts` built a
+  descriptor and `result-format.ts` re-parsed it — the `gpuExamples` parser is
+  gone, the tier's plain-text descriptor is derived from the card list, and the
+  redundant trailing "class" on the examples line is dropped now that the class
+  line already reads "N GB GPU hardware tier". The static-HTML seed carries the
+  two default 24 GB links so first paint still equals the hydrated render.
 
 ## Checks
 
@@ -58,11 +52,10 @@
 
 ## Next
 
-- The hero GPU-examples line renders our single descriptor string ("RTX 3090 /
-  RTX 4090 class") as one muted run; the design links each card name (green
-  "RTX 4090", muted "L4"). Matching that needs the hardware tier data to expose
-  per-card name/url objects instead of one `examples` string — a `hardware.ts`
-  data change, out of scope for this result-side relocation.
-- Deployment group already matches the design's two-across layout; the only
-  remaining input-pane grid gap was the Model params row, now done. Advanced
+- Per-card GPU links now done. Remaining polish is content, not structure: some
+  linkable SKUs stay muted because I did not have a canonical NVIDIA URL I was
+  confident would not 404 (RTX 5000 Ada, RTX A6000, L40S, H800, B200). Adding
+  verified deep links for those would turn more names green — a data-only edit
+  to `HARDWARE_TIERS` in `hardware.ts`.
+- Deployment group already matches the design's two-across layout. Advanced
   panel keeps its quarter-width flex layout (`.advanced[open] .field`).

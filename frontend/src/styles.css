@@ -658,6 +658,15 @@ summary,
   line-height: var(--font-line-body);
 }
 
+/* Linked example cards carry the primary green, matching the design's green
+   card names; the underline keeps them distinguishable from the muted name-only
+   cards without relying on color alone. */
+.hero-examples a {
+  color: var(--color-primary);
+  text-decoration: underline;
+  text-underline-offset: var(--space-2xs);
+}
+
 .hero-fit {
   min-width: 0;
   display: grid;

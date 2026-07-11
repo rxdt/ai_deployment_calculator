@@ -55,19 +55,6 @@ export function recommendedGpuClass(tier: string): string {
   return `${capacity} GPU hardware tier`;
 }
 
-// "24 GB high-end consumer class, e.g. RTX 3090 / RTX 4090 class" ->
-// "RTX 3090 / RTX 4090 class"; "" when the tier carries no concrete examples
-// (no model loaded, or an overflow recommendation with no single-card fit).
-/**
-@param tier - recommended tier string
-@returns the example card list, or "" when the tier has none
-*/
-export function gpuExamples(tier: string): string {
-  const marker = ", e.g. ";
-  const index = tier.indexOf(marker);
-  return index === -1 ? "" : tier.slice(index + marker.length);
-}
-
 /**
 Explain the recommendation for the "Why this recommendation" panel.
 @param report - the computed report payload

@@ -64,6 +64,14 @@ export interface DisplayRow {
   readonly value: string;
 }
 
+// One recommended example GPU. A `url` marks a card whose product page we link;
+// name-only cards (generic descriptors, or SKUs without a canonical page) render
+// as muted text, matching the design's linked-name / muted-name split.
+export interface GpuCard {
+  readonly name: string;
+  readonly url?: string;
+}
+
 export interface HardwareRecommendation {
   readonly requiredMemory: string;
   readonly usableVramTarget: string;
@@ -71,6 +79,7 @@ export interface HardwareRecommendation {
   readonly fitHeadroom: string;
   readonly minimumRawVram: string;
   readonly recommendedTier: string;
+  readonly exampleCards: readonly GpuCard[];
   readonly math: string;
 }
 

@@ -16,6 +16,13 @@
   two-then-one wrap. The reclaimed row freed the headroom to restore the intro
   subtitle ("Estimate VRAM footprint and hardware fit for an AI workload."),
   which had been reverted for pushing the pane past the one-viewport contract.
+- Recommended-GPU examples now surface on the hero GPU card ("e.g. RTX 3090 /
+  RTX 4090 class") beneath the class value, matching the design, instead of only
+  inside the collapsed "Why this recommendation" panel. Class + examples are
+  wrapped in `.hero-gpu-detail` so the card's space-between layout keeps them
+  grouped at the bottom, aligned with the primary card's fit line. The added
+  line stays within the one-viewport contract because the taller primary hero
+  card still drives the shared hero-row height (verified at desktop 720).
 
 ## Checks
 
@@ -26,10 +33,11 @@
   `statChips` branches (KV vs activations, concurrency vs micro batch, spare vs
   em dash) are covered in `report.test.ts`; chip rendering is covered in
   `app.test.ts`.
-- Playwright e2e: PASS (276) across desktop-chrome / desktop-safari / iphone /
-  pixel / small-320 / tablet. New: three-across params row shares one row
-  (responsive.spec) and the intro subtitle renders (calculator.spec); the
-  one-viewport no-scroll / no-overflow contracts still hold on every breakpoint.
+- Playwright e2e: PASS across desktop-chrome / desktop-safari / iphone / pixel /
+  small-320 / tablet. New: the recommended-GPU examples render on the hero GPU
+  card without expanding a panel (calculator.spec); the one-viewport
+  no-scroll / no-overflow contracts and the sub-120px hero-card height still hold
+  on every breakpoint (responsive.spec).
 - CSS bundle 12.9 kB, under the 13 kB size budget.
 
 ## Blockers
@@ -40,14 +48,14 @@
 
 ## Next
 
-- Surface GPU examples ("e.g. RTX 4090, L4") on the hero GPU card as the design
-  does (currently only in the "Why" panel). Contained result-side change; the
-  examples data already exists via `gpuExamples()` — watch the collapsed
-  one-viewport result stack (`.results` scrolls internally, so keep "Memory
-  breakdown" `toBeInViewport` on desktop 720).
 - Center the fieldset legends (design centers "MODEL" / "DEPLOYMENT"); ours are
   left-aligned. Low-risk, no responsive impact — the HUD-label e2e checks only
   uppercase + letter-spacing, not alignment.
+- The hero GPU-examples line renders our single descriptor string ("RTX 3090 /
+  RTX 4090 class") as one muted run; the design links each card name (green
+  "RTX 4090", muted "L4"). Matching that needs the hardware tier data to expose
+  per-card name/url objects instead of one `examples` string — a `hardware.ts`
+  data change, out of scope for this result-side relocation.
 - Deployment group already matches the design's two-across layout; the only
   remaining input-pane grid gap was the Model params row, now done. Advanced
   panel keeps its quarter-width flex layout (`.advanced[open] .field`).

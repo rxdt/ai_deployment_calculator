@@ -26,6 +26,14 @@ Ship a compact, trustworthy VRAM calculator today. Preserve naming, calculator c
     targeted. The reclaimed row from the three-across params layout gives the
     input pane the vertical headroom the subtitle needs to stay within one
     viewport.
+  - [x] Recommended-GPU examples ("e.g. RTX 3090 / RTX 4090 class") surface on
+    the hero GPU card beneath the class value, as the design shows, instead of
+    only inside the collapsed "Why this recommendation" panel. The examples and
+    class group at the bottom of the secondary hero card so the space-between
+    layout keeps them together; the card's example row still drops out when no
+    tier has concrete examples (no model, or an overflow recommendation). The
+    added line stays inside the one-viewport contract because the taller primary
+    hero card still drives the shared row height.
 
 The design bundle is a raw claude.ai/design export (`{{ }}` templates, inline
 styles, upload `.ts`) and cannot pass `eslint .` or `html-validate`. It lives

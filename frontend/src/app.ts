@@ -189,8 +189,9 @@ export class CalculatorApp {
   }
 
   // Concrete example cards for the recommended tier are a trust signal, so name
-  // them in the reasoning panel; drop the whole row when the tier has none (no
-  // model, or an overflow recommendation with no single-card fit).
+  // them on the hero GPU card beneath the class; drop the whole line when the
+  // tier has none (no model, or an overflow recommendation with no single-card
+  // fit).
   private renderGpuExamples(examples: string): void {
     this.setText("gpu-examples", examples);
     dataSlot(this.root, "gpu-examples-row")?.toggleAttribute(

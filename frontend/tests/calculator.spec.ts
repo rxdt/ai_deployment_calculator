@@ -247,6 +247,14 @@ test("renders the default deployment computed locally", async ({ page }) => {
   await expect(page.locator('[data-out="gpu-class"]')).toHaveText(
     "24 GB GPU hardware tier",
   );
+  // Example cards surface on the hero GPU card itself, visible at first glance
+  // without expanding any reasoning panel.
+  const examples = page.locator('[data-slot="gpu-examples-row"]');
+  await expect(examples).toBeVisible();
+  await expect(examples).toHaveText("e.g. RTX 3090 / RTX 4090 class");
+  await expect(
+    page.locator('[data-slot="hero-gpu-card"] [data-slot="gpu-examples-row"]'),
+  ).toHaveCount(1);
   await expect(page.locator('[data-out="min-cap"]')).toHaveText("22.4 GB");
   await expect(page.locator('[data-out="speed"]')).toContainText("tokens/sec");
   await expect(page.locator('[data-out="calculation-rows"] li')).toHaveCount(

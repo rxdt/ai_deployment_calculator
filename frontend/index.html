@@ -468,7 +468,12 @@
             <p class="hero-label" data-slot="gpu-class-label">
               Recommended GPU Class
             </p>
-            <p class="hero-value hero-value-small" data-out="gpu-class"></p>
+            <div class="hero-gpu-detail">
+              <p class="hero-value hero-value-small" data-out="gpu-class"></p>
+              <p class="hero-examples" data-slot="gpu-examples-row">
+                e.g. <span data-out="gpu-examples"></span>
+              </p>
+            </div>
           </div>
 
           <!-- Tier 1.5: the answer's biggest levers as at-a-glance stat chips -->
@@ -480,10 +485,6 @@
             <div class="panel-body">
               <p data-out="why"></p>
               <ul class="fit">
-                <li data-slot="gpu-examples-row">
-                  <span>Example GPUs</span
-                  ><strong data-out="gpu-examples"></strong>
-                </li>
                 <li>
                   <span>Minimum GPU VRAM Capacity</span
                   ><strong data-out="min-cap"></strong>

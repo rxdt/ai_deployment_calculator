@@ -959,7 +959,7 @@ describe("header status strip", () => {
 });
 
 describe("recommended GPU examples", () => {
-  test("names concrete example cards for the recommended tier in the why panel", () => {
+  test("names concrete example cards on the hero GPU card beneath the class", () => {
     loadDom();
     mountCalculator(document);
     const row = dataSlot("gpu-examples-row");
@@ -967,9 +967,13 @@ describe("recommended GPU examples", () => {
     expect(out("gpu-class")).toBe("24 GB GPU hardware tier");
     expect(out("gpu-examples")).toBe("RTX 3090 / RTX 4090 class");
     expect(row.hidden).toBe(false);
-    // The example cards belong with the reasoning, not the first-glance answer.
-    expect(containingDetails(outSlot("gpu-examples")).open).toBe(false);
-    expect(dataSlot("why-panel").contains(row)).toBe(true);
+    // The examples read at first glance on the hero card, prefixed "e.g." and
+    // not tucked inside a collapsed reasoning panel.
+    expect(row.textContent.replaceAll(/\s+/gu, " ").trim()).toBe(
+      "e.g. RTX 3090 / RTX 4090 class",
+    );
+    expect(dataSlot("hero-gpu-card").contains(row)).toBe(true);
+    expect(() => containingDetails(row)).toThrow();
   });
 
   test("moves the example cards to match a changed recommendation tier", () => {

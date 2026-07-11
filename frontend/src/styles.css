@@ -636,6 +636,24 @@ summary,
   font-size: var(--font-hero-small);
 }
 
+/* The recommended class value plus its concrete example cards read as one unit
+   pinned to the bottom of the secondary hero card, mirroring the primary card's
+   fit line. Keeping them grouped stops the space-between distribution from
+   splitting the class from the "e.g. ..." cards. */
+.hero-gpu-detail {
+  min-width: 0;
+  display: grid;
+  gap: var(--space-2xs);
+}
+
+.hero-examples {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--color-muted);
+  font-size: var(--font-body);
+  line-height: var(--font-line-body);
+}
+
 .hero-fit {
   min-width: 0;
   display: grid;

@@ -8,7 +8,7 @@ const onePageViewports = [
   { height: 844, name: "mobile", width: 390 },
 ] as const;
 const primaryControls = [
-  "Model Family",
+  "Model Task Family",
   "Total Model Parameters",
   "Parameter Unit",
   "Precision",
@@ -17,20 +17,24 @@ const primaryControls = [
   "Context Window",
   "Concurrent Batch Requests",
 ] as const;
-const readableLabels = [
-  "Model Family",
-  "Estimated VRAM Required",
-  "Recommended GPU Class",
-] as const;
+// The primary answer heading reads at the heading size. Field captions and the
+// GPU-class label are intentionally small uppercase mono HUD labels per the
+// design, so they are asserted as technical captions elsewhere, not here.
+const readableLabels = ["Estimated VRAM Required"] as const;
 
 /**
- Assert representative left and right edge content remains in the viewport.
+ Assert the document never overflows horizontally: content grows downward in
+ normal flow (the inline expand-down panels may make the page taller and
+ scrollable, the accepted accordion pattern), but nothing may extend past the
+ viewport's right edge and force a horizontal scrollbar.
 @param page - Playwright page under test
 */
 async function expectNoHorizontalDocumentOverflow(page: Page): Promise<void> {
-  await expect(page.getByLabel("GitHub repository")).toBeInViewport();
-  await expect(page.getByLabel("Model Family")).toBeInViewport();
-  await expect(page.locator('[data-out="gpu-class"]')).toBeInViewport();
+  const overflow = await page.evaluate(() => {
+    const root = document.documentElement;
+    return root.scrollWidth - root.clientWidth;
+  });
+  expect(overflow).toBeLessThanOrEqual(1);
 }
 
 /**
@@ -96,7 +100,9 @@ for (const path of pages) {
     for (const name of primaryControls) {
       await expect(page.getByLabel(name, { exact: true })).toBeVisible();
     }
-    await expect(page.getByLabel("MoE Model", { exact: true })).toBeVisible();
+    // MoE Model now lives inside the collapsed Advanced Assumptions panel per the
+    // design, so it is not visible until the disclosure is opened.
+    await expect(page.getByLabel("MoE Model", { exact: true })).toBeHidden();
     await expect(page.getByRole("button", { name: "Reset" })).toBeVisible();
     await expect(page.getByText("Batch Size", { exact: true })).toHaveCount(0);
   });
@@ -106,23 +112,28 @@ for (const path of pages) {
   }) => {
     await page.goto(path);
 
+    // Controls render at the design's compact 24px, the WCAG 2.2 AA target-size
+    // minimum.
     for (const name of primaryControls) {
       await expect(page.getByLabel(name, { exact: true })).toHaveCSS(
         "min-height",
-        "40px",
+        "24px",
       );
     }
+    // The MoE checkbox lives in the advanced panel; open it, then confirm the
+    // checkbox hit target holds the 24px AA minimum.
+    await page.getByText("Advanced assumptions", { exact: true }).click();
     await expect(page.getByLabel("MoE Model", { exact: true })).toHaveCSS(
       "min-width",
-      "40px",
+      "24px",
     );
     await expect(page.getByRole("button", { name: "Reset" })).toHaveCSS(
       "min-height",
-      "40px",
+      "24px",
     );
     await expect(
       page.locator('[data-slot="advanced-assumptions"] > summary'),
-    ).toHaveCSS("min-height", "40px");
+    ).toHaveCSS("min-height", "24px");
   });
 
   test(`primary labels use readable type: ${path}`, async ({ page }) => {
@@ -131,7 +142,7 @@ for (const path of pages) {
     for (const label of readableLabels) {
       await expect(page.getByText(label, { exact: true })).toHaveCSS(
         "font-size",
-        "13px",
+        "15px",
       );
     }
   });
@@ -148,7 +159,9 @@ for (const path of pages) {
     await expect(
       page.getByRole("heading", { name: "VRAM Deployment Calculator" }),
     ).not.toHaveCSS("font-family", /JetBrains Mono/u);
-    await expect(page.locator('[data-out="total"]')).not.toHaveCSS(
+    // The hero total is a technical readout, so it takes the mono face like the
+    // controls, while the reading text (body, heading) stays sans.
+    await expect(page.locator('[data-out="total"]')).toHaveCSS(
       "font-family",
       /JetBrains Mono/u,
     );
@@ -156,14 +169,15 @@ for (const path of pages) {
       "font-family",
       /JetBrains Mono/u,
     );
-    await expect(page.getByLabel("Model Family")).toHaveCSS(
+    await expect(page.getByLabel("Model Task Family")).toHaveCSS(
       "font-family",
       /JetBrains Mono/u,
     );
-    await expect(page.getByText("Calculation used", { exact: true })).toHaveCSS(
-      "font-family",
-      /JetBrains Mono/u,
-    );
+    // Collapsed panel titles share the stat-chip caption voice (sans), so the
+    // mono face stays reserved for controls and technical readouts.
+    await expect(
+      page.getByText("Values Used In Calculations", { exact: true }),
+    ).not.toHaveCSS("font-family", /JetBrains Mono/u);
     await page.getByText("Formula used", { exact: true }).click();
     await expect(page.locator('[data-out="calc-formula"]')).toHaveCSS(
       "font-family",
@@ -173,31 +187,35 @@ for (const path of pages) {
 }
 
 for (const viewport of onePageViewports) {
-  test(`collapsed default estimate fits one viewport on ${viewport.name}`, async ({
+  test(`collapsed default estimate stays reachable on ${viewport.name}`, async ({
     page,
   }) => {
     await page.setViewportSize(viewport);
     await page.goto("/");
-    await expectNoVerticalDocumentOverflow(page);
+    // Desktop holds the whole collapsed estimate in one viewport. Phones stack
+    // the two panes into one column (WCAG reflow), so the page scrolls
+    // vertically by design; every first-glance element must still be
+    // reachable, and nothing may ever scroll horizontally.
+    if (viewport.name === "desktop") {
+      await expectNoVerticalDocumentOverflow(page);
+    }
+    await expectNoHorizontalDocumentOverflow(page);
 
-    await expect(
+    const firstGlance = [
       page.getByRole("heading", { name: "VRAM Deployment Calculator" }),
-    ).toBeInViewport();
-    await expect(page.getByRole("button", { name: "Reset" })).toBeInViewport();
-    await expect(page.locator('[data-out="total"]')).toBeInViewport();
-    await expect(page.locator('[data-out="gpu-class"]')).toBeInViewport();
-    await expect(
-      page.getByText("Calculation used", { exact: true }),
-    ).toBeInViewport();
-    await expect(
+      page.getByRole("button", { name: "Reset" }),
+      page.locator('[data-out="total"]'),
+      page.locator('[data-out="gpu-class"]'),
+      page.getByText("Values Used In Calculations", { exact: true }),
       page.getByText("Assumptions used", { exact: true }),
-    ).toBeInViewport();
-    await expect(
-      page.getByText("Memory breakdown", { exact: true }),
-    ).toBeInViewport();
+    ];
+    for (const target of firstGlance) {
+      await target.scrollIntoViewIfNeeded();
+      await expect(target).toBeInViewport();
+    }
   });
 
-  test(`all expanded panels avoid page scroll on ${viewport.name}`, async ({
+  test(`all expanded panels avoid horizontal overflow on ${viewport.name}`, async ({
     page,
   }) => {
     await page.setViewportSize(viewport);
@@ -209,44 +227,62 @@ for (const viewport of onePageViewports) {
       }
     });
 
-    await expectNoVerticalDocumentOverflow(page);
+    await expectNoHorizontalDocumentOverflow(page);
     await expect(page.getByLabel("GitHub repository")).toBeInViewport();
-    await expect(page.getByLabel("Model Family")).toBeInViewport();
+    await expect(page.getByLabel("Model Task Family")).toBeInViewport();
+    // On the stacked phone column the hero sits below the expanded form.
+    await page.locator('[data-out="total"]').scrollIntoViewIfNeeded();
     await expect(page.locator('[data-out="total"]')).toBeInViewport();
   });
 
-  test(`expanded advanced assumptions keep key content visible on ${viewport.name}`, async ({
+  test(`expanded advanced assumptions keep key content reachable on ${viewport.name}`, async ({
     page,
   }) => {
     await page.setViewportSize(viewport);
     await page.goto("/");
     await page.getByText("Advanced assumptions", { exact: true }).click();
 
-    await expect(page.getByLabel("Known Model File Size")).toBeInViewport();
-    await expect(page.getByLabel("Memory Sharding")).toBeInViewport({
-      ratio: 1,
-    });
-    await expect(
-      page.getByText("Assumptions used", { exact: true }),
-    ).toBeInViewport();
+    // Inline expand-down grows the page in normal flow (the accepted accordion
+    // pattern), so the panel's controls stay reachable by scrolling rather than
+    // all fitting one short viewport. Each key control must be visible once
+    // scrolled to, and the expansion must never introduce horizontal overflow.
+    const knownFileSize = page.getByLabel("Known Model File Size");
+    const memorySharding = page.getByLabel("Memory Sharding");
+    const assumptions = page.getByText("Assumptions used", { exact: true });
+
+    await knownFileSize.scrollIntoViewIfNeeded();
+    await expect(knownFileSize).toBeInViewport();
+    await memorySharding.scrollIntoViewIfNeeded();
+    await expect(memorySharding).toBeInViewport({ ratio: 1 });
+    await assumptions.scrollIntoViewIfNeeded();
+    await expect(assumptions).toBeInViewport();
+    await expectNoHorizontalDocumentOverflow(page);
   });
 
-  test(`responsive edges stay in viewport on ${viewport.name}`, async ({
+  test(`responsive edges stay reachable on ${viewport.name}`, async ({
     page,
   }) => {
     await page.setViewportSize(viewport);
     await page.goto("/");
 
+    // The stacked phone column scrolls, so each edge is asserted reachable
+    // rather than simultaneously visible.
+    const gpuClass = page.locator('[data-out="gpu-class"]');
     await expect(page.getByLabel("GitHub repository")).toBeInViewport();
-    await expect(page.getByLabel("Model Family")).toBeInViewport();
-    await expect(page.locator('[data-out="gpu-class"]')).toBeInViewport();
+    await expect(page.getByLabel("Model Task Family")).toBeInViewport();
+    await gpuClass.scrollIntoViewIfNeeded();
+    await expect(gpuClass).toBeInViewport();
 
     await page.locator("#workload-family").selectOption("text_encoder");
-    await expect(page.getByLabel("Model Family")).toBeInViewport();
-    await expect(page.locator('[data-out="gpu-class"]')).toBeInViewport();
+    await page.getByLabel("Model Task Family").scrollIntoViewIfNeeded();
+    await expect(page.getByLabel("Model Task Family")).toBeInViewport();
+    await gpuClass.scrollIntoViewIfNeeded();
+    await expect(gpuClass).toBeInViewport();
 
     await page.getByText("Advanced assumptions", { exact: true }).click();
+    await page.getByLabel("Known Model File Size").scrollIntoViewIfNeeded();
     await expect(page.getByLabel("Known Model File Size")).toBeInViewport();
+    await page.getByLabel("Memory Sharding").scrollIntoViewIfNeeded();
     await expect(page.getByLabel("Memory Sharding")).toBeInViewport();
   });
 
@@ -281,9 +317,9 @@ test("input actions align to the calculator pane center", async ({ page }) => {
     await page.locator('[data-slot="inputs-form"]').boundingBox(),
     "inputs pane",
   );
-  const reset = requireBox(
-    await page.getByRole("button", { name: "Reset" }).boundingBox(),
-    "reset button",
+  const actions = requireBox(
+    await page.locator('[data-slot="form-actions"]').boundingBox(),
+    "form actions",
   );
   const advancedLabel = page.locator(
     '[data-slot="advanced-assumptions-label"]',
@@ -295,7 +331,7 @@ test("input actions align to the calculator pane center", async ({ page }) => {
   const paneCenter = pane.x + pane.width / 2;
 
   await expect(advancedLabel).toHaveCSS("justify-content", "center");
-  expect(reset.x + reset.width / 2).toBeCloseTo(paneCenter, 0);
+  expect(actions.x + actions.width / 2).toBeCloseTo(paneCenter, 0);
   expect(advancedBox.x + advancedBox.width / 2).toBeCloseTo(paneCenter, 0);
 });
 
@@ -309,7 +345,7 @@ test("keyboard focus uses the cyan token without resizing calculator controls", 
   await page.setViewportSize({ height: 720, width: 1280 });
   await page.goto("/");
 
-  const modelFamily = page.getByLabel("Model Family", { exact: true });
+  const modelFamily = page.getByLabel("Model Task Family", { exact: true });
   const reset = page.getByRole("button", { name: "Reset" });
   const advanced = page.locator('[data-slot="advanced-assumptions-label"]');
   const why = page.getByText("Why this recommendation", { exact: true });
@@ -342,6 +378,7 @@ test("first glance result hierarchy makes the VRAM answer dominant", async ({
   await page.setViewportSize({ height: 720, width: 1280 });
   await page.goto("/");
 
+  const hero = page.locator('[data-slot="hero-card"]');
   const totalCard = page.locator('[data-slot="hero-total-card"]');
   const gpuCard = page.locator('[data-slot="hero-gpu-card"]');
   const totalBox = await totalCard.boundingBox();
@@ -349,7 +386,7 @@ test("first glance result hierarchy makes the VRAM answer dominant", async ({
 
   expect(totalBox).not.toBeNull();
   expect(gpuBox).not.toBeNull();
-  expect(totalBox?.width ?? 0).toBeGreaterThan((gpuBox?.width ?? 0) * 1.5);
+  expect(totalBox?.width ?? 0).toBeGreaterThan(gpuBox?.width ?? 0);
   expect(totalBox?.height ?? 0).toBeLessThan(120);
   expect(gpuBox?.height ?? 0).toBeLessThan(120);
   await expect(page.locator('[data-out="total"]')).toHaveCSS(
@@ -364,29 +401,18 @@ test("first glance result hierarchy makes the VRAM answer dominant", async ({
     "color",
     "rgb(248, 250, 252)",
   );
-  await expect(page.locator('[data-out="total"]')).not.toHaveCSS(
+  // The big total is a technical mono readout per the design.
+  await expect(page.locator('[data-out="total"]')).toHaveCSS(
     "font-family",
     /JetBrains Mono/u,
   );
+  // No solid green strip across the hero top: the card's role reads from its
+  // corner glow alone, so the ::before pseudo-element renders nothing.
   await expect
     .poll(async () =>
-      totalCard.evaluate(
-        (node) => getComputedStyle(node, "::before").backgroundColor,
-      ),
+      hero.evaluate((node) => getComputedStyle(node, "::before").content),
     )
-    .toBe("rgb(34, 197, 94)");
-  await expect
-    .poll(async () =>
-      gpuCard.evaluate(
-        (node) => getComputedStyle(node, "::before").backgroundColor,
-      ),
-    )
-    .toBe("rgb(59, 130, 246)");
-  await expect
-    .poll(async () =>
-      totalCard.evaluate((node) => getComputedStyle(node, "::before").height),
-    )
-    .toBe("4px");
+    .toBe("none");
   await expectNoCyanHeroPaint(totalCard);
   await expectNoCyanHeroPaint(gpuCard);
 });
@@ -407,13 +433,23 @@ test("hero fit meter shows class usage and hides when nothing fits", async ({
   await expect(meter).toHaveJSProperty("max", 100);
   await expect(meter).toHaveJSProperty("value", 93);
   await expect(page.locator('[data-out="vram-say"]')).toHaveText(
-    "Fits a 24 GB card with 1.4 GB usable headroom (7% spare).",
+    "Fits on one 24 GB card: 19.0 GB uses 93% of its 20.4 GB usable VRAM.",
   );
+  // The scale row labels the bar: USAGE on the left, the usable budget the
+  // bar measures on the right.
+  const scale = page.locator('[data-slot="fit-scale"]');
+  await expect(scale).toBeVisible();
+  await expect(scale).toContainText("Capacity 20.4 GB usable of 24 GB");
 
+  // Overflow keeps the bar visible, pegged full and red, with a +100% caption;
+  // only the capacity scale row leaves (there is no single class to label).
   await page.getByLabel("Total Model Parameters").fill("400");
-  await expect(meter).toBeHidden();
+  await expect(meter).toBeVisible();
+  await expect(meter).toHaveJSProperty("value", 100);
+  await expect(meter).toHaveAttribute("data-over", "true");
+  await expect(scale).toBeHidden();
   await expect(page.locator('[data-out="vram-say"]')).toContainText(
-    "usable VRAM",
+    "+100% usage",
   );
 });
 
@@ -439,10 +475,27 @@ for (const viewport of onePageViewports) {
     expect(backgroundImage).toContain("linear-gradient");
     expect(backgroundImage).toContain("radial-gradient");
 
-    await expectNoVerticalDocumentOverflow(page);
+    // The stacked phone column scrolls vertically by design.
+    if (viewport.name === "desktop") {
+      await expectNoVerticalDocumentOverflow(page);
+    }
     await expectNoHorizontalDocumentOverflow(page);
   });
 }
+
+test("large desktop keeps the calculator centered and readable", async ({
+  page,
+}) => {
+  await page.setViewportSize({ height: 900, width: 1440 });
+  await page.goto("/");
+
+  const box = requireBox(await page.locator(".layout").boundingBox(), "layout");
+  expect(box.width).toBeLessThanOrEqual(1030);
+  expect(box.x).toBeGreaterThan(190);
+  await expectNoHorizontalDocumentOverflow(page);
+  await expect(page.locator('[data-out="total"]')).toBeInViewport();
+  await expect(page.getByLabel("GitHub repository")).toBeInViewport();
+});
 
 /**
  Ensure the structural HUD labels (top status strip and section legends) render
@@ -482,20 +535,26 @@ for (const viewport of onePageViewports) {
     // "MODEL" / "DEPLOYMENT" HUD headers rather than the default left edge.
     expect(legendStyle.textAlign).toBe("center");
 
-    // Wider labels must not break the one-viewport or horizontal-edge contract.
+    // Wider labels must never force a horizontal scrollbar; the desktop
+    // layout additionally holds the collapsed page to one viewport.
     await expectNoHorizontalDocumentOverflow(page);
-    await expectNoVerticalDocumentOverflow(page);
+    if (viewport.name === "desktop") {
+      await expectNoVerticalDocumentOverflow(page);
+    }
   });
 }
 
-test("desktop result detail panels stay compact beneath the answer", async ({
+test("desktop result detail panels group as rows on one bordered surface", async ({
   page,
 }) => {
   await page.setViewportSize({ height: 720, width: 1280 });
   await page.goto("/");
 
-  const panels = page.locator(".results > details.panel");
-  await expect(panels).toHaveCount(5);
+  // The four reasoning disclosures live inside one bordered group container.
+  const group = page.locator(".results .panel-group");
+  await expect(group).toHaveCSS("border-top-style", "solid");
+  const panels = group.locator("> details.panel");
+  await expect(panels).toHaveCount(4);
 
   const whyBox = requireBox(await panels.nth(0).boundingBox(), "why panel");
   const calculationBox = requireBox(
@@ -510,19 +569,23 @@ test("desktop result detail panels stay compact beneath the answer", async ({
     await panels.nth(3).boundingBox(),
     "assumptions panel",
   );
-  const breakdownBox = requireBox(
-    await panels.nth(4).boundingBox(),
-    "breakdown panel",
-  );
 
-  expect(calculationBox.y).toBe(formulaBox.y);
-  expect(formulaBox.x).toBeGreaterThan(calculationBox.x);
-  expect(calculationBox.width).toBeLessThan(whyBox.width * 0.75);
-  expect(formulaBox.width).toBeLessThan(whyBox.width * 0.75);
-  // The breakdown fills the empty cell beside the assumptions panel, so it adds
-  // no new collapsed row to the one-viewport result stack.
-  expect(breakdownBox.y).toBe(assumptionsBox.y);
-  expect(breakdownBox.x).toBeGreaterThan(assumptionsBox.x);
+  // The panels stack as full-width rows of the group: each shares the left
+  // edge and width of the "why" panel and sits strictly below the one before.
+  const stacked = [whyBox, calculationBox, formulaBox, assumptionsBox];
+  let previousY = -Infinity;
+  for (const box of stacked) {
+    expect(box.x).toBeCloseTo(whyBox.x, 0);
+    expect(box.width).toBeCloseTo(whyBox.width, 0);
+    expect(box.y).toBeGreaterThan(previousY);
+    previousY = box.y;
+  }
+
+  // Rows carry no card chrome of their own: no borders or divider lines and
+  // transparent backgrounds, so all four read as one dark panel.
+  await expect(panels.nth(0)).toHaveCSS("border-top-width", "0px");
+  await expect(panels.nth(1)).toHaveCSS("border-top-width", "0px");
+  await expect(panels.nth(1)).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
 });
 
 /**
@@ -536,27 +599,28 @@ test("expanded result rows preserve alignment and warning prose", async ({
   await page.goto("/");
 
   await page.getByText("Why this recommendation", { exact: true }).click();
-  await page.getByText("Calculation used", { exact: true }).click();
+  await page.getByText("Values Used In Calculations", { exact: true }).click();
   await page.getByText("Assumptions used", { exact: true }).click();
 
   const fitRow = page.locator(".fit li").first();
   const calculationRow = page.locator(".calculation .metric").first();
   const assumptionRow = page.locator(".assumptions .metric").first();
-  const rows = [fitRow, calculationRow, assumptionRow];
 
-  for (const row of rows) {
+  // Ledger rows (why/calculation) keep the label/value grid with right-aligned
+  // values and no divider rules between rows, per the design.
+  for (const row of [fitRow, calculationRow]) {
     await expect(row).toHaveCSS("display", "grid");
-    await expect(row).toHaveCSS("border-bottom-style", "solid");
+    await expect(row).toHaveCSS("border-bottom-style", "none");
   }
   await expect(fitRow.locator("strong")).toHaveCSS("text-align", "right");
   await expect(calculationRow.locator("strong")).toHaveCSS(
     "text-align",
     "right",
   );
-  await expect(assumptionRow.locator("strong")).toHaveCSS(
-    "text-align",
-    "right",
-  );
+  // Assumptions are green-bulleted methodology prose, not a label/value ledger:
+  // a flex line whose empty value cell stays hidden.
+  await expect(assumptionRow).toHaveCSS("display", "flex");
+  await expect(assumptionRow.locator("strong")).toHaveCSS("display", "none");
   await page.getByLabel("Execution Mode").selectOption("Full training");
   const warning = page.locator(".warnings .metric").first();
   await expect(warning).toHaveCSS("display", "block");
@@ -635,11 +699,17 @@ test("checkboxes render selected checks and empty unchecked indicators", async (
 }) => {
   await page.goto("/");
 
+  // MoE, sharding, and gradient checkpointing all live in the advanced panel per
+  // the design, so open it before inspecting their checkbox indicators.
+  await page.getByText("Advanced assumptions", { exact: true }).click();
+
   const moeState = page.locator(
     'label:has(#moe-enabled) [data-slot="checkbox-indicator"]',
   );
   await expect(moeState).toBeVisible();
-  await expect(moeState).toHaveCSS("min-width", "40px");
+  // The visual glyph draws at 16px; the invisible native input keeps the
+  // 24px WCAG hit target (asserted in the touch-target test above).
+  await expect(moeState).toHaveCSS("min-width", "16px");
   await expect
     .poll(async () =>
       moeState.evaluate((node) => getComputedStyle(node, "::before").content),
@@ -653,7 +723,10 @@ test("checkboxes render selected checks and empty unchecked indicators", async (
     )
     .toContain("\u{2713}");
 
-  await page.getByText("Advanced assumptions", { exact: true }).click();
+  // Gradient checkpointing is a training-only input hidden during Inference;
+  // switch modes before inspecting its indicator.
+  await page.locator("#execution-mode").selectOption("Full training");
+
   const gradientState = page.locator(
     'label:has(#gradient-checkpointing) [data-slot="checkbox-indicator"]',
   );

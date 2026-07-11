@@ -4,22 +4,96 @@
     <meta charset="UTF-8" />
     <meta
       name="description"
-      content="Estimate VRAM requirements and hardware fit for AI workloads."
+      content="Free AI VRAM calculator for estimating GPU memory, hardware tier, context, batch, LoRA, QLoRA, full-training, multimodal, diffusion, video, audio, and tabular workloads."
+    />
+    <meta
+      name="robots"
+      content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1"
+    />
+    <meta name="application-name" content="VRAM Deployment Calculator" />
+    <meta name="theme-color" content="#1f1f29" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="VRAM Deployment Calculator" />
+    <meta
+      property="og:title"
+      content="VRAM Deployment Calculator - AI GPU Memory Estimator"
+    />
+    <meta
+      property="og:description"
+      content="Estimate GPU VRAM, usable memory, and hardware tier for AI inference, LoRA, QLoRA, full training, multimodal, diffusion, video, audio, and tabular workloads."
+    />
+    <!-- og:image should become an absolute URL once the production domain is
+         fixed; scrapers do not resolve root-relative paths reliably. -->
+    <meta property="og:image" content="/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="VRAM Deployment Calculator showing a 19.0 GB memory estimate and a 24 GB hardware tier."
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta
+      name="twitter:title"
+      content="VRAM Deployment Calculator - AI GPU Memory Estimator"
+    />
+    <meta
+      name="twitter:description"
+      content="Estimate GPU VRAM, usable memory, and hardware tier for AI inference, LoRA, QLoRA, full training, multimodal, diffusion, video, audio, and tabular workloads."
+    />
+    <meta name="twitter:image" content="/og-image.png" />
+    <meta
+      name="twitter:image:alt"
+      content="VRAM Deployment Calculator showing a 19.0 GB memory estimate and a 24 GB hardware tier."
     />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-    <title>VRAM Deployment Calculator</title>
+    <link
+      rel="preload"
+      href="/fonts/ibm-plex-sans-latin.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      href="/fonts/jetbrains-mono-latin.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <title>VRAM Deployment Calculator | AI GPU Memory Estimator</title>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "VRAM Deployment Calculator",
+        "applicationCategory": "DeveloperApplication",
+        "operatingSystem": "Any",
+        "description": "Free AI VRAM calculator for estimating GPU memory, hardware tier, context, batch, LoRA, QLoRA, full-training, multimodal, diffusion, video, audio, and tabular workloads.",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        }
+      }
+    </script>
   </head>
   <body>
     <div class="app">
       <header class="topbar">
-        <span class="brand" data-slot="brand"
+        <a
+          class="brand"
+          data-slot="brand"
+          href="https://aideploymentcalculator.vercel.app/"
           ><span class="brand-mark" data-slot="brand-mark">~</span
-          >VRAM-calculator</span
+          >VRAM-calculator</a
         >
         <div class="topstatus">
           <span class="status-item">
-            <span>MODEL</span><strong data-slot="status-model">7B</strong>
+            <!-- The MODEL word points home by default and switches to a model
+                 page while the form still matches a loaded preset. -->
+            <span><a data-slot="status-model-link" href="/">MODEL</a></span
+            ><strong data-slot="status-model">7B</strong>
           </span>
           <span class="status-item">
             <span>MODE</span><strong data-slot="status-mode">INFERENCE</strong>
@@ -34,15 +108,20 @@
         </div>
         <nav class="topnav">
           <a
-            href="https://github.com/rxdt/ai_deployment_calculator/"
+            href="https://github.com/rxdt/ai_deployment_calculator"
             aria-label="GitHub repository"
             data-slot="github-link"
           >
             <img src="/github-mark.svg" alt="" width="16" height="16" />
-            <span>GitHub</span>
+            <span class="topnav-label">GitHub</span>
           </a>
         </nav>
       </header>
+
+      <noscript class="noscript">
+        JavaScript is required to change inputs and recompute the estimate. The
+        page below shows the default 7B inference example.
+      </noscript>
 
       <main class="layout">
         <!-- INPUTS -->
@@ -51,405 +130,480 @@
           aria-label="Deployment inputs"
           data-slot="inputs-form"
         >
-          <div class="intro">
-            <h1>VRAM Deployment Calculator</h1>
-            <p>Estimate VRAM footprint and hardware fit for an AI workload.</p>
-          </div>
+          <!-- One bordered surface holds the title, both fieldsets, and the
+               advanced disclosure so the form reads as sections of a single
+               panel; the Reset action sits outside it on the page background. -->
+          <div class="form-card">
+            <div class="title-card">
+              <div class="intro">
+                <h1>VRAM Deployment Calculator</h1>
+                <p>
+                  Estimate VRAM GPUs needed and the hardware tier for an AI
+                  model's workload.
+                </p>
+              </div>
 
-          <div
-            class="presets"
-            role="group"
-            aria-label="Load a model preset"
-            data-slot="presets"
-          >
-            <button type="button" class="preset" data-preset="llama-8b">
-              Llama 8B
-            </button>
-            <button type="button" class="preset" data-preset="llama-70b">
-              Llama 70B
-            </button>
-            <button type="button" class="preset" data-preset="mixtral-8x7b">
-              Mixtral
-            </button>
-            <button type="button" class="preset" data-preset="gemma-9b">
-              Gemma
-            </button>
-            <button type="button" class="preset" data-preset="sdxl">
-              SDXL
-            </button>
-          </div>
+              <!-- The label sits outside the chip group: the app wires every
+                   child of [data-slot="presets"] as a preset button. -->
+              <div class="presets-row">
+                <span class="presets-label">Presets</span>
+                <div
+                  class="presets"
+                  role="group"
+                  aria-label="Load a model preset"
+                  data-slot="presets"
+                >
+                  <button type="button" class="preset" data-preset="llama-8b">
+                    Llama 8B
+                  </button>
+                  <button type="button" class="preset" data-preset="llama-70b">
+                    Llama 70B
+                  </button>
+                  <button
+                    type="button"
+                    class="preset"
+                    data-preset="mixtral-8x7b"
+                  >
+                    Mixtral
+                  </button>
+                  <button type="button" class="preset" data-preset="gemma-9b">
+                    Gemma
+                  </button>
+                  <button type="button" class="preset" data-preset="sdxl">
+                    SDXL
+                  </button>
+                </div>
+              </div>
+            </div>
 
-          <fieldset class="group">
-            <legend>Model</legend>
+            <fieldset class="group">
+              <legend>Model</legend>
 
-            <p class="field field--wide">
-              <label for="workload-family">Model Family</label>
-              <select id="workload-family" name="workload-family">
-                <option value="text_generation">text-generation / chat</option>
-                <option value="text_encoder">
-                  text embeddings / reranking / classification
-                </option>
-                <option value="encoder_decoder">
-                  encoder-decoder generation
-                </option>
-                <option value="vision">vision understanding</option>
-                <option value="vision_language">
-                  vision-language / multimodal
-                </option>
-                <option value="image_diffusion">
-                  image-generation / diffusion
-                </option>
-                <option value="video_generation">video-generation</option>
-                <option value="audio">speech / audio</option>
-                <option value="tabular">tabular / classical ml</option>
-                <option value="custom">custom / unknown</option>
-              </select>
-            </p>
+              <p class="field field--wide">
+                <label for="workload-family">Model Task Family</label>
+                <select id="workload-family" name="workload-family">
+                  <option value="text_generation">
+                    text-generation / chat
+                  </option>
+                  <option value="text_encoder">
+                    text embeddings / reranking / classification
+                  </option>
+                  <option value="encoder_decoder">
+                    encoder-decoder generation
+                  </option>
+                  <option value="vision">vision understanding</option>
+                  <option value="vision_language">
+                    vision-language / multimodal
+                  </option>
+                  <option value="image_diffusion">
+                    image-generation / diffusion
+                  </option>
+                  <option value="video_generation">video-generation</option>
+                  <option value="audio">speech / audio</option>
+                  <option value="tabular">tabular / classical ml</option>
+                  <option value="custom">custom / unknown</option>
+                </select>
+              </p>
 
-            <p class="field field--third">
-              <label for="total-params">Total Model Parameters</label>
-              <input
-                id="total-params"
-                name="total-params"
-                type="text"
-                inputmode="decimal"
-                value="7"
-              />
-            </p>
+              <p class="field field--third">
+                <label for="total-params">Total Model Parameters</label>
+                <input
+                  id="total-params"
+                  name="total-params"
+                  type="text"
+                  inputmode="decimal"
+                  value="7"
+                />
+              </p>
 
-            <p class="field field--third">
-              <label for="parameter-unit">Parameter Unit</label>
-              <select id="parameter-unit" name="parameter-unit">
-                <option value="B">B</option>
-                <option value="M">M</option>
-              </select>
-            </p>
+              <p class="field field--third">
+                <label for="parameter-unit">Parameter Unit</label>
+                <select id="parameter-unit" name="parameter-unit">
+                  <option value="B">B</option>
+                  <option value="M">M</option>
+                </select>
+              </p>
 
-            <p class="field field--third">
-              <label for="precision">Precision</label>
-              <select id="precision" name="precision">
-                <option value="4-bit">4-bit</option>
-                <option value="5-bit GGUF">5-bit GGUF</option>
-                <option value="6-bit GGUF">6-bit GGUF</option>
-                <option value="8-bit">8-bit</option>
-                <option value="16-bit" selected>16-bit</option>
-                <option value="32-bit">32-bit</option>
-              </select>
-            </p>
-          </fieldset>
-
-          <fieldset class="group">
-            <legend>Deployment</legend>
-
-            <p class="field">
-              <label for="execution-mode">Execution Mode</label>
-              <select id="execution-mode" name="execution-mode">
-                <option value="Inference">Inference</option>
-                <option value="LoRA fine-tuning">LoRA fine-tuning</option>
-                <option value="QLoRA fine-tuning">QLoRA fine-tuning</option>
-                <option value="Full training">Full training</option>
-              </select>
-            </p>
-
-            <p class="field">
-              <label for="runtime-profile">Runtime Profile</label>
-              <select id="runtime-profile" name="runtime-profile">
-                <option value="Local / Edge">Local / Edge</option>
-                <option value="Server / Cloud" selected>Server / Cloud</option>
-              </select>
-            </p>
-
-            <!-- Adaptive, per-family input controls -->
-            <p class="field" data-families="text_generation">
-              <label for="context-tokens">Context Window</label>
-              <input
-                id="context-tokens"
-                name="context-tokens"
-                type="text"
-                inputmode="numeric"
-                value="8000"
-              />
-            </p>
-            <p class="field" data-families="text_encoder" hidden>
-              <label for="sequence-tokens">Sequence Length</label>
-              <input
-                id="sequence-tokens"
-                name="sequence-tokens"
-                type="text"
-                inputmode="numeric"
-                value="512"
-              />
-            </p>
-            <p class="field" data-families="encoder_decoder" hidden>
-              <label for="input-tokens">Input Tokens</label>
-              <input
-                id="input-tokens"
-                name="input-tokens"
-                type="text"
-                inputmode="numeric"
-                value="1024"
-              />
-            </p>
-            <p class="field" data-families="encoder_decoder" hidden>
-              <label for="output-tokens">Output Tokens</label>
-              <input
-                id="output-tokens"
-                name="output-tokens"
-                type="text"
-                inputmode="numeric"
-                value="256"
-              />
-            </p>
-            <p class="field" data-families="vision_language" hidden>
-              <label for="text-context-tokens">Text Context Tokens</label>
-              <input
-                id="text-context-tokens"
-                name="text-context-tokens"
-                type="text"
-                inputmode="numeric"
-                value="4000"
-              />
-            </p>
-            <p
-              class="field"
-              data-families="vision vision_language image_diffusion"
-              hidden
-            >
-              <label for="image-width">Image Width (px)</label>
-              <input
-                id="image-width"
-                name="image-width"
-                type="text"
-                inputmode="numeric"
-                value="1024"
-              />
-            </p>
-            <p
-              class="field"
-              data-families="vision vision_language image_diffusion"
-              hidden
-            >
-              <label for="image-height">Image Height (px)</label>
-              <input
-                id="image-height"
-                name="image-height"
-                type="text"
-                inputmode="numeric"
-                value="1024"
-              />
-            </p>
-            <p class="field" data-families="vision_language" hidden>
-              <label for="image-count">Image Count</label>
-              <input
-                id="image-count"
-                name="image-count"
-                type="text"
-                inputmode="numeric"
-                value="1"
-              />
-            </p>
-            <p class="field" data-families="video_generation" hidden>
-              <label for="video-resolution">Output Resolution</label>
-              <select id="video-resolution" name="video-resolution">
-                <option value="720p">720p</option>
-                <option value="1080p">1080p</option>
-              </select>
-            </p>
-            <p class="field" data-families="video_generation" hidden>
-              <label for="video-frames">Frames</label>
-              <input
-                id="video-frames"
-                name="video-frames"
-                type="text"
-                inputmode="numeric"
-                value="81"
-              />
-            </p>
-            <p class="field" data-families="audio" hidden>
-              <label for="audio-seconds">Audio Length</label>
-              <input
-                id="audio-seconds"
-                name="audio-seconds"
-                type="text"
-                inputmode="numeric"
-                value="30"
-              />
-            </p>
-            <p class="field" data-families="tabular" hidden>
-              <label for="rows-per-batch">Rows per Batch</label>
-              <input
-                id="rows-per-batch"
-                name="rows-per-batch"
-                type="text"
-                inputmode="numeric"
-                value="10000"
-              />
-            </p>
-            <p class="field" data-families="tabular" hidden>
-              <label for="features">Features</label>
-              <input
-                id="features"
-                name="features"
-                type="text"
-                inputmode="numeric"
-                value="100"
-              />
-            </p>
-            <p class="field" data-families="custom" hidden>
-              <label for="input-size-multiplier">Input Size Preset</label>
-              <input
-                id="input-size-multiplier"
-                name="input-size-multiplier"
-                type="text"
-                inputmode="decimal"
-                value="1"
-              />
-            </p>
-
-            <p class="field">
-              <label for="workload-size">
-                <span data-slot="workload-label" data-workload-label>
-                  Concurrent Batch Requests
-                </span>
-              </label>
-              <input
-                id="workload-size"
-                name="workload-size"
-                type="text"
-                inputmode="numeric"
-                value="1"
-              />
-            </p>
-
-            <p
-              class="field field--check"
-              data-moe-families="text_generation text_encoder encoder_decoder vision_language custom"
-            >
-              <label>
-                <input id="moe-enabled" name="moe-enabled" type="checkbox" />
-                <span
-                  class="checkbox-state"
-                  data-slot="checkbox-indicator"
-                  aria-hidden="true"
-                ></span>
-                <span>MoE Model</span>
-              </label>
-            </p>
-            <p class="field" data-active hidden>
-              <label for="active-params">Active Parameters</label>
-              <input
-                id="active-params"
-                name="active-params"
-                type="text"
-                inputmode="decimal"
-                value="1.3"
-              />
-            </p>
-          </fieldset>
-
-          <details class="advanced" data-slot="advanced-assumptions">
-            <summary data-slot="advanced-assumptions-label">
-              Advanced assumptions
-            </summary>
-            <div class="group">
-              <p
-                class="field"
-                data-families="text_generation encoder_decoder vision_language"
-                data-slot="kv-cache-row"
-              >
-                <label for="kv-cache-precision">KV Cache Precision</label>
-                <select id="kv-cache-precision" name="kv-cache-precision">
-                  <option value="8-bit / FP8">8-bit / FP8</option>
+              <p class="field field--third">
+                <label for="precision">Precision</label>
+                <select id="precision" name="precision">
+                  <option value="4-bit">4-bit</option>
+                  <option value="5-bit GGUF">5-bit GGUF</option>
+                  <option value="6-bit GGUF">6-bit GGUF</option>
+                  <option value="8-bit">8-bit</option>
                   <option value="16-bit" selected>16-bit</option>
                   <option value="32-bit">32-bit</option>
                 </select>
               </p>
+            </fieldset>
+
+            <fieldset class="group">
+              <legend>Deployment</legend>
+
               <p class="field">
-                <label for="known-model-file-size-gb"
-                  >Known Model File Size</label
-                >
+                <label for="execution-mode">Execution Mode</label>
+                <select id="execution-mode" name="execution-mode">
+                  <option value="Inference">Inference</option>
+                  <option value="LoRA fine-tuning">LoRA fine-tuning</option>
+                  <option value="QLoRA fine-tuning">QLoRA fine-tuning</option>
+                  <option value="Full training">Full training</option>
+                </select>
+              </p>
+
+              <p class="field">
+                <label for="runtime-profile">Runtime Profile</label>
+                <select id="runtime-profile" name="runtime-profile">
+                  <option value="Local / Edge">Local / Edge</option>
+                  <option value="Server / Cloud" selected>
+                    Server / Cloud
+                  </option>
+                </select>
+              </p>
+
+              <p class="field" data-families="text_generation">
+                <label for="context-tokens">Context Window</label>
                 <input
-                  id="known-model-file-size-gb"
-                  name="known-model-file-size-gb"
+                  id="context-tokens"
+                  name="context-tokens"
                   type="text"
-                  inputmode="decimal"
+                  inputmode="numeric"
+                  value="8000"
                 />
               </p>
+
               <p class="field">
-                <label for="gpu-resident-fraction">GPU Resident Fraction</label>
+                <label for="workload-size">
+                  <span data-slot="workload-label" data-workload-label>
+                    Concurrent Batch Requests
+                  </span>
+                </label>
                 <input
-                  id="gpu-resident-fraction"
-                  name="gpu-resident-fraction"
+                  id="workload-size"
+                  name="workload-size"
                   type="text"
-                  inputmode="decimal"
-                  data-number-max="1"
+                  inputmode="numeric"
+                  data-number-min="1"
                   value="1"
                 />
               </p>
-              <p class="field">
-                <label for="lora-trainable-percent">LoRA Trainable %</label>
+
+              <!-- Adaptive per-family controls render on their own row below
+                   the fixed fields, so switching families never moves the
+                   batch input. The break pins the row edge. -->
+              <span class="field-break" aria-hidden="true"></span>
+              <p class="field" data-families="text_encoder" hidden>
+                <label for="sequence-tokens">Sequence Length</label>
                 <input
-                  id="lora-trainable-percent"
-                  name="lora-trainable-percent"
+                  id="sequence-tokens"
+                  name="sequence-tokens"
                   type="text"
-                  inputmode="decimal"
-                  data-number-max="100"
-                  value="0.5"
+                  inputmode="numeric"
+                  value="512"
                 />
               </p>
-              <p class="field">
-                <label for="optimizer">Optimizer</label>
-                <select id="optimizer" name="optimizer">
-                  <option value="AdamW">AdamW</option>
-                  <option value="8-bit Adam">8-bit Adam</option>
-                  <option value="SGD-like">SGD-like</option>
+              <p class="field" data-families="encoder_decoder" hidden>
+                <label for="input-tokens">Input Tokens</label>
+                <input
+                  id="input-tokens"
+                  name="input-tokens"
+                  type="text"
+                  inputmode="numeric"
+                  value="1024"
+                />
+              </p>
+              <p class="field" data-families="encoder_decoder" hidden>
+                <label for="output-tokens">Output Tokens</label>
+                <input
+                  id="output-tokens"
+                  name="output-tokens"
+                  type="text"
+                  inputmode="numeric"
+                  value="256"
+                />
+              </p>
+              <p class="field" data-families="vision_language" hidden>
+                <label for="text-context-tokens">Text Context Tokens</label>
+                <input
+                  id="text-context-tokens"
+                  name="text-context-tokens"
+                  type="text"
+                  inputmode="numeric"
+                  value="4000"
+                />
+              </p>
+              <p
+                class="field"
+                data-families="vision vision_language image_diffusion"
+                hidden
+              >
+                <label for="image-width">Image Width (px)</label>
+                <input
+                  id="image-width"
+                  name="image-width"
+                  type="text"
+                  inputmode="numeric"
+                  value="1024"
+                />
+              </p>
+              <p
+                class="field"
+                data-families="vision vision_language image_diffusion"
+                hidden
+              >
+                <label for="image-height">Image Height (px)</label>
+                <input
+                  id="image-height"
+                  name="image-height"
+                  type="text"
+                  inputmode="numeric"
+                  value="1024"
+                />
+              </p>
+              <p class="field" data-families="vision_language" hidden>
+                <label for="image-count">Image Count</label>
+                <input
+                  id="image-count"
+                  name="image-count"
+                  type="text"
+                  inputmode="numeric"
+                  value="1"
+                />
+              </p>
+              <p class="field" data-families="video_generation" hidden>
+                <label for="video-resolution">Output Resolution</label>
+                <select id="video-resolution" name="video-resolution">
+                  <option value="720p">720p</option>
+                  <option value="1080p">1080p</option>
                 </select>
               </p>
-              <p class="field field--check">
-                <label>
-                  <input
-                    id="gradient-checkpointing"
-                    name="gradient-checkpointing"
-                    type="checkbox"
-                    checked
-                  />
-                  <span
-                    class="checkbox-state"
-                    data-slot="checkbox-indicator"
-                    aria-hidden="true"
-                  ></span>
-                  <span>Gradient Checkpointing</span>
-                </label>
+              <p class="field" data-families="video_generation" hidden>
+                <label for="video-frames">Frames</label>
+                <input
+                  id="video-frames"
+                  name="video-frames"
+                  type="text"
+                  inputmode="numeric"
+                  value="81"
+                />
               </p>
-              <p class="field field--check">
-                <label>
-                  <input
-                    id="memory-sharding-enabled"
-                    name="memory-sharding-enabled"
-                    type="checkbox"
-                  />
-                  <span
-                    class="checkbox-state"
-                    data-slot="checkbox-indicator"
-                    aria-hidden="true"
-                  ></span>
-                  <span>Memory Sharding</span>
-                </label>
+              <p class="field" data-families="audio" hidden>
+                <label for="audio-seconds">Audio Length</label>
+                <input
+                  id="audio-seconds"
+                  name="audio-seconds"
+                  type="text"
+                  inputmode="numeric"
+                  value="30"
+                />
               </p>
-            </div>
-          </details>
+              <p class="field" data-families="tabular" hidden>
+                <label for="rows-per-batch">Rows per Batch</label>
+                <input
+                  id="rows-per-batch"
+                  name="rows-per-batch"
+                  type="text"
+                  inputmode="numeric"
+                  value="10000"
+                />
+              </p>
+              <p class="field" data-families="tabular" hidden>
+                <label for="features">Features</label>
+                <input
+                  id="features"
+                  name="features"
+                  type="text"
+                  inputmode="numeric"
+                  value="100"
+                />
+              </p>
+              <p class="field" data-families="custom" hidden>
+                <label for="input-size-multiplier">Input Size Preset</label>
+                <input
+                  id="input-size-multiplier"
+                  name="input-size-multiplier"
+                  type="text"
+                  inputmode="decimal"
+                  value="1"
+                />
+              </p>
+            </fieldset>
+
+            <details class="advanced" data-slot="advanced-assumptions">
+              <summary data-slot="advanced-assumptions-label">
+                Advanced assumptions
+              </summary>
+              <div class="group">
+                <p
+                  class="field field--check"
+                  data-moe-families="text_generation text_encoder encoder_decoder vision_language custom"
+                >
+                  <label>
+                    <input
+                      id="moe-enabled"
+                      name="moe-enabled"
+                      type="checkbox"
+                    />
+                    <span
+                      class="checkbox-state"
+                      data-slot="checkbox-indicator"
+                      aria-hidden="true"
+                    ></span>
+                    <span>MoE Model</span>
+                  </label>
+                </p>
+                <p class="field field--check">
+                  <label>
+                    <input
+                      id="memory-sharding-enabled"
+                      name="memory-sharding-enabled"
+                      type="checkbox"
+                    />
+                    <span
+                      class="checkbox-state"
+                      data-slot="checkbox-indicator"
+                      aria-hidden="true"
+                    ></span>
+                    <span>Memory Sharding</span>
+                  </label>
+                </p>
+                <p class="field field--check" data-training hidden>
+                  <label>
+                    <input
+                      id="gradient-checkpointing"
+                      name="gradient-checkpointing"
+                      type="checkbox"
+                      checked
+                    />
+                    <span
+                      class="checkbox-state"
+                      data-slot="checkbox-indicator"
+                      aria-hidden="true"
+                    ></span>
+                    <span>Gradient Checkpointing</span>
+                  </label>
+                </p>
+                <p class="field" data-active hidden>
+                  <label for="active-params">Active Parameters</label>
+                  <input
+                    id="active-params"
+                    name="active-params"
+                    type="text"
+                    inputmode="decimal"
+                    value="1.3"
+                  />
+                </p>
+                <p
+                  class="field"
+                  data-families="text_generation encoder_decoder vision_language"
+                  data-slot="kv-cache-row"
+                >
+                  <label for="kv-cache-precision">KV Cache Precision</label>
+                  <select id="kv-cache-precision" name="kv-cache-precision">
+                    <option value="8-bit / FP8">8-bit / FP8</option>
+                    <option value="16-bit" selected>16-bit</option>
+                    <option value="32-bit">32-bit</option>
+                  </select>
+                </p>
+                <p class="field">
+                  <label for="known-model-file-size-gb"
+                    >Known Model File Size</label
+                  >
+                  <input
+                    id="known-model-file-size-gb"
+                    name="known-model-file-size-gb"
+                    type="text"
+                    inputmode="decimal"
+                  />
+                </p>
+                <p class="field">
+                  <label for="gpu-resident-fraction"
+                    >GPU Resident Fraction</label
+                  >
+                  <input
+                    id="gpu-resident-fraction"
+                    name="gpu-resident-fraction"
+                    type="text"
+                    inputmode="decimal"
+                    data-number-max="1"
+                    value="1"
+                  />
+                </p>
+                <p class="field" data-lora hidden>
+                  <label for="lora-trainable-percent">LoRA Trainable %</label>
+                  <input
+                    id="lora-trainable-percent"
+                    name="lora-trainable-percent"
+                    type="text"
+                    inputmode="decimal"
+                    data-number-max="100"
+                    value="0.5"
+                  />
+                </p>
+                <p class="field" data-training hidden>
+                  <label for="optimizer">Training Optimizer Category</label>
+                  <select id="optimizer" name="optimizer">
+                    <option value="AdamW">AdamW</option>
+                    <!-- Values stay stable for persisted URLs; only the visible
+                         text modernizes the naming. -->
+                    <option value="8-bit Adam">8-bit AdamW</option>
+                    <option value="Paged 8-bit AdamW">Paged 8-bit AdamW</option>
+                    <option value="Adafactor">Adafactor</option>
+                    <option value="SGD-like">SGD / Momentum</option>
+                  </select>
+                </p>
+              </div>
+            </details>
+          </div>
 
           <div class="actions" data-slot="form-actions">
+            <!-- Reset stays the form's submit control (WCAG H32 requires one);
+                 a keydown guard keeps Enter-in-a-field recomputing instead of
+                 triggering it, so typing Enter never wipes the form. -->
             <button type="submit" data-action="reset">Reset</button>
           </div>
         </form>
 
         <!-- RESULTS -->
         <section class="results" aria-label="Estimate">
-          <!-- Tier 1: the answer, at a glance -->
-          <div class="hero" data-slot="hero-total-card">
-            <p class="hero-label">Estimated VRAM Required</p>
-            <p class="hero-value"><output data-out="total">0.0 GB</output></p>
+          <!-- Tier 1: the answer, at a glance (merged hero) -->
+          <div class="hero" data-slot="hero-card">
+            <div class="hero-primary" data-slot="hero-total-card">
+              <p class="hero-label">Estimated VRAM Required</p>
+              <p class="hero-value">
+                <output
+                  data-out="total"
+                  aria-label="Estimated VRAM required"
+                  aria-live="polite"
+                  aria-atomic="true"
+                  >19.0 GB</output
+                >
+              </p>
+            </div>
+
+            <div class="hero-secondary" data-slot="hero-gpu-card">
+              <p class="hero-label" data-slot="gpu-class-label">
+                Recommended Example
+              </p>
+              <div class="hero-gpu-detail">
+                <p class="hero-value hero-value-small" data-out="gpu-class">
+                  24 GB hardware tier
+                </p>
+                <!-- First-paint placeholder: the app replaces this with one
+                     randomly picked example card for the recommended tier. -->
+                <p class="hero-examples" data-slot="gpu-examples-row">
+                  e.g.
+                  <span data-out="gpu-examples"
+                    ><a
+                      href="https://www.nvidia.com/en-us/geforce/graphics-cards/40-series/rtx-4090/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      >RTX 4090</a
+                    ></span
+                  >
+                </p>
+              </div>
+            </div>
+
             <div class="hero-fit">
               <meter
                 class="fit-meter"
@@ -460,36 +614,11 @@
                 aria-label="Usable VRAM budget consumed on the recommended GPU class"
                 hidden
               ></meter>
+              <p class="fit-scale" data-slot="fit-scale">
+                <span>Usage</span>
+                <span>Capacity <output data-out="capacity"></output></span>
+              </p>
               <p class="hero-say" data-out="vram-say"></p>
-            </div>
-          </div>
-
-          <div class="hero hero--secondary" data-slot="hero-gpu-card">
-            <p class="hero-label" data-slot="gpu-class-label">
-              Recommended GPU Class
-            </p>
-            <div class="hero-gpu-detail">
-              <p class="hero-value hero-value-small" data-out="gpu-class">
-                24 GB GPU hardware tier
-              </p>
-              <p class="hero-examples" data-slot="gpu-examples-row">
-                e.g.
-                <span data-out="gpu-examples"
-                  ><a
-                    href="https://www.nvidia.com/en-us/geforce/graphics-cards/30-series/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    >RTX 3090</a
-                  >
-                  /
-                  <a
-                    href="https://www.nvidia.com/en-us/geforce/graphics-cards/40-series/rtx-4090/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    >RTX 4090</a
-                  ></span
-                >
-              </p>
             </div>
           </div>
 
@@ -508,88 +637,488 @@
           >
             <span class="callout-mark" aria-hidden="true">!</span>
             <p class="callout-text">
-              Exceeds single-GPU capacity — needs tensor / pipeline parallelism:
+              Too large for any single GPU or accelerator. Split the model
+              across multiple GPUs with tensor or pipeline parallelism.
+              Frameworks that do this:
               <span class="callout-links" data-out="parallelism-links"></span>
             </p>
           </aside>
 
-          <!-- Tier 2: the reasoning and numbers, hidden until asked for -->
-          <details class="panel panel--wide" data-slot="why-panel">
-            <summary>Why this recommendation</summary>
-            <div class="panel-body">
-              <p data-out="why"></p>
-              <ul class="fit">
-                <li>
-                  <span>Minimum GPU VRAM Capacity</span
-                  ><strong data-out="min-cap"></strong>
-                </li>
-                <li>
-                  <span>Usable VRAM Target</span
-                  ><strong data-out="usable-target"></strong>
-                </li>
-                <li>
-                  <span>Usable VRAM on Recommended Class</span
-                  ><strong data-out="usable-on-class"></strong>
-                </li>
-                <li>
-                  <span>Fit Headroom</span
-                  ><strong data-out="fit-headroom"></strong>
-                </li>
-                <li>
-                  <span data-slot="speed-label">Estimated Speed</span
-                  ><strong data-out="speed"></strong>
-                </li>
-              </ul>
-            </div>
-          </details>
+          <!-- Tier 2: the reasoning and numbers, hidden until asked for.
+               The four disclosures share one bordered surface so they read as
+               rows of a single reasoning group, not separate cards. -->
+          <div class="panel-group">
+            <details class="panel" data-slot="why-panel">
+              <summary>Why this recommendation</summary>
+              <div class="panel-body">
+                <p data-out="why"></p>
+                <ul class="fit">
+                  <li>
+                    <span>Minimum GPU VRAM Capacity</span
+                    ><strong data-out="min-cap"></strong>
+                  </li>
+                  <li>
+                    <span>Usable VRAM Target</span
+                    ><strong data-out="usable-target"></strong>
+                  </li>
+                  <li>
+                    <span>Usable VRAM on Recommended Hardware Tier</span
+                    ><strong data-out="usable-on-class"></strong>
+                  </li>
+                  <li>
+                    <span>Fit Headroom</span
+                    ><strong data-out="fit-headroom"></strong>
+                  </li>
+                  <li>
+                    <span data-slot="speed-label">Estimated Speed</span
+                    ><strong data-out="speed"></strong>
+                  </li>
+                </ul>
+              </div>
+            </details>
 
-          <details class="panel">
-            <summary>Calculation used</summary>
-            <div class="panel-body">
-              <ul
-                class="calculation"
-                data-out="calculation-rows"
-                aria-busy="true"
-              ></ul>
-            </div>
-          </details>
+            <details class="panel">
+              <summary>Values Used In Calculations</summary>
+              <div class="panel-body">
+                <ul
+                  class="calculation"
+                  data-out="calculation-rows"
+                  aria-busy="true"
+                ></ul>
+              </div>
+            </details>
 
-          <details class="panel">
-            <summary>Formula used</summary>
-            <div class="panel-body">
-              <code data-out="calc-formula"></code>
-            </div>
-          </details>
+            <details class="panel">
+              <summary>Formula used</summary>
+              <div class="panel-body">
+                <code data-out="calc-formula"></code>
+                <p class="formula-numbers" data-out="calc-numbers"></p>
+              </div>
+            </details>
 
-          <details class="panel">
-            <summary>Assumptions used</summary>
-            <div class="panel-body">
-              <ul
-                class="assumptions"
-                data-out="assumptions"
-                aria-busy="true"
-              ></ul>
-            </div>
-          </details>
-
-          <details class="panel" data-slot="breakdown-panel">
-            <summary>Memory breakdown</summary>
-            <div class="panel-body">
-              <ul
-                class="breakdown"
-                data-out="breakdown-rows"
-                aria-busy="true"
-              ></ul>
-            </div>
-          </details>
+            <details class="panel">
+              <summary>Assumptions used</summary>
+              <div class="panel-body">
+                <ul
+                  class="assumptions"
+                  data-out="assumptions"
+                  aria-busy="true"
+                ></ul>
+              </div>
+            </details>
+          </div>
 
           <ul class="warnings" data-out="warnings" aria-busy="true"></ul>
-          <p class="disclaimer" data-slot="output-disclaimer">
-            Estimates are planning guidance; validate against the target runtime
-            before purchase or deployment.
-          </p>
+
+          <!-- Static reference: how the recommendation's memory tiers map to
+               real hardware. Row bodies are lookup content; only the fit
+               checkmarks re-render (renderTierFits). name="hardware-tier"
+               keeps at most one row open, with no JS. -->
+          <section class="tiers" aria-label="Hardware tiers">
+            <h2 class="tiers-title">Hardware tier</h2>
+            <p class="tiers-subtitle">single accelerator</p>
+            <div class="tier-head" aria-hidden="true">
+              <span>Memory (GB)</span>
+              <span class="tier-fit-head">Best fit</span>
+              <span>Typical use</span>
+            </div>
+            <details class="tier" name="hardware-tier">
+              <summary class="tier-summary">
+                <span class="tier-memory">&le; 24</span>
+                <span
+                  class="tier-fit"
+                  data-tier-fit="24"
+                  role="img"
+                  aria-label="Recommended tier for the estimated VRAM"
+                  aria-hidden="true"
+                  >&#10003;</span
+                >
+                <span class="tier-use">Common consumer / small inference</span>
+              </summary>
+              <div class="tier-body">
+                <ul class="tier-examples">
+                  <li class="tier-example">
+                    <span class="tier-example-size">8 GB</span>
+                    <span class="tier-example-cards"
+                      ><a
+                        href="https://www.nvidia.com/en-us/geforce/graphics-cards/40-series/rtx-4060-4060ti/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >RTX 4060</a
+                      ></span
+                    >
+                  </li>
+                  <li class="tier-example">
+                    <span class="tier-example-size">12 GB</span>
+                    <span class="tier-example-cards"
+                      ><a
+                        href="https://www.nvidia.com/en-us/geforce/graphics-cards/30-series/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >RTX 3060</a
+                      >
+                      <a
+                        href="https://www.nvidia.com/en-us/geforce/graphics-cards/40-series/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >RTX 4070</a
+                      >
+                      <a
+                        href="https://www.amd.com/en/products/graphics/desktops/radeon/9000-series/amd-radeon-rx-9070-gre.html"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >RX 9070 GRE</a
+                      >
+                      <a
+                        href="https://www.amd.com/en/products/graphics/amd-radeon-rx-6700-xt"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >RX 6700 XT</a
+                      ></span
+                    >
+                  </li>
+                  <li class="tier-example">
+                    <span class="tier-example-size">16 GB</span>
+                    <span class="tier-example-cards"
+                      ><a
+                        href="https://www.nvidia.com/en-us/geforce/graphics-cards/40-series/rtx-4080-family/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >RTX 4080</a
+                      >
+                      <a
+                        href="https://www.amd.com/en/products/graphics/desktops/radeon/7000-series/amd-radeon-rx-7800-xt.html"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >RX 7800 XT</a
+                      >
+                      <a
+                        href="https://www.nvidia.com/en-us/design-visualization/rtx-5000/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >RTX 5000 Ada</a
+                      >
+                      <a
+                        href="https://www.apple.com/mac-mini/specs/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >Mac mini M4 16 GB</a
+                      >
+                      <a
+                        href="https://docs.cloud.google.com/tpu/docs/v5e"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >Cloud TPU v5e</a
+                      ></span
+                    >
+                  </li>
+                  <li class="tier-example">
+                    <span class="tier-example-size">20 GB</span>
+                    <span class="tier-example-cards"
+                      ><a
+                        href="https://www.amd.com/en/products/graphics/desktops/radeon/7000-series/amd-radeon-rx-7900xt.html"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >RX 7900 XT</a
+                      ></span
+                    >
+                  </li>
+                  <li class="tier-example">
+                    <span class="tier-example-size">24 GB</span>
+                    <span class="tier-example-cards"
+                      ><a
+                        href="https://www.nvidia.com/en-us/geforce/graphics-cards/40-series/rtx-4090/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >RTX 4090</a
+                      >
+                      <a
+                        href="https://www.nvidia.com/en-us/geforce/graphics-cards/30-series/rtx-3090-3090ti/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >RTX 3090</a
+                      >
+                      <a
+                        href="https://www.nvidia.com/en-us/data-center/l4/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >L4</a
+                      >
+                      <a
+                        href="https://www.apple.com/mac-mini/specs/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >Mac mini M4 24 GB</a
+                      ></span
+                    >
+                  </li>
+                </ul>
+              </div>
+            </details>
+            <details class="tier" name="hardware-tier">
+              <summary class="tier-summary">
+                <span class="tier-memory">32&ndash;48</span>
+                <span
+                  class="tier-fit"
+                  data-tier-fit="48"
+                  role="img"
+                  aria-label="Recommended tier for the estimated VRAM"
+                  aria-hidden="true"
+                  >&#10003;</span
+                >
+                <span class="tier-use"
+                  >High-end consumer, workstation, larger local inference</span
+                >
+              </summary>
+              <div class="tier-body">
+                <ul class="tier-examples">
+                  <li class="tier-example">
+                    <span class="tier-example-size">32 GB</span>
+                    <span class="tier-example-cards"
+                      ><a
+                        href="https://rog.asus.com/graphics-cards/graphics-cards/rog-astral/rog-astral-rtx5090-o32g-gaming/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >RTX 5090</a
+                      >
+                      <a
+                        href="https://www.amd.com/en/products/graphics/workstations/radeon-pro/w7800.html"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >Radeon PRO W7800</a
+                      >
+                      <a
+                        href="https://aws.amazon.com/ec2/instance-types/inf2/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >AWS Inferentia2</a
+                      >
+                      <a
+                        href="https://docs.cloud.google.com/tpu/docs/v6e"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >Cloud TPU v6e</a
+                      ></span
+                    >
+                  </li>
+                  <li class="tier-example">
+                    <span class="tier-example-size">36 GB</span>
+                    <span class="tier-example-cards"
+                      ><a
+                        href="https://www.apple.com/mac-studio/specs/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >Mac Studio M4 Max 36 GB</a
+                      ></span
+                    >
+                  </li>
+                  <li class="tier-example">
+                    <span class="tier-example-size">48 GB</span>
+                    <span class="tier-example-cards"
+                      ><a
+                        href="https://www.nvidia.com/en-us/design-visualization/rtx-a6000/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >RTX A6000</a
+                      >
+                      <a
+                        href="https://www.nvidia.com/en-us/design-visualization/rtx-6000/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >RTX 6000 Ada</a
+                      >
+                      <a
+                        href="https://www.nvidia.com/en-us/data-center/l40s/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >L40S</a
+                      >
+                      <a
+                        href="https://www.apple.com/us-edu/shop/buy-mac/mac-mini/m4-pro-chip-14-core-cpu-20-core-gpu-48gb-memory-1tb-storage"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >Mac mini M4 Pro 48 GB</a
+                      ></span
+                    >
+                  </li>
+                </ul>
+              </div>
+            </details>
+            <details class="tier" name="hardware-tier">
+              <summary class="tier-summary">
+                <span class="tier-memory">64&ndash;96</span>
+                <span
+                  class="tier-fit"
+                  data-tier-fit="96"
+                  role="img"
+                  aria-label="Recommended tier for the estimated VRAM"
+                  aria-hidden="true"
+                  >&#10003;</span
+                >
+                <span class="tier-use"
+                  >Large local systems and datacenter accelerators</span
+                >
+              </summary>
+              <div class="tier-body">
+                <ul class="tier-examples">
+                  <li class="tier-example">
+                    <span class="tier-example-size">64 GB</span>
+                    <span class="tier-example-cards"
+                      ><a
+                        href="https://www.apple.com/mac-studio/specs/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >Mac Studio M4 Max 64 GB</a
+                      >
+                      <a
+                        href="https://www.amd.com/en/products/accelerators/instinct/mi200/mi210.html"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >AMD Instinct MI210</a
+                      ></span
+                    >
+                  </li>
+                  <li class="tier-example">
+                    <span class="tier-example-size">80 GB</span>
+                    <span class="tier-example-cards"
+                      ><a
+                        href="https://www.nvidia.com/en-us/data-center/a100/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >A100</a
+                      >
+                      <a
+                        href="https://www.nvidia.com/en-us/data-center/h100/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >H100</a
+                      ></span
+                    >
+                  </li>
+                  <li class="tier-example">
+                    <span class="tier-example-size">95 GB</span>
+                    <span class="tier-example-cards"
+                      ><a
+                        href="https://docs.cloud.google.com/tpu/docs/v5p"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >Cloud TPU v5p</a
+                      ></span
+                    >
+                  </li>
+                  <li class="tier-example">
+                    <span class="tier-example-size">96 GB</span>
+                    <span class="tier-example-cards"
+                      ><a
+                        href="https://www.apple.com/mac-studio/specs/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >Mac Studio M3 Ultra 96 GB</a
+                      >
+                      <a
+                        href="https://www.nvidia.com/en-us/products/workstations/professional-desktop-gpus/rtx-pro-6000/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >RTX PRO 6000 Blackwell</a
+                      ></span
+                    >
+                  </li>
+                </ul>
+              </div>
+            </details>
+            <details class="tier" name="hardware-tier">
+              <summary class="tier-summary">
+                <span class="tier-memory">141&ndash;192</span>
+                <span
+                  class="tier-fit"
+                  data-tier-fit="192"
+                  role="img"
+                  aria-label="Recommended tier for the estimated VRAM"
+                  aria-hidden="true"
+                  >&#10003;</span
+                >
+                <span class="tier-use"
+                  >High-memory datacenter / frontier accelerators</span
+                >
+              </summary>
+              <div class="tier-body">
+                <ul class="tier-examples">
+                  <li class="tier-example">
+                    <span class="tier-example-size">141 GB</span>
+                    <span class="tier-example-cards"
+                      ><a
+                        href="https://www.nvidia.com/en-us/data-center/h200/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >H200</a
+                      ></span
+                    >
+                  </li>
+                  <li class="tier-example">
+                    <span class="tier-example-size">180 GB</span>
+                    <span class="tier-example-cards"
+                      ><a
+                        href="https://www.nvidia.com/en-us/data-center/dgx-b200/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >B200</a
+                      ></span
+                    >
+                  </li>
+                  <li class="tier-example">
+                    <span class="tier-example-size">192 GB</span>
+                    <span class="tier-example-cards"
+                      ><a
+                        href="https://docs.cloud.google.com/tpu/docs/tpu7x"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >Cloud TPU7x</a
+                      ></span
+                    >
+                  </li>
+                </ul>
+              </div>
+            </details>
+            <details class="tier" name="hardware-tier">
+              <summary class="tier-summary">
+                <span class="tier-memory">&gt; 192</span>
+                <span
+                  class="tier-fit"
+                  data-tier-fit="100000"
+                  role="img"
+                  aria-label="Recommended tier for the estimated VRAM"
+                  aria-hidden="true"
+                  >&#10003;</span
+                >
+                <span class="tier-use"
+                  >Does not fit on a single accelerator</span
+                >
+              </summary>
+              <div class="tier-body">
+                <ul class="tier-examples">
+                  <li class="tier-example">
+                    <span class="tier-example-size">160 GB</span>
+                    <span class="tier-example-cards"
+                      >2x 80 GB GPUs with tensor/model parallelism</span
+                    >
+                  </li>
+                  <li class="tier-example">
+                    <span class="tier-example-size">320 GB</span>
+                    <span class="tier-example-cards"
+                      >4x 80 GB GPUs with tensor/model parallelism</span
+                    >
+                  </li>
+                </ul>
+              </div>
+            </details>
+          </section>
         </section>
       </main>
+
+      <footer class="disclaimer" data-slot="output-disclaimer">
+        Estimates are planning guidance. Validate against your target runtime
+        before purchase or deployment.
+      </footer>
     </div>
 
     <template id="row-template" data-slot="row-template">

@@ -1,8 +1,10 @@
+import { defaultState, normalizedState, searchFromState } from "./state";
 import type { FormState } from "./types";
 
 export interface ModelPreset {
   readonly id: string;
   readonly label: string;
+  readonly url: string;
   readonly overrides: Partial<FormState>;
 }
 
@@ -23,6 +25,7 @@ export const MODEL_PRESETS: readonly ModelPreset[] = [
   {
     id: "llama-8b",
     label: "Llama 8B",
+    url: "https://huggingface.co/meta-llama/Llama-3.1-8B",
     overrides: {
       workloadFamily: "text_generation",
       totalParams: "8",
@@ -33,6 +36,7 @@ export const MODEL_PRESETS: readonly ModelPreset[] = [
   {
     id: "llama-70b",
     label: "Llama 70B",
+    url: "https://huggingface.co/meta-llama/Llama-3.1-70B",
     overrides: {
       workloadFamily: "text_generation",
       totalParams: "70",
@@ -43,6 +47,7 @@ export const MODEL_PRESETS: readonly ModelPreset[] = [
   {
     id: "mixtral-8x7b",
     label: "Mixtral",
+    url: "https://huggingface.co/mistralai/Mixtral-8x7B-v0.1",
     overrides: {
       workloadFamily: "text_generation",
       totalParams: "46.7",
@@ -55,6 +60,7 @@ export const MODEL_PRESETS: readonly ModelPreset[] = [
   {
     id: "gemma-9b",
     label: "Gemma",
+    url: "https://huggingface.co/google/gemma-2-9b",
     overrides: {
       workloadFamily: "text_generation",
       totalParams: "9",
@@ -65,6 +71,7 @@ export const MODEL_PRESETS: readonly ModelPreset[] = [
   {
     id: "sdxl",
     label: "SDXL",
+    url: "https://stablediffusionxl.com/",
     overrides: {
       workloadFamily: "image_diffusion",
       totalParams: "3.5",
@@ -73,3 +80,31 @@ export const MODEL_PRESETS: readonly ModelPreset[] = [
     },
   },
 ];
+
+/**
+ Find the preset the current deployment still exactly matches, if any. A preset
+ loads `defaultState()` plus its overrides, so it stays "active" — driving the
+ highlighted chip and the header model link — only until any input diverges
+ from that loaded deployment.
+@param state - normalized calculator state
+@returns the matching preset, or undefined when no preset matches
+*/
+export function activePreset(
+  state: Readonly<FormState>,
+): ModelPreset | undefined {
+  return MODEL_PRESETS.find((preset) => {
+    const applied = normalizedState(
+      searchFromState({ ...defaultState(), ...preset.overrides }),
+    );
+    const appliedValues = new Map<string, string | boolean>(
+      Object.entries(applied),
+    );
+    return Object.entries(state).every(([key, live]) => {
+      const value = appliedValues.get(key);
+      // An unset numeric has two spellings: searchFromState drops the empty
+      // default (normalizing to ""), while the live form submits the empty
+      // input, which normalizes to "0". Both mean "not provided".
+      return live === value || (live === "0" && value === "");
+    });
+  });
+}

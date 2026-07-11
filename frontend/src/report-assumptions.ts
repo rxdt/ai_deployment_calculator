@@ -1,303 +1,78 @@
 import type { CalculationSpec } from "./calculator-core";
-import { formatGb } from "./hardware";
-import type { DisplayRow, FormState, WorkloadFamily } from "./types";
-import { nonNegativeField } from "./workload-sizing";
-import { hasDecoderKvCache } from "./workload-visibility";
+import type { DisplayRow, FormState } from "./types";
+import { hasDecoderKvCache, hasMoeControl } from "./workload-visibility";
 
 /**
-@param value
+Format a fraction (0..1) as a whole-number percent for prose, e.g. 0.9 -> "90%".
+@param value - a 0..1 fraction
+@returns the value as a rounded percent string
 */
-function formatPercent(value: number): string {
-  return `${String(Number((value * 100).toFixed(1)))}%`;
+function percent(value: number): string {
+  return `${Math.round(value * 100).toString()}%`;
 }
 
 /**
-@param spec
+Name every component the training-state row actually sums (see
+trainingStateGb): full training holds fp32 master weights, the LoRA modes hold
+only the adapter's. Checkpointing is noted separately since it shrinks
+activation memory, not the training state.
+@param state - normalized form state
+@returns the training methodology notes; empty for inference
 */
-function knownFileAssumptionRows(
-  spec: Readonly<CalculationSpec>,
-): DisplayRow[] {
-  if (spec.knownModelFileSizeGb === null || spec.knownModelFileSizeGb <= 0) {
-    return [];
-  }
-  const rows: DisplayRow[] = [
-    {
-      label: "Known Model File Size",
-      value: formatGb(spec.knownModelFileSizeGb),
-    },
-  ];
-  if (spec.gpuResidentFraction !== 1) {
-    rows.push({
-      label: "GPU resident fraction",
-      value: formatPercent(spec.gpuResidentFraction),
-    });
-  }
-  return rows;
-}
-
-/**
-@param value raw numeric field value
-@param fallback formula fallback for malformed direct state
-*/
-function resolvedNumber(value: string, fallback: number): string {
-  return nonNegativeField(value, fallback).toString();
-}
-
-/**
-@param state
-@param spec
-*/
-function trainingAssumptionRows(
-  state: Readonly<FormState>,
-  spec: Readonly<CalculationSpec>,
-): DisplayRow[] {
+function trainingNotes(state: Readonly<FormState>): string[] {
   if (state.executionMode === "Inference") {
     return [];
   }
-  const rows: DisplayRow[] = [];
-  if (state.executionMode !== "Full training") {
-    rows.push({
-      label: "LoRA trainable parameters",
-      value: `${String(spec.loraTrainablePercent)}%`,
-    });
-  }
-  rows.push(
-    { label: "Optimizer", value: state.optimizer },
-    {
-      label: "Gradient checkpointing",
-      value: state.gradientCheckpointing ? "Enabled" : "Disabled",
-    },
-  );
-  return rows;
+  const weights =
+    state.executionMode === "Full training"
+      ? "fp32 master weights"
+      : "adapter weights";
+  const sizing = `Training state sized for ${state.executionMode.replace(" fine-tuning", "")}: ${weights}, gradients, and optimizer state.`;
+  return state.gradientCheckpointing
+    ? [sizing, "Activation memory assumes gradient checkpointing (recompute)."]
+    : [sizing];
 }
 
 /**
-@param state
-*/
-function imageSizeRow(state: Readonly<FormState>): DisplayRow {
-  return {
-    label: "Image size",
-    value: `${resolvedNumber(state.imageWidth, 1024)} x ${resolvedNumber(state.imageHeight, 1024)}`,
-  };
-}
-
-/**
-@param state
-@param spec
-*/
-function kvAssumptionRows(
-  state: Readonly<FormState>,
-  spec: Readonly<CalculationSpec>,
-): DisplayRow[] {
-  if (!hasDecoderKvCache(state)) {
-    return [];
-  }
-  const workloadRow = {
-    label: "Concurrent batch requests",
-    value: spec.workloadSize.toString(),
-  };
-  let scalingRows: DisplayRow[];
-  if (state.workloadFamily === "encoder_decoder") {
-    scalingRows = [
-      {
-        label: "Output tokens",
-        value: resolvedNumber(state.outputTokens, 256),
-      },
-      workloadRow,
-    ];
-  } else if (state.workloadFamily === "vision_language") {
-    scalingRows = [
-      {
-        label: "Text context tokens",
-        value: resolvedNumber(state.textContextTokens, 4000),
-      },
-      { label: "Image count", value: resolvedNumber(state.imageCount, 1) },
-      imageSizeRow(state),
-      workloadRow,
-    ];
-  } else {
-    scalingRows = [
-      {
-        label: "Context tokens",
-        value: resolvedNumber(state.contextTokens, 8000),
-      },
-      workloadRow,
-    ];
-  }
-  return [
-    ...scalingRows,
-    { label: "KV Cache precision", value: state.kvCachePrecision },
-    { label: "KV heads used", value: spec.architecture.kvHeads.toString() },
-    {
-      label: "Conservative KV heads",
-      value: spec.architecture.attentionHeads.toString(),
-    },
-  ];
-}
-
-/**
-@param state
-@param spec
-*/
-function workloadSizeRow(
-  state: Readonly<FormState>,
-  spec: Readonly<CalculationSpec>,
-): DisplayRow {
-  return {
-    label:
-      state.executionMode === "Inference"
-        ? "Concurrent batch requests"
-        : "Micro batch size",
-    value: spec.workloadSize.toString(),
-  };
-}
-
-type WorkloadAssumptionBuilder = (
-  state: Readonly<FormState>,
-  spec: Readonly<CalculationSpec>,
-) => DisplayRow[];
-
-const textGenerationAssumptionRows: WorkloadAssumptionBuilder = (
-  state,
-  spec,
-) => {
-  return [
-    {
-      label: "Context tokens",
-      value: resolvedNumber(state.contextTokens, 8000),
-    },
-    workloadSizeRow(state, spec),
-  ];
-};
-
-const textEncoderAssumptionRows: WorkloadAssumptionBuilder = (state, spec) => {
-  return [
-    {
-      label: "Sequence tokens",
-      value: resolvedNumber(state.sequenceTokens, 512),
-    },
-    workloadSizeRow(state, spec),
-  ];
-};
-
-const encoderDecoderAssumptionRows: WorkloadAssumptionBuilder = (
-  state,
-  spec,
-) => {
-  return [
-    { label: "Input tokens", value: resolvedNumber(state.inputTokens, 1024) },
-    { label: "Output tokens", value: resolvedNumber(state.outputTokens, 256) },
-    workloadSizeRow(state, spec),
-  ];
-};
-
-const imageAssumptionRows: WorkloadAssumptionBuilder = (state, spec) => {
-  return [imageSizeRow(state), workloadSizeRow(state, spec)];
-};
-
-const visionLanguageAssumptionRows: WorkloadAssumptionBuilder = (
-  state,
-  spec,
-) => {
-  return [
-    {
-      label: "Text context tokens",
-      value: resolvedNumber(state.textContextTokens, 4000),
-    },
-    { label: "Image count", value: resolvedNumber(state.imageCount, 1) },
-    imageSizeRow(state),
-    workloadSizeRow(state, spec),
-  ];
-};
-
-const videoAssumptionRows: WorkloadAssumptionBuilder = (state, spec) => {
-  return [
-    { label: "Video resolution", value: state.videoResolution },
-    { label: "Video frames", value: resolvedNumber(state.videoFrames, 81) },
-    workloadSizeRow(state, spec),
-  ];
-};
-
-const audioAssumptionRows: WorkloadAssumptionBuilder = (state, spec) => {
-  return [
-    { label: "Audio seconds", value: resolvedNumber(state.audioSeconds, 30) },
-    workloadSizeRow(state, spec),
-  ];
-};
-
-const tabularAssumptionRows: WorkloadAssumptionBuilder = (state, spec) => {
-  return [
-    {
-      label: "Rows per batch",
-      value: resolvedNumber(state.rowsPerBatch, 10_000),
-    },
-    { label: "Features", value: resolvedNumber(state.features, 100) },
-    workloadSizeRow(state, spec),
-  ];
-};
-
-const customAssumptionRows: WorkloadAssumptionBuilder = (state, spec) => {
-  return [
-    {
-      label: "Input size multiplier",
-      value: resolvedNumber(state.inputSizeMultiplier, 1),
-    },
-    workloadSizeRow(state, spec),
-  ];
-};
-
-const WORKLOAD_ASSUMPTION_BUILDERS: ReadonlyMap<
-  WorkloadFamily,
-  WorkloadAssumptionBuilder
-> = new Map([
-  ["text_generation", textGenerationAssumptionRows],
-  ["text_encoder", textEncoderAssumptionRows],
-  ["encoder_decoder", encoderDecoderAssumptionRows],
-  ["vision", imageAssumptionRows],
-  ["vision_language", visionLanguageAssumptionRows],
-  ["image_diffusion", imageAssumptionRows],
-  ["video_generation", videoAssumptionRows],
-  ["audio", audioAssumptionRows],
-  ["tabular", tabularAssumptionRows],
-  ["custom", customAssumptionRows],
-]);
-
-/**
-@param state
-@param spec
-*/
-function workloadAssumptionRows(
-  state: Readonly<FormState>,
-  spec: Readonly<CalculationSpec>,
-): DisplayRow[] {
-  if (hasDecoderKvCache(state)) {
-    return [];
-  }
-  const buildRows =
-    WORKLOAD_ASSUMPTION_BUILDERS.get(state.workloadFamily) ??
-    customAssumptionRows;
-  return buildRows(state, spec);
-}
-
-/**
-@param state
-@param spec
+Build the "Assumptions used" notes: short plain-language statements of the
+methodology behind the estimate: the fixed overhead, reserve, and precision
+choices a reader cannot infer from their own inputs. Values the user typed
+(context tokens, batch size, execution mode, …) are intentionally omitted; they
+already appear in the form and the calculation breakdown, so echoing them here
+would only duplicate. Each note renders as a green-bulleted line.
+@param state - normalized form state
+@param spec - the derived calculation spec
+@returns the assumption notes, one label per bullet (values are unused)
 */
 export function assumptionRows(
   state: Readonly<FormState>,
   spec: Readonly<CalculationSpec>,
 ): DisplayRow[] {
-  const shardingRows = state.memoryShardingEnabled
-    ? [{ label: "Memory sharding", value: "Enabled" }]
-    : [];
-  return [
-    { label: "Precision", value: state.precision },
-    { label: "Runtime profile", value: state.runtimeProfile },
-    { label: "Execution mode", value: state.executionMode },
-    ...knownFileAssumptionRows(spec),
-    ...trainingAssumptionRows(state, spec),
-    ...shardingRows,
-    ...workloadAssumptionRows(state, spec),
-    ...kvAssumptionRows(state, spec),
+  const notes: string[] = [
+    `Runtime / CUDA overhead estimated at a fixed ${spec.runtime.overheadGb.toFixed(1)} GB for this mode and runtime profile.`,
   ];
+  if (hasDecoderKvCache(state)) {
+    notes.push(`KV cache precision: ${state.kvCachePrecision}.`);
+  }
+  notes.push(
+    `${percent(1 - spec.runtime.utilization)} of advertised card VRAM reserved for the driver + CUDA context.`,
+    ...trainingNotes(state),
+  );
+  if (state.memoryShardingEnabled) {
+    notes.push(
+      "Memory sharding assumed across the recommended GPU pool (tensor / model parallelism).",
+    );
+  }
+  // A methodology note, not a warning: MoE routing is a speed assumption.
+  if (state.moeEnabled && hasMoeControl(state.workloadFamily)) {
+    notes.push(
+      "MoE active parameters affect speed, not resident weight memory, unless expert offload or sharding is enabled.",
+    );
+  }
+  if (spec.knownModelFileSizeGb !== null && spec.knownModelFileSizeGb > 0) {
+    notes.push(
+      "Model weight memory taken from the provided known file size, not the parameter estimate.",
+    );
+  }
+  return notes.map((note) => ({ label: note, value: "" }));
 }

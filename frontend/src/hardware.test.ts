@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
 import {
+  GPU_LINKS,
   HARDWARE_TIERS,
   describeOverflow,
   estimateSpeed,
@@ -23,12 +24,30 @@ const tier = (vramGb: number): HardwareTier => {
 describe("canonical hardware table", () => {
   test("exposes one ascending VRAM ladder with H200 and B200 rows", () => {
     expect(HARDWARE_TIERS.map((row) => row.vramGb)).toEqual([
-      8, 12, 16, 24, 48, 80, 141, 160, 180, 320,
+      8, 12, 16, 20, 24, 32, 36, 48, 64, 80, 95, 96, 141, 160, 180, 192, 320,
     ]);
-    expect(tier(141).examples).toEqual([
-      { name: "H200", url: "https://www.nvidia.com/en-us/data-center/h200/" },
+    expect(tier(32).examples).toEqual([
+      { name: "RTX 5090", url: GPU_LINKS.rtx5090 },
+      { name: "Radeon PRO W7800", url: GPU_LINKS.w7800 },
+      { name: "AWS Inferentia2", url: GPU_LINKS.inf2 },
+      { name: "Cloud TPU v6e", url: GPU_LINKS.tpuV6e },
+      { name: "Cloud TPU v4", url: GPU_LINKS.tpuV4 },
     ]);
-    expect(tier(180).examples).toEqual([{ name: "B200" }]);
+    expect(tier(95).examples).toEqual([
+      { name: "Cloud TPU v5p", url: GPU_LINKS.tpuV5p },
+    ]);
+    expect(tier(96).examples).toEqual([
+      { name: "Mac Studio M3 Ultra 96 GB", url: GPU_LINKS.macStudioSpecs },
+      {
+        name: "NVIDIA RTX PRO 6000 Blackwell",
+        url: GPU_LINKS.rtxPro6000Blackwell,
+      },
+    ]);
+    expect(tier(141).examples).toEqual([{ name: "H200", url: GPU_LINKS.h200 }]);
+    expect(tier(180).examples).toEqual([{ name: "B200", url: GPU_LINKS.b200 }]);
+    expect(tier(192).examples).toEqual([
+      { name: "Cloud TPU7x", url: GPU_LINKS.tpu7x },
+    ]);
   });
 
   test("marks example cards linkable only when they have a product page", () => {
@@ -36,24 +55,54 @@ describe("canonical hardware table", () => {
     // the generic "older 8 GB GPUs" descriptor stays name-only for the muted,
     // unlinked render.
     expect(tier(8).examples).toEqual([
-      {
-        name: "RTX 4060",
-        url: "https://www.nvidia.com/en-us/geforce/graphics-cards/40-series/rtx-4060-4060-ti/",
-      },
+      { name: "RTX 4060", url: GPU_LINKS.rtx4060 },
       { name: "older 8 GB GPUs" },
     ]);
-    // Every 48 GB workstation SKU now carries a verified product page, so the
-    // whole trio renders as links.
+    expect(tier(12).examples).toEqual([
+      { name: "RTX 3060", url: GPU_LINKS.rtx3060 },
+      { name: "RTX 4070", url: GPU_LINKS.rtx4070 },
+      { name: "RX 9070 GRE", url: GPU_LINKS.rx9070Gre },
+      { name: "RX 6700 XT", url: GPU_LINKS.rx6700Xt },
+    ]);
+    expect(tier(20).examples).toEqual([
+      { name: "RX 7900 XT", url: GPU_LINKS.rx7900Xt },
+    ]);
+    expect(tier(16).examples).toContainEqual({
+      name: "Mac mini M4 16 GB",
+      url: GPU_LINKS.macMiniSpecs,
+    });
+    expect(tier(16).examples).toContainEqual({
+      name: "Cloud TPU v5e",
+      url: GPU_LINKS.tpuV5e,
+    });
+    expect(tier(24).examples).toEqual([
+      { name: "RTX 4090", url: GPU_LINKS.rtx4090 },
+      { name: "RTX 3090", url: GPU_LINKS.rtx3090 },
+      { name: "L4", url: GPU_LINKS.l4 },
+      { name: "Mac mini M4 24 GB", url: GPU_LINKS.macMiniSpecs },
+      { name: "Mac mini M4 Pro 24 GB", url: GPU_LINKS.macMiniSpecs },
+    ]);
+    // Every 48 GB example now carries a verified product page, so the whole set
+    // renders as links.
     expect(tier(48).examples).toEqual([
+      { name: "RTX A6000", url: GPU_LINKS.rtxA6000 },
+      { name: "RTX 6000 Ada", url: GPU_LINKS.rtx6000Ada },
+      { name: "L40S", url: GPU_LINKS.l40s },
+      { name: "Mac mini M4 Pro 48 GB", url: GPU_LINKS.macMiniM4Pro48 },
+    ]);
+    expect(tier(36).examples).toEqual([
+      { name: "Mac Studio M4 Max 36 GB", url: GPU_LINKS.macStudioSpecs },
+    ]);
+    expect(tier(64).examples).toEqual([
+      { name: "Mac Studio M4 Max 64 GB", url: GPU_LINKS.macStudioSpecs },
+      { name: "AMD Instinct MI210", url: GPU_LINKS.mi210 },
+    ]);
+    expect(tier(96).examples).toEqual([
+      { name: "Mac Studio M3 Ultra 96 GB", url: GPU_LINKS.macStudioSpecs },
       {
-        name: "RTX A6000",
-        url: "https://www.nvidia.com/en-us/design-visualization/rtx-a6000/",
+        name: "NVIDIA RTX PRO 6000 Blackwell",
+        url: GPU_LINKS.rtxPro6000Blackwell,
       },
-      {
-        name: "RTX 6000 Ada",
-        url: "https://www.nvidia.com/en-us/design-visualization/rtx-6000/",
-      },
-      { name: "L40S", url: "https://www.nvidia.com/en-us/data-center/l40s/" },
     ]);
     // Sharded aggregate tiers are several GPUs, not one SKU, so they stay
     // name-only rather than linking a card that does not exist.
@@ -62,12 +111,14 @@ describe("canonical hardware table", () => {
     ]);
   });
 
-  test("keeps data-center SKUs without a canonical single-GPU page name-only", () => {
-    // The B200 and H800 have no NVIDIA page for the standalone GPU (the B200
-    // only appears on multi-GPU system pages; the H800 is a region-specific
-    // variant), so they stay muted rather than link a mismatched page.
-    expect(tier(180).examples).toEqual([{ name: "B200" }]);
-    expect(tier(80).examples).toContainEqual({ name: "H800" });
+  test("links every named data-center SKU to an NVIDIA reference page", () => {
+    // The B200 links to the DGX B200 system page; the H800 is a
+    // region-specific Hopper variant, so it links to the H100 reference page.
+    expect(tier(180).examples).toEqual([{ name: "B200", url: GPU_LINKS.b200 }]);
+    expect(tier(80).examples).toContainEqual({
+      name: "H800",
+      url: GPU_LINKS.h100,
+    });
   });
 
   test("only the 160 and 320 aggregate tiers require sharding", () => {
@@ -76,11 +127,8 @@ describe("canonical hardware table", () => {
         (row) => row.vramGb,
       ),
     ).toEqual([160, 320]);
-    expect(tier(141).kind).toBe("single_gpu");
-    expect(tier(180).kind).toBe("single_gpu");
-    expect(tier(160).kind).toBe("aggregate_sharded");
-    expect(tier(160).gpuCount).toBe(2);
-    expect(tier(320).gpuCount).toBe(4);
+    expect(tier(141).requiresSharding).toBe(false);
+    expect(tier(180).requiresSharding).toBe(false);
   });
 
   test("computes minimum raw VRAM from the usable utilization target", () => {
@@ -92,14 +140,23 @@ describe("canonical hardware table", () => {
 describe("matching required VRAM to a hardware tier", () => {
   test("picks the smallest single-GPU tier when sharding is off", () => {
     expect(hardware(24, { allowSharding: false })).toBe(tier(24));
-    expect(hardware(24.1, { allowSharding: false })).toBe(tier(48));
-    expect(hardware(92.9, { allowSharding: false })).toBe(tier(141));
+    expect(hardware(16.1, { allowSharding: false })).toBe(tier(20));
+    expect(hardware(20.1, { allowSharding: false })).toBe(tier(24));
+    expect(hardware(24.1, { allowSharding: false })).toBe(tier(32));
+    expect(hardware(32.1, { allowSharding: false })).toBe(tier(36));
+    expect(hardware(36.1, { allowSharding: false })).toBe(tier(48));
+    expect(hardware(48.1, { allowSharding: false })).toBe(tier(64));
+    expect(hardware(64.1, { allowSharding: false })).toBe(tier(80));
+    expect(hardware(92.9, { allowSharding: false })).toBe(tier(95));
+    expect(hardware(95.1, { allowSharding: false })).toBe(tier(96));
+    expect(hardware(96.1, { allowSharding: false })).toBe(tier(141));
     // 150 GB raw skips the 160 sharded tier and lands on the 180 B200.
     expect(hardware(150, { allowSharding: false })).toBe(tier(180));
+    expect(hardware(181, { allowSharding: false })).toBe(tier(192));
   });
 
   test("never recommends sharded tiers when sharding is off", () => {
-    // Between 180 and 320 the only fits are sharded, so it overflows.
+    // Between 192 and 320 the only fits are sharded, so it overflows.
     expect(hardware(200, { allowSharding: false })).toBe("overflow");
     expect(hardware(321, { allowSharding: false })).toBe("overflow");
   });
@@ -112,7 +169,7 @@ describe("matching required VRAM to a hardware tier", () => {
 
   test("describes overflow distinctly for sharding-off vs beyond-table", () => {
     expect(describeOverflow(200)).toBe(
-      "No single-GPU fit. Enable memory sharding or use offload.",
+      "No single-accelerator fit. Enable memory sharding to split the model across multiple GPUs, or offload part of it to CPU memory (slower).",
     );
     expect(describeOverflow(321)).toBe(
       "> 320 GB: distributed multi-node, larger GPU pool, or heavy offload",
@@ -121,7 +178,7 @@ describe("matching required VRAM to a hardware tier", () => {
 
   test("names the fitting sharded tier when one is supplied", () => {
     expect(describeOverflow(200, tier(320))).toBe(
-      "No single-GPU fit. Enable memory sharding to fit a 320 GB sharded datacenter class (4x 80 GB GPUs with tensor/model parallelism), or use offload.",
+      "No single-accelerator fit. Enable memory sharding to split the model across a 320 GB sharded datacenter class (4x 80 GB GPUs with tensor/model parallelism), the smallest standard pool that covers this estimate. Slower alternative: offload part of the model to CPU memory.",
     );
     // Beyond the whole table, no sharded tier helps, so the hint is ignored.
     expect(describeOverflow(321, tier(320))).toBe(
@@ -165,31 +222,43 @@ describe("hardwareRecommendation display", () => {
       fitHeadroom: "0.0 GB usable margin",
       minimumRawVram: "24.0 GB",
       recommendedTier:
-        "24 GB high-end consumer class, e.g. RTX 3090 / RTX 4090",
+        "24 GB high-end consumer class, e.g. RTX 4090 / RTX 3090 / L4 / Mac mini M4 24 GB / Mac mini M4 Pro 24 GB",
       exampleCards: [
         {
-          name: "RTX 3090",
-          url: "https://www.nvidia.com/en-us/geforce/graphics-cards/30-series/",
+          name: "RTX 4090",
+          url: GPU_LINKS.rtx4090,
         },
         {
-          name: "RTX 4090",
-          url: "https://www.nvidia.com/en-us/geforce/graphics-cards/40-series/rtx-4090/",
+          name: "RTX 3090",
+          url: GPU_LINKS.rtx3090,
+        },
+        {
+          name: "L4",
+          url: GPU_LINKS.l4,
+        },
+        {
+          name: "Mac mini M4 24 GB",
+          url: GPU_LINKS.macMiniSpecs,
+        },
+        {
+          name: "Mac mini M4 Pro 24 GB",
+          url: GPU_LINKS.macMiniSpecs,
         },
       ],
-      math: "Estimated workload memory is 20.4 GB. With a 85% usable VRAM target, use a GPU with at least 24.0 GB of physical VRAM so the workload does not consume the entire card.",
+      math: "Estimated workload memory is 20.4 GB. With a 85% usable memory target, use hardware with at least 24.0 GB of accelerator memory so the workload does not consume the entire device.",
     });
   });
 
   test("reports usable VRAM and positive fit headroom on the recommended class", () => {
-    // 8B server default: required 21.3, tier 48, usable 48 * 0.85 = 40.8.
+    // 8B server default: required 21.3, tier 32, usable 32 * 0.85 = 27.2.
     const recommendation = hardwareRecommendation(21.3, 0.85, {
       allowSharding: false,
     });
     expect(recommendation.recommendedTier).toContain(
-      "48 GB workstation / pro inference class",
+      "32 GB high-end consumer class",
     );
-    expect(recommendation.usableVramOnClass).toBe("40.8 GB");
-    expect(recommendation.fitHeadroom).toBe("19.5 GB usable margin");
+    expect(recommendation.usableVramOnClass).toBe("27.2 GB");
+    expect(recommendation.fitHeadroom).toBe("5.9 GB usable margin");
   });
 
   test("reports overflow with no usable-class or headroom values", () => {
@@ -211,7 +280,7 @@ describe("hardwareRecommendation display", () => {
     });
     expect(recommendation.minimumRawVram).toBe("250.0 GB");
     expect(recommendation.recommendedTier).toBe(
-      "No single-GPU fit. Enable memory sharding to fit a 320 GB sharded datacenter class (4x 80 GB GPUs with tensor/model parallelism), or use offload.",
+      "No single-accelerator fit. Enable memory sharding to split the model across a 320 GB sharded datacenter class (4x 80 GB GPUs with tensor/model parallelism), the smallest standard pool that covers this estimate. Slower alternative: offload part of the model to CPU memory.",
     );
     expect(recommendation.usableVramOnClass).toBe("n/a");
     expect(recommendation.fitHeadroom).toBe("n/a");
@@ -226,7 +295,7 @@ describe("hardwareRecommendation display", () => {
       minimumRawVram: "0.0 GB",
       recommendedTier: "No model loaded",
       exampleCards: [],
-      math: "Estimated workload memory is 0.0 GB. Enter model and workload inputs above 0 to size GPU VRAM.",
+      math: "Estimated workload memory is 0.0 GB. Enter model and workload inputs above 0 to size accelerator memory.",
     });
   });
 

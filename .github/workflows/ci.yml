@@ -47,7 +47,43 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Install browsers
-        run: pnpm --prefix harness run setup:e2e -- chromium
+        run: pnpm --prefix harness run setup:e2e -- chromium webkit
 
       - name: Run checks
         run: node harness/harness.mjs gate
+
+  # Deploys to Vercel production once the gated checks pass on main.
+  deploy:
+    needs: checks
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.VERCEL_DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+
+      - name: Pull Vercel environment
+        run: npx vercel pull --yes --environment=production --token=$VERCEL_TOKEN
+
+      - name: Build for Vercel
+        run: npx vercel build --prod --token=$VERCEL_TOKEN
+
+      - name: Deploy to Vercel
+        run: npx vercel deploy --prebuilt --prod --token=$VERCEL_TOKEN

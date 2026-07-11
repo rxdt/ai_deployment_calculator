@@ -1,3 +1,4 @@
+import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineConfig, type Plugin } from "vite";
 
@@ -196,4 +197,14 @@ function inlineBuildAssets(): Plugin {
 export default defineConfig({
   root: frontendRoot,
   plugins: [inlineBuildAssets()],
+  build: {
+    rollupOptions: {
+      // 404.html is a build input (not a public/ copy) so Vite resolves its
+      // stylesheet link and the inline plugin ships it styled.
+      input: {
+        index: path.join(frontendRoot, "index.html"),
+        notFound: path.join(frontendRoot, "404.html"),
+      },
+    },
+  },
 });

@@ -1,0 +1,32 @@
+# VRAM Deployment Calculator
+
+> Free static web calculator that estimates GPU VRAM requirements, a
+> recommended hardware memory tier, and rough generation speed for AI model
+> deployments — inference, LoRA / QLoRA fine-tuning, and full training across
+> text-generation, embeddings, encoder-decoder, vision, multimodal,
+> image-diffusion, video, audio, and tabular workloads. All calculations run
+> in the browser; there is no backend and no data leaves the page.
+
+Core equation: Required_GB = (Weights + Working_Memory + Training_State +
+Runtime_Overhead) x Safety_Buffer, measured against a usable-VRAM target
+(advertised capacity minus a driver / CUDA-context reserve).
+
+## Usage
+
+- [Calculator](/): the app itself; every input is mirrored into the URL query
+  string, so results are shareable deep links (e.g.
+  /?total-params=70&precision=16-bit&execution-mode=Inference)
+- One-click presets: Llama 8B, Llama 70B, Mixtral 8x7B, Gemma 2 9B, SDXL
+
+## Documentation
+
+- [Project README](https://github.com/rxdt/ai_deployment_calculator#readme):
+  supported workloads, the calculation model, and local development
+- [Source repository](https://github.com/rxdt/ai_deployment_calculator):
+  TypeScript source for the formulas (calculator-core, workload-memory) and
+  the GPU hardware-tier data
+
+## Notes
+
+- Estimates are planning guidance; validate against the target runtime before
+  buying hardware.

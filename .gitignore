@@ -10,12 +10,11 @@ dist/
 **test-results/
 **/.lighthouseci/
 **/.playwright-*
-specs/fp_*
 scratchpad/
-*pnpm-debug.log
 .npmrc
 .pnpm-store/
 *.png
-*.png
-
-specs/professional-calculator-redesign/
+!docs/readme-screenshot.png
+!frontend/public/og-image.png
+.vercel
+.env*

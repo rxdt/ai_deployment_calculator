@@ -1,16 +1,17 @@
-import type { HardwareRecommendation, ReportPayload } from "./types";
+import type { FormState, HardwareRecommendation, ReportPayload } from "./types";
 
 export interface FitMeter {
+  readonly capacity: string;
   readonly fillPercent: number;
+  readonly isOverflow: boolean;
   readonly isTight: boolean;
   readonly summary: string;
 }
 
-// The recommended class is the tightest standard tier that fits, so healthy fits
-// already sit high on the meter. Reserve the tight signal for a fit consuming at
-// least 95% of usable VRAM (<=5% spare after the usable-VRAM reserve), where
-// real-world fragmentation could push it over. The default 7B/24 GB example sits
-// at 93% and stays healthy.
+// A fit consuming 95% or more of the class's usable VRAM shows the dim amber
+// tight signal. The estimate already carries the runtime safety buffer and the
+// usable-VRAM derate, so only a near-exhausted budget warrants a warning; the
+// default 7B/24 GB example at 93% deliberately reads as a comfortable fit.
 const TIGHT_FILL_PERCENT = 95;
 
 /**
@@ -36,9 +37,9 @@ function leadingCapacity(value: string): string {
 }
 
 /**
-Format the recommended GPU class for the hero card.
+Format the recommended hardware class for the hero card.
 @param tier - recommended tier string
-@returns a compact "N GB GPU hardware tier" label, or the raw tier text
+@returns a compact "N GB hardware tier" label, or the raw tier text
 */
 export function recommendedGpuClass(tier: string): string {
   const short = shortHardwareClass(tier);
@@ -46,31 +47,38 @@ export function recommendedGpuClass(tier: string): string {
   if (capacity === "") {
     return short;
   }
-  // Aggregate sharded tiers are several GPUs, not one card of this capacity.
-  // Collapsing them to "N GB GPU hardware tier" would imply a single GPU that
-  // does not exist, so keep the descriptive "sharded" label instead.
   if (short.includes("sharded")) {
     return short;
   }
-  return `${capacity} GPU hardware tier`;
+  return `${capacity} hardware tier`;
 }
 
 /**
 Explain the recommendation for the "Why this recommendation" panel.
 @param report - the computed report payload
+@param runtimeProfile - the selected runtime profile, when known
 @returns the explanatory sentence for the recommended tier
 */
-export function whyText(report: Readonly<ReportPayload>): string {
+export function whyText(
+  report: Readonly<ReportPayload>,
+  runtimeProfile?: FormState["runtimeProfile"],
+): string {
   const fit = report.recommendedHardware;
   const hardwareClass = shortHardwareClass(fit.recommendedTier);
   const capacity = leadingCapacity(hardwareClass);
+  // Local / Edge reserves a larger slice of the card for the OS and display,
+  // so the advertised-VRAM requirement sits further above the computed total.
+  const localNote =
+    runtimeProfile === "Local / Edge"
+      ? " On Local / Edge, part of local GPU memory stays reserved for the OS and display, so the advertised requirement is higher than the calculated total."
+      : "";
   if (capacity === "") {
-    return fit.math;
+    return fit.math + localNote;
   }
   if (hardwareClass.includes("sharded")) {
-    return `At an ${fit.usableVramTarget} usable VRAM target, ${report.totalRequiredMemory} requires a sharded GPU pool with at least ${report.minimumRawVramNeeded} aggregate advertised VRAM. The next common sharded class is ${capacity}.`;
+    return `At an ${fit.usableVramTarget} usable VRAM target, ${report.totalRequiredMemory} requires a sharded GPU pool with at least ${report.minimumRawVramNeeded} aggregate advertised VRAM. The next common sharded class is ${capacity}.${localNote}`;
   }
-  return `At an ${fit.usableVramTarget} usable VRAM target, ${report.totalRequiredMemory} requires a GPU with at least ${report.minimumRawVramNeeded} advertised VRAM. The next common class is ${capacity}.`;
+  return `At an ${fit.usableVramTarget} usable memory target, ${report.totalRequiredMemory} requires hardware with at least ${report.minimumRawVramNeeded} accelerator memory. The hardware tier has capacity ${capacity}.${localNote}`;
 }
 
 /**
@@ -81,6 +89,34 @@ Parse a leading "N.N GB" measurement from a formatted value.
 function leadingGb(value: string): number | null {
   const match = /^(\d+\.\d+) GB/u.exec(value);
   return match === null ? null : Number(match[1]);
+}
+
+/**
+Name the physical surface behind a fit summary.
+@param fit - the hardware recommendation being summarized
+@param capacity - the leading capacity label
+@returns a human noun phrase such as "24 GB card" or "36 GB system"
+*/
+function fitSurface(
+  fit: Readonly<HardwareRecommendation>,
+  capacity: string,
+): string {
+  if (fit.recommendedTier.includes("sharded")) {
+    return `${capacity} sharded pool`;
+  }
+  if (
+    fit.exampleCards.length > 0 &&
+    fit.exampleCards.every((card) => card.name.includes("TPU"))
+  ) {
+    return `${capacity} accelerator`;
+  }
+  if (
+    fit.exampleCards.length > 0 &&
+    fit.exampleCards.every((card) => card.name.startsWith("Mac "))
+  ) {
+    return `${capacity} system`;
+  }
+  return `${capacity} card`;
 }
 
 /**
@@ -98,24 +134,42 @@ export function fitMeter(
   const required = leadingGb(fit.requiredMemory);
   const capacity = leadingCapacity(shortHardwareClass(fit.recommendedTier));
   if (usable === null || usable <= 0 || required === null || capacity === "") {
+    // A real estimate with no single-class fit still renders as a meter:
+    // pegged full and red. Only a missing estimate hides the bar entirely.
+    // (required is parsed from the always-formatted requiredMemory string, so
+    // Number(null) never actually occurs; it just avoids a dead null branch.)
+    if (Number(required) > 0) {
+      return {
+        capacity: "",
+        fillPercent: 100,
+        isOverflow: true,
+        isTight: false,
+        summary: `+100% usage. The workload needs ${fit.requiredMemory} usable VRAM.`,
+      };
+    }
     return null;
   }
   const fillPercent = Math.min(
     100,
     Math.max(0, Math.round((required / usable) * 100)),
   );
-  const sparePercent = 100 - fillPercent;
-  const headroom = fit.fitHeadroom.replace(" usable margin", "");
-  const surface = fit.recommendedTier.includes("sharded")
-    ? `${capacity} sharded pool`
-    : `${capacity} card`;
+  const surface = fitSurface(fit, capacity);
   const isTight = fillPercent >= TIGHT_FILL_PERCENT;
-  // A tight fit leads with a plain-language cue so the amber bar never carries
-  // the warning by color alone.
+  // The percent is measured against the class's usable VRAM, not its sticker
+  // capacity, so both the sentence and the scale row name that budget to keep
+  // the math traceable from the hero number. A tight fit leads with a
+  // plain-language cue so the amber bar never carries the warning by color.
+  const usage = `${fit.requiredMemory} uses ${fillPercent.toString()}% of its ${fit.usableVramOnClass} usable VRAM`;
   const summary = isTight
-    ? `Tight fit: ${headroom} usable headroom on a ${surface} (${sparePercent.toString()}% spare).`
-    : `Fits a ${surface} with ${headroom} usable headroom (${sparePercent.toString()}% spare).`;
-  return { fillPercent, isTight, summary };
+    ? `Tight fit on one ${surface}: ${usage}.`
+    : `Fits on one ${surface}: ${usage}.`;
+  return {
+    capacity: `${fit.usableVramOnClass} usable of ${capacity}`,
+    fillPercent,
+    isOverflow: false,
+    isTight,
+    summary,
+  };
 }
 
 /**

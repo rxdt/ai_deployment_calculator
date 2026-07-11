@@ -272,8 +272,15 @@ export function runtimeAssumptions(
 @param name
 */
 function optimizerBytes(name: FormState["optimizer"]): number {
-  if (name === "8-bit Adam") {
+  // Quantized 8-bit optimizer state (bitsandbytes) is ~25% of AdamW's 8 bytes;
+  // paging only moves that state dynamically, so it sizes the same 2 bytes.
+  if (name === "8-bit Adam" || name === "Paged 8-bit AdamW") {
     return 2;
+  }
+  // Adafactor's factored second moment is sublinear in parameters; 1 byte per
+  // parameter is the conservative scalar stand-in for this bytes/param model.
+  if (name === "Adafactor") {
+    return 1;
   }
   if (name === "SGD-like") {
     return 4;

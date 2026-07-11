@@ -2,7 +2,7 @@ import { describe, expect, test } from "vitest";
 import { buildReport } from "./report";
 import { defaultState } from "./state";
 import { fitMeter, whyText } from "./result-format";
-import type { FormState } from "./types";
+import type { FormState, HardwareRecommendation } from "./types";
 
 /**
 Build a form state that preserves production defaults while narrowing each test
@@ -33,27 +33,41 @@ describe("whyText", () => {
     expect(why).not.toContain("requires a GPU with");
   });
 
-  test("keeps single-GPU recommendations worded as one advertised card", () => {
+  test("keeps single-accelerator recommendations hardware-neutral", () => {
     const report = buildReport(state({ totalParams: "8" }));
 
     expect(whyText(report)).toBe(
-      "At an 85% usable VRAM target, 21.3 GB requires a GPU with at least 25.1 GB advertised VRAM. The next common class is 48 GB.",
+      "At an 85% usable memory target, 21.3 GB requires hardware with at least 25.1 GB accelerator memory. The hardware tier has capacity 32 GB.",
+    );
+  });
+
+  test("notes the Local / Edge OS reserve so the higher advertised need reads", () => {
+    const report = buildReport(state({ runtimeProfile: "Local / Edge" }));
+
+    expect(whyText(report, "Local / Edge")).toContain(
+      "local GPU memory stays reserved",
+    );
+    expect(whyText(report, "Server / Cloud")).not.toContain(
+      "local GPU memory stays reserved",
     );
   });
 });
 
 describe("fitMeter", () => {
-  test("measures single-card usage and summarizes usable headroom", () => {
+  test("measures usage against the class's usable VRAM and names that budget", () => {
     const report = buildReport(state());
     const meter = fitMeter(report.recommendedHardware);
 
     if (meter === null) {
       throw new Error("Expected a fit meter for the default workload");
     }
+    expect(meter.capacity).toBe("20.4 GB usable of 24 GB");
     expect(meter.fillPercent).toBe(93);
+    // 93% is under the 95% tight threshold: the padded estimate fitting its
+    // usable budget reads as a comfortable fit, not a warning.
     expect(meter.isTight).toBe(false);
     expect(meter.summary).toBe(
-      "Fits a 24 GB card with 1.4 GB usable headroom (7% spare).",
+      "Fits on one 24 GB card: 19.0 GB uses 93% of its 20.4 GB usable VRAM.",
     );
   });
 
@@ -69,7 +83,7 @@ describe("fitMeter", () => {
     expect(meter.fillPercent).toBe(98);
     expect(meter.isTight).toBe(true);
     expect(meter.summary).toBe(
-      "Tight fit: 0.7 GB usable headroom on a 48 GB card (2% spare).",
+      "Tight fit on one 48 GB card: 40.1 GB uses 98% of its 40.8 GB usable VRAM.",
     );
   });
 
@@ -84,8 +98,8 @@ describe("fitMeter", () => {
     // never overflows and its spare complement stays non-negative.
     expect(meter.fillPercent).toBeGreaterThan(0);
     expect(meter.fillPercent).toBeLessThanOrEqual(100);
-    expect(meter.summary).toContain("48 GB card");
-    expect(meter.summary).toContain("spare)");
+    expect(meter.summary).toContain("32 GB card");
+    expect(meter.summary).toContain("usable VRAM.");
   });
 
   test("names a sharded pool instead of a single card when sharding fits", () => {
@@ -103,15 +117,53 @@ describe("fitMeter", () => {
       throw new Error("Expected a fit meter for a sharded recommendation");
     }
     expect(meter.summary).toContain("sharded pool");
-    expect(meter.summary).not.toContain("card with");
+    expect(meter.summary).not.toContain(" card");
+    // The scale row still frames the pool's usable share of its aggregate.
+    expect(meter.capacity).toMatch(/^\d+(?:\.\d)? GB usable of \d+ GB$/u);
   });
 
-  test("has no meter to show without a concrete single-class fit", () => {
+  test("names an Apple-only tier as a system, not a card", () => {
+    const meter = fitMeter({
+      requiredMemory: "30.0 GB",
+      usableVramTarget: "85%",
+      usableVramOnClass: "30.6 GB",
+      fitHeadroom: "0.6 GB usable margin",
+      minimumRawVram: "35.3 GB",
+      recommendedTier:
+        "36 GB Apple Silicon class, e.g. Mac Studio M4 Max 36 GB",
+      exampleCards: [{ name: "Mac Studio M4 Max 36 GB" }],
+      math: "",
+    } satisfies HardwareRecommendation);
+
+    if (meter === null) {
+      throw new Error("Expected a fit meter for an Apple Silicon tier");
+    }
+    expect(meter.summary).toBe(
+      "Tight fit on one 36 GB system: 30.0 GB uses 98% of its 30.6 GB usable VRAM.",
+    );
+  });
+
+  test("has no meter to show without an estimate at all", () => {
     expect(
       fitMeter(buildReport(state({ totalParams: "0" })).recommendedHardware),
     ).toBeNull();
-    expect(
-      fitMeter(buildReport(state({ totalParams: "400" })).recommendedHardware),
-    ).toBeNull();
+  });
+
+  test("pegs the meter full and red when no single class fits", () => {
+    const meter = fitMeter(
+      buildReport(state({ totalParams: "400" })).recommendedHardware,
+    );
+
+    if (meter === null) {
+      throw new Error("Expected an overflow meter for a 400B workload");
+    }
+    expect(meter.isOverflow).toBe(true);
+    expect(meter.fillPercent).toBe(100);
+    expect(meter.isTight).toBe(false);
+    // No single-class capacity exists to label the scale row with.
+    expect(meter.capacity).toBe("");
+    expect(meter.summary).toMatch(
+      /^\+100% usage\. The workload needs .* usable VRAM\.$/u,
+    );
   });
 });

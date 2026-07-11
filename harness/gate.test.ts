@@ -2076,10 +2076,13 @@ describe("frontend gate shape", () => {
   });
 
   test("file inputs referenced by full checks exist", () => {
+    // The workspace has exactly one lockfile (the root pnpm-lock.yaml);
+    // nested member lockfiles were removed and stay on the forbidden list so
+    // they cannot come back.
     for (const target of [
       ".github/workflows/ci.yml",
       "frontend/index.html",
-      "frontend/pnpm-lock.yaml",
+      "pnpm-lock.yaml",
       "frontend/package.json",
       "harness/tsconfig.app.json",
       "tsconfig.cruise.json",

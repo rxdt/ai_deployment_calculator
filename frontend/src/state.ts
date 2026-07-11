@@ -31,7 +31,13 @@ const executionSchema = z.enum([
 ]);
 const runtimeSchema = z.enum(["Local / Edge", "Server / Cloud"]);
 const unitSchema = z.enum(["B", "M"]);
-const optimizerSchema = z.enum(["AdamW", "8-bit Adam", "SGD-like"]);
+const optimizerSchema = z.enum([
+  "AdamW",
+  "8-bit Adam",
+  "Paged 8-bit AdamW",
+  "Adafactor",
+  "SGD-like",
+]);
 const resolutionSchema = z.enum(["720p", "1080p"]);
 
 const DEFAULT_STATE: FormState = {
@@ -235,18 +241,29 @@ function normalizedAdvancedState(
 }
 
 /**
- 
-@param state
+Apply the execution mode's hard constraints (QLoRA pins 4-bit + Local/Edge).
+@param state - normalized form state
+@returns the state with mode constraints enforced
 */
 function withModeConstraints(state: FormState): FormState {
-  if (state.executionMode !== "QLoRA fine-tuning") {
-    return state;
+  if (state.executionMode === "QLoRA fine-tuning") {
+    return {
+      ...state,
+      precision: "4-bit",
+      runtimeProfile: "Local / Edge",
+    };
   }
-  return {
-    ...state,
-    precision: "4-bit",
-    runtimeProfile: "Local / Edge",
-  };
+  // 4-bit is QLoRA's NF4 base and cannot be trained directly, so Full training
+  // and LoRA on 4-bit weights are physically impossible. If the 4-bit pin leaks
+  // out of QLoRA into a training mode, restore a real training precision so the
+  // estimate is not computed on an invalid quantization.
+  const isTrainingMode =
+    state.executionMode === "Full training" ||
+    state.executionMode === "LoRA fine-tuning";
+  if (isTrainingMode && state.precision === "4-bit") {
+    return { ...state, precision: "16-bit" };
+  }
+  return state;
 }
 
 /**
@@ -271,11 +288,19 @@ export function normalizedState(search: URLSearchParams): FormState {
 */
 export function searchFromState(state: FormState): URLSearchParams {
   const search = new URLSearchParams();
+  const defaultValues = new Map<string, string | boolean>(
+    Object.entries(defaultState()),
+  );
   for (const [name, value] of Object.entries(state)) {
     const wireName = toWireKey(name);
     if (typeof value === "boolean") {
+      // A checkbox value only carries signal when it differs from the seed:
+      // "on" for checked, and an explicit "off" only where the default is
+      // true (gradient checkpointing) so absence keeps meaning "default".
       if (value) {
         search.set(wireName, "on");
+      } else if (defaultValues.get(name) === true) {
+        search.set(wireName, "off");
       }
     } else if (typeof value === "string" && value !== "") {
       search.set(wireName, value);

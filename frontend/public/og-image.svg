@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
+  <title id="title">VRAM Deployment Calculator social preview</title>
+  <desc id="desc">Dark calculator preview showing a 19.0 GB VRAM estimate and a 24 GB hardware tier.</desc>
+  <defs>
+    <radialGradient id="green-glow" cx="20%" cy="10%" r="75%">
+      <stop offset="0" stop-color="#21d663" stop-opacity=".35" />
+      <stop offset=".58" stop-color="#21d663" stop-opacity="0" />
+    </radialGradient>
+    <radialGradient id="violet-glow" cx="92%" cy="0" r="72%">
+      <stop offset="0" stop-color="#8b5cf6" stop-opacity=".38" />
+      <stop offset=".62" stop-color="#8b5cf6" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="panel" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#121218" />
+      <stop offset="1" stop-color="#1f1f29" />
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="#1f1f29" />
+  <rect width="1200" height="630" fill="url(#green-glow)" />
+  <rect width="1200" height="630" fill="url(#violet-glow)" />
+  <path d="M0 0H1200V630H0Z" fill="none" stroke="#ffffff14" stroke-width="2" />
+  <g opacity=".32" stroke="#ffffff14" stroke-width="1">
+    <path d="M0 90H1200M0 180H1200M0 270H1200M0 360H1200M0 450H1200M0 540H1200" />
+    <path d="M100 0V630M200 0V630M300 0V630M400 0V630M500 0V630M600 0V630M700 0V630M800 0V630M900 0V630M1000 0V630M1100 0V630" />
+  </g>
+  <g transform="translate(92 72)">
+    <text x="0" y="0" dominant-baseline="hanging" fill="#22c55e" font-family="JetBrains Mono, ui-monospace, monospace" font-size="28" font-weight="700">~VRAM-calculator</text>
+    <text x="0" y="78" fill="#f8fafc" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="58" font-weight="700">VRAM Deployment Calculator</text>
+    <text x="0" y="132" fill="#c7c7cf" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="30">Estimate AI workload memory and hardware fit.</text>
+  </g>
+  <g transform="translate(92 260)">
+    <rect width="1016" height="246" rx="18" fill="url(#panel)" stroke="#26262c" stroke-width="2" />
+    <g transform="translate(54 54)">
+      <text x="0" y="0" fill="#f8fafc" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="28" font-weight="700">Estimated VRAM Required</text>
+      <text x="0" y="86" fill="#22c55e" font-family="JetBrains Mono, ui-monospace, monospace" font-size="76" font-weight="800">19.0 GB</text>
+    </g>
+    <g transform="translate(594 54)">
+      <text x="0" y="0" fill="#8b8b93" font-family="JetBrains Mono, ui-monospace, monospace" font-size="18" font-weight="700" letter-spacing="2">RECOMMENDED EXAMPLE</text>
+      <text x="0" y="58" fill="#f8fafc" font-family="JetBrains Mono, ui-monospace, monospace" font-size="32" font-weight="800">24 GB hardware tier</text>
+      <text x="0" y="108" fill="#16a34a" font-family="JetBrains Mono, ui-monospace, monospace" font-size="22">e.g. RTX 4090</text>
+    </g>
+    <rect x="54" y="202" width="908" height="12" rx="6" fill="#1e1e26" />
+    <rect x="54" y="202" width="844" height="12" rx="6" fill="#22c55e" />
+  </g>
+  <text x="92" y="568" fill="#8b8b93" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="22">Planning guidance for inference, LoRA, QLoRA, full training, multimodal, diffusion, video, audio, and tabular workloads.</text>
+</svg>

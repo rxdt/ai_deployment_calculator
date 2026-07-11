@@ -279,7 +279,7 @@ describe("calculator properties", () => {
 
   test("QLoRA weight memory is the frozen 4-bit base regardless of the precision control", () => {
     // Non-negotiable Research Correction: QLoRA freezes a 4-bit base plus adapters. Weight
-    // memory must track the 4-bit base scaled by parameter count — never a flat 4 GB overhead
+    // memory must track the 4-bit base scaled by parameter count, never a flat 4 GB overhead
     // and never the selected inference precision.
     fc.assert(
       fc.property(
@@ -343,7 +343,7 @@ describe("calculator properties", () => {
     // canonical case pins a single 7B/16-bit point). Pin across every precision that full
     // training (a) carries each omitted term as a strictly positive component, (b) reports the
     // buffered sum of exactly those components, and therefore (c) strictly exceeds the shortcut.
-    // Optimizer is pinned to AdamW (8 optimizer bytes) so the strict inequality holds even for
+    // The optimizer is pinned to AdamW (8 optimizer bytes) so the strict inequality holds even for
     // the thinnest 4-bit weights.
     fc.assert(
       fc.property(

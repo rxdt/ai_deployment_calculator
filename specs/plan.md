@@ -63,7 +63,7 @@ These are non-negotiable:
 Done means:
 
 1. The calculator supports non-LLM workload families.
-2. Model Family is the first/main selector.
+2. Model Task Family is the first/main selector.
 3. Context Window is not shown for all workloads.
 4. KV cache is not visible globally.
 5. KV cache is used only for generative transformer-style families.

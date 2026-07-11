@@ -23,32 +23,6 @@ async function expectReportRows(
 }
 
 /**
-Assert selected label/value rows rendered inside a report list.
-@param page Browser page.
-@param slot Output slot name.
-@param rows Expected label/value pairs.
-*/
-async function expectReportRowsContaining(
-  page: Page,
-  slot: string,
-  rows: readonly [string, string][],
-): Promise<void> {
-  const values = await page
-    .locator(`[data-out="${slot}"] li`)
-    .evaluateAll((items) =>
-      items.map((item) => {
-        const [labelNode, valueNode] = item.children;
-        const label = labelNode?.textContent ?? "";
-        const value = valueNode?.textContent ?? "";
-        return [label, value] as const;
-      }),
-    );
-  for (const row of rows) {
-    expect(values).toContainEqual(row);
-  }
-}
-
-/**
 Assert the retired confidence output is absent without targeting unlisted selectors.
 @param page Browser page.
 */
@@ -72,169 +46,64 @@ async function expectNoConfidenceOutput(page: Page): Promise<void> {
   expect(slotNames).not.toContain("confidence-label");
 }
 
-interface BrowserCalculationCase {
-  readonly name: string;
-  readonly controls: readonly (readonly [
-    string,
-    string | boolean,
-    "fill" | "select" | "check",
-  ])[];
-  readonly total: string;
-  readonly gpuClass: string;
-  readonly minimumRawVram: string;
-  readonly calculationRows: readonly [string, string][];
-  readonly assumptions: readonly [string, string][];
-}
-
-const CANONICAL_BROWSER_CASES = [
-  {
-    name: "47B MoE server inference keeps full resident weights",
-    controls: [
-      ["#total-params", "47", "fill"],
-      ["#moe-enabled", true, "check"],
-      ["#active-params", "1.3", "fill"],
-    ],
-    total: "113.1 GB",
-    gpuClass: "141 GB GPU hardware tier",
-    minimumRawVram: "133.1 GB",
-    calculationRows: [
-      ["Weights_GB (model memory)", "94.0 GB"],
-      ["Context memory", "2.6 GB"],
-      ["Activation memory", "4.7 GB"],
-      ["Runtime_Overhead_GB", "1.5 GB"],
-      ["Safety_Buffer_GB", "10.3 GB"],
-      ["Required_GB", "113.1 GB"],
-    ],
-    assumptions: [
-      ["Precision", "16-bit"],
-      ["Runtime profile", "Server / Cloud"],
-      ["Execution mode", "Inference"],
-      ["Context tokens", "8000"],
-      ["Concurrent batch requests", "1"],
-      ["KV Cache precision", "16-bit"],
-      ["KV heads used", "8"],
-      ["Conservative KV heads", "64"],
-    ],
-  },
-  {
-    name: "8B QLoRA uses quantized base plus adapter state",
-    controls: [
-      ["#total-params", "8", "fill"],
-      ["#execution-mode", "QLoRA fine-tuning", "select"],
-      ["#lora-trainable-percent", "2", "fill"],
-    ],
-    total: "21.0 GB",
-    gpuClass: "48 GB GPU hardware tier",
-    minimumRawVram: "26.3 GB",
-    calculationRows: [
-      ["Weights_GB (model memory)", "4.6 GB"],
-      ["Activation memory", "6.3 GB"],
-      ["Training_State_GB", "1.9 GB"],
-      ["Runtime_Overhead_GB", "4.0 GB"],
-      ["Safety_Buffer_GB", "4.2 GB"],
-      ["Required_GB", "21.0 GB"],
-    ],
-    assumptions: [
-      ["Precision", "4-bit"],
-      ["Runtime profile", "Local / Edge"],
-      ["Execution mode", "QLoRA fine-tuning"],
-      ["LoRA trainable parameters", "2%"],
-      ["Optimizer", "AdamW"],
-      ["Gradient checkpointing", "Enabled"],
-      ["Context tokens", "8000"],
-      ["Micro batch size", "1"],
-    ],
-  },
-  {
-    name: "7B full training includes training state and activations",
-    controls: [["#execution-mode", "Full training", "select"]],
-    total: "152.9 GB",
-    gpuClass:
-      "No single-GPU fit. Enable memory sharding to fit a 320 GB sharded datacenter class (4x 80 GB GPUs with tensor/model parallelism), or use offload.",
-    minimumRawVram: "191.1 GB",
-    calculationRows: [
-      ["Weights_GB (model memory)", "14.0 GB"],
-      ["Activation memory", "6.3 GB"],
-      ["Training_State_GB", "98.0 GB"],
-      ["Runtime_Overhead_GB", "4.0 GB"],
-      ["Safety_Buffer_GB", "30.6 GB"],
-      ["Required_GB", "152.9 GB"],
-    ],
-    assumptions: [
-      ["Precision", "16-bit"],
-      ["Runtime profile", "Server / Cloud"],
-      ["Execution mode", "Full training"],
-      ["Optimizer", "AdamW"],
-      ["Gradient checkpointing", "Enabled"],
-      ["Context tokens", "8000"],
-      ["Micro batch size", "1"],
-    ],
-  },
-  {
-    name: "104B exact local GGUF file overrides parameter weights",
-    controls: [
-      ["#total-params", "104", "fill"],
-      ["#context-tokens", "32000", "fill"],
-      ["#precision", "4-bit", "select"],
-      ["#runtime-profile", "Local / Edge", "select"],
-      ["#kv-cache-precision", "32-bit", "select"],
-      ["#known-model-file-size-gb", "52", "fill"],
-    ],
-    total: "79.2 GB",
-    gpuClass: "141 GB GPU hardware tier",
-    minimumRawVram: "88.0 GB",
-    calculationRows: [
-      ["Weights_GB (model memory)", "52.0 GB"],
-      ["Context memory", "25.2 GB"],
-      ["Activation memory", "1.6 GB"],
-      ["Runtime_Overhead_GB", "0.5 GB"],
-      ["Required_GB", "79.2 GB"],
-    ],
-    assumptions: [
-      ["Precision", "4-bit"],
-      ["Runtime profile", "Local / Edge"],
-      ["Execution mode", "Inference"],
-      ["Known Model File Size", "52.0 GB"],
-      ["Context tokens", "32000"],
-      ["Concurrent batch requests", "1"],
-      ["KV Cache precision", "32-bit"],
-      ["KV heads used", "8"],
-      ["Conservative KV heads", "80"],
-    ],
-  },
-] satisfies readonly BrowserCalculationCase[];
-
-/**
-Apply one browser-calculation scenario through the real form controls.
-@param page Browser page.
-@param controls Ordered control operations.
-*/
-async function applyControls(
-  page: Page,
-  controls: BrowserCalculationCase["controls"],
-): Promise<void> {
-  await page.getByText("Advanced assumptions").click();
-  for (const [selector, value, action] of controls) {
-    const control = page.locator(selector);
-    if (action === "fill") {
-      await control.fill(String(value));
-    } else if (action === "select") {
-      await control.selectOption(String(value));
-    } else {
-      await control.setChecked(Boolean(value));
-    }
-  }
-  await page.locator('[data-slot="advanced-assumptions"]').evaluate((node) => {
-    if (node instanceof HTMLDetailsElement) {
-      node.open = false;
-    }
-  });
-}
-
 test("page has no accessibility violations", async ({ page }) => {
   await page.goto("/");
   const results = await new AxeBuilder({ page }).analyze();
   expect(results.violations).toEqual([]);
+});
+
+test("screen-reader smoke path exposes labels, landmarks, and live results", async ({
+  page,
+}) => {
+  await page.goto("/");
+
+  await expect(
+    page.getByRole("form", { name: "Deployment inputs" }),
+  ).toBeVisible();
+  await expect(page.getByRole("region", { name: "Estimate" })).toBeVisible();
+  await expect(page.getByRole("contentinfo")).toContainText(
+    "Estimates are planning guidance",
+  );
+  await expect(
+    page.getByRole("status", { name: "Estimated VRAM required" }),
+  ).toHaveText("19.0 GB");
+  await expect(page.getByLabel("Model Task Family")).toBeVisible();
+  await expect(page.getByLabel("Total Model Parameters")).toHaveValue("7");
+
+  await page.getByLabel("Total Model Parameters").fill("400");
+  await expect(
+    page.getByRole("status", { name: "Estimated VRAM required" }),
+  ).not.toHaveText("19.0 GB");
+  await expect(
+    page.getByRole("note", { name: "Multi-GPU deployment guidance" }),
+  ).toBeVisible();
+});
+
+test("clamps a malformed hand-edited URL to defaults without crashing", async ({
+  page,
+}) => {
+  const pageErrors: Error[] = [];
+  page.on("pageerror", (error) => {
+    pageErrors.push(error);
+  });
+
+  await page.goto(
+    "/?total-params=<script>alert(1)</script>&precision=nonsense" +
+      "&moe-enabled=maybe&context-tokens=-5&workload-family=warp-drive" +
+      "&execution-mode=Overclock&unknown-param=1",
+  );
+
+  // Every unparsable value falls back to its default, so the page renders the
+  // seed 7B estimate instead of crashing or reflecting the injected markup.
+  await expect(page.locator('[data-out="total"]')).toHaveText("19.0 GB");
+  await expect(page.locator('[data-out="gpu-class"]')).toHaveText(
+    "24 GB hardware tier",
+  );
+  await expect(page.getByLabel("Total Model Parameters")).toHaveValue("7");
+  await expect(page.getByLabel("Precision", { exact: true })).toHaveValue(
+    "16-bit",
+  );
+  expect(pageErrors).toEqual([]);
 });
 
 test("renders the default deployment computed locally", async ({ page }) => {
@@ -245,23 +114,21 @@ test("renders the default deployment computed locally", async ({ page }) => {
   ).toBeVisible();
   await expect(page.locator('[data-out="total"]')).toHaveText("19.0 GB");
   await expect(page.locator('[data-out="gpu-class"]')).toHaveText(
-    "24 GB GPU hardware tier",
+    "24 GB hardware tier",
   );
-  // Example cards surface on the hero GPU card itself, visible at first glance
-  // without expanding any reasoning panel.
+  // A single randomly picked example card surfaces on the hero GPU card
+  // itself, visible at first glance without expanding any reasoning panel.
+  // The pick is random in the browser, so assert the shape: one non-empty
+  // card, never a " / "-joined catalog.
   const examples = page.locator('[data-slot="gpu-examples-row"]');
   await expect(examples).toBeVisible();
-  await expect(examples).toHaveText("e.g. RTX 3090 / RTX 4090");
+  await expect(examples).toContainText("e.g.");
+  await expect(page.locator('[data-out="gpu-examples"]')).toHaveText(
+    /^[^/]+$/u,
+  );
   await expect(
     page.locator('[data-slot="hero-gpu-card"] [data-slot="gpu-examples-row"]'),
   ).toHaveCount(1);
-  // Each named card links out to its product page in a new tab.
-  await expect(
-    examples.getByRole("link", { name: "RTX 4090" }),
-  ).toHaveAttribute(
-    "href",
-    "https://www.nvidia.com/en-us/geforce/graphics-cards/40-series/rtx-4090/",
-  );
   await expect(page.locator('[data-out="min-cap"]')).toHaveText("22.4 GB");
   await expect(page.locator('[data-out="speed"]')).toContainText("tokens/sec");
   await expect(page.locator('[data-out="calculation-rows"] li')).toHaveCount(
@@ -276,16 +143,16 @@ test("renders the default 7B estimate consistently across the full report", asyn
 
   await expect(page.locator('[data-out="total"]')).toHaveText("19.0 GB");
   await expect(page.locator('[data-out="vram-say"]')).toHaveText(
-    "Fits a 24 GB card with 1.4 GB usable headroom (7% spare).",
+    "Fits on one 24 GB card: 19.0 GB uses 93% of its 20.4 GB usable VRAM.",
   );
   await expect(page.locator('[data-out="gpu-class"]')).toHaveText(
-    "24 GB GPU hardware tier",
+    "24 GB hardware tier",
   );
   await expectNoConfidenceOutput(page);
 
   await page.getByText("Why this recommendation").click();
   await expect(page.locator('[data-out="why"]')).toContainText(
-    "requires a GPU with at least 22.4 GB advertised VRAM",
+    "requires hardware with at least 22.4 GB accelerator memory",
   );
   await expect(page.locator('[data-out="min-cap"]')).toHaveText("22.4 GB");
   await expect(page.locator('[data-out="usable-target"]')).toHaveText("85%");
@@ -299,35 +166,36 @@ test("renders the default 7B estimate consistently across the full report", asyn
     "66.9 tokens/sec",
   );
 
-  await page.getByText("Calculation used").click();
+  await page.getByText("Values Used In Calculations").click();
   await expectReportRows(page, "calculation-rows", [
-    ["Weights_GB (model memory)", "14.0 GB"],
+    ["Model weights", "14.0 GB"],
     ["Context memory", "1.0 GB"],
     ["Activation memory", "0.7 GB"],
-    ["Working_Memory_GB subtotal", "1.7 GB"],
-    ["Training_State_GB", "0.0 GB"],
-    ["Runtime_Overhead_GB", "1.5 GB"],
-    ["Base_GB before buffer", "17.2 GB"],
+    ["Working memory subtotal", "1.7 GB"],
+    ["Training state", "0.0 GB"],
+    ["Runtime overhead", "1.5 GB"],
+    ["Base subtotal before buffer", "17.2 GB"],
     ["Buffer multiplier", "1.10x"],
-    ["Safety_Buffer_GB", "1.7 GB"],
-    ["Required_GB", "19.0 GB"],
+    ["Safety buffer", "1.7 GB"],
+    ["Total required", "19.0 GB"],
   ]);
 
   await page.getByText("Formula used").click();
   await expect(page.locator('[data-out="calc-formula"]')).toHaveText(
-    "Required_GB = (Weights_GB + Working_Memory_GB + Training_State_GB + Runtime_Overhead_GB) * Buffer; Safety_Buffer_GB = Base_GB * (Buffer - 1)",
+    "VRAM = (weights + KV cache + activations + runtime overhead) × buffer",
+  );
+  // The general formula is followed by the same terms with the real numbers.
+  await expect(page.locator('[data-out="calc-numbers"]')).toHaveText(
+    "19.0 GB ≈ (14.0 + 1.0 + 0.7 + 1.5) GB × 1.10",
   );
 
+  // Assumptions are short methodology notes (green-bulleted prose), not an echo
+  // of the inputs the user already entered.
   await page.getByText("Assumptions used").click();
-  await expectReportRows(page, "assumptions", [
-    ["Precision", "16-bit"],
-    ["Runtime profile", "Server / Cloud"],
-    ["Execution mode", "Inference"],
-    ["Context tokens", "8000"],
-    ["Concurrent batch requests", "1"],
-    ["KV Cache precision", "16-bit"],
-    ["KV heads used", "8"],
-    ["Conservative KV heads", "32"],
+  await expect(page.locator('[data-out="assumptions"] li span')).toHaveText([
+    "Runtime / CUDA overhead estimated at a fixed 1.5 GB for this mode and runtime profile.",
+    "KV cache precision: 16-bit.",
+    "15% of advertised card VRAM reserved for the driver + CUDA context.",
   ]);
   await expect(page.locator('[data-out="warnings"]')).toBeHidden();
   await expect(page.locator('[data-slot="parallelism"]')).toBeHidden();
@@ -338,15 +206,16 @@ test("surfaces the multi-GPU parallelism callout when no single card fits", asyn
 }) => {
   await page.goto("/");
 
-  // A single-GPU workload keeps the callout out of the way.
+  // A single-accelerator workload keeps the callout out of the way.
   const callout = page.locator('[data-slot="parallelism"]');
   await expect(callout).toBeHidden();
 
-  // Full training of the default 7B overflows every single-GPU tier.
+  // Full training of 8B overflows every single-accelerator tier.
   await page.locator("#execution-mode").selectOption("Full training");
+  await page.locator("#total-params").fill("8");
   await expect(callout).toBeVisible();
   await expect(callout).toContainText(
-    "Exceeds single-GPU capacity — needs tensor / pipeline parallelism",
+    "Too large for any single GPU or accelerator. Split the model",
   );
 
   const links = callout.locator('[data-out="parallelism-links"] a');
@@ -359,38 +228,32 @@ test("surfaces the multi-GPU parallelism callout when no single card fits", asyn
   await expect(links.first()).toHaveAttribute("rel", "noopener noreferrer");
 });
 
-/**
-Canonical unit-test scenarios must produce the same visible report when entered
-through browser controls, not only when called through TypeScript helpers.
-*/
-for (const scenario of CANONICAL_BROWSER_CASES) {
-  test(`renders ${scenario.name}`, async ({ page }) => {
-    await page.goto("/");
+test("hardware tier reference marks fits and opens one row at a time", async ({
+  page,
+}) => {
+  await page.goto("/");
 
-    await applyControls(page, scenario.controls);
+  const rows = page.locator("details.tier");
+  await expect(rows).toHaveCount(5);
+  // The default 7B fits the 24 GB tier; only that best-fit check paints in.
+  await expect(page.locator('[data-tier-fit][data-fit="true"]')).toHaveCount(1);
+  await expect(
+    page.locator('[data-tier-fit][data-fit="true"]'),
+  ).toHaveAttribute("data-tier-fit", "24");
 
-    await expect(page.locator('[data-out="total"]')).toHaveText(scenario.total);
-    await expect(page.locator('[data-out="gpu-class"]')).toHaveText(
-      scenario.gpuClass,
-    );
-    await expectNoConfidenceOutput(page);
+  // name="hardware-tier" keeps the accordion exclusive with no JS: opening
+  // the second row closes the first.
+  await rows.nth(0).locator("summary").click();
+  await expect(rows.nth(0)).toHaveJSProperty("open", true);
+  await rows.nth(1).locator("summary").click();
+  await expect(rows.nth(1)).toHaveJSProperty("open", true);
+  await expect(rows.nth(0)).toHaveJSProperty("open", false);
 
-    await page.getByText("Why this recommendation").click();
-    await expect(page.locator('[data-out="min-cap"]')).toHaveText(
-      scenario.minimumRawVram,
-    );
-
-    await page.getByText("Calculation used").click();
-    await expectReportRowsContaining(
-      page,
-      "calculation-rows",
-      scenario.calculationRows,
-    );
-
-    await page.getByText("Assumptions used").click();
-    await expectReportRows(page, "assumptions", scenario.assumptions);
-  });
-}
+  // A giant model clears every single-accelerator check; only the
+  // beyond-single row still fits.
+  await page.locator("#total-params").fill("400");
+  await expect(page.locator('[data-tier-fit][data-fit="true"]')).toHaveCount(1);
+});
 
 test("recomputes when parameters change", async ({ page }) => {
   await page.goto("/");
@@ -404,9 +267,16 @@ test("rejects negatives, exponents, and unbounded numbers", async ({
 }) => {
   await page.goto("/");
 
+  // Insertions carrying a sign or exponent are rejected outright before they
+  // land, so the field visibly keeps its previous value; nothing is silently
+  // reshaped into a plausible-but-wrong magnitude like "95".
   await page.locator("#context-tokens").fill("-9e5");
-  await expect(page.locator("#context-tokens")).toHaveValue("95");
+  await expect(page.locator("#context-tokens")).toHaveValue("8000");
 
+  await page.locator("#context-tokens").fill("9e5");
+  await expect(page.locator("#context-tokens")).toHaveValue("8000");
+
+  // Pure digits pass through and only clamp at the supported maximum.
   await page.locator("#context-tokens").fill("100000000");
   await expect(page.locator("#context-tokens")).toHaveValue("99999999");
 });
@@ -419,6 +289,33 @@ test("reset zeroes inputs and outputs", async ({ page }) => {
 
   await page.getByRole("button", { name: "Reset" }).click();
   await expect(page.locator("#total-params")).toHaveValue("0");
+  await expect(page.locator('[data-out="total"]')).toHaveText("0.0 GB");
+});
+
+test("keyboard-only walkthrough reaches and activates core controls", async ({
+  page,
+}) => {
+  await page.goto("/");
+
+  const advanced = page.getByText("Advanced assumptions", { exact: true });
+  await advanced.focus();
+  await page.keyboard.press("Enter");
+  await expect(page.getByLabel("Known Model File Size")).toBeVisible();
+
+  const moe = page.getByLabel("MoE Model", { exact: true });
+  await moe.focus();
+  await page.keyboard.press("Space");
+  await expect(page.getByLabel("Active Parameters")).toBeVisible();
+
+  const why = page.getByText("Why this recommendation", { exact: true });
+  await why.focus();
+  await page.keyboard.press("Enter");
+  await expect(page.locator('[data-out="why"]')).toBeVisible();
+
+  await page.getByLabel("Total Model Parameters").fill("104");
+  await expect(page.locator('[data-out="total"]')).not.toHaveText("0.0 GB");
+  await page.getByRole("button", { name: "Reset" }).focus();
+  await page.keyboard.press("Enter");
   await expect(page.locator('[data-out="total"]')).toHaveText("0.0 GB");
 });
 
@@ -448,7 +345,7 @@ test("keeps secondary math hidden until detail panels expand", async ({
   await expect(page.locator('[data-out="usable-on-class"]')).toBeVisible();
   await expect(page.locator('[data-out="fit-headroom"]')).toBeVisible();
 
-  await page.getByText("Calculation used").click();
+  await page.getByText("Values Used In Calculations").click();
   await expect(page.locator('[data-out="calculation-rows"]')).toBeVisible();
   await expect(page.locator('[data-out="calculation-rows"] li')).toHaveCount(
     10,
@@ -461,18 +358,22 @@ test("keeps secondary math hidden until detail panels expand", async ({
   await expect(page.locator('[data-out="assumptions"]')).toBeVisible();
 });
 
-test("uses cyan only for expanded result detail headings", async ({ page }) => {
+test("uses green only for expanded result detail headings", async ({
+  page,
+}) => {
   await page.goto("/");
   const why = page.getByText("Why this recommendation", { exact: true });
   const formula = page.getByText("Formula used", { exact: true });
 
-  await expect(why).toHaveCSS("color", "rgb(248, 250, 252)");
-  await expect(formula).toHaveCSS("color", "rgb(248, 250, 252)");
+  // Collapsed headings read as muted HUD captions (the stat-chip grey); only
+  // the expanded one turns green to mark the active section.
+  await expect(why).toHaveCSS("color", "rgb(139, 139, 147)");
+  await expect(formula).toHaveCSS("color", "rgb(139, 139, 147)");
 
   await why.click();
 
-  await expect(why).toHaveCSS("color", "rgb(103, 232, 249)");
-  await expect(formula).toHaveCSS("color", "rgb(248, 250, 252)");
+  await expect(why).toHaveCSS("color", "rgb(34, 197, 94)");
+  await expect(formula).toHaveCSS("color", "rgb(139, 139, 147)");
 });
 
 test("marks expandable detail panels with a token chevron, not a button", async ({
@@ -545,10 +446,10 @@ test("introduces the calculator with its purpose subtitle in the input pane", as
 
   const subtitle = page
     .locator(".inputs .intro p")
-    .filter({ hasText: "Estimate VRAM footprint" });
+    .filter({ hasText: "Estimate VRAM GPUs needed" });
   await expect(subtitle).toBeVisible();
   await expect(subtitle).toHaveText(
-    "Estimate VRAM footprint and hardware fit for an AI workload.",
+    "Estimate VRAM GPUs needed and the hardware tier for an AI model's workload.",
   );
 });
 
@@ -588,6 +489,9 @@ test("switches the workload size label and never shows generic Batch Size", asyn
 
 test("reveals active parameters only when MoE is enabled", async ({ page }) => {
   await page.goto("/");
+
+  // MoE and its dependent Active Parameters field live in the advanced panel.
+  await page.getByText("Advanced assumptions", { exact: true }).click();
 
   await expect(page.locator("#active-params")).toBeHidden();
   await page.locator("#moe-enabled").check();

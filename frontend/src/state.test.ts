@@ -72,6 +72,26 @@ describe("normalizedState", () => {
     expect(state.knownModelFileSizeGb).toBe("40");
   });
 
+  test("accepts the paged 8-bit AdamW and Adafactor optimizer options", () => {
+    expect(
+      normalizedState(parameters({ optimizer: "Paged 8-bit AdamW" })).optimizer,
+    ).toBe("Paged 8-bit AdamW");
+    expect(
+      normalizedState(parameters({ optimizer: "Adafactor" })).optimizer,
+    ).toBe("Adafactor");
+  });
+
+  test("treats a present-but-empty numeric value as zero, not the default", () => {
+    // An absent key means "initial load" and takes the default; an empty
+    // submitted value is a cleared field and must read as zero.
+    expect(normalizedState(parameters({ totalParams: "" })).totalParams).toBe(
+      "0",
+    );
+    expect(
+      normalizedState(parameters({ contextTokens: " " })).contextTokens,
+    ).toBe("0");
+  });
+
   test("falls back on invalid enums and malformed numbers", () => {
     const state = normalizedState(
       parameters({
@@ -178,17 +198,19 @@ describe("normalizedState", () => {
 });
 
 describe("searchFromState", () => {
-  test("serializes booleans as 'on' only when true and drops empty strings", () => {
+  test("serializes booleans only when they differ from defaults and drops empty strings", () => {
     const state: FormState = {
       ...zeroState(),
       moeEnabled: true,
       memoryShardingEnabled: false,
+      gradientCheckpointing: false,
       totalParams: "8",
       knownModelFileSizeGb: "",
     };
     const search = searchFromState(state);
     expect(search.get("moe-enabled")).toBe("on");
     expect(search.has("memory-sharding-enabled")).toBe(false);
+    expect(search.get("gradient-checkpointing")).toBe("off");
     expect(search.get("total-params")).toBe("8");
     expect(search.has("known-model-file-size-gb")).toBe(false);
   });

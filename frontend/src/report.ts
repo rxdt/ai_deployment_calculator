@@ -15,64 +15,34 @@ import { assumptionRows } from "./report-assumptions";
 import { fitMeter } from "./result-format";
 import type {
   DisplayRow,
+  ExecutionMode,
   FormState,
   HardwareRecommendation,
   ParallelismStrategy,
   ReportPayload,
 } from "./types";
 import { memoryBreakdown, speedEstimate } from "./workload-memory";
-import { hasDecoderKvCache, hasMoeControl } from "./workload-visibility";
+import { hasDecoderKvCache } from "./workload-visibility";
 
 export { specFromState } from "./calculator-core";
 
 /**
- 
-@param label
-@param value
-*/
-function row(label: string, value: number): DisplayRow | null {
-  const formatted = formatGb(value);
-  return formatted === "0.0 GB" ? null : { label, value: formatted };
-}
-
-/**
- 
-@param rows
-*/
-function compactRows(
-  rows: readonly (Readonly<DisplayRow> | null)[],
-): DisplayRow[] {
-  return rows.filter(
-    (candidate): candidate is DisplayRow => candidate !== null,
-  );
-}
-
-/**
-
-@param label
-@param value
+Build a labeled calculation row with a GB-formatted value.
+@param label - the row's display label
+@param value - the row's memory figure in GB
+@returns the label/value display row
 */
 function requiredRow(label: string, value: number): DisplayRow {
   return { label, value: formatGb(value) };
 }
 
 /**
-
-@param value
+Build the buffer-multiplier calculation row (a ratio, not a GB figure).
+@param value - the safety-buffer multiplier
+@returns the label/value display row
 */
 function multiplierRow(value: number): DisplayRow {
   return { label: "Buffer multiplier", value: `${value.toFixed(2)}x` };
-}
-
-/**
- 
-@param state
-*/
-function trainingWarning(state: Readonly<FormState>): string | null {
-  if (state.executionMode !== "Inference") {
-    return "Training estimates include parameter state and checkpointed activations, but real runs vary by optimizer, sequence packing, and framework.";
-  }
-  return null;
 }
 
 // Actionable multi-GPU parallelism strategies, surfaced when no single card
@@ -90,44 +60,115 @@ const PARALLELISM_STRATEGIES: readonly ParallelismStrategy[] = [
 ];
 
 /**
-
-@param state
+Collect the conditional caveats shown in the warnings list.
+@param state - normalized form state
+@returns the warnings to render, possibly empty
 */
 function warningsFor(state: Readonly<FormState>): string[] {
-  const warnings: string[] = [];
-  const conditional = trainingWarning(state);
-  if (conditional !== null) {
-    warnings.push(conditional);
-  }
-  if (state.moeEnabled && hasMoeControl(state.workloadFamily)) {
-    warnings.push(
-      "MoE active parameters affect speed, not resident weight memory, unless expert offload or sharding is enabled.",
-    );
-  }
-  return warnings;
+  // Real training runs vary too much for a point estimate to go uncaveated.
+  return state.executionMode === "Inference"
+    ? []
+    : [
+        "Training estimates include parameter state and checkpointed activations, but real runs vary by optimizer, sequence packing, and framework.",
+      ];
 }
 
-/**
+// The per-mode formula terms, mirroring the real composition (memoryBreakdown):
+// the buffer multiplies the whole subtotal, runtime overhead is included, and
+// training modes carry no KV cache. The "Formula used" prose and the numbers
+// line beneath it are both derived from this one table, so each printed value
+// always sits under the word that names it ("training state" is the combined
+// gradients + optimizer figure the calculation rows show). The exact buffer
+// value shows in the calculation rows above.
+interface FormulaTerm {
+  readonly name: string;
+  readonly value: (breakdown: Readonly<MemoryBreakdown>) => number;
+}
 
-@param state
+const weightsTerm = (name: string): FormulaTerm => ({
+  name,
+  value: (breakdown) => breakdown.weightsGb,
+});
+const kvCacheTerm: FormulaTerm = {
+  name: "KV cache",
+  value: (breakdown) => breakdown.kvCacheGb,
+};
+const activationsTerm: FormulaTerm = {
+  name: "activations",
+  value: (breakdown) => breakdown.inputActivationGb,
+};
+const trainingTerm = (name: string): FormulaTerm => ({
+  name,
+  value: (breakdown) => breakdown.trainingStateGb,
+});
+const overheadTerm: FormulaTerm = {
+  name: "runtime overhead",
+  value: (breakdown) => breakdown.runtimeOverheadGb,
+};
+
+const MODE_TERMS: Readonly<Record<ExecutionMode, readonly FormulaTerm[]>> = {
+  Inference: [
+    weightsTerm("weights"),
+    kvCacheTerm,
+    activationsTerm,
+    overheadTerm,
+  ],
+  "LoRA fine-tuning": [
+    weightsTerm("base weights"),
+    activationsTerm,
+    trainingTerm("adapter training state"),
+    overheadTerm,
+  ],
+  "QLoRA fine-tuning": [
+    weightsTerm("4-bit weights"),
+    activationsTerm,
+    trainingTerm("adapter training state"),
+    overheadTerm,
+  ],
+  "Full training": [
+    weightsTerm("weights"),
+    activationsTerm,
+    trainingTerm("training state"),
+    overheadTerm,
+  ],
+};
+
+/**
+Compose the plain-language formula for the workload's execution mode.
+@param mode - the execution mode
+@returns the one-line formula naming the mode's terms
 */
-function weightsLabel(state: Readonly<FormState>): string {
-  return state.executionMode === "QLoRA fine-tuning"
-    ? "QLoRA base model memory"
-    : "Model memory";
+function formulaText(mode: ExecutionMode): string {
+  const names = MODE_TERMS[mode].map((term) => term.name).join(" + ");
+  return `VRAM = (${names}) × buffer`;
 }
 
 /**
-Return the symbolic formula shown separately from substituted values.
+Substitute the estimate's actual numbers into the mode formula's shape, one
+value per named term in the same order.
+@param breakdown - the computed memory breakdown
+@param buffer - the mode's safety-buffer multiplier
+@param mode - the execution mode
+@returns the formula with the real component values filled in
 */
-function formulaText(): string {
-  return "Required_GB = (Weights_GB + Working_Memory_GB + Training_State_GB + Runtime_Overhead_GB) * Buffer; Safety_Buffer_GB = Base_GB * (Buffer - 1)";
+function formulaNumbers(
+  breakdown: Readonly<MemoryBreakdown>,
+  buffer: number,
+  mode: ExecutionMode,
+): string {
+  const sum = MODE_TERMS[mode]
+    .map((term) => term.value(breakdown).toFixed(1))
+    .join(" + ");
+  // "≈": the components are rounded for display, so multiplying them back
+  // does not always land exactly on the (separately rounded) total.
+  return `${formatGb(breakdown.requiredGb)} ≈ (${sum}) GB × ${buffer.toFixed(2)}`;
 }
 
 /**
-
-@param breakdown
-@param buffer
+Build the itemized calculation rows shown in the "Values Used In Calculations" panel.
+@param breakdown - the computed memory breakdown
+@param buffer - the mode's safety-buffer multiplier
+@returns the label/value rows in display order
 */
 function calculationRows(
   breakdown: Readonly<MemoryBreakdown>,
@@ -140,16 +181,16 @@ function calculationRows(
     breakdown.trainingStateGb +
     breakdown.runtimeOverheadGb;
   return [
-    requiredRow("Weights_GB (model memory)", breakdown.weightsGb),
+    requiredRow("Model weights", breakdown.weightsGb),
     requiredRow("Context memory", breakdown.kvCacheGb),
     requiredRow("Activation memory", breakdown.inputActivationGb),
-    requiredRow("Working_Memory_GB subtotal", working),
-    requiredRow("Training_State_GB", breakdown.trainingStateGb),
-    requiredRow("Runtime_Overhead_GB", breakdown.runtimeOverheadGb),
-    requiredRow("Base_GB before buffer", base),
+    requiredRow("Working memory subtotal", working),
+    requiredRow("Training state", breakdown.trainingStateGb),
+    requiredRow("Runtime overhead", breakdown.runtimeOverheadGb),
+    requiredRow("Base subtotal before buffer", base),
     multiplierRow(buffer),
-    requiredRow("Safety_Buffer_GB", breakdown.safetyBufferGb),
-    requiredRow("Required_GB", breakdown.requiredGb),
+    requiredRow("Safety buffer", breakdown.safetyBufferGb),
+    requiredRow("Total required", breakdown.requiredGb),
   ];
 }
 
@@ -158,7 +199,7 @@ The four headline stat chips shown under the hero: the answer's biggest levers
 at a glance. Model weights and the dominant working-memory term (KV cache for
 decoders, else activations) are the two largest contributors; the batch chip
 reads as "Concurrency" for inference and "Micro Batch" for training; "Spare"
-mirrors the fit meter's leftover budget, or "—" when no single card fits and
+mirrors the fit meter's leftover budget, or "–" when no single card fits and
 there is no usable-VRAM budget to divide.
 @param state - normalized form state
 @param breakdown - the computed memory breakdown
@@ -186,14 +227,16 @@ function statChips(
     },
     {
       label: "Spare",
-      value: meter === null ? "—" : `${(100 - meter.fillPercent).toString()}%`,
+      value: meter === null ? "–" : `${(100 - meter.fillPercent).toString()}%`,
     },
   ];
 }
 
 /**
-
-@param state
+Compute the full report the UI renders for a normalized form state: the memory
+breakdown, hardware recommendation, speed estimate, and every display string.
+@param state - normalized form state
+@returns the complete report payload
 */
 export function buildReport(state: Readonly<FormState>): ReportPayload {
   const spec = specFromState(state);
@@ -205,12 +248,20 @@ export function buildReport(state: Readonly<FormState>): ReportPayload {
   const recommendation = hardwareRecommendation(required, utilization, {
     allowSharding: canShard,
   });
-  const tier = hardware(minimumRawVramGb(required, utilization), {
-    allowSharding: canShard,
-  });
+  const minimumRaw = minimumRawVramGb(required, utilization);
+  const tier = hardware(minimumRaw, { allowSharding: canShard });
   const speedTier = speedTierFor(tier);
   const requiresMultiGpu = speedTier.requiresSharding;
   const warnings = warningsFor(state);
+  // The tier catalog is shared across runtime profiles, so a big Local / Edge
+  // deployment can land on a datacenter class (H200/B200). Say what that means
+  // locally instead of letting it read as a hardware-store suggestion. 96 GB
+  // is the largest common local PCIe card (RTX PRO 6000 Blackwell).
+  if (state.runtimeProfile === "Local / Edge" && minimumRaw > 96) {
+    warnings.push(
+      "Beyond typical local hardware: this needs more than 96 GB of advertised VRAM, larger than any common local PCIe card. Local routes are a large unified-memory Mac or sharding across multiple GPUs.",
+    );
+  }
   if (requiresMultiGpu) {
     warnings.push(speedLabel(speedTier));
   }
@@ -220,18 +271,15 @@ export function buildReport(state: Readonly<FormState>): ReportPayload {
     minimumRawVramNeeded: recommendation.minimumRawVram,
     speed: speedEstimate(spec, weights, speedTier),
     statChips: statChips(state, breakdown, spec.workloadSize, recommendation),
-    breakdown: compactRows([
-      row(weightsLabel(state), breakdown.weightsGb),
-      row("Context memory", breakdown.kvCacheGb),
-      row("Activation memory", breakdown.inputActivationGb),
-      row("Training memory", breakdown.trainingStateGb),
-      row("Runtime reserve", breakdown.runtimeOverheadGb),
-      row("Safety margin", breakdown.safetyBufferGb),
-    ]),
     calculationRows: calculationRows(breakdown, spec.runtime.buffer),
     assumptions: assumptionRows(state, spec),
     warnings,
     parallelismStrategies: requiresMultiGpu ? PARALLELISM_STRATEGIES : [],
-    calculation: formulaText(),
+    calculation: formulaText(state.executionMode),
+    calculationNumbers: formulaNumbers(
+      breakdown,
+      spec.runtime.buffer,
+      state.executionMode,
+    ),
   };
 }

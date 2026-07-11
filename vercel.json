@@ -1,0 +1,5 @@
+{
+  "buildCommand": "pnpm build",
+  "outputDirectory": "frontend/dist",
+  "cleanUrls": true
+}

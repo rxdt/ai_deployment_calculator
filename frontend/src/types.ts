@@ -22,7 +22,8 @@ export type RuntimeProfile = "Local / Edge" | "Server / Cloud";
 
 export type ParameterUnit = "B" | "M";
 
-type Optimizer = "AdamW" | "8-bit Adam" | "SGD-like";
+type Optimizer =
+  "AdamW" | "8-bit Adam" | "Paged 8-bit AdamW" | "Adafactor" | "SGD-like";
 
 type VideoResolution = "720p" | "1080p";
 
@@ -97,10 +98,10 @@ export interface ReportPayload {
   readonly minimumRawVramNeeded: string;
   readonly speed: string;
   readonly statChips: readonly DisplayRow[];
-  readonly breakdown: readonly DisplayRow[];
   readonly calculationRows: readonly DisplayRow[];
   readonly assumptions: readonly DisplayRow[];
   readonly warnings: readonly string[];
   readonly parallelismStrategies: readonly ParallelismStrategy[];
   readonly calculation: string;
+  readonly calculationNumbers: string;
 }

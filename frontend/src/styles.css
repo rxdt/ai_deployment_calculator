@@ -1,34 +1,66 @@
 :root {
   color-scheme: dark;
 
-  --color-background: #09090b;
-  --color-surface: #111117;
-  --color-raised: #16161e;
-  --color-border: #27272a;
+  /* Ported to the DC look: deeper near-black surfaces with violet as the
+     secondary accent (replacing blue). --color-text keeps the codebase value
+     so the a11y hero contrast assertion holds.
+     Owner-tuned background lightness. Keep it; visibility of the gridlines and corner
+     glows is tuned via the grid-line/glow tokens below, not by darkening. */
+  --color-background: #1f1f29;
+  --color-surface: #0f0f13;
+  --color-raised: #121218;
+  --color-fieldset-surface: #0b000f;
+  --color-border: #26262c;
+  --color-border-strong: #41414c;
+  --color-border-soft: #22222a;
   --color-text: #f8fafc;
-  --color-muted: #a1a1aa;
-  --color-input: #1c1c24;
+  --color-subtle: #c7c7cf;
+  --color-muted: #8b8b93;
+
+  /* A dimmer step below muted for the footnote disclaimer. Holds >= 4.5:1
+     AA contrast against the page background (4.58:1 at #87878f) while still
+     receding behind the intro tagline's muted grey. */
+  --color-faint: #87878f;
+  --color-input: #1e1e26;
   --color-primary: #22c55e;
   --color-primary-text: #0a0a0f;
-  --color-blue: #3b82f6;
-  --color-cyan: #67e8f9;
-  --color-amber: #f97316;
-  --color-amber-line: #f9731640;
-  --color-amber-surface: #f9731612;
-  --color-hero-line: #30303a;
-  --color-shadow: #0006;
-  --color-glow-primary: #22c55e2b;
-  --color-glow-blue: #3b82f62b;
-  --color-topbar: #09090bcc;
-  --color-grid-line: #60f7ff0a;
-  --color-glow-ambient-primary: #22c55e14;
-  --color-glow-ambient-blue: #3b82f614;
+  --color-primary-bright: #4ade80;
 
-  /* Command-center atmosphere: a faint cyan grid over low-contrast green/blue
-     corner glows, layered behind the app so the calculator stays the focus (per
-     the design spec's "faint cyan grid plus green/blue radial glow, kept low
-     contrast"). Composed as background-image tokens so the paint stays purely
-     decorative and adds no layout box. */
+  /* A dimmer green step reading like the translucent fit-meter fill, for
+     secondary green accents that should not compete with the hero total. */
+  --color-primary-dim: #16a34a;
+  --color-violet: #8b5cf6;
+  --color-cyan: #67e8f9;
+  --color-cyan-bright: #a5f3fc;
+  --color-cyan-soft: #67e8f91f;
+  --color-cyan-line: #67e8f973;
+
+  /* The caution palette stays deliberately dull: a dimmed amber for text so
+     the warning reads without shouting, with faint line and surface washes. */
+  --color-amber: #d97706;
+  --color-amber-line: #d9770640;
+  --color-amber-surface: #d977060f;
+
+  /* Fit-meter fills are opaque enough to clear WCAG non-text contrast against
+     the dark track while keeping the design's green / amber / red status map. */
+  --color-fit-fill: #22c55e;
+  --color-fit-tight: #d97706;
+  --color-fit-over: #ef4444;
+  --color-hero-line: #1e1e25;
+  --color-shadow: #0006;
+
+  /* Kept faint enough that muted captions sitting on the wash (hero + chip
+     labels) hold >= 4.5:1 AA contrast at the glow's brightest point. */
+  --color-glow-primary: #23d86615;
+  --color-topbar: #0a0a0ccc;
+  --color-grid-line: #ffffff14;
+  --color-glow-ambient-primary: #21d66333;
+  --color-glow-ambient-violet: #9063f83d;
+
+  /* Command-center atmosphere: a faint grid over low-contrast corner glows
+     (green top-left / bottom-right, violet top-right / bottom-left), layered
+     behind the app so the calculator stays the focus. Composed as
+     background-image tokens so the paint stays purely decorative. */
   --background-grid:
     linear-gradient(
       var(--color-grid-line) var(--layout-border),
@@ -41,50 +73,124 @@
     );
   --background-glow:
     radial-gradient(
-      60rem 40rem at 0% -8%,
+      46rem 28rem at 5% -6%,
       var(--color-glow-ambient-primary),
       transparent 60%
     ),
     radial-gradient(
-      64rem 42rem at 100% -8%,
-      var(--color-glow-ambient-blue),
+      51rem 33rem at 100% -8%,
+      var(--color-glow-ambient-violet),
       transparent 62%
+    ),
+    radial-gradient(
+      45rem 35rem at 106% 106%,
+      var(--color-glow-ambient-primary),
+      transparent 58%
+    ),
+    radial-gradient(
+      56rem 39rem at -8% 112%,
+      var(--color-glow-ambient-violet),
+      transparent 60%
     );
-  --font-body: 0.8125rem;
-  --font-heading: 1.375rem;
-  --font-hero: 1.5rem;
-  --font-hero-small: 1.125rem;
-  --font-status: 0.625rem;
 
-  /* DESIGN.md hud-label letter-spacing: HUD labels are uppercase, monospace,
-     and widely spaced. Applied to the top status strip and section legends so
-     the structural labels read as a running-tool HUD, never negative spacing. */
+  /* The primary answer card carries the DC's diagonal near-black gradient with a
+     green radial glow washing in from the top-right corner. */
+  --background-hero:
+    radial-gradient(
+      150% 50% at 95% 0,
+      var(--color-glow-primary),
+      transparent 95%
+    ),
+    linear-gradient(158deg, var(--color-raised), var(--color-background));
+
+  /* Stat chips echo the same top-right green wash over the surface. */
+  --background-chip:
+    radial-gradient(
+      150% 50% at 95% 0,
+      var(--color-glow-primary),
+      transparent 95%
+    ),
+    var(--color-surface);
+
+  /* A compact-but-legible type ramp: sized for the capped, non-stretching
+     layout so the tool reads as a dense professional utility without the text
+     feeling shrunken. Midway between the earlier oversized and over-shrunk
+     ramps. */
+  --font-body: 0.8125rem;
+  --font-control: 0.75rem;
+  --font-heading: 0.9375rem;
+  --font-hero: 1.375rem;
+  --font-hero-small: 0.8125rem;
+  --font-status: 0.625rem;
+  --font-nav: 0.6875rem;
+  --font-weight-semi: 600;
+
+  /* HUD labels are uppercase, monospace, widely spaced. Applied to the top
+     status strip and section legends so structural labels read as a running
+     tool HUD. */
   --font-hud-spacing: 0.12em;
-  --font-line-body: 1.25;
+  --font-line-body: 1.2;
   --font-line-heading: 1.05;
+  --font-line-tight: 1.15;
   --font-line-solid: 1;
+  --font-weight-regular: 400;
   --font-weight-bold: 700;
   --font-weight-strong: 800;
   --font-mono:
     "JetBrains Mono", ui-monospace, sfmono-regular, consolas, monospace;
   --layout-border: 0.0625rem;
+  --layout-border-bold: 0.125rem;
   --layout-grid-size: 2.125rem;
-  --layout-control-size: 2.5rem;
-  --layout-chip-size: 1.75rem;
-  --layout-advanced-height: calc(100vh - 6rem);
-  --layout-advanced-width: min(42rem, calc(100vw - (var(--space-md) * 2)));
+
+  /* Compact controls: 24px (1.5rem) matches the design's dense inputs and is the
+     WCAG 2.2 AA target-size minimum, so every control stays touch-accessible.
+     The checkbox glyph draws smaller; its invisible input keeps the 24px hit. */
+  --layout-control-size: 1.5rem;
+  --layout-chip-size: 1.5rem;
+  --layout-check-size: 1rem;
+
+  /* Tier-table rails: the memory-range and fit-check column widths. */
+  --layout-tier-memory: 4.5rem;
+  --layout-tier-fit: 3.5rem;
+
+  /* Cap the overall layout so the panes never stretch edge to edge on wide
+     monitors; that viewport-fill stretch is what inflated the whole tool. */
+  --layout-max: 64rem;
   --layout-half: calc(50% - var(--space-sm));
   --layout-third: calc((100% - var(--space-sm) * 2) / 3);
-  --layout-primary-result: calc(67% - var(--space-sm));
-  --layout-secondary-result: calc(33% - var(--space-sm));
-  --layout-quarter: calc(25% - var(--space-sm));
-  --z-disclosure: 1;
   --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
   --space-2xs: 0.125rem;
   --space-xs: 0.25rem;
   --space-sm: 0.375rem;
   --space-md: 0.5rem;
   --space-lg: 0.75rem;
+  --space-xl: 1rem;
+
+  /* GitHub chip metrics from the design: 7px icon gap, 11px inline padding. */
+  --space-nav-gap: 0.4375rem;
+  --space-nav-pad: 0.6875rem;
+}
+
+/* Self-hosted variable fonts (latin subset) so the DC's IBM Plex Sans + JetBrains
+   Mono look ships without a render-blocking third-party request to Google Fonts.
+   Each family is one variable file spanning its full weight axis. font-display:
+   swap paints system fallbacks immediately, then swaps in the webfont. */
+@font-face {
+  font-family: "IBM Plex Sans";
+  font-style: normal;
+  font-weight: 400 600;
+  font-display: swap;
+  src: url("/fonts/ibm-plex-sans-latin.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: normal;
+  font-weight: 400 800;
+  font-display: swap;
+  src: url("/fonts/jetbrains-mono-latin.woff2") format("woff2");
 }
 
 * {
@@ -104,12 +210,13 @@ body {
     var(--layout-grid-size) var(--layout-grid-size),
     var(--layout-grid-size) var(--layout-grid-size),
     100% 100%,
+    100% 100%,
+    100% 100%,
     100% 100%;
-  background-repeat: repeat, repeat, no-repeat, no-repeat;
+  background-repeat: repeat, repeat, no-repeat, no-repeat, no-repeat, no-repeat;
   color: var(--color-text);
   font-family:
-    Geist,
-    "Geist Variable",
+    "IBM Plex Sans",
     system-ui,
     -apple-system,
     BlinkMacSystemFont,
@@ -130,12 +237,12 @@ select {
   min-height: var(--layout-control-size);
   width: 100%;
   appearance: none;
-  border: var(--layout-border) solid var(--color-border);
-  border-radius: var(--radius-sm);
+  border: var(--layout-border) solid var(--color-border-strong);
+  border-radius: var(--radius-md);
   background: var(--color-input);
   color: var(--color-text);
   font-family: var(--font-mono);
-  font-size: inherit;
+  font-size: var(--font-control);
   line-height: inherit;
 }
 
@@ -157,6 +264,16 @@ select {
   padding: 0 var(--space-md);
 }
 
+/* Selects carry a static chevron affordance on the trailing edge (the native
+   arrow is removed by appearance:none), drawn as a muted inline SVG so it needs
+   no extra asset and inherits the control's rounded, roomy sizing. */
+select {
+  padding-inline-end: calc(var(--space-md) * 3);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%237c7c85' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right var(--space-md) center;
+}
+
 input:focus-visible,
 select:focus-visible {
   outline: var(--layout-border) solid var(--color-cyan);
@@ -170,12 +287,15 @@ select:focus-visible {
 }
 
 a {
-  color: var(--color-text);
+  color: var(--color-cyan);
+}
+
+a:hover {
+  color: var(--color-cyan-bright);
 }
 
 .app {
-  height: 100vh;
-  min-height: 0;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
 }
@@ -191,12 +311,20 @@ a {
   padding: 0 var(--space-md);
   border-bottom: var(--layout-border) solid var(--color-border);
   background: var(--color-topbar);
-
-  /* The fake top nav is translucent with a backdrop blur so the atmosphere grid
-     softens behind it (per the design spec's nav treatment). Blur is a
-     progressive enhancement; the translucent fill carries the effect alone where
-     backdrop-filter is unsupported. */
   backdrop-filter: blur(var(--space-md));
+}
+
+.noscript {
+  margin-block-start: var(--space-sm);
+  margin-inline: auto;
+  width: min(100% - var(--space-md) * 2, var(--layout-max));
+  padding: var(--space-xs) var(--space-sm);
+  border: var(--layout-border) solid var(--color-amber-line);
+  border-radius: var(--radius-md);
+  color: var(--color-subtle);
+  background: var(--color-amber-surface);
+  font-size: var(--font-control);
+  line-height: var(--font-line-body);
 }
 
 .topnav,
@@ -222,24 +350,15 @@ summary {
   font-weight: var(--font-weight-bold);
 }
 
-/* Section legends read as HUD labels: uppercased, widely spaced, and centered
-   over the group per the design's "MODEL" / "DEPLOYMENT" headers. Full width so
-   the centering resolves against the whole group, not the legend's own text box.
-   Color stays foreground so the primary green accent remains reserved. */
+/* Section legends read as HUD labels: uppercased, widely spaced, centered over
+   the group. Full width so centering resolves against the whole group. */
 legend {
   width: 100%;
+  font-size: var(--font-status);
   text-transform: uppercase;
   letter-spacing: var(--font-hud-spacing);
   text-align: center;
-}
-
-.topnav a {
-  min-width: 0;
-  min-height: var(--layout-control-size);
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-sm);
-  text-decoration: none;
+  color: var(--color-primary);
 }
 
 .topstatus {
@@ -295,60 +414,92 @@ summary,
   overflow-wrap: anywhere;
 }
 
-/* The brand reads like a shell prompt: green is reserved for the leading prompt
-   marker so the primary accent points at the running tool, never at the product
-   name itself (per the design spec's "green only on the prompt marker"). */
+/* The brand reads like a shell prompt: green is reserved for the leading
+   prompt marker so the primary accent points at the running tool. */
 .brand-mark {
   color: var(--color-primary);
 }
 
 .layout {
   position: relative;
-  flex: 1 1 auto;
-  min-height: 0;
+  flex: 0 1 auto;
   min-width: 0;
+  width: 100%;
+  max-width: var(--layout-max);
+  margin-inline: auto;
   display: flex;
-  gap: var(--space-md);
-  padding: var(--space-md);
+  gap: var(--space-lg);
+  padding: var(--space-xl) var(--space-md) var(--space-md);
 }
 
+/* The two columns share the capped row by width ratio (inputs a touch wider),
+   but no longer stretch to fill the viewport height; content sizes naturally
+   and the page scrolls if needed. */
 .inputs {
   min-width: 0;
-  max-height: 100%;
-  flex: 1 1 0;
+  flex: 1.1 1 0;
   display: flex;
   flex-wrap: wrap;
-
-  /* Tight inter-block rhythm (fieldsets keep their own inner field gap). Keeping
-     the major blocks close reclaims the room the preset chip row needs, so the
-     open advanced panel still drops below its summary within one viewport. */
-  gap: var(--space-xs);
+  gap: var(--space-sm);
   align-content: flex-start;
-  overflow: auto;
 }
 
-.inputs:has(.advanced[open]) {
-  overflow: visible;
-}
-
-.intro,
-.presets,
+.title-card,
 .advanced,
 .actions {
   grid-column: 1 / -1;
 }
 
-/* Preset chips: compact secondary buttons that load a known model deployment.
-   Per the design spec they use a bordered muted surface (never the green
-   primary fill) and turn green only on hover; focus keeps the shared cyan
-   outline. They sit below the control-size token because they are shortcuts,
-   not primary touch targets, which keeps the collapsed form within one
-   viewport. */
+/* The whole form body is one bordered surface: title, both fieldsets, and the
+   advanced disclosure sit on it as sections rather than separate cards. Only
+   the Reset action stays outside on the page background. */
+.form-card {
+  min-width: 0;
+  flex: 1 1 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  border: var(--layout-border) solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-fieldset-surface);
+}
+
+/* Title section: intro copy and the preset row together, centered. */
+.title-card {
+  min-width: 0;
+  flex: 1 1 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding: var(--space-md) var(--space-lg);
+  text-align: center;
+}
+
+/* The preset row: a HUD caption naming the chip group, then the chips. */
+.presets-row {
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-md);
+}
+
+.presets-label {
+  flex: 0 0 auto;
+}
+
+/* Preset chips: compact secondary buttons that load a known deployment. They
+   use a bordered muted surface (never the green primary fill) and turn green
+   only on hover; focus keeps the shared cyan outline. Centered inside the
+   title card per the DC. */
 .presets {
   min-width: 0;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
+  justify-content: center;
   gap: var(--space-xs);
 }
 
@@ -356,16 +507,19 @@ summary,
   min-height: var(--layout-chip-size);
   width: auto;
   padding: var(--space-xs) var(--space-sm);
+  border-color: var(--color-border-strong);
   background: var(--color-raised);
-  color: var(--color-muted);
+  color: var(--color-subtle);
   font-family: var(--font-mono);
-  font-size: var(--font-body);
+  font-size: var(--font-status);
   font-weight: var(--font-weight-bold);
 }
 
-.preset:hover {
+/* The chip whose deployment the form still matches keeps the hover green. */
+.preset:hover,
+.preset[aria-pressed="true"] {
   border-color: var(--color-primary);
-  color: var(--color-primary);
+  color: var(--color-primary-bright);
 }
 
 .intro h1,
@@ -381,8 +535,7 @@ summary,
 }
 
 .intro p,
-.hero-label,
-.disclaimer,
+.hero-say,
 .metric span,
 .fit span {
   color: var(--color-muted);
@@ -396,38 +549,77 @@ summary,
   gap: var(--space-sm);
   margin: 0;
   padding: var(--space-md);
-  border: var(--layout-border) solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: var(--color-surface);
+  border: 0;
 }
 
+/* Fields never grow past their half-column basis: a field left alone on its
+   row (adaptive per-family controls come and go) keeps the same width as a
+   paired one instead of stretching across the whole card. */
 .field {
   min-width: 0;
-  flex: 1 1 var(--layout-half);
+  flex: 0 1 var(--layout-half);
   display: grid;
-  gap: var(--space-2xs);
+  gap: var(--space-xs);
   margin: 0;
+  justify-items: center;
+}
+
+/* DC centers each control in its cell and centers the value text inside it,
+   so the input group reads as one centered column beneath its caption. */
+.field > input,
+.field > select {
+  text-align: center;
 }
 
 .field--wide {
   flex-basis: 100%;
 }
 
-/* The Model group's parameter count, unit, and precision read as one setting, so
-   they sit three-across on a single row (the design's Total Parameters | Unit |
-   Precision layout) instead of wrapping two-then-one. The basis subtracts the two
-   inter-column gaps so the trio fills the row exactly without wrapping; min-width:0
-   on .field lets them shrink to share a narrow input pane rather than overflow. */
+/* A zero-height full-width flex item: everything after it wraps onto a new
+   row, so the adaptive per-family fields always sit below the fixed ones. */
+.field-break {
+  flex: 1 1 100%;
+  height: 0;
+}
+
+/* The Model group's parameter count, unit, and precision read as one setting,
+   so they sit three-across on a single row instead of wrapping two-then-one. */
 .field--third {
   flex-basis: var(--layout-third);
 }
 
+/* Checkbox rows keep the indicator and its text on one line. */
 .field--check label {
   position: relative;
   min-height: var(--layout-control-size);
   display: flex;
   align-items: center;
   gap: var(--space-sm);
+}
+
+/* The caption voice: every small label in the app — field captions, checkbox
+   labels, the presets label, the hero GPU-class caption, the fit-scale row,
+   the stat-chip labels, and the Reset button — shares this one treatment so
+   they all read identically. Per-site deltas (mono, bold, cyan, centering)
+   stay on the individual rules. Section legends keep their green HUD style. */
+.presets-label,
+.field--check label,
+.field:not(.field--check) > label,
+.actions button,
+.hero-secondary .hero-label,
+.fit-scale,
+.stats span,
+.tier-head {
+  color: var(--color-muted);
+  font-size: var(--font-status);
+  letter-spacing: var(--font-hud-spacing);
+  text-transform: uppercase;
+}
+
+/* Field captions center over their control and hold one line. */
+.field:not(.field--check) > label {
+  text-align: center;
+  white-space: nowrap;
 }
 
 .field--check input {
@@ -439,12 +631,15 @@ summary,
 }
 
 .checkbox-state {
-  min-width: var(--layout-control-size);
-  min-height: var(--layout-control-size);
+  min-width: var(--layout-check-size);
+  min-height: var(--layout-check-size);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: var(--layout-border) solid var(--color-border);
+
+  /* The bold border keeps the empty box perceptible on the dark panel; at 1px
+     the unchecked state all but vanished. */
+  border: var(--layout-border-bold) solid var(--color-muted);
   border-radius: var(--radius-sm);
   background: var(--color-raised);
   color: var(--color-muted);
@@ -481,20 +676,25 @@ summary,
   gap: var(--space-md);
   padding: 0 var(--space-md);
   cursor: pointer;
-  color: var(--color-text);
+  color: var(--color-subtle);
+  font-size: var(--font-status);
+  letter-spacing: var(--font-hud-spacing);
+  text-transform: uppercase;
   list-style: none;
 }
 
 /* Disclosure affordance: a downward "v" chevron drawn from tokens so the
-   summary reads as expandable text, not a button. It inherits the summary
-   color (foreground, cyan on open) and rotates up once expanded. */
+   summary reads as expandable text, not a button. It is green while collapsed
+   (the primary accent points at the expandable control), and inherits the
+   summary's cyan once open; it rotates up when expanded. */
 .advanced summary::after,
-.panel summary::after {
+.panel summary::after,
+.tier .tier-summary::after {
   flex: 0 0 auto;
   width: var(--space-sm);
   height: var(--space-sm);
-  border-right: var(--space-2xs) solid currentcolor;
-  border-bottom: var(--space-2xs) solid currentcolor;
+  border-right: var(--space-2xs) solid var(--color-primary);
+  border-bottom: var(--space-2xs) solid var(--color-primary);
   content: "";
   transform: translateY(-0.0625rem) rotate(45deg);
 }
@@ -502,6 +702,7 @@ summary,
 .advanced summary {
   position: relative;
   justify-content: center;
+  color: var(--color-primary);
 }
 
 .advanced summary::after {
@@ -510,127 +711,275 @@ summary,
 }
 
 .advanced[open] summary::after,
-.panel[open] summary::after {
+.panel[open] summary::after,
+.tier[open] .tier-summary::after {
   transform: translateY(0.0625rem) rotate(225deg);
 }
 
 @media (prefers-reduced-motion: no-preference) {
   .advanced summary::after,
-  .panel summary::after {
+  .panel summary::after,
+  .tier .tier-summary::after {
     transition: transform 120ms ease;
   }
+}
+
+/* Static hardware-tier reference: an accordion table at the bottom of the
+   results column. name="hardware-tier" on the rows keeps one open at a time
+   with no JS; the fit column's check paints in only for tiers the current
+   estimate fits (renderTierFits). */
+.tiers {
+  grid-column: 1 / -1;
+  min-width: 0;
+  padding: var(--space-md);
+  border: var(--layout-border) solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+/* The reference header mirrors the section legends: green title over a subtle
+   subtitle, both centered HUD captions. */
+.tiers-title {
+  margin: 0;
+  color: var(--color-primary);
+  font-size: var(--font-status);
+  letter-spacing: var(--font-hud-spacing);
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.tiers-subtitle {
+  margin: 0 0 var(--space-md);
+  color: var(--color-subtle);
+  font-size: var(--font-status);
+  letter-spacing: var(--font-hud-spacing);
+  text-align: center;
+  text-transform: uppercase;
+}
+
+/* Header, summary rows, and example rows share one grid — memory | fit |
+   use | chevron — so the columns rail through the whole table. */
+.tier-head,
+.tier-summary,
+.tier-example {
+  display: grid;
+  grid-template-columns:
+    minmax(0, var(--layout-tier-memory)) minmax(0, var(--layout-tier-fit))
+    minmax(0, 100%) auto;
+  gap: var(--space-md);
+  align-items: baseline;
+}
+
+.tier-head {
+  padding-block: var(--space-xs);
+}
+
+/* The fit column centers both its header and the checkmarks beneath it. */
+.tier-fit-head {
+  text-align: center;
+}
+
+.tier {
+  min-width: 0;
+  border-top: var(--layout-border) solid var(--color-border-soft);
+}
+
+/* Rows read as thin reference text: the lightest weight the variable fonts
+   ship (400), overriding the bold the shared summary rules would apply. */
+.tier-summary {
+  min-height: var(--layout-control-size);
+  padding-block: var(--space-xs);
+  cursor: pointer;
+  font-size: var(--font-control);
+  font-weight: var(--font-weight-regular);
+  list-style: none;
+}
+
+.tier-memory {
+  color: var(--color-text);
+  font-family: var(--font-mono);
+}
+
+/* The fit check keeps its grid cell but paints transparent until the current
+   estimate fits the row's capacity ceiling. */
+.tier-fit {
+  color: transparent;
+  font-family: var(--font-mono);
+  text-align: center;
+}
+
+.tier-fit[data-fit="true"] {
+  color: var(--color-primary);
+}
+
+.tier-use {
+  color: var(--color-muted);
+}
+
+.tier-body {
+  padding-block: 0 var(--space-sm);
+}
+
+.tier-examples {
+  display: grid;
+  gap: var(--space-2xs);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tier-example {
+  font-size: var(--font-control);
+}
+
+.tier-example-size {
+  grid-column: 1;
+  color: var(--color-muted);
+  font-family: var(--font-mono);
+}
+
+/* Example cards align under the "typical use" column and stack one per line.
+   Links read as quiet reference text (no green); hovering restores the link
+   affordance. */
+.tier-example-cards {
+  grid-column: 3;
+  display: grid;
+  gap: var(--space-2xs);
+  justify-items: start;
+  padding-inline-start: var(--space-lg);
+  color: var(--color-muted);
 }
 
 .advanced .group {
   margin-top: var(--space-sm);
 }
 
+/* Advanced disclosure: a section of the shared form surface (no card chrome of
+   its own), opened by its green centered summary label. */
 .advanced {
   flex: 1 1 100%;
   min-width: 0;
   position: relative;
-  margin-bottom: var(--space-sm);
 }
 
-/* The open advanced panel drops below its summary as an overlay so it never
-   covers the main controls above it (which tests and users still operate while
-   it is open). The pane reclaims enough vertical rhythm above the summary that
-   the panel's foot stays within one viewport instead of scrolling the page. */
+/* DC inline expand-down: the open advanced panel drops in flow beneath its
+   summary (no overlay). It stays inside the input column, so it never covers
+   the results pane; the page may grow taller when it is open. */
 .advanced[open] .group {
-  position: absolute;
-  z-index: var(--z-disclosure);
-  margin-top: 0;
-  width: min(100%, var(--layout-advanced-width));
-  max-height: var(--layout-advanced-height);
-  overflow-y: auto;
-  box-shadow: 0 1rem 2rem var(--color-shadow);
+  margin-top: var(--space-sm);
 }
 
 .advanced[open] .field {
-  flex-basis: var(--layout-quarter);
+  flex-basis: var(--layout-half);
+}
+
+/* The three toggles (MoE, sharding, checkpointing) share one three-across row. */
+.advanced[open] .field--check {
+  flex-basis: var(--layout-third);
 }
 
 .actions {
   min-width: 0;
   flex: 1 1 100%;
   display: flex;
+  gap: var(--space-sm);
   justify-content: center;
+}
+
+/* DC Reset: cyan outline treatment (overriding the caption voice's muted
+   color) so it reads as a distinct control, not the green primary action. */
+.actions button {
+  border-color: var(--color-cyan-line);
+  background: var(--color-cyan-soft);
+  color: var(--color-cyan);
+  font-family: inherit;
+  font-weight: var(--font-weight-regular);
+}
+
+.actions button:hover {
+  border-color: var(--color-cyan);
+  color: var(--color-cyan-bright);
 }
 
 .results {
   min-width: 0;
-  max-height: 100%;
   flex: 1 1 0;
   display: grid;
-  grid-template-columns:
-    minmax(0, var(--layout-primary-result))
-    minmax(0, var(--layout-secondary-result));
+  grid-template-columns: minmax(0, 100%);
   gap: var(--space-sm);
   align-content: start;
-  overflow-y: auto;
 }
 
 .hero,
-.panel,
-.warnings,
-.disclaimer {
+.panel-group,
+.warnings {
   min-width: 0;
   border: var(--layout-border) solid var(--color-border);
   border-radius: var(--radius-sm);
   background: var(--color-surface);
 }
 
+/* The four reasoning disclosures share this one bordered surface, reading as
+   rows on the same dark panel: no per-panel card chrome and no divider lines. */
+.panel-group {
+  grid-column: 1 / -1;
+  border-radius: var(--radius-md);
+}
+
+.panel {
+  min-width: 0;
+}
+
+/* DC merged hero: one full-width answer card holding the VRAM total (primary
+   region) beside the recommended GPU class (secondary region), with the fit
+   meter and summary spanning underneath. The green corner glow alone carries
+   the card's role; violet lives in the ambient background. */
 .hero {
+  grid-column: 1 / -1;
   position: relative;
   display: grid;
-  align-content: space-between;
-  gap: var(--space-md);
-  padding: var(--space-lg) var(--space-lg) var(--space-md);
-  background: var(--color-raised);
-
-  /* Depth comes from a top highlight plus a low-contrast colored glow that
-     carries the card's role: green for the primary answer, blue for the
-     alternate class (per the design spec's elevation language). The glow is a
-     soft halo — no layout box — so it never shifts the one-viewport stack. */
+  grid-template-columns: minmax(0, 57%) minmax(0, 43%);
+  gap: var(--space-md) var(--space-lg);
+  padding: var(--space-md) var(--space-lg);
+  border-color: var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--background-hero);
   box-shadow:
     inset 0 0.0625rem 0 #ffffff0a,
     0 0 2.5rem -1.25rem var(--color-glow-primary);
 }
 
-.hero--secondary {
-  box-shadow:
-    inset 0 0.0625rem 0 #ffffff0a,
-    0 0 2.5rem -1.25rem var(--color-glow-blue);
+.hero-primary,
+.hero-secondary {
+  min-width: 0;
+  position: relative;
+  display: grid;
+  gap: var(--space-xs);
+  align-content: start;
 }
 
-.hero::before {
-  position: absolute;
-  inset: 0 0 auto;
-  height: var(--space-xs);
-  background: var(--color-primary);
-  content: "";
-}
-
-.hero::after {
-  position: absolute;
-  inset: auto var(--space-lg) 0;
-  height: var(--layout-border);
-  background: var(--color-hero-line);
-  content: "";
-}
-
-.hero--secondary::before {
-  background: var(--color-blue);
-}
-
-.hero-label {
+/* "Estimated VRAM Required" is the primary answer heading: white, bold, sans,
+   sized up from the caption scale so it anchors the hero. */
+.hero-primary .hero-label {
+  color: var(--color-text);
+  font-family: inherit;
+  font-size: var(--font-heading);
   font-weight: var(--font-weight-bold);
 }
 
+/* The GPU-class caption takes the caption voice plus the mono group's face;
+   bold keeps it legible over the hero's green glow. */
+.hero-secondary .hero-label {
+  font-weight: var(--font-weight-bold);
+}
+
+/* The answer values are technical readouts, so they take the mono face like
+   the controls; the big total keeps the primary green. */
 .hero-value {
   min-width: 0;
   overflow-wrap: anywhere;
   color: var(--color-primary);
+  font-family: var(--font-mono);
   font-size: var(--font-hero);
   font-weight: var(--font-weight-strong);
   font-variant-numeric: tabular-nums;
@@ -642,10 +991,15 @@ summary,
   font-size: var(--font-hero-small);
 }
 
+/* Overflow / no-model guidance is a sentence, not a readout: body face at
+   regular weight so the "no fit" state reads quietly instead of shouting. */
+.hero-value--prose {
+  font-family: inherit;
+  font-weight: var(--font-weight-regular);
+}
+
 /* The recommended class value plus its concrete example cards read as one unit
-   pinned to the bottom of the secondary hero card, mirroring the primary card's
-   fit line. Keeping them grouped stops the space-between distribution from
-   splitting the class from the "e.g. ..." cards. */
+   beneath the label, mirroring the primary region. */
 .hero-gpu-detail {
   min-width: 0;
   display: grid;
@@ -656,28 +1010,50 @@ summary,
   min-width: 0;
   overflow-wrap: anywhere;
   color: var(--color-muted);
-  font-size: var(--font-body);
-  line-height: var(--font-line-body);
+  font-size: var(--font-control);
+  line-height: var(--font-line-tight);
 }
 
-/* Linked example cards carry the primary green, matching the design's green
-   card names; the underline keeps them distinguishable from the muted name-only
-   cards without relying on color alone. */
+/* Linked example cards carry the primary green; the underline keeps them
+   distinguishable from muted name-only cards without relying on color alone. */
 .hero-examples a {
-  color: var(--color-primary);
+  color: var(--color-primary-dim);
   text-decoration: underline;
   text-underline-offset: var(--space-2xs);
 }
 
 .hero-fit {
+  grid-column: 1 / -1;
   min-width: 0;
   display: grid;
   gap: var(--space-xs);
+  padding-top: var(--space-sm);
+  border-top: var(--layout-border) solid var(--color-hero-line);
+}
+
+/* Under the meter, a HUD scale row names what the bar measures: USAGE on the
+   left edge, the recommended class capacity on the right. The app hides the
+   row (via the hidden attribute) whenever the bar has nothing to measure or
+   overflows; WebKit would not restyle it through a CSS sibling selector when
+   the meter's attributes change. */
+.fit-scale {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-md);
+  font-family: var(--font-mono);
+  font-weight: var(--font-weight-bold);
+}
+
+/* The fit sentence is a quiet caption beneath the meter block, a size down from
+   body text and pushed off the scale row so the bar keeps its own space. */
+.hero-say {
+  padding-top: var(--space-sm);
+  font-size: var(--font-control);
 }
 
 /* Fit meter: a slim usage bar reading the recommended class as a budget the
-   workload consumes. Green primary is the fit/health signal per the design
-   spec; the exact spare figures live in the adjacent caption. */
+   workload consumes. Green primary is the fit/health signal; the exact spare
+   figures live in the adjacent caption. */
 .fit-meter {
   appearance: none;
   inline-size: 100%;
@@ -694,46 +1070,80 @@ summary,
 }
 
 .fit-meter::-webkit-meter-optimum-value {
-  background: var(--color-primary);
+  background: var(--color-fit-fill);
 }
 
 .fit-meter::-moz-meter-bar {
-  background: var(--color-primary);
+  background: var(--color-fit-fill);
 }
 
 /* A fit consuming nearly all usable VRAM turns amber so the tight budget reads
-   at a glance; the caption's "Tight fit" prefix and "(N% spare)" carry the same
-   signal without relying on color alone. */
+   at a glance; the caption's "Tight fit" prefix carries the same signal. */
 .fit-meter--tight::-webkit-meter-optimum-value {
-  background: var(--color-amber);
+  background: var(--color-fit-tight);
 }
 
 .fit-meter--tight::-moz-meter-bar {
-  background: var(--color-amber);
+  background: var(--color-fit-tight);
 }
 
-.panel--wide {
-  grid-column: 1 / -1;
+/* Overflow pegs the bar full and red: the workload exceeds every
+   single-accelerator class, so the budget reads as blown at a glance. */
+.fit-meter[data-over="true"]::-webkit-meter-optimum-value {
+  background: var(--color-fit-over);
+}
+
+.fit-meter[data-over="true"]::-moz-meter-bar {
+  background: var(--color-fit-over);
+}
+
+/* Collapsed panel titles share the stat-chip caption voice (muted, sans,
+   regular weight); the green open state below still wins. */
+.panel summary {
+  color: var(--color-muted);
+  font-family: inherit;
+  font-weight: var(--font-weight-regular);
 }
 
 .panel[open] > summary {
-  color: var(--color-cyan);
+  color: var(--color-primary);
 }
 
 .advanced summary:focus-visible,
-.panel summary:focus-visible {
+.panel summary:focus-visible,
+.tier .tier-summary:focus-visible {
   outline: var(--layout-border) solid var(--color-cyan);
   outline-offset: var(--space-2xs);
 }
 
+/* Detail-panel content reads a step below body text: supporting reasoning, not
+   the headline answer. */
 .panel-body {
   padding: var(--space-md);
   border-top: var(--layout-border) solid var(--color-border);
   background: var(--color-raised);
+  font-size: var(--font-control);
 }
 
+/* Desktop tightens the reasoning panels one step further; phones keep 12px,
+   the mobile-legibility floor the Lighthouse gate enforces. */
+@media (width > 48em) {
+  .panel-body {
+    font-size: var(--font-nav);
+  }
+}
+
+/* The last row's open body follows the group's rounded bottom corners so its
+   raised fill never paints over the surface's radius. */
+.panel:last-child .panel-body {
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+}
+
+/* The "why" intro reads as a muted descriptive paragraph, not a bright headline:
+   sans body type, muted color, so the itemized values below it carry emphasis. */
 .panel-body p {
   margin: 0 0 var(--space-sm);
+  color: var(--color-subtle);
 }
 
 .fit,
@@ -747,10 +1157,23 @@ summary,
   list-style: none;
 }
 
-.warnings,
-.disclaimer {
+.warnings {
   grid-column: 1 / -1;
   padding: var(--space-md);
+}
+
+/* DC disclaimer: a full-width italic footnote pinned to the very bottom of the
+   app. It takes the faint step below the intro tagline's muted color so the
+   legal footnote recedes further than the descriptive copy. */
+.disclaimer {
+  width: 100%;
+  max-width: var(--layout-max);
+  margin-block: auto 0;
+  margin-inline: auto;
+  padding: 0 var(--space-md) var(--space-md);
+  color: var(--color-faint);
+  font-style: italic;
+  text-align: center;
 }
 
 .metric,
@@ -766,55 +1189,56 @@ code {
 
 code {
   overflow-wrap: anywhere;
+  color: var(--color-text);
+}
+
+/* The general formula's actual numbers sit beneath it as a muted mono line
+   (the .panel-body p rule supplies the muted color and margin). */
+.formula-numbers {
+  font-family: var(--font-mono);
 }
 
 .warnings .metric {
   display: block;
 }
 
+/* Assumptions are short methodology notes, each on its own line with a green
+   bullet; the row template's value cell is empty here (hidden below), so only
+   the note text shows. */
+.assumptions .metric {
+  display: flex;
+  gap: var(--space-sm);
+  align-items: baseline;
+}
+
+.assumptions .metric::before {
+  flex: 0 0 auto;
+  color: var(--color-primary);
+  content: "·";
+  font-weight: var(--font-weight-bold);
+}
+
+/* The value column sizes to its content so multi-word values ("1.4 GB usable
+   margin") hold one line; the label column takes the rest of the row. */
 .calculation .metric,
-.assumptions .metric,
 .fit li {
   display: grid;
-  grid-template-columns: minmax(0, 70%) minmax(0, 30%);
+  grid-template-columns: minmax(0, 100%) auto;
   gap: var(--space-md);
   align-items: baseline;
-  padding-block: var(--space-xs);
-  border-bottom: var(--layout-border) solid var(--color-border);
+  padding-block: var(--space-2xs);
 }
 
-/* Memory breakdown: the computed VRAM composition as compact stat cards. Each
-   label/value pair reads as a small bordered tile so the split is scannable at
-   a glance; the cards wrap to fit the panel column. Values stay foreground
-   mono, never the green answer accent, per the design spec's color reservation. */
-.breakdown {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-xs);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.breakdown .metric {
-  flex: 1 1 var(--layout-half);
-  display: grid;
-  gap: var(--space-2xs);
-  padding: var(--space-sm);
-  border: var(--layout-border) solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: var(--color-surface);
-  font-variant-numeric: tabular-nums;
+/* Panel rows read as a dense mono ledger (label and value both monospace), with
+   no divider rules between them, matching the design's reasoning panels. */
+.fit span,
+.calculation .metric span {
+  font-family: var(--font-mono);
 }
 
 /* Headline stat chips: the answer's biggest levers as scannable tiles spanning
-   the full results width beneath the hero, echoing the memory-breakdown card
-   look. Labels read as HUD text; values stay foreground mono, never the green
-   answer accent, per the design spec's color reservation. Four across on the
-   wide two-column layout, dropping to a 2x2 grid once the results column
-   narrows so labels wrap at word boundaries rather than mid-word. The columns
-   cap at an even share of the row but shrink to fit the gaps, so they never
-   overflow the results width. */
+   the full results width beneath the hero. Four across on the wide layout,
+   dropping to a 2x2 grid once the results column narrows. */
 .stats {
   grid-column: 1 / -1;
   display: grid;
@@ -829,34 +1253,33 @@ code {
   display: grid;
   gap: var(--space-2xs);
   padding: var(--space-sm);
-  border: var(--layout-border) solid var(--color-border);
+  border: var(--layout-border) solid var(--color-border-soft);
   border-radius: var(--radius-sm);
-  background: var(--color-surface);
+  background: var(--background-chip);
   font-variant-numeric: tabular-nums;
 }
 
 .stats .metric span {
   overflow-wrap: break-word;
-  font-size: var(--font-status);
-  text-transform: uppercase;
-  letter-spacing: var(--font-hud-spacing);
-}
-
-.calculation .metric:last-child,
-.assumptions .metric:last-child,
-.fit li:last-child {
-  border-bottom: 0;
 }
 
 .fit strong,
-.assumptions .metric strong,
 .calculation .metric strong {
   overflow-wrap: anywhere;
   text-align: right;
 }
 
+/* Rows whose value cell is empty (methodology bullets, warning prose) hide the
+   value so only the label text shows. */
+.assumptions .metric strong,
 .warnings .metric strong {
   display: none;
+}
+
+/* The final calculation row is the total; its value carries the primary green
+   so the answer stands out from the itemized components above it. */
+.calculation .metric:last-child strong {
+  color: var(--color-primary);
 }
 
 /* Multi-GPU parallelism callout: an amber note beneath the stat chips, shown
@@ -872,7 +1295,7 @@ code {
   border: var(--layout-border) solid var(--color-amber-line);
   border-radius: var(--radius-sm);
   background: var(--color-amber-surface);
-  color: var(--color-text);
+  color: var(--color-amber);
 }
 
 .callout-mark {
@@ -882,11 +1305,14 @@ code {
   font-weight: var(--font-weight-bold);
 }
 
+/* Per the design's warning state, the whole caution line is small amber mono,
+   reading as HUD telemetry rather than body prose. */
 .callout-text {
   min-width: 0;
   margin: 0;
-  font-size: var(--font-body);
-  line-height: var(--font-line-body);
+  font-family: var(--font-mono);
+  font-size: var(--font-nav);
+  line-height: var(--font-line-tight);
 }
 
 /* Strategy links carry the amber accent (not the reserved green) with an
@@ -897,30 +1323,119 @@ code {
   text-underline-offset: var(--space-2xs);
 }
 
+/* Tier example links read as quiet reference text (no green); hover restores
+   the link affordance. Placed with the other anchor rules so the ascending
+   specificity order holds. */
+.tier-example-cards a {
+  color: var(--color-subtle);
+  text-decoration: none;
+}
+
+/* Placed after the other anchor rules so the ascending-specificity order holds:
+   the GitHub link is a bordered mono chip per the design (semibold 11px, 7px
+   icon gap, 2px border), muted at rest and brightening to full text on hover. */
+.topnav a {
+  min-width: 0;
+  min-height: var(--layout-control-size);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-nav-gap);
+  padding: var(--space-sm) var(--space-nav-pad);
+  border: var(--layout-border-bold) solid var(--color-border);
+  border-radius: var(--radius-lg);
+  color: var(--color-muted);
+  font-family: var(--font-mono);
+  font-size: var(--font-nav);
+  font-weight: var(--font-weight-semi);
+  text-decoration: none;
+}
+
+/* When a preset is active the header MODEL word links to the model's page:
+   underline only, keeping the muted label color instead of the global cyan
+   link look (this rule follows the global a:hover, so at equal specificity
+   it also wins the hover state). The anchor exists only while linked. */
+.status-item a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: var(--space-2xs);
+}
+
+/* The brand wordmark links to the canonical production URL but keeps its
+   product-name look: foreground text (the marker's green comes from
+   .brand-mark), no underline, in both rest and hover states. */
+.brand,
+.brand:hover {
+  color: inherit;
+  text-decoration: none;
+}
+
+.topnav a:hover {
+  color: var(--color-text);
+}
+
+.tier-example-cards a:hover {
+  color: var(--color-text);
+  text-decoration: underline;
+  text-underline-offset: var(--space-2xs);
+}
+
 [hidden] {
   display: none;
 }
 
-@media (width <= 22em) {
+@media (width <= 48em) {
+  /* Phones and small tablets stack the two panes into one column: the page
+     scrolls vertically instead of squeezing captions into a 190px column
+     (WCAG 1.4.10 reflow). The chips drop to a 2x2 grid and the merged hero
+     stacks its two regions. */
   .layout {
     flex-direction: column;
   }
-}
 
-@media (width <= 48em) {
-  /* Once the results column narrows, drop the four chips to a 2x2 grid. */
   .stats {
     grid-template-columns: repeat(2, minmax(0, 50%));
   }
 
-  .advanced[open] {
-    position: static;
+  .hero {
+    grid-template-columns: minmax(0, 100%);
+  }
+}
+
+/* On phone-width viewports the half- and third-width columns are narrower than
+   their uppercase HUD labels, so side-by-side fields let the labels visually
+   collide. Give every field the full row so each caption owns its own line. */
+@media (width <= 30em) {
+  .field,
+  .field--third {
+    flex-basis: 100%;
   }
 
-  .advanced[open] .group {
-    position: absolute;
-    inset: var(--space-md) var(--space-md) auto;
-    width: auto;
-    max-height: calc(100% - (var(--space-md) * 2));
+  /* The caption would wrap onto its own line here and push the collapsed page
+     past one viewport; the chips are self-explanatory without it. */
+  .presets-label {
+    display: none;
+  }
+
+  /* Reclaim vertical room on small screens: the roomier desktop gap under the
+     topbar and the adaptive-row break spacer are luxuries the one-viewport
+     phone contract cannot afford. */
+  .layout {
+    padding-block-start: var(--space-md);
+  }
+
+  .field-break {
+    display: none;
+  }
+
+  /* Third-width toggles collapse into vertical letter stacks in the narrow
+     column; give each its own full row instead. */
+  .advanced[open] .field--check {
+    flex-basis: 100%;
+  }
+
+  /* The chip keeps its icon and accessible name; the text would wrap into a
+     vertical letter stack and triple the topbar's height. */
+  .topnav-label {
+    display: none;
   }
 }

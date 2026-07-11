@@ -1,21 +1,20 @@
 import {
   dataSlot,
+  fillFormValues,
+  renderFitMeterBar,
+  renderGpuClass,
   renderGpuExamples,
   renderParallelismCallout,
+  renderPresetSelection,
+  renderTierFits,
   searchFromForm,
   setHiddenWithControls,
-  toStateKey,
+  writeUrlFromState,
 } from "./app-dom";
 import { buildReport } from "./report";
-import { sanitizeNumberInput } from "./input-sanitizer";
-import { MODEL_PRESETS } from "./presets";
-import {
-  fitMeter,
-  formatSpeed,
-  recommendedGpuClass,
-  speedLabel,
-  whyText,
-} from "./result-format";
+import { guardNumericInsertion, sanitizeNumberInput } from "./input-sanitizer";
+import { activePreset, MODEL_PRESETS } from "./presets";
+import { fitMeter, formatSpeed, speedLabel, whyText } from "./result-format";
 import { defaultState, normalizedState, zeroState } from "./state";
 import {
   statusFitLabel,
@@ -67,30 +66,50 @@ export class CalculatorApp {
 
   public mount(): void {
     this.wirePresets();
+    const urlState = normalizedState(new URLSearchParams(location.search));
+    this.applyValues(urlState, {}, false);
+    this.form.addEventListener("beforeinput", guardNumericInsertion);
+    const recompute = (event: Event): void => {
+      if (!this.exitQloRAOnPrecisionChange(event)) {
+        this.update(true);
+      }
+    };
     this.form.addEventListener("input", (event) => {
       if (event.target instanceof HTMLInputElement) {
         sanitizeNumberInput(event.target);
       }
-      if (!this.exitQloRAOnPrecisionChange(event)) {
-        this.update();
-      }
+      recompute(event);
     });
-    this.form.addEventListener("change", (event) => {
-      if (!this.exitQloRAOnPrecisionChange(event)) {
-        this.update();
+    this.form.addEventListener("change", recompute);
+    // Enter in a field would implicitly "click" the Reset submit button and
+    // wipe everything the user typed; recompute instead. Reset still submits
+    // (and resets) from an explicit click or Enter on the button itself.
+    this.form.addEventListener("keydown", (event) => {
+      if (
+        event.key !== "Enter" ||
+        !(event.target instanceof HTMLInputElement)
+      ) {
+        return;
       }
+      event.preventDefault();
+      this.update(true);
     });
     this.form.addEventListener("submit", (event) => {
       event.preventDefault();
-      this.reset();
+      this.applyValues(zeroState());
     });
-    this.update();
   }
 
-  private update(): void {
+  private update(shouldWriteUrl = false): void {
+    // Sync visibility first: searchFromForm skips disabled controls, so a
+    // freshly revealed field (a preset enabling Active Parameters) must be
+    // re-enabled before reading the state that feeds the report.
+    this.syncControls(normalizedState(searchFromForm(this.form)));
     const state = normalizedState(searchFromForm(this.form));
-    this.syncControls(state);
     this.render(state, buildReport(state));
+    if (shouldWriteUrl) {
+      writeUrlFromState(state);
+    }
   }
 
   // Attach one-click load behavior to the static preset chips by matching each
@@ -118,28 +137,13 @@ export class CalculatorApp {
   private applyValues(
     base: Readonly<FormState>,
     overrides: Readonly<Record<string, string | boolean>> = {},
+    shouldWriteUrl = true,
   ): void {
-    const values = new Map<string, string | boolean>([
-      ...Object.entries(base),
-      ...Object.entries(overrides),
-    ]);
-    for (const element of this.form.elements) {
-      if (element instanceof HTMLInputElement && element.type === "checkbox") {
-        element.checked = values.get(toStateKey(element.name)) === true;
-      } else if (
-        element instanceof HTMLInputElement ||
-        element instanceof HTMLSelectElement
-      ) {
-        element.value = String(values.get(toStateKey(element.name)));
-      }
-    }
-    this.update();
-  }
-
-  private reset(
-    overrides: Readonly<Record<string, string | boolean>> = {},
-  ): void {
-    this.applyValues(zeroState(), overrides);
+    fillFormValues(
+      this.form,
+      new Map(Object.entries({ ...base, ...overrides })),
+    );
+    this.update(shouldWriteUrl);
   }
 
   private exitQloRAOnPrecisionChange(event: Event): boolean {
@@ -154,7 +158,16 @@ export class CalculatorApp {
     ) {
       return false;
     }
-    this.reset({ executionMode: "Inference", precision: target.value });
+    // Leaving QLoRA (which pins 4-bit + Local/Edge) by picking another precision
+    // must preserve the user's deployment; only the mode, precision, and the
+    // QLoRA-forced runtime lift; the params, context, and toggles they entered
+    // are kept intact.
+    const current = normalizedState(searchFromForm(this.form));
+    this.applyValues(current, {
+      executionMode: "Inference",
+      precision: target.value,
+      runtimeProfile: "Server / Cloud",
+    });
     return true;
   }
 
@@ -198,15 +211,8 @@ export class CalculatorApp {
     fit: Readonly<HardwareRecommendation>,
   ): void {
     const meter = fitMeter(fit);
-    const bar = dataSlot(this.root, "fit-meter");
-    if (!(bar instanceof HTMLMeterElement)) {
-      throw new TypeError("Missing fit meter");
-    }
-    bar.hidden = meter === null;
-    bar.value = meter?.fillPercent ?? 0;
-    // A tight fit turns the bar amber; the caption's "Tight fit" prefix carries
-    // the same signal for anyone not perceiving the color.
-    bar.classList.toggle("fit-meter--tight", meter?.isTight === true);
+    renderFitMeterBar(this.root, meter);
+    this.setText("capacity", meter === null ? "" : meter.capacity);
     this.setText(
       "vram-say",
       meter === null
@@ -252,18 +258,28 @@ export class CalculatorApp {
     }
   }
 
+  // Toggle every field matching a data-attribute selector, disabling its inner
+  // controls when hidden so hidden inputs never feed the calculation.
+  private hideSlots(selector: string, isHidden: boolean): void {
+    for (const node of this.root.querySelectorAll<HTMLElement>(selector)) {
+      setHiddenWithControls(node, isHidden);
+    }
+  }
+
   private render(
     state: Readonly<FormState>,
     report: Readonly<ReportPayload>,
   ): void {
     const fit = report.recommendedHardware;
+    renderPresetSelection(this.root, this.presets, activePreset(state));
     this.renderStatus(state, report);
     this.setText("total", report.totalRequiredMemory);
     this.renderFitMeter(report, fit);
-    this.setText("gpu-class", recommendedGpuClass(fit.recommendedTier));
+    renderGpuClass(this.slot("gpu-class"), fit);
+    renderTierFits(this.root, report.minimumRawVramNeeded);
     renderGpuExamples(this.root, fit.exampleCards);
     renderParallelismCallout(this.root, report.parallelismStrategies);
-    this.setText("why", whyText(report));
+    this.setText("why", whyText(report, state.runtimeProfile));
     this.setText("min-cap", report.minimumRawVramNeeded);
     this.setText("usable-target", fit.usableVramTarget);
     this.setText("usable-on-class", fit.usableVramOnClass);
@@ -273,9 +289,9 @@ export class CalculatorApp {
     );
     this.setText("speed", formatSpeed(report.speed));
     this.fillRows("stat-chips", report.statChips);
-    this.fillRows("breakdown-rows", report.breakdown);
     this.fillRows("calculation-rows", report.calculationRows);
     this.setText("calc-formula", report.calculation);
+    this.setText("calc-numbers", report.calculationNumbers);
     this.fillRows("assumptions", report.assumptions);
     this.fillRows(
       "warnings",
@@ -301,17 +317,16 @@ export class CalculatorApp {
     }
     const isMoeApplicable = hasMoeControl(family);
     this.setCheckboxChecked("moe-enabled", state.moeEnabled && isMoeApplicable);
-    for (const node of this.root.querySelectorAll<HTMLElement>(
-      "[data-moe-families]",
-    )) {
-      setHiddenWithControls(node, !isMoeApplicable);
-    }
-    const isActiveVisible = isMoeApplicable && state.moeEnabled;
-    for (const node of this.root.querySelectorAll<HTMLElement>(
-      "[data-active]",
-    )) {
-      setHiddenWithControls(node, !isActiveVisible);
-    }
+    this.hideSlots("[data-moe-families]", !isMoeApplicable);
+    this.hideSlots("[data-active]", !(isMoeApplicable && state.moeEnabled));
+    // LoRA Trainable % only sizes the adapter for the LoRA / QLoRA modes (both
+    // contain "LoRA"); in Inference and Full training it has no effect, so hide
+    // it rather than imply a setting that does nothing.
+    this.hideSlots("[data-lora]", !state.executionMode.includes("LoRA"));
+    // Gradient Checkpointing and the optimizer only size training state, so
+    // these training-only inputs must not imply an effect on inference
+    // estimates; hide them whenever the mode is plain Inference.
+    this.hideSlots("[data-training]", state.executionMode === "Inference");
     setHiddenWithControls(this.kvCacheRow, !hasDecoderKvCache(state));
     const label =
       state.executionMode === "Inference"
@@ -326,8 +341,9 @@ export class CalculatorApp {
 }
 
 /**
-
-@param root
+Construct and mount the calculator app on the given document root.
+@param root - the DOM root containing the calculator markup
+@returns the mounted calculator instance
 */
 export function mountCalculator(root: ParentNode = document): CalculatorApp {
   const calculator = new CalculatorApp(root);

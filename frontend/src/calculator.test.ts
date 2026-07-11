@@ -70,6 +70,34 @@ function state(overrides: Partial<FormState> = {}): FormState {
 }
 
 /**
+ Compute the LoRA adapter training state for an optimizer at 1% trainable.
+@param optimizer - the optimizer choice under test
+@returns the adapter training state in GB
+*/
+function loraAdapterStateGb(optimizer: FormState["optimizer"]): number {
+  return trainingStateGb(
+    specFromState(
+      state({
+        executionMode: "LoRA fine-tuning",
+        optimizer,
+        loraTrainablePercent: "1",
+      }),
+    ),
+  );
+}
+
+/**
+ Compute the full-training state for an optimizer on the default 7B model.
+@param optimizer - the optimizer choice under test
+@returns the full-training state in GB
+*/
+function fullTrainingStateGb(optimizer: FormState["optimizer"]): number {
+  return trainingStateGb(
+    specFromState(state({ executionMode: "Full training", optimizer })),
+  );
+}
+
+/**
 
 @param overrides
 */
@@ -325,6 +353,24 @@ describe("training estimates", () => {
     expect(trainingStateGb(lora)).toBeCloseTo(0.42);
     expect(trainingActivationGb(lora)).toBeGreaterThan(0);
     expect(weightsGb(lora)).toBe(14);
+  });
+
+  test("paged 8-bit AdamW and Adafactor size adapter state by their bytes", () => {
+    // Paging only relocates the quantized state, so it sizes like 8-bit Adam
+    // (2 bytes); Adafactor's factored state approximates to 1 byte/param.
+    // Adapter parameters: 7B x 1% = 0.07B; state = adapter x (2 + 2 + bytes).
+    expect(loraAdapterStateGb("Paged 8-bit AdamW")).toBeCloseTo(0.42);
+    expect(loraAdapterStateGb("Adafactor")).toBeCloseTo(0.35);
+  });
+
+  test("full-training state scales with each optimizer's bytes per parameter", () => {
+    // Full training: 7B x (4 gradient + 2 master + optimizer bytes).
+    expect(fullTrainingStateGb("Paged 8-bit AdamW")).toBeCloseTo(56);
+    expect(fullTrainingStateGb("Adafactor")).toBeCloseTo(49);
+    // Regression: the existing optimizer mappings stay unchanged.
+    expect(fullTrainingStateGb("AdamW")).toBeCloseTo(98);
+    expect(fullTrainingStateGb("8-bit Adam")).toBeCloseTo(56);
+    expect(fullTrainingStateGb("SGD-like")).toBeCloseTo(70);
   });
 
   test("known model file size overrides QLoRA base weight estimate", () => {

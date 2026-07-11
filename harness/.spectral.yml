@@ -136,7 +136,7 @@ rules:
             properties:
               run:
                 type: string
-                pattern: "^pnpm --prefix harness run setup:e2e -- chromium$"
+                pattern: "^pnpm --prefix harness run setup:e2e -- chromium webkit$"
 
   workflow-runs-harness-gate:
     description: CI must run the full harness gate, not a package shortcut.

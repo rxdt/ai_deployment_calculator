@@ -1,10 +1,11 @@
 import { describe, expect, test } from "vitest";
+import { GPU_LINKS } from "./hardware";
 import { buildReport, specFromState } from "./report";
 import { defaultState } from "./state";
 import type { FormState } from "./types";
 
 /**
- 
+
 @param overrides
 */
 function state(overrides: Partial<FormState> = {}): FormState {
@@ -20,49 +21,44 @@ describe("buildReport", () => {
     expect(report.recommendedHardware).toEqual({
       requiredMemory: "21.3 GB",
       usableVramTarget: "85%",
-      usableVramOnClass: "40.8 GB",
-      fitHeadroom: "19.5 GB usable margin",
+      usableVramOnClass: "27.2 GB",
+      fitHeadroom: "5.9 GB usable margin",
       minimumRawVram: "25.1 GB",
       recommendedTier:
-        "48 GB workstation / pro inference class, e.g. RTX A6000 / RTX 6000 Ada / L40S",
+        "32 GB high-end consumer class, e.g. RTX 5090 / Radeon PRO W7800 / AWS Inferentia2 / Cloud TPU v6e / Cloud TPU v4",
       exampleCards: [
         {
-          name: "RTX A6000",
-          url: "https://www.nvidia.com/en-us/design-visualization/rtx-a6000/",
+          name: "RTX 5090",
+          url: GPU_LINKS.rtx5090,
         },
         {
-          name: "RTX 6000 Ada",
-          url: "https://www.nvidia.com/en-us/design-visualization/rtx-6000/",
+          name: "Radeon PRO W7800",
+          url: GPU_LINKS.w7800,
         },
-        { name: "L40S", url: "https://www.nvidia.com/en-us/data-center/l40s/" },
+        {
+          name: "AWS Inferentia2",
+          url: GPU_LINKS.inf2,
+        },
+        { name: "Cloud TPU v6e", url: GPU_LINKS.tpuV6e },
+        { name: "Cloud TPU v4", url: GPU_LINKS.tpuV4 },
       ],
-      math: "Estimated workload memory is 21.3 GB. With a 85% usable VRAM target, use a GPU with at least 25.1 GB of physical VRAM so the workload does not consume the entire card.",
+      math: "Estimated workload memory is 21.3 GB. With a 85% usable memory target, use hardware with at least 25.1 GB of accelerator memory so the workload does not consume the entire device.",
     });
-    expect(report.breakdown.map((row) => row.label)).toEqual([
-      "Model memory",
-      "Context memory",
-      "Activation memory",
-      "Runtime reserve",
-      "Safety margin",
-    ]);
-    expect(report.breakdown).not.toContainEqual(
-      expect.objectContaining({ label: "Task overhead" }),
-    );
     expect(report.calculation).toBe(
-      "Required_GB = (Weights_GB + Working_Memory_GB + Training_State_GB + Runtime_Overhead_GB) * Buffer; Safety_Buffer_GB = Base_GB * (Buffer - 1)",
+      "VRAM = (weights + KV cache + activations + runtime overhead) × buffer",
     );
-    expect(report.calculation).not.toContain("Task_Overhead");
+    expect(report.calculation).not.toContain("_GB");
     expect(report.calculationRows).toEqual([
-      { label: "Weights_GB (model memory)", value: "16.0 GB" },
+      { label: "Model weights", value: "16.0 GB" },
       { label: "Context memory", value: "1.0 GB" },
       { label: "Activation memory", value: "0.8 GB" },
-      { label: "Working_Memory_GB subtotal", value: "1.8 GB" },
-      { label: "Training_State_GB", value: "0.0 GB" },
-      { label: "Runtime_Overhead_GB", value: "1.5 GB" },
-      { label: "Base_GB before buffer", value: "19.3 GB" },
+      { label: "Working memory subtotal", value: "1.8 GB" },
+      { label: "Training state", value: "0.0 GB" },
+      { label: "Runtime overhead", value: "1.5 GB" },
+      { label: "Base subtotal before buffer", value: "19.3 GB" },
       { label: "Buffer multiplier", value: "1.10x" },
-      { label: "Safety_Buffer_GB", value: "1.9 GB" },
-      { label: "Required_GB", value: "21.3 GB" },
+      { label: "Safety buffer", value: "1.9 GB" },
+      { label: "Total required", value: "21.3 GB" },
     ]);
   });
 
@@ -83,21 +79,14 @@ describe("buildReport", () => {
     expect(report.totalRequiredMemory).toBe("79.0 GB");
     expect(report.minimumRawVramNeeded).toBe("92.9 GB");
     expect(report.recommendedHardware.recommendedTier).toBe(
-      "141 GB datacenter class, e.g. H200",
+      "95 GB Cloud TPU class, e.g. Cloud TPU v5p",
     );
-    // MoE compute weight = active 12B * 0.5 * 1.15 = 6.9 GB; H200 4800 / 6.9 = 695.7.
-    expect(report.speed).toBe("695.7 tokens/second");
-    expect(report.breakdown).toEqual([
-      { label: "Model memory", value: "27.0 GB" },
-      { label: "Context memory", value: "41.9 GB" },
-      { label: "Activation memory", value: "1.4 GB" },
-      { label: "Runtime reserve", value: "1.5 GB" },
-      { label: "Safety margin", value: "7.2 GB" },
-    ]);
+    // MoE compute weight = active 12B * 0.5 * 1.15 = 6.9 GB; TPU v5p 2765 / 6.9 = 400.7.
+    expect(report.speed).toBe("400.7 tokens/second");
     expect(report.calculationRows).toEqual(
       expect.arrayContaining([
-        { label: "Working_Memory_GB subtotal", value: "43.3 GB" },
-        { label: "Required_GB", value: "79.0 GB" },
+        { label: "Working memory subtotal", value: "43.3 GB" },
+        { label: "Total required", value: "79.0 GB" },
       ]),
     );
   });
@@ -120,12 +109,6 @@ describe("buildReport", () => {
 
     expect(report.totalRequiredMemory).toBe("1.0 GB");
     expect(report.minimumRawVramNeeded).toBe("1.1 GB");
-    // Scratch (0.01), training (0), and safety margin (0) round to 0.0 GB and hide.
-    expect(report.breakdown).toEqual([
-      { label: "Model memory", value: "0.4 GB" },
-      { label: "Context memory", value: "0.1 GB" },
-      { label: "Runtime reserve", value: "0.5 GB" },
-    ]);
     expect(report.recommendedHardware.recommendedTier).toBe(
       "8 GB consumer class, e.g. RTX 4060 / older 8 GB GPUs",
     );
@@ -179,7 +162,7 @@ describe("buildReport", () => {
     );
 
     expect(report.recommendedHardware.recommendedTier).toBe(
-      "No single-GPU fit. Enable memory sharding to fit a 320 GB sharded datacenter class (4x 80 GB GPUs with tensor/model parallelism), or use offload.",
+      "No single-accelerator fit. Enable memory sharding to split the model across a 320 GB sharded datacenter class (4x 80 GB GPUs with tensor/model parallelism), the smallest standard pool that covers this estimate. Slower alternative: offload part of the model to CPU memory.",
     );
     expect(report.recommendedHardware.usableVramOnClass).toBe("n/a");
     expect(report.recommendedHardware.fitHeadroom).toBe("n/a");
@@ -215,22 +198,26 @@ describe("buildReport", () => {
     );
   });
 
-  test("hides breakdown rows that round to 0.0 GB", () => {
-    const report = buildReport(
-      state({
-        workloadFamily: "tabular",
-        totalParams: "0.001",
-        rowsPerBatch: "1",
-        features: "1",
-      }),
+  test("flags a Local / Edge estimate that outgrows common local PCIe cards", () => {
+    const localWarning =
+      "Beyond typical local hardware: this needs more than 96 GB of advertised VRAM, larger than any common local PCIe card. Local routes are a large unified-memory Mac or sharding across multiple GPUs.";
+    // 70B fp16 needs ~147 GB usable: the tier engine recommends a datacenter
+    // class, so Local / Edge must say what that means for a local machine.
+    const local = buildReport(
+      state({ runtimeProfile: "Local / Edge", totalParams: "70" }),
     );
+    expect(local.warnings).toContain(localWarning);
 
-    expect(report.breakdown).not.toContainEqual(
-      expect.objectContaining({
-        label: "Activation memory",
-        value: "0.0 GB",
-      }),
+    // The same deployment on Server / Cloud is a normal datacenter fit, and a
+    // small local model (88 GB raw ceiling) stays under the local threshold.
+    const server = buildReport(
+      state({ runtimeProfile: "Server / Cloud", totalParams: "70" }),
     );
+    expect(server.warnings).not.toContain(localWarning);
+    const smallLocal = buildReport(
+      state({ runtimeProfile: "Local / Edge", totalParams: "30" }),
+    );
+    expect(smallLocal.warnings).not.toContain(localWarning);
   });
 
   test("adds conditional MoE and training warnings", () => {
@@ -245,10 +232,14 @@ describe("buildReport", () => {
     expect(report.warnings).toContain(
       "Training estimates include parameter state and checkpointed activations, but real runs vary by optimizer, sequence packing, and framework.",
     );
-    expect(report.warnings).toContain(
+    // The MoE routing caveat is a methodology note, so it renders as an
+    // assumption bullet rather than a warning.
+    expect(report.warnings).not.toContainEqual(
+      expect.stringContaining("MoE active parameters"),
+    );
+    expect(report.assumptions.map((row) => row.label)).toContain(
       "MoE active parameters affect speed, not resident weight memory, unless expert offload or sharding is enabled.",
     );
-    expect(report.breakdown[0]?.label).toBe("QLoRA base model memory");
   });
 
   test("ignores MoE state for families without MoE controls", () => {
@@ -312,8 +303,8 @@ describe("buildReport", () => {
     ).toEqual(
       [
         "assumptions",
-        "breakdown",
         "calculation",
+        "calculationNumbers",
         "calculationRows",
         "minimumRawVramNeeded",
         "parallelismStrategies",
@@ -353,309 +344,94 @@ describe("buildReport", () => {
     }
   });
 
-  test("surfaces decoder KV assumptions only for autoregressive transformer families in inference", () => {
-    const kvFamilies: readonly FormState["workloadFamily"][] = [
-      "text_generation",
-      "encoder_decoder",
-      "vision_language",
-    ];
-    const noKvFamilies: readonly FormState["workloadFamily"][] = [
-      "text_encoder",
-      "vision",
-      "image_diffusion",
-      "video_generation",
-      "audio",
-      "tabular",
-      "custom",
-    ];
-    for (const workloadFamily of kvFamilies) {
-      const rows = buildReport(
-        state({ workloadFamily, executionMode: "Inference" }),
-      ).assumptions;
-      expect(rows).toContainEqual(
-        expect.objectContaining({ label: "KV Cache precision" }),
-      );
-    }
-    for (const workloadFamily of noKvFamilies) {
-      const rows = buildReport(
-        state({ workloadFamily, executionMode: "Inference" }),
-      ).assumptions;
-      expect(rows).not.toContainEqual(
-        expect.objectContaining({ label: "KV Cache precision" }),
-      );
+  test("formula numbers substitute the real values into the mode's terms", () => {
+    // Inference: (weights + KV cache + activations + overhead) × buffer.
+    expect(buildReport(state()).calculationNumbers).toBe(
+      "19.0 GB ≈ (14.0 + 1.0 + 0.7 + 1.5) GB × 1.10",
+    );
+    // Training modes carry training state instead of KV cache and use the
+    // 1.25 training buffer.
+    const training = buildReport(state({ executionMode: "Full training" }));
+    expect(training.calculationNumbers).toContain("+ 98.0 +");
+    expect(training.calculationNumbers).toMatch(/ GB × 1\.25$/u);
+  });
+
+  test("assumptions are methodology notes, not an echo of the user's inputs", () => {
+    const notes = buildReport(state()).assumptions.map((row) => row.label);
+
+    // Default 7B inference decoder: overhead + KV precision + VRAM reserve.
+    expect(notes).toEqual([
+      "Runtime / CUDA overhead estimated at a fixed 1.5 GB for this mode and runtime profile.",
+      "KV cache precision: 16-bit.",
+      "15% of advertised card VRAM reserved for the driver + CUDA context.",
+    ]);
+    // The inputs the user typed are not repeated as assumption rows, and every
+    // note renders as a label-only bullet (no value cell).
+    for (const row of buildReport(state()).assumptions) {
+      expect(row.value).toBe("");
     }
   });
 
-  test("assumptions show resolved KV head values", () => {
-    expect(buildReport(state()).assumptions).toContainEqual({
-      label: "KV heads used",
-      value: "8",
-    });
-    expect(buildReport(state()).assumptions).toContainEqual({
-      label: "Conservative KV heads",
-      value: "32",
-    });
-    expect(buildReport(state()).assumptions).not.toContainEqual({
-      label: "Conservative KV heads",
-      value: "attention_heads",
-    });
+  test("assumptions drop the KV note for workloads without a decoder KV cache", () => {
+    const notes = buildReport(
+      state({ workloadFamily: "vision" }),
+    ).assumptions.map((row) => row.label);
+    expect(notes).not.toContainEqual(expect.stringContaining("KV cache"));
   });
 
-  test("assumptions surface decoder KV scaling inputs by workload family", () => {
-    expect(
-      buildReport(
-        state({
-          workloadFamily: "text_generation",
-          contextTokens: "32000",
-          workloadSize: "4",
-        }),
-      ).assumptions,
-    ).toEqual(
-      expect.arrayContaining([
-        { label: "Context tokens", value: "32000" },
-        { label: "Concurrent batch requests", value: "4" },
-      ]),
+  test("training assumptions name the combined training state and checkpointing", () => {
+    const trained = buildReport(
+      state({ executionMode: "Full training", gradientCheckpointing: true }),
+    ).assumptions.map((row) => row.label);
+    expect(trained).toContainEqual(
+      "Training state sized for Full training: fp32 master weights, gradients, and optimizer state.",
+    );
+    // Checkpointing shrinks activations, not the training state, so it reads
+    // as its own methodology note.
+    expect(trained).toContainEqual(
+      "Activation memory assumes gradient checkpointing (recompute).",
     );
 
-    expect(
-      buildReport(
-        state({
-          workloadFamily: "encoder_decoder",
-          outputTokens: "512",
-          workloadSize: "2",
-        }),
-      ).assumptions,
-    ).toEqual(
-      expect.arrayContaining([
-        { label: "Output tokens", value: "512" },
-        { label: "Concurrent batch requests", value: "2" },
-      ]),
+    const noCheckpoint = buildReport(
+      state({
+        executionMode: "LoRA fine-tuning",
+        gradientCheckpointing: false,
+      }),
+    ).assumptions.map((row) => row.label);
+    expect(noCheckpoint).toContainEqual(
+      "Training state sized for LoRA: adapter weights, gradients, and optimizer state.",
     );
-
-    expect(
-      buildReport(
-        state({
-          workloadFamily: "vision_language",
-          textContextTokens: "12000",
-          imageCount: "3",
-          imageWidth: "1280",
-          imageHeight: "720",
-        }),
-      ).assumptions,
-    ).toEqual(
-      expect.arrayContaining([
-        { label: "Text context tokens", value: "12000" },
-        { label: "Image count", value: "3" },
-        { label: "Image size", value: "1280 x 720" },
-      ]),
+    expect(noCheckpoint).not.toContainEqual(
+      expect.stringContaining("gradient checkpointing"),
     );
   });
 
-  /**
-  Non-decoder workload families use family-specific activation inputs. The report
-  should expose those inputs so the assumption panel explains the calculated size.
-  */
-  test("assumptions surface non-KV workload scaling inputs by family", () => {
-    const cases: readonly (readonly [
-      string,
-      Partial<FormState>,
-      readonly { readonly label: string; readonly value: string }[],
-    ])[] = [
-      [
-        "encoder-decoder training tokens",
-        {
-          workloadFamily: "encoder_decoder",
-          executionMode: "LoRA fine-tuning",
-          inputTokens: "1536",
-          outputTokens: "384",
-        },
-        [
-          { label: "Input tokens", value: "1536" },
-          { label: "Output tokens", value: "384" },
-        ],
-      ],
-      [
-        "vision image size",
-        {
-          workloadFamily: "vision",
-          imageWidth: "640",
-          imageHeight: "480",
-          workloadSize: "2",
-        },
-        [
-          { label: "Image size", value: "640 x 480" },
-          { label: "Concurrent batch requests", value: "2" },
-        ],
-      ],
-      [
-        "vision-language training multimodal shape",
-        {
-          workloadFamily: "vision_language",
-          executionMode: "LoRA fine-tuning",
-          textContextTokens: "6000",
-          imageCount: "2",
-          imageWidth: "1024",
-          imageHeight: "768",
-        },
-        [
-          { label: "Text context tokens", value: "6000" },
-          { label: "Image count", value: "2" },
-          { label: "Image size", value: "1024 x 768" },
-        ],
-      ],
-      [
-        "video shape",
-        {
-          workloadFamily: "video_generation",
-          videoResolution: "1080p",
-          videoFrames: "121",
-        },
-        [
-          { label: "Video resolution", value: "1080p" },
-          { label: "Video frames", value: "121" },
-        ],
-      ],
-      [
-        "audio duration",
-        { workloadFamily: "audio", audioSeconds: "45" },
-        [{ label: "Audio seconds", value: "45" }],
-      ],
-      [
-        "tabular batch shape",
-        {
-          workloadFamily: "tabular",
-          rowsPerBatch: "5000",
-          features: "300",
-        },
-        [
-          { label: "Rows per batch", value: "5000" },
-          { label: "Features", value: "300" },
-        ],
-      ],
-      [
-        "custom multiplier",
-        { workloadFamily: "custom", inputSizeMultiplier: "3" },
-        [{ label: "Input size multiplier", value: "3" }],
-      ],
-    ];
-
-    for (const [scenario, overrides, expectedRows] of cases) {
-      expect(buildReport(state(overrides)).assumptions, scenario).toEqual(
-        expect.arrayContaining([...expectedRows]),
-      );
-    }
-  });
-
-  /**
-  Direct state can contain a zero batch count. The assumption row should match the
-  resolved calculation size instead of echoing the stale raw form value.
-  */
-  test("training assumptions show the resolved micro batch size", () => {
-    expect(
-      buildReport(
-        state({
-          executionMode: "LoRA fine-tuning",
-          workloadSize: "0",
-          contextTokens: "2048",
-        }),
-      ).assumptions,
-    ).toEqual(
-      expect.arrayContaining([
-        { label: "Context tokens", value: "2048" },
-        { label: "Micro batch size", value: "1" },
-      ]),
+  test("assumptions note sharding and a known model file size when set", () => {
+    const notes = buildReport(
+      state({ memoryShardingEnabled: true, knownModelFileSizeGb: "52" }),
+    ).assumptions.map((row) => row.label);
+    expect(notes).toContainEqual(
+      "Memory sharding assumed across the recommended GPU pool (tensor / model parallelism).",
+    );
+    expect(notes).toContainEqual(
+      "Model weight memory taken from the provided known file size, not the parameter estimate.",
     );
   });
 
-  /**
-  Malformed direct state can carry an unknown workload family at runtime. The
-  report should still fall back to the custom workload assumption rows.
-  */
-  test("malformed workload family uses custom assumption rows", () => {
-    const malformed = state({ inputSizeMultiplier: "4" });
-    Object.defineProperty(malformed, "workloadFamily", { value: "unknown" });
-
-    expect(buildReport(malformed).assumptions).toEqual(
-      expect.arrayContaining([{ label: "Input size multiplier", value: "4" }]),
-    );
-  });
-
-  /**
-  Direct report callers may bypass URL normalization. Assumption rows should
-  still show the numeric values used by the formulas rather than raw malformed
-  strings.
-  */
-  test("assumptions show resolved numeric fallbacks for malformed direct state", () => {
-    expect(
-      buildReport(state({ contextTokens: "bad", workloadSize: "0" }))
-        .assumptions,
-    ).toEqual(
-      expect.arrayContaining([
-        { label: "Context tokens", value: "8000" },
-        { label: "Concurrent batch requests", value: "1" },
-      ]),
-    );
-
-    expect(
-      buildReport(
-        state({
-          workloadFamily: "vision_language",
-          textContextTokens: "bad",
-          imageCount: "-2",
-          imageWidth: "bad",
-          imageHeight: "-1",
-        }),
-      ).assumptions,
-    ).toEqual(
-      expect.arrayContaining([
-        { label: "Text context tokens", value: "4000" },
-        { label: "Image count", value: "1" },
-        { label: "Image size", value: "1024 x 1024" },
-      ]),
-    );
-  });
-
-  test("assumptions surface advanced inputs that change memory or hardware selection", () => {
+  test("sizes training activations for a vision-language workload", () => {
+    // Exercises the vision-language training-token path (text context + per-image
+    // tokens) that feeds training activation memory for multimodal decoders.
     const report = buildReport(
       state({
-        executionMode: "QLoRA fine-tuning",
-        knownModelFileSizeGb: "52",
-        gpuResidentFraction: "0.25",
-        loraTrainablePercent: "2",
-        optimizer: "8-bit Adam",
-        gradientCheckpointing: false,
-        memoryShardingEnabled: true,
+        workloadFamily: "vision_language",
+        executionMode: "Full training",
+        totalParams: "8",
+        textContextTokens: "4000",
+        imageCount: "2",
       }),
     );
-
-    expect(report.assumptions).toEqual(
-      expect.arrayContaining([
-        { label: "Known Model File Size", value: "52.0 GB" },
-        { label: "GPU resident fraction", value: "25%" },
-        { label: "LoRA trainable parameters", value: "2%" },
-        { label: "Optimizer", value: "8-bit Adam" },
-        { label: "Gradient checkpointing", value: "Disabled" },
-        { label: "Memory sharding", value: "Enabled" },
-      ]),
-    );
-  });
-
-  test("assumptions omit KV cache details outside inference decoder KV workloads", () => {
-    const visionRows = buildReport(
-      state({ workloadFamily: "vision" }),
-    ).assumptions;
-    expect(visionRows).not.toContainEqual(
-      expect.objectContaining({ label: "KV Cache precision" }),
-    );
-    expect(visionRows).not.toContainEqual(
-      expect.objectContaining({ label: "KV heads used" }),
-    );
-
-    const trainingRows = buildReport(
-      state({ executionMode: "Full training" }),
-    ).assumptions;
-    expect(trainingRows).not.toContainEqual(
-      expect.objectContaining({ label: "KV Cache precision" }),
+    expect(report.calculationRows).toContainEqual(
+      expect.objectContaining({ label: "Total required" }),
     );
   });
 
@@ -677,7 +453,7 @@ describe("headline stat chips", () => {
       { label: "Model Weights", value: "16.0 GB" },
       { label: "KV Cache", value: "1.0 GB" },
       { label: "Concurrency", value: "1" },
-      { label: "Spare", value: "48%" },
+      { label: "Spare", value: "22%" },
     ]);
   });
 
@@ -706,6 +482,6 @@ describe("headline stat chips", () => {
 
     // With no model there is no usable-VRAM budget to divide, so the fit meter
     // yields nothing and the spare chip degrades to a neutral placeholder.
-    expect(chips[3]).toEqual({ label: "Spare", value: "—" });
+    expect(chips[3]).toEqual({ label: "Spare", value: "–" });
   });
 });

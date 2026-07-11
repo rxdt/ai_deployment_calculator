@@ -93,7 +93,14 @@ function decimal(
   fallback: string,
   maximum = MAX_NUMERIC_VALUE,
 ): string {
-  if (value === null || value.trim() === "" || !isPlainDecimal(value)) {
+  // A missing key (initial load, absent URL param) takes the default, but a
+  // PRESENT empty value is the user clearing the field: treat it as zero so
+  // the app shows the explicit empty state instead of silently computing the
+  // default behind a blank input. URL garbage still normalizes to defaults.
+  if (value !== null && value.trim() === "") {
+    return "0";
+  }
+  if (value === null || !isPlainDecimal(value)) {
     return fallback;
   }
   return Number(value) <= maximum ? value : maximumValue(maximum);

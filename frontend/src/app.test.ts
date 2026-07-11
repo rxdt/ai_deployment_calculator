@@ -1,12 +1,12 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, test } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import indexHtml from "../index.html?raw";
 import { CalculatorApp, mountCalculator } from "./app";
 import { sanitizeNumberInput } from "./input-sanitizer";
 import { MODEL_PRESETS } from "./presets";
 
 const CONTRACTED_LABELS = new Map([
-  ["workload-family", "Model Family"],
+  ["workload-family", "Model Task Family"],
   ["total-params", "Total Model Parameters"],
   ["parameter-unit", "Parameter Unit"],
   ["precision", "Precision"],
@@ -266,18 +266,6 @@ function isRowHidden(name: string): boolean {
 }
 
 /**
- Read the rendered breakdown stat cards as label/value pairs.
-@returns one entry per rendered card, in DOM order
-*/
-function breakdownCards(): { label: string; value: string }[] {
-  // Each card is a row-template clone: the label cell then the value cell.
-  return [...outSlot("breakdown-rows").children].map((card) => ({
-    label: card.firstElementChild?.textContent ?? "",
-    value: card.lastElementChild?.textContent ?? "",
-  }));
-}
-
-/**
  Read the rendered headline stat chips as label/value pairs.
 @returns one entry per rendered chip, in DOM order
 */
@@ -288,8 +276,59 @@ function statChipCards(): { label: string; value: string }[] {
   }));
 }
 
+// The hero picks its example card pseudo-randomly from the render clock; pin
+// the clock to zero so the pick lands on the tier's first card and example
+// assertions stay deterministic. Individual tests re-mock other picks.
+beforeEach(() => {
+  vi.spyOn(performance, "now").mockReturnValue(0);
+});
+
 afterEach(() => {
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
+  history.replaceState(null, "", "/");
   document.body.replaceChildren();
+});
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null;
+
+describe("static SEO metadata", () => {
+  test("ships descriptive social and structured metadata", () => {
+    const parsed = new DOMParser().parseFromString(indexHtml, "text/html");
+    const { head } = parsed;
+    const meta = (selector: string): string | null =>
+      head.querySelector<HTMLMetaElement>(selector)?.content ?? null;
+
+    expect(head.querySelector("title")?.textContent).toBe(
+      "VRAM Deployment Calculator | AI GPU Memory Estimator",
+    );
+    expect(meta('meta[name="description"]')).toContain("AI VRAM calculator");
+    expect(meta('meta[name="robots"]')).toContain("max-image-preview:large");
+    expect(meta('meta[property="og:title"]')).toBe(
+      "VRAM Deployment Calculator - AI GPU Memory Estimator",
+    );
+    expect(meta('meta[property="og:image"]')).toBe("/og-image.png");
+    expect(meta('meta[property="og:image:alt"]')).toContain(
+      "19.0 GB memory estimate",
+    );
+    expect(meta('meta[name="twitter:card"]')).toBe("summary_large_image");
+
+    const schema = head.querySelector<HTMLScriptElement>(
+      'script[type="application/ld+json"]',
+    );
+    const data: unknown = JSON.parse(schema?.textContent ?? "{}");
+    if (!isRecord(data)) {
+      throw new TypeError("Structured data must be a JSON object");
+    }
+    expect(data["@type"]).toBe("WebApplication");
+    expect(data.applicationCategory).toBe("DeveloperApplication");
+    const { offers } = data;
+    if (!isRecord(offers)) {
+      throw new TypeError("Structured data offers must be a JSON object");
+    }
+    expect(offers.price).toBe("0");
+  });
 });
 
 describe("CalculatorApp construction", () => {
@@ -376,6 +415,20 @@ describe("CalculatorApp construction", () => {
     );
   });
 
+  test("throws when the header model link is missing", () => {
+    loadDom();
+    dataSlot("status-model-link").remove();
+    expect(() => mountCalculator(document)).toThrow("Missing model link");
+  });
+
+  test("throws when the fit scale row is missing", () => {
+    loadDom();
+    dataSlot("fit-scale").remove();
+    expect(() => mountCalculator(document)).toThrow(
+      "Missing data slot: fit-scale",
+    );
+  });
+
   test("throws when a required synchronized form control is missing", () => {
     loadDom();
     field("precision").remove();
@@ -421,6 +474,9 @@ describe("checkbox indicators", () => {
   test("renders explicit visual state indicators for every checkbox control", () => {
     loadDom();
     mountCalculator(document);
+    // Gradient Checkpointing is training-only and hidden during Inference;
+    // switch modes so every inspected indicator belongs to a visible control.
+    fireChange("execution-mode", "Full training");
     const checkboxNames = [
       "moe-enabled",
       "gradient-checkpointing",
@@ -444,13 +500,161 @@ describe("checkbox indicators", () => {
   });
 });
 
+describe("enter and reset semantics", () => {
+  test("Enter inside a field recomputes and never wipes the inputs", () => {
+    loadDom();
+    mountCalculator(document);
+    fireInput("total-params", "70");
+    const before = out("total");
+    expect(before).not.toBe("0.0 GB");
+
+    // Enter in a text field is intercepted before it can implicitly "click"
+    // the Reset submit button; the typed values survive.
+    const enter = new KeyboardEvent("keydown", {
+      key: "Enter",
+      bubbles: true,
+      cancelable: true,
+    });
+    const wasDefaultAllowed = field("total-params").dispatchEvent(enter);
+    expect(wasDefaultAllowed).toBe(false);
+    expect(field("total-params").value).toBe("70");
+    expect(out("total")).toBe(before);
+
+    // Other keys, and Enter outside a text field, pass through untouched.
+    const letter = new KeyboardEvent("keydown", {
+      key: "a",
+      bubbles: true,
+      cancelable: true,
+    });
+    expect(field("total-params").dispatchEvent(letter)).toBe(true);
+    const enterOnSelect = new KeyboardEvent("keydown", {
+      key: "Enter",
+      bubbles: true,
+      cancelable: true,
+    });
+    expect(field("precision").dispatchEvent(enterOnSelect)).toBe(true);
+  });
+
+  test("submit resets the reactive form without allowing navigation", () => {
+    loadDom();
+    mountCalculator(document);
+    fireInput("total-params", "104");
+    const event = new Event("submit", { bubbles: true, cancelable: true });
+    const wasSubmissionAllowed = inputsForm().dispatchEvent(event);
+    expect(wasSubmissionAllowed).toBe(false);
+    expect(field("total-params").value).toBe("0");
+    expect(out("total")).toBe("0.0 GB");
+  });
+});
+
+test("hydrates from the URL and replaces it after edits", () => {
+  history.replaceState(null, "", "/?total-params=70&precision=8-bit");
+  loadDom();
+  mountCalculator(document);
+
+  expect(field("total-params").value).toBe("70");
+  expect(field("precision").value).toBe("8-bit");
+
+  fireInput("total-params", "13");
+  const search = new URLSearchParams(location.search);
+  expect(search.get("total-params")).toBe("13");
+  expect(search.get("precision")).toBe("8-bit");
+});
+
+/**
+ Build a cancelable beforeinput event carrying the inserted text.
+@param data - the text the edit would insert, or null for deletions
+@returns a bubbling, cancelable InputEvent
+*/
+function insertion(data: string | null): InputEvent {
+  return new InputEvent("beforeinput", {
+    data,
+    bubbles: true,
+    cancelable: true,
+  });
+}
+
+describe("input integrity", () => {
+  test("clearing the parameter field shows the empty estimate, not the default", () => {
+    loadDom();
+    mountCalculator(document);
+    fireInput("total-params", "");
+
+    // A blank field must never silently compute the hidden 7B default.
+    expect(field("total-params").value).toBe("");
+    expect(out("total")).toBe("0.0 GB");
+    expect(out("gpu-class")).toBe("No model loaded");
+  });
+
+  test("a zero batch normalizes visibly to the 1 the estimate uses", () => {
+    loadDom();
+    mountCalculator(document);
+    fireInput("workload-size", "0");
+
+    // The field and the computed concurrency agree instead of showing 0 while
+    // silently computing with 1.
+    expect(field("workload-size").value).toBe("1");
+  });
+
+  test("blocks non-numeric insertions instead of transforming them", () => {
+    loadDom();
+    mountCalculator(document);
+
+    // "e" is rejected outright, so typed scientific notation can never be
+    // silently reshaped into a different magnitude.
+    expect(field("total-params").dispatchEvent(insertion("e"))).toBe(false);
+    expect(field("total-params").dispatchEvent(insertion("5"))).toBe(true);
+    // Deletions (null data), non-numeric controls, and non-input targets are
+    // untouched.
+    expect(field("total-params").dispatchEvent(insertion(null))).toBe(true);
+    expect(field("moe-enabled").dispatchEvent(insertion("e"))).toBe(true);
+    expect(field("precision").dispatchEvent(insertion("e"))).toBe(true);
+    const plain = new Event("beforeinput", { bubbles: true, cancelable: true });
+    expect(inputsForm().dispatchEvent(plain)).toBe(true);
+  });
+});
+
+describe("optimizer choices", () => {
+  test("offers the expanded optimizer choices with stable persisted values", () => {
+    loadDom();
+    mountCalculator(document);
+    // The optimizer is a training-only control hidden during Inference; reveal
+    // it before reading the choices it offers.
+    fireChange("execution-mode", "Full training");
+    const select = field("optimizer");
+    if (!(select instanceof HTMLSelectElement)) {
+      throw new TypeError("optimizer control must be a select");
+    }
+    // Visible text modernizes the naming; values stay stable so persisted
+    // URLs keep parsing.
+    expect(optionText("optimizer")).toEqual([
+      "AdamW",
+      "8-bit AdamW",
+      "Paged 8-bit AdamW",
+      "Adafactor",
+      "SGD / Momentum",
+    ]);
+    expect([...select.options].map((option) => option.value)).toEqual([
+      "AdamW",
+      "8-bit Adam",
+      "Paged 8-bit AdamW",
+      "Adafactor",
+      "SGD-like",
+    ]);
+  });
+});
+
 describe("mounted calculator", () => {
   test("renders the compact product brand with an isolated prompt marker", () => {
     loadDom();
     mountCalculator(document);
     const brand = dataSlot("brand");
     expect(brand.textContent).toBe("~VRAM-calculator");
-    expect(brand).not.toBeInstanceOf(HTMLAnchorElement);
+    // The brand links to the canonical production URL from any deployment.
+    if (!(brand instanceof HTMLAnchorElement)) {
+      throw new TypeError("Brand must be an anchor");
+    }
+    expect(brand.href).toBe("https://aideploymentcalculator.vercel.app/");
     // The prompt marker sits in its own element so the stylesheet greens only
     // the marker (its "~") and never the product name outside it. One marker
     // holding just "~" plus the full "~VRAM-calculator" text proves the name
@@ -462,14 +666,14 @@ describe("mounted calculator", () => {
     expect(dataSlot("brand-mark").textContent).toBe("~");
   });
 
-  test("renders a labeled GitHub repository link with a logo", () => {
+  test("renders a labeled GitHub link with a logo", () => {
     loadDom();
     mountCalculator(document);
     const link = dataSlot("github-link");
     if (!(link instanceof HTMLAnchorElement)) {
       throw new TypeError("GitHub link must be an anchor");
     }
-    expect(link.href).toBe("https://github.com/rxdt/ai_deployment_calculator/");
+    expect(link.href).toBe("https://github.com/rxdt/ai_deployment_calculator");
     expect(link.getAttribute("aria-label")).toBe("GitHub repository");
     expect(link.firstElementChild).toBeInstanceOf(HTMLImageElement);
     expect(link.firstElementChild?.getAttribute("src")).toBe(
@@ -526,7 +730,6 @@ describe("mounted calculator", () => {
       "runtime-profile",
       "context-tokens",
       "workload-size",
-      "moe-enabled",
     ];
     const advanced = dataSlot("advanced-assumptions");
     if (!(advanced instanceof HTMLDetailsElement)) {
@@ -537,8 +740,6 @@ describe("mounted calculator", () => {
       const control = field(name);
       expect(advanced.contains(control)).toBe(false);
     }
-    expect(isRowHidden("moe-enabled")).toBe(false);
-    expect(isRowHidden("active-params")).toBe(true);
   });
 
   test("keeps rare controls inside the advanced assumptions disclosure", () => {
@@ -549,13 +750,15 @@ describe("mounted calculator", () => {
       throw new TypeError("Advanced assumptions must be a details element");
     }
     const rareControlNames = [
+      "moe-enabled",
+      "memory-sharding-enabled",
+      "active-params",
       "kv-cache-precision",
       "known-model-file-size-gb",
       "gpu-resident-fraction",
       "lora-trainable-percent",
       "optimizer",
       "gradient-checkpointing",
-      "memory-sharding-enabled",
     ];
 
     expect(advanced.firstElementChild?.textContent.trim()).toBe(
@@ -571,7 +774,7 @@ describe("mounted calculator", () => {
     mountCalculator(document);
     const disclaimer = dataSlot("output-disclaimer");
     expect(disclaimer.textContent).toContain(
-      "validate against the target runtime",
+      "Validate against your target runtime",
     );
   });
 
@@ -580,27 +783,23 @@ describe("mounted calculator", () => {
     mountCalculator(document);
     expect(out("total")).toBe("19.0 GB");
     expect(out("vram-say")).toBe(
-      "Fits a 24 GB card with 1.4 GB usable headroom (7% spare).",
+      "Fits on one 24 GB card: 19.0 GB uses 93% of its 20.4 GB usable VRAM.",
     );
-    expect(out("gpu-class")).toBe("24 GB GPU hardware tier");
+    expect(out("gpu-class")).toBe("24 GB hardware tier");
     expect(dataSlot("gpu-class-label").textContent.trim()).toBe(
-      "Recommended GPU Class",
+      "Recommended Example",
     );
     expect(out("min-cap")).toBe("22.4 GB");
     expect(out("speed")).toMatch(/tokens\/sec$/u);
     expect(outSlot("calculation-rows").children).toHaveLength(10);
   });
 
-  test("renders reset as the only form action because estimates are reactive", () => {
+  test("renders Reset as the only form action", () => {
     loadDom();
     mountCalculator(document);
     const actions = [...dataSlot("form-actions").children];
     expect(actions).toHaveLength(1);
-    const [action] = actions;
-    if (action === undefined) {
-      throw new TypeError("Missing form action");
-    }
-    expect(action).toBe(requireButton());
+    expect(actions[0]).toBe(requireButton());
     expect(requireButton().type).toBe("submit");
     expect(requireButton().hidden).toBe(false);
     expect(requireButton().textContent.trim()).toBe("Reset");
@@ -635,7 +834,7 @@ describe("mounted calculator", () => {
 
     expect(summaries).toEqual([
       "Why this recommendation",
-      "Calculation used",
+      "Values Used In Calculations",
       "Formula used",
       "Assumptions used",
     ]);
@@ -681,31 +880,39 @@ describe("mounted calculator", () => {
       "speed",
       "calculation-rows",
       "calc-formula",
+      "calc-numbers",
       "assumptions",
     ];
 
     expect(out("total")).toBe("19.0 GB");
     expect(out("vram-say")).toBe(
-      "Fits a 24 GB card with 1.4 GB usable headroom (7% spare).",
+      "Fits on one 24 GB card: 19.0 GB uses 93% of its 20.4 GB usable VRAM.",
     );
-    expect(out("gpu-class")).toBe("24 GB GPU hardware tier");
+    expect(out("gpu-class")).toBe("24 GB hardware tier");
     for (const name of firstGlanceSlots) {
       expect(() => containingDetails(outSlot(name))).toThrow(
         "Missing containing details panel",
       );
     }
 
-    expect(out("why")).toContain("advertised VRAM");
+    expect(out("why")).toContain("accelerator memory");
     expect(out("min-cap")).toBe("22.4 GB");
     expect(out("usable-target")).toBe("85%");
     expect(out("usable-on-class")).toBe("20.4 GB");
     expect(out("fit-headroom")).toBe("1.4 GB usable margin");
     expect(out("speed")).toMatch(/tokens\/sec$/u);
-    expect(out("calculation-rows")).toContain("Required_GB");
+    expect(out("calculation-rows")).toContain("Total required");
     expect(out("calculation-rows")).toContain("19.0 GB");
-    expect(out("calc-formula")).toContain("Working_Memory_GB");
+    expect(out("calc-formula")).toContain(
+      "(weights + KV cache + activations + runtime overhead) × buffer",
+    );
     expect(out("calc-formula")).not.toContain("19.0 GB");
-    expect(out("assumptions")).toContain("Precision16-bit");
+    expect(out("calc-numbers")).toBe(
+      "19.0 GB ≈ (14.0 + 1.0 + 0.7 + 1.5) GB × 1.10",
+    );
+    expect(out("assumptions")).toContain(
+      "Runtime / CUDA overhead estimated at a fixed 1.5 GB",
+    );
     for (const name of detailSlots) {
       expect(containingDetails(outSlot(name)).open).toBe(false);
     }
@@ -755,8 +962,6 @@ describe("mounted calculator", () => {
 
     expect(field("precision").value).toBe("4-bit");
     expect(field("runtime-profile").value).toBe("Local / Edge");
-    expect(out("assumptions")).toContain("4-bit");
-    expect(out("assumptions")).toContain("Local / Edge");
 
     fireChange("runtime-profile", "Server / Cloud");
 
@@ -767,8 +972,14 @@ describe("mounted calculator", () => {
   test("sanitizes negatives, exponents, and clamps the maximum", () => {
     loadDom();
     mountCalculator(document);
+    // Truncate at the first non-numeric character instead of deleting it in
+    // place, so scientific notation and signs cannot be reinterpreted as a
+    // plausible-but-wrong magnitude: a leading "-" yields empty, and "9e5"
+    // keeps only the leading "9" rather than fusing into "95".
     fireInput("context-tokens", "-9e5");
-    expect(field("context-tokens").value).toBe("95");
+    expect(field("context-tokens").value).toBe("");
+    fireInput("context-tokens", "9e5");
+    expect(field("context-tokens").value).toBe("9");
     fireInput("context-tokens", "100000000");
     expect(field("context-tokens").value).toBe("99999999");
   });
@@ -782,17 +993,6 @@ describe("mounted calculator", () => {
     expect(out("total")).toBe("0.0 GB");
     expect(out("gpu-class")).toBe("No model loaded");
     expect(out("why")).toContain("Enter model and workload inputs");
-  });
-
-  test("submit resets the reactive form without allowing navigation", () => {
-    loadDom();
-    mountCalculator(document);
-    fireInput("total-params", "104");
-    const event = new Event("submit", { bubbles: true, cancelable: true });
-    const wasSubmissionAllowed = inputsForm().dispatchEvent(event);
-    expect(wasSubmissionAllowed).toBe(false);
-    expect(field("total-params").value).toBe("0");
-    expect(out("total")).toBe("0.0 GB");
   });
 
   test("serializes a checked MoE box into the estimate", () => {
@@ -829,7 +1029,7 @@ describe("mounted calculator", () => {
     mountCalculator(document);
     expect(out("usable-on-class")).not.toBe("");
     expect(out("fit-headroom")).not.toBe("");
-    expect(out("why")).toContain("advertised VRAM");
+    expect(out("why")).toContain("accelerator memory");
   });
 });
 
@@ -849,8 +1049,8 @@ describe("multi-GPU parallelism callout", () => {
 
     const callout = dataSlot("parallelism");
     expect(callout.hidden).toBe(false);
-    expect(callout.textContent).toContain(
-      "Exceeds single-GPU capacity — needs tensor / pipeline parallelism",
+    expect(callout.textContent.replaceAll(/\s+/gu, " ")).toContain(
+      "Too large for any single GPU or accelerator. Split the model",
     );
 
     const links = [...outSlot("parallelism-links").children].filter(
@@ -894,11 +1094,13 @@ describe("hero fit meter", () => {
 
     expect(meter.hidden).toBe(false);
     expect(meter.value).toBe(93);
-    // A comfortable fit keeps the healthy green bar, not the amber tight signal.
+    // The default sits at 93%, under the 95% threshold, so the bar stays calm.
     expect(meter.classList.contains("fit-meter--tight")).toBe(false);
     expect(out("vram-say")).toBe(
-      "Fits a 24 GB card with 1.4 GB usable headroom (7% spare).",
+      "Fits on one 24 GB card: 19.0 GB uses 93% of its 20.4 GB usable VRAM.",
     );
+    // The scale row under the bar names the usable budget the bar measures.
+    expect(out("capacity")).toBe("20.4 GB usable of 24 GB");
   });
 
   test("marks the meter amber and leads with a tight-fit caption near the budget", () => {
@@ -914,7 +1116,7 @@ describe("hero fit meter", () => {
     expect(meter.value).toBe(98);
     expect(meter.classList.contains("fit-meter--tight")).toBe(true);
     expect(out("vram-say")).toBe(
-      "Tight fit: 0.7 GB usable headroom on a 48 GB card (2% spare).",
+      "Tight fit on one 48 GB card: 40.1 GB uses 98% of its 40.8 GB usable VRAM.",
     );
   });
 
@@ -928,13 +1130,14 @@ describe("hero fit meter", () => {
     }
     expect(meter.classList.contains("fit-meter--tight")).toBe(true);
 
-    fireInput("total-params", "7");
+    // 8B fills 78% of its 32 GB class: comfortably under the 95% threshold.
+    fireInput("total-params", "8");
 
     expect(meter.classList.contains("fit-meter--tight")).toBe(false);
-    expect(out("vram-say")).toContain("Fits a 24 GB card");
+    expect(out("vram-say")).toContain("Fits on one 32 GB card");
   });
 
-  test("hides the fit meter and states the raw need when no class fits", () => {
+  test("pegs the meter full and red and says +100% when no class fits", () => {
     loadDom();
     mountCalculator(document);
     fireInput("total-params", "400");
@@ -943,50 +1146,28 @@ describe("hero fit meter", () => {
       throw new TypeError("Missing fit meter");
     }
 
-    expect(meter.hidden).toBe(true);
-    expect(meter.value).toBe(0);
-    expect(out("vram-say")).toMatch(/^The workload needs .* usable VRAM\.$/u);
-  });
-});
-
-describe("memory breakdown", () => {
-  test("surfaces each non-zero memory component as a labeled stat card", () => {
-    loadDom();
-    mountCalculator(document);
-    const cards = breakdownCards();
-
-    expect(cards.map((card) => card.label)).toEqual([
-      "Model memory",
-      "Context memory",
-      "Activation memory",
-      "Runtime reserve",
-      "Safety margin",
-    ]);
-    // 7B at 16-bit resides as 7 * 2 bytes of weights, independent of workload.
-    expect(cards[0]).toEqual({ label: "Model memory", value: "14.0 GB" });
-    for (const card of cards) {
-      expect(card.value).toMatch(/^\d+\.\d+ GB$/u);
-    }
+    expect(meter.hidden).toBe(false);
+    expect(meter.value).toBe(100);
+    expect(meter.dataset.over).toBe("true");
+    expect(out("vram-say")).toMatch(
+      /^\+100% usage\. The workload needs .* usable VRAM\.$/u,
+    );
+    // With no single-class capacity to label, the readout empties; the app
+    // hides the scale row for the overflowed bar.
+    expect(out("capacity")).toBe("");
   });
 
-  test("keeps the breakdown collapsed behind its own contracted summary", () => {
+  test("hides the fit meter entirely when no model is loaded", () => {
     loadDom();
     mountCalculator(document);
-    const panel = containingDetails(outSlot("breakdown-rows"));
-
-    expect(panel.firstElementChild?.textContent).toBe("Memory breakdown");
-    expect(panel.open).toBe(false);
-  });
-
-  test("clears the breakdown cards when the model is reset away", () => {
-    loadDom();
-    mountCalculator(document);
-    expect(breakdownCards()).not.toHaveLength(0);
-
     requireButton().click();
+    const meter = dataSlot("fit-meter");
+    if (!(meter instanceof HTMLMeterElement)) {
+      throw new TypeError("Missing fit meter");
+    }
 
-    expect(breakdownCards()).toHaveLength(0);
-    expect(outSlot("breakdown-rows").hidden).toBe(true);
+    expect(meter.hidden).toBe(true);
+    expect(meter.dataset.over).toBe("false");
   });
 });
 
@@ -1016,9 +1197,18 @@ describe("header status strip", () => {
     expect(dataSlot("status-model").textContent).toBe("104B MoE");
     expect(dataSlot("status-mode").textContent).toBe("QLORA");
     expect(dataSlot("status-precision").textContent).toBe("4-BIT");
-    expect(dataSlot("status-fit").textContent).toBe("multi-GPU");
+    expect(dataSlot("status-fit").textContent).toBe("192 GB");
   });
 });
+
+/**
+ Re-mock the render clock so the hero example lands on the given tier index
+ (modulo the tier's card count).
+@param index - the desired pick index
+*/
+function mockRandomPick(index: number): void {
+  vi.spyOn(performance, "now").mockReturnValue(index / 1000);
+}
 
 describe("recommended GPU examples", () => {
   test("names concrete example cards on the hero GPU card beneath the class", () => {
@@ -1026,33 +1216,31 @@ describe("recommended GPU examples", () => {
     mountCalculator(document);
     const row = dataSlot("gpu-examples-row");
 
-    expect(out("gpu-class")).toBe("24 GB GPU hardware tier");
-    expect(out("gpu-examples")).toBe("RTX 3090 / RTX 4090");
+    expect(out("gpu-class")).toBe("24 GB hardware tier");
+    // One randomly picked card anchors the tier (the mock pins the pick to
+    // the tier's first card), never the whole catalog.
+    expect(out("gpu-examples")).toBe("RTX 4090");
     expect(row.hidden).toBe(false);
-    // The examples read at first glance on the hero card, prefixed "e.g." and
+    // The example reads at first glance on the hero card, prefixed "e.g." and
     // not tucked inside a collapsed reasoning panel.
     expect(row.textContent.replaceAll(/\s+/gu, " ").trim()).toBe(
-      "e.g. RTX 3090 / RTX 4090",
+      "e.g. RTX 4090",
     );
     expect(dataSlot("hero-gpu-card").contains(row)).toBe(true);
     expect(() => containingDetails(row)).toThrow();
   });
 
-  test("links example cards that have a product page and opens them safely", () => {
+  test("links the picked example card to its product page safely", () => {
     loadDom();
     mountCalculator(document);
-    // Card names render as element children; " / " separators are text nodes,
-    // so the element children are exactly the linked cards.
+    // The picked card renders as an element child; name-only cards would be
+    // text nodes, so the element children are exactly the linked cards.
     const links = exampleCardLinks();
 
-    // Both default 24 GB cards carry a product page, so each name is a link out
-    // to it; every external link opens in a new tab without leaking the opener.
-    expect(links.map((link) => link.textContent)).toEqual([
-      "RTX 3090",
-      "RTX 4090",
-    ]);
+    // The pinned pick (the 24 GB tier's first card) carries a product page,
+    // so it links out, opening in a new tab without leaking the opener.
+    expect(links.map((link) => link.textContent)).toEqual(["RTX 4090"]);
     expect(links.map((link) => link.getAttribute("href"))).toEqual([
-      "https://www.nvidia.com/en-us/geforce/graphics-cards/30-series/",
       "https://www.nvidia.com/en-us/geforce/graphics-cards/40-series/rtx-4090/",
     ]);
     for (const link of links) {
@@ -1064,25 +1252,31 @@ describe("recommended GPU examples", () => {
   test("renders a card with no product page as muted text, not a link", () => {
     loadDom();
     mountCalculator(document);
+    // Pick the 8 GB tier's second card, the generic name-only descriptor.
+    mockRandomPick(1);
     fireInput("total-params", "1");
 
-    // The 8 GB tier pairs a linked SKU with a generic descriptor; only the SKU
-    // is a link (an element child), and the descriptor stays plain text.
-    expect(out("gpu-examples")).toBe("RTX 4060 / older 8 GB GPUs");
-    expect(exampleCardLinks().map((link) => link.textContent)).toEqual([
-      "RTX 4060",
-    ]);
+    // A descriptor with no product page renders as plain text (no element
+    // children), never as a link.
+    expect(out("gpu-examples")).toBe("older 8 GB GPUs");
+    expect(exampleCardLinks()).toEqual([]);
   });
 
-  test("moves the example cards to match a changed recommendation tier", () => {
+  test("re-picks the example card only when the recommendation tier changes", () => {
     loadDom();
     mountCalculator(document);
-    expect(out("gpu-examples")).toContain("RTX 4090");
+    expect(out("gpu-examples")).toBe("RTX 4090");
+
+    // Typing inside the same tier must not reshuffle the visible example even
+    // if the random pick would land elsewhere.
+    mockRandomPick(1);
+    fireInput("context-tokens", "9000");
+    expect(out("gpu-examples")).toBe("RTX 4090");
 
     fireInput("total-params", "1");
 
-    expect(out("gpu-class")).toBe("8 GB GPU hardware tier");
-    expect(out("gpu-examples")).toBe("RTX 4060 / older 8 GB GPUs");
+    expect(out("gpu-class")).toBe("8 GB hardware tier");
+    expect(out("gpu-examples")).toBe("older 8 GB GPUs");
   });
 
   test("drops the example row when no model is loaded", () => {
@@ -1102,9 +1296,9 @@ describe("recommended GPU examples", () => {
 
     // The guidance names a "320 GB" tier mid-sentence; the class card must show
     // it verbatim, not mistake that for a leading capacity and append
-    // "GPU hardware tier".
+    // "hardware tier".
     expect(out("gpu-class")).toBe(
-      "No single-GPU fit. Enable memory sharding to fit a 320 GB sharded datacenter class (4x 80 GB GPUs with tensor/model parallelism), or use offload.",
+      "No single-accelerator fit. Enable memory sharding to split the model across a 320 GB sharded datacenter class (4x 80 GB GPUs with tensor/model parallelism), the smallest standard pool that covers this estimate. Slower alternative: offload part of the model to CPU memory.",
     );
     expect(out("gpu-examples")).toBe("");
     expect(dataSlot("gpu-examples-row").hidden).toBe(true);
@@ -1122,10 +1316,10 @@ describe("recommended GPU examples", () => {
     sharding.dispatchEvent(new Event("change", { bubbles: true }));
 
     // The tier is 2x 80 GB GPUs, so the class card must say "sharded" rather
-    // than "160 GB GPU hardware tier", which would read as a single 160 GB card
+    // than "160 GB hardware tier", which would read as a single 160 GB card
     // that does not exist. The multi-GPU makeup stays in the examples row.
     expect(out("gpu-class")).toBe("160 GB sharded datacenter class");
-    expect(out("gpu-class")).not.toContain("GPU hardware tier");
+    expect(out("gpu-class")).not.toContain("hardware tier");
     expect(out("gpu-examples")).toBe(
       "2x 80 GB GPUs with tensor/model parallelism",
     );
@@ -1133,7 +1327,7 @@ describe("recommended GPU examples", () => {
 });
 
 describe("QLoRA precision switching", () => {
-  test("switching precision away from QLoRA resets to an inference deployment", () => {
+  test("switching precision away from QLoRA exits to Inference but keeps inputs", () => {
     loadDom();
     mountCalculator(document);
 
@@ -1144,8 +1338,10 @@ describe("QLoRA precision switching", () => {
     expect(field("execution-mode").value).toBe("Inference");
     expect(field("precision").value).toBe("16-bit");
     expect(field("runtime-profile").value).toBe("Server / Cloud");
-    expect(field("total-params").value).toBe("0");
-    expect(out("total")).toBe("0.0 GB");
+    // The user's parameter count must survive the mode switch; leaving QLoRA
+    // changes only the mode and precision, never the deployment they entered.
+    expect(field("total-params").value).toBe("8");
+    expect(out("total")).not.toBe("0.0 GB");
   });
 
   test("a bare precision change event also exits QLoRA to an inference deployment", () => {
@@ -1162,8 +1358,22 @@ describe("QLoRA precision switching", () => {
 
     expect(field("execution-mode").value).toBe("Inference");
     expect(field("precision").value).toBe("16-bit");
-    expect(field("total-params").value).toBe("0");
-    expect(out("total")).toBe("0.0 GB");
+    expect(field("total-params").value).toBe("8");
+    expect(out("total")).not.toBe("0.0 GB");
+  });
+
+  test("leaving QLoRA for a training mode lifts the 4-bit precision pin", () => {
+    loadDom();
+    mountCalculator(document);
+
+    fireInput("total-params", "8");
+    fireChange("execution-mode", "QLoRA fine-tuning");
+    expect(field("precision").value).toBe("4-bit");
+
+    // Full training cannot run on 4-bit NF4 weights, so the pin must lift rather
+    // than leak a physically impossible quantization into the estimate.
+    fireChange("execution-mode", "Full training");
+    expect(field("precision").value).toBe("16-bit");
   });
 });
 
@@ -1321,6 +1531,59 @@ describe("adaptive controls", () => {
     expect(isRowHidden("kv-cache-precision")).toBe(false);
   });
 
+  test("hides training-only inputs during Inference and restores them for training", () => {
+    loadDom();
+    mountCalculator(document);
+    // Inference never reads gradient checkpointing or the optimizer, so both
+    // rows stay hidden with their controls disabled instead of implying an
+    // effect on the estimate.
+    expect(isRowHidden("gradient-checkpointing")).toBe(true);
+    expect(field("gradient-checkpointing").disabled).toBe(true);
+    expect(isRowHidden("optimizer")).toBe(true);
+    expect(field("optimizer").disabled).toBe(true);
+
+    for (const mode of [
+      "LoRA fine-tuning",
+      "QLoRA fine-tuning",
+      "Full training",
+    ]) {
+      fireChange("execution-mode", mode);
+      expect(isRowHidden("gradient-checkpointing")).toBe(false);
+      expect(field("gradient-checkpointing").disabled).toBe(false);
+      expect(isRowHidden("optimizer")).toBe(false);
+      expect(field("optimizer").disabled).toBe(false);
+    }
+
+    // The recommended default survives the round trip: the box reappears
+    // checked, matching common training recipes.
+    const gradient = field("gradient-checkpointing");
+    if (!(gradient instanceof HTMLInputElement)) {
+      throw new TypeError("Gradient checkpointing must be a checkbox");
+    }
+    expect(gradient.checked).toBe(true);
+
+    fireChange("execution-mode", "Inference");
+    expect(isRowHidden("gradient-checkpointing")).toBe(true);
+    expect(isRowHidden("optimizer")).toBe(true);
+  });
+
+  test("unchecking gradient checkpointing changes training estimates", () => {
+    loadDom();
+    mountCalculator(document);
+    fireChange("execution-mode", "Full training");
+    expect(out("total")).toBe("152.9 GB");
+
+    const gradient = field("gradient-checkpointing");
+    if (!(gradient instanceof HTMLInputElement)) {
+      throw new TypeError("Gradient checkpointing must be a checkbox");
+    }
+    gradient.checked = false;
+    gradient.dispatchEvent(new Event("change", { bubbles: true }));
+
+    expect(out("total")).toBe("166.0 GB");
+    expect(out("min-cap")).toBe("207.5 GB");
+  });
+
   test("offers all KV precision choices and applies 32-bit KV cache estimates", () => {
     loadDom();
     mountCalculator(document);
@@ -1340,14 +1603,16 @@ describe("adaptive controls", () => {
     expect(out("assumptions")).toContain("32-bit");
   });
 
-  test("renders resolved KV head assumptions in the real HTML output", () => {
+  test("renders the methodology assumption notes in the real HTML output", () => {
     loadDom();
     mountCalculator(document);
 
     const assumptions = out("assumptions");
 
-    expect(assumptions).toContain("KV heads used8");
-    expect(assumptions).toContain("Conservative KV heads32");
+    expect(assumptions).toContain(
+      "Runtime / CUDA overhead estimated at a fixed 1.5 GB for this mode and runtime profile.",
+    );
+    expect(assumptions).toContain("KV cache precision: 16-bit.");
   });
 });
 
@@ -1411,6 +1676,14 @@ function presetChips(): HTMLButtonElement[] {
 }
 
 /**
+ Read each preset chip's aria-pressed value, in DOM order.
+@returns one "true"/"false" string per chip
+*/
+function pressedStates(): string[] {
+  return presetChips().map((chip) => chip.getAttribute("aria-pressed") ?? "");
+}
+
+/**
  Click a preset chip by its visible label.
 @param label - the chip's text label
 */
@@ -1423,6 +1696,82 @@ function clickPreset(label: string): void {
   }
   chip.click();
 }
+
+describe("hardware tier reference", () => {
+  test("marks only the smallest tier ceiling that covers the estimate", () => {
+    loadDom();
+    mountCalculator(document);
+    const cells = [
+      ...document.querySelectorAll<HTMLElement>("[data-tier-fit]"),
+    ];
+
+    expect(cells.map((cell) => cell.dataset.tierFit)).toEqual([
+      "24",
+      "48",
+      "96",
+      "192",
+      "100000",
+    ]);
+    // The default 7B needs 22.4 GB raw. Larger ceilings would also hold it,
+    // but only the recommended 24 GB tier carries the check (and is exposed
+    // to assistive tech) so the column answers which tier to use.
+    expect(cells.map((cell) => cell.dataset.fit)).toEqual([
+      "true",
+      "false",
+      "false",
+      "false",
+      "false",
+    ]);
+    expect(cells.map((cell) => cell.getAttribute("aria-hidden"))).toEqual([
+      "false",
+      "true",
+      "true",
+      "true",
+      "true",
+    ]);
+  });
+
+  test("clears the single-accelerator checks once the estimate outgrows them", () => {
+    loadDom();
+    mountCalculator(document);
+    // 104B needs ~288.7 GB raw: beyond every single-accelerator ceiling,
+    // still within the beyond-single row.
+    fireInput("total-params", "104");
+
+    const fits = [
+      ...document.querySelectorAll<HTMLElement>("[data-tier-fit]"),
+    ].map((cell) => cell.dataset.fit);
+    expect(fits).toEqual(["false", "false", "false", "false", "true"]);
+  });
+
+  test("clears every check when no model is loaded", () => {
+    loadDom();
+    mountCalculator(document);
+    requireButton().click();
+
+    const cells = [
+      ...document.querySelectorAll<HTMLElement>("[data-tier-fit]"),
+    ];
+    expect(cells.every((cell) => cell.dataset.fit === "false")).toBe(true);
+    expect(
+      cells.every((cell) => cell.getAttribute("aria-hidden") === "true"),
+    ).toBe(true);
+  });
+
+  test("renders five collapsed rows sharing the exclusive accordion name", () => {
+    loadDom();
+    mountCalculator(document);
+
+    const rows = [
+      ...document.querySelectorAll<HTMLDetailsElement>("details.tier"),
+    ];
+    expect(rows).toHaveLength(5);
+    expect(
+      rows.every((row) => row.getAttribute("name") === "hardware-tier"),
+    ).toBe(true);
+    expect(rows.every((row) => !row.open)).toBe(true);
+  });
+});
 
 describe("model presets", () => {
   test("renders a non-submitting chip for every catalog entry", () => {
@@ -1472,6 +1821,21 @@ describe("model presets", () => {
     expect(out("total")).toBe("112.4 GB");
   });
 
+  test("computes the preset report from freshly revealed controls", () => {
+    loadDom();
+    mountCalculator(document);
+
+    clickPreset("Mixtral");
+
+    // The first render must already read the just-enabled Active Parameters
+    // value: a stale read of the still-disabled control fell back to the
+    // 1.3B default and showed a ~10x too-fast speed for one render.
+    const speedAfterClick = out("speed");
+    expect(speedAfterClick).toBe("186.0 tokens/sec");
+    fireInput("total-params", field("total-params").value);
+    expect(out("speed")).toBe(speedAfterClick);
+  });
+
   test("applies a preset without submitting or navigating the form", () => {
     loadDom();
     mountCalculator(document);
@@ -1512,6 +1876,82 @@ describe("model presets", () => {
 
     expect(field("total-params").value).toBe("0");
     expect(out("total")).toBe("0.0 GB");
+  });
+
+  test("links the header MODEL word to each loaded preset's model page", () => {
+    loadDom();
+    mountCalculator(document);
+    // The seed deployment matches no preset: local link, nothing highlighted.
+    expect(dataSlot("status-model-link").getAttribute("href")).toBe("/");
+
+    for (const preset of MODEL_PRESETS) {
+      clickPreset(preset.label);
+      expect(dataSlot("status-model-link").getAttribute("href")).toBe(
+        preset.url,
+      );
+    }
+  });
+
+  test("keeps the chip of the still-matching preset green", () => {
+    loadDom();
+    mountCalculator(document);
+    expect(pressedStates()).toEqual([
+      "false",
+      "false",
+      "false",
+      "false",
+      "false",
+    ]);
+
+    clickPreset("Mixtral");
+
+    expect(pressedStates()).toEqual([
+      "false",
+      "false",
+      "true",
+      "false",
+      "false",
+    ]);
+  });
+
+  test("drops the model link and highlight once an input diverges", () => {
+    loadDom();
+    mountCalculator(document);
+    clickPreset("Llama 70B");
+    expect(pressedStates()[1]).toBe("true");
+
+    fireInput("total-params", "71");
+
+    expect(dataSlot("status-model-link").getAttribute("href")).toBe("/");
+    expect(pressedStates()[1]).toBe("false");
+  });
+
+  test("skips a stray non-HTML node added to the presets group after mount", () => {
+    loadDom();
+    mountCalculator(document);
+    const stray = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    dataSlot("presets").append(stray);
+
+    clickPreset("Gemma");
+
+    expect(stray.getAttribute("aria-pressed")).toBeNull();
+    expect(presetChips()[3]?.getAttribute("aria-pressed")).toBe("true");
+  });
+
+  test("reset drops the model link and highlight", () => {
+    loadDom();
+    mountCalculator(document);
+    clickPreset("Gemma");
+    expect(dataSlot("status-model-link").getAttribute("href")).toBe(
+      "https://huggingface.co/google/gemma-2-9b",
+    );
+
+    requireButton().click();
+
+    expect(dataSlot("status-model-link").getAttribute("href")).toBe("/");
+    for (const chip of presetChips()) {
+      expect(chip.getAttribute("aria-pressed")).toBe("false");
+    }
   });
 });
 

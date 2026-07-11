@@ -466,6 +466,7 @@ for (const viewport of onePageViewports) {
       const style = getComputedStyle(node);
       return {
         letterSpacing: style.letterSpacing,
+        textAlign: style.textAlign,
         textTransform: style.textTransform,
       };
     });
@@ -477,6 +478,9 @@ for (const viewport of onePageViewports) {
     expect(legendStyle.textTransform).toBe("uppercase");
     expect(legendStyle.letterSpacing).not.toBe("normal");
     expect(legendStyle.letterSpacing).not.toBe("0px");
+    // The section headers center over their group, matching the design's
+    // "MODEL" / "DEPLOYMENT" HUD headers rather than the default left edge.
+    expect(legendStyle.textAlign).toBe("center");
 
     // Wider labels must not break the one-viewport or horizontal-edge contract.
     await expectNoHorizontalDocumentOverflow(page);

@@ -26,6 +26,11 @@
   first paint equal to the hydrated render — without the seed the post-load fill
   grew the hero row and pushed Lighthouse CLS to 0.81 (< 0.9). Both stay within
   the one-viewport contract and the sub-120px hero-card height at desktop 720.
+- Section legends ("MODEL" / "DEPLOYMENT") now center over their fieldset
+  (`legend { width: 100%; text-align: center }`), matching the design's centered
+  HUD headers. Legend color stays foreground, not the design's green, so the
+  primary green accent stays reserved for the answer. Covered by the HUD-label
+  e2e test (now asserts `text-align: center`).
 
 ## Checks
 
@@ -52,9 +57,6 @@
 
 ## Next
 
-- Center the fieldset legends (design centers "MODEL" / "DEPLOYMENT"); ours are
-  left-aligned. Low-risk, no responsive impact — the HUD-label e2e checks only
-  uppercase + letter-spacing, not alignment.
 - The hero GPU-examples line renders our single descriptor string ("RTX 3090 /
   RTX 4090 class") as one muted run; the design links each card name (green
   "RTX 4090", muted "L4"). Matching that needs the hardware tier data to expose

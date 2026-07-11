@@ -220,11 +220,15 @@ summary {
   font-weight: var(--font-weight-bold);
 }
 
-/* Section legends read as HUD labels: uppercased and widely spaced per DESIGN.md.
+/* Section legends read as HUD labels: uppercased, widely spaced, and centered
+   over the group per the design's "MODEL" / "DEPLOYMENT" headers. Full width so
+   the centering resolves against the whole group, not the legend's own text box.
    Color stays foreground so the primary green accent remains reserved. */
 legend {
+  width: 100%;
   text-transform: uppercase;
   letter-spacing: var(--font-hud-spacing);
+  text-align: center;
 }
 
 .topnav a {

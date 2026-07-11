@@ -36,6 +36,10 @@ Ship a compact, trustworthy VRAM calculator today. Preserve naming, calculator c
     estimate) so first paint equals the hydrated render, keeping Lighthouse CLS
     within budget; both stay inside the one-viewport contract and the sub-120px
     hero-card height.
+  - [x] Section legends ("MODEL" / "DEPLOYMENT") center over their fieldset,
+    matching the design's centered HUD headers instead of the default left edge.
+    Legend color stays foreground (not the design's green) so the primary green
+    accent remains reserved for the answer.
 
 The design bundle is a raw claude.ai/design export (`{{ }}` templates, inline
 styles, upload `.ts`) and cannot pass `eslint .` or `html-validate`. It lives

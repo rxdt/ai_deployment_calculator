@@ -17,9 +17,12 @@
   `rel="noopener noreferrer"`, underlined for a non-color cue) when the card has
   a product page, muted text otherwise. Product URLs reuse the design bundle's
   deep links where it named them (RTX 4060 / 4080 / 4090 / 6000 Ada) and
-  otherwise point at NVIDIA's stable series / data-center landing pages; SKUs
-  without a canonical page, sharded pools, and generic descriptors stay
-  name-only. This removed the old string round-trip: `hardware.ts` built a
+  otherwise point at NVIDIA's stable series / data-center landing pages. The
+  RTX 5000 Ada, RTX A6000, and L40S now link too (each verified against its own
+  NVIDIA product page this iteration), leaving only cards with no canonical
+  single-GPU page muted: generic descriptors, sharded pools, the B200 (only on
+  multi-GPU system pages), and the H800 (region-specific variant). This removed
+  the old string round-trip: `hardware.ts` built a
   descriptor and `result-format.ts` re-parsed it — the `gpuExamples` parser is
   gone, the tier's plain-text descriptor is derived from the card list, and the
   redundant trailing "class" on the examples line is dropped now that the class
@@ -32,11 +35,11 @@
   typecheck, schema, depcruise, knip, cspell, spectral, semgrep, secretlint,
   audit, build, coverage, e2e, Lighthouse (CLS back within budget after seeding
   the hero GPU card).
-- Unit tests: PASS (462), coverage 100% stmts/branches/funcs/lines (gate
-  enforced). This iteration added `hardware.test.ts` cases proving each tier's
-  `GpuCard[]` marks a card linkable only when it has a URL, and `app.test.ts`
-  cases proving linked cards render as anchors (correct href / `target=_blank` /
-  `rel="noopener noreferrer"`) while name-only cards stay muted text.
+- Unit tests: PASS (463), coverage 100% stmts/branches/funcs/lines (gate
+  enforced). This iteration retargeted the linkable-only-when-URL case at the
+  8 GB tier (RTX 4060 linked / "older 8 GB GPUs" muted) now that the 48 GB trio
+  all links, and added a `hardware.test.ts` case pinning B200/H800 as
+  deliberately name-only for lack of a canonical single-GPU page.
 - Playwright e2e: PASS across desktop-chrome / desktop-safari / iphone / pixel /
   small-320 / tablet. The default deployment's hero examples now assert the
   RTX 4090 link's href (calculator.spec); the one-viewport no-scroll /
@@ -53,10 +56,11 @@
 
 ## Next
 
-- Per-card GPU links now done. Remaining polish is content, not structure: some
-  linkable SKUs stay muted because I did not have a canonical NVIDIA URL I was
-  confident would not 404 (RTX 5000 Ada, RTX A6000, L40S, H800, B200). Adding
-  verified deep links for those would turn more names green — a data-only edit
-  to `HARDWARE_TIERS` in `hardware.ts`.
+- Per-card GPU links now done, and the linkable-SKU backlog is cleared: RTX 5000
+  Ada, RTX A6000, and L40S got verified NVIDIA product-page links this iteration.
+  Only B200 and H800 remain muted on purpose — NVIDIA publishes no standalone
+  single-GPU page for either (B200 lives on multi-GPU DGX/HGX system pages; H800
+  is a region-specific H100 variant), so linking would point at a mismatched
+  page. Revisit if NVIDIA ships dedicated pages.
 - Deployment group already matches the design's two-across layout. Advanced
   panel keeps its quarter-width flex layout (`.advanced[open] .field`).

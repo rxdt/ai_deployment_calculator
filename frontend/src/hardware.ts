@@ -65,7 +65,7 @@ export const HARDWARE_TIERS: readonly HardwareTier[] = [
     label: "16 GB consumer / small workstation class",
     examples: [
       { name: "RTX 4080", url: `${GEFORCE_40}rtx-4080-family/` },
-      { name: "RTX 5000 Ada" },
+      { name: "RTX 5000 Ada", url: `${NV}/design-visualization/rtx-5000/` },
     ],
     bandwidthGbps: 448,
     kind: "single_gpu",
@@ -88,9 +88,9 @@ export const HARDWARE_TIERS: readonly HardwareTier[] = [
     vramGb: 48,
     label: "48 GB workstation / pro inference class",
     examples: [
-      { name: "RTX A6000" },
+      { name: "RTX A6000", url: `${NV}/design-visualization/rtx-a6000/` },
       { name: "RTX 6000 Ada", url: `${NV}/design-visualization/rtx-6000/` },
-      { name: "L40S" },
+      { name: "L40S", url: `${NV}/data-center/l40s/` },
     ],
     bandwidthGbps: 768,
     kind: "single_gpu",

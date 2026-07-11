@@ -26,12 +26,15 @@ describe("buildReport", () => {
       recommendedTier:
         "48 GB workstation / pro inference class, e.g. RTX A6000 / RTX 6000 Ada / L40S",
       exampleCards: [
-        { name: "RTX A6000" },
+        {
+          name: "RTX A6000",
+          url: "https://www.nvidia.com/en-us/design-visualization/rtx-a6000/",
+        },
         {
           name: "RTX 6000 Ada",
           url: "https://www.nvidia.com/en-us/design-visualization/rtx-6000/",
         },
-        { name: "L40S" },
+        { name: "L40S", url: "https://www.nvidia.com/en-us/data-center/l40s/" },
       ],
       math: "Estimated workload memory is 21.3 GB. With a 85% usable VRAM target, use a GPU with at least 25.1 GB of physical VRAM so the workload does not consume the entire card.",
     });

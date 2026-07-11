@@ -32,21 +32,42 @@ describe("canonical hardware table", () => {
   });
 
   test("marks example cards linkable only when they have a product page", () => {
-    // The 48 GB tier mixes both: the RTX 6000 Ada links to its product page,
-    // while the A6000 and L40S stay name-only for the muted, unlinked render.
+    // The 8 GB tier mixes both: the RTX 4060 links to its product page, while
+    // the generic "older 8 GB GPUs" descriptor stays name-only for the muted,
+    // unlinked render.
+    expect(tier(8).examples).toEqual([
+      {
+        name: "RTX 4060",
+        url: "https://www.nvidia.com/en-us/geforce/graphics-cards/40-series/rtx-4060-4060-ti/",
+      },
+      { name: "older 8 GB GPUs" },
+    ]);
+    // Every 48 GB workstation SKU now carries a verified product page, so the
+    // whole trio renders as links.
     expect(tier(48).examples).toEqual([
-      { name: "RTX A6000" },
+      {
+        name: "RTX A6000",
+        url: "https://www.nvidia.com/en-us/design-visualization/rtx-a6000/",
+      },
       {
         name: "RTX 6000 Ada",
         url: "https://www.nvidia.com/en-us/design-visualization/rtx-6000/",
       },
-      { name: "L40S" },
+      { name: "L40S", url: "https://www.nvidia.com/en-us/data-center/l40s/" },
     ]);
     // Sharded aggregate tiers are several GPUs, not one SKU, so they stay
     // name-only rather than linking a card that does not exist.
     expect(tier(160).examples).toEqual([
       { name: "2x 80 GB GPUs with tensor/model parallelism" },
     ]);
+  });
+
+  test("keeps data-center SKUs without a canonical single-GPU page name-only", () => {
+    // The B200 and H800 have no NVIDIA page for the standalone GPU (the B200
+    // only appears on multi-GPU system pages; the H800 is a region-specific
+    // variant), so they stay muted rather than link a mismatched page.
+    expect(tier(180).examples).toEqual([{ name: "B200" }]);
+    expect(tier(80).examples).toContainEqual({ name: "H800" });
   });
 
   test("only the 160 and 320 aggregate tiers require sharding", () => {

@@ -157,7 +157,7 @@ for (const path of pages) {
       /JetBrains Mono/u,
     );
     await expect(
-      page.getByRole("heading", { name: "VRAM Deployment Calculator" }),
+      page.getByRole("heading", { name: "AI Deployment Calculator" }),
     ).not.toHaveCSS("font-family", /JetBrains Mono/u);
     // The hero total is a technical readout, so it takes the mono face like the
     // controls, while the reading text (body, heading) stays sans.
@@ -202,7 +202,7 @@ for (const viewport of onePageViewports) {
     await expectNoHorizontalDocumentOverflow(page);
 
     const firstGlance = [
-      page.getByRole("heading", { name: "VRAM Deployment Calculator" }),
+      page.getByRole("heading", { name: "AI Deployment Calculator" }),
       page.getByRole("button", { name: "Reset" }),
       page.locator('[data-out="total"]'),
       page.locator('[data-out="gpu-class"]'),

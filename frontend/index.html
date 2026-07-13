@@ -4,46 +4,55 @@
     <meta charset="UTF-8" />
     <meta
       name="description"
-      content="Free AI VRAM calculator for estimating GPU memory, hardware tier, context, batch, LoRA, QLoRA, full-training, multimodal, diffusion, video, audio, and tabular workloads."
+      content="Free AI deployment calculator that estimates GPU VRAM, hardware tier, context, batch, LoRA, QLoRA, full-training, multimodal, diffusion, video, audio, and tabular workloads. Runs in the browser, no signup."
     />
     <meta
       name="robots"
       content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1"
     />
-    <meta name="application-name" content="VRAM Deployment Calculator" />
+    <link rel="canonical" href="https://aideploymentcalculator.vercel.app/" />
+    <meta
+      property="og:url"
+      content="https://aideploymentcalculator.vercel.app/"
+    />
+    <meta name="application-name" content="AI Deployment Calculator" />
     <meta name="theme-color" content="#1f1f29" />
     <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="VRAM Deployment Calculator" />
+    <meta property="og:site_name" content="AI Deployment Calculator" />
     <meta
       property="og:title"
-      content="VRAM Deployment Calculator - AI GPU Memory Estimator"
+      content="AI Deployment Calculator - VRAM &amp; GPU Memory Estimator"
     />
     <meta
       property="og:description"
       content="Estimate GPU VRAM, usable memory, and hardware tier for AI inference, LoRA, QLoRA, full training, multimodal, diffusion, video, audio, and tabular workloads."
     />
-    <!-- og:image should become an absolute URL once the production domain is
-         fixed; scrapers do not resolve root-relative paths reliably. -->
-    <meta property="og:image" content="/og-image.png" />
+    <meta
+      property="og:image"
+      content="https://aideploymentcalculator.vercel.app/og-image.png"
+    />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta
       property="og:image:alt"
-      content="VRAM Deployment Calculator showing a 19.0 GB memory estimate and a 24 GB hardware tier."
+      content="AI Deployment Calculator showing a 19.0 GB memory estimate and a 24 GB hardware tier."
     />
     <meta name="twitter:card" content="summary_large_image" />
     <meta
       name="twitter:title"
-      content="VRAM Deployment Calculator - AI GPU Memory Estimator"
+      content="AI Deployment Calculator - VRAM &amp; GPU Memory Estimator"
     />
     <meta
       name="twitter:description"
       content="Estimate GPU VRAM, usable memory, and hardware tier for AI inference, LoRA, QLoRA, full training, multimodal, diffusion, video, audio, and tabular workloads."
     />
-    <meta name="twitter:image" content="/og-image.png" />
+    <meta
+      name="twitter:image"
+      content="https://aideploymentcalculator.vercel.app/og-image.png"
+    />
     <meta
       name="twitter:image:alt"
-      content="VRAM Deployment Calculator showing a 19.0 GB memory estimate and a 24 GB hardware tier."
+      content="AI Deployment Calculator showing a 19.0 GB memory estimate and a 24 GB hardware tier."
     />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
@@ -61,19 +70,27 @@
       type="font/woff2"
       crossorigin
     />
-    <title>VRAM Deployment Calculator | AI GPU Memory Estimator</title>
+    <title>AI Deployment Calculator | VRAM &amp; GPU Memory Estimator</title>
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
         "@type": "WebApplication",
-        "name": "VRAM Deployment Calculator",
+        "name": "AI Deployment Calculator",
+        "alternateName": "VRAM Deployment Calculator",
+        "url": "https://aideploymentcalculator.vercel.app/",
         "applicationCategory": "DeveloperApplication",
         "operatingSystem": "Any",
-        "description": "Free AI VRAM calculator for estimating GPU memory, hardware tier, context, batch, LoRA, QLoRA, full-training, multimodal, diffusion, video, audio, and tabular workloads.",
+        "description": "Free AI deployment calculator for estimating GPU VRAM, hardware tier, context, batch, LoRA, QLoRA, full-training, multimodal, diffusion, video, audio, and tabular workloads.",
+        "isAccessibleForFree": true,
         "offers": {
           "@type": "Offer",
           "price": "0",
           "priceCurrency": "USD"
+        },
+        "author": {
+          "@type": "Person",
+          "name": "Roxana dT",
+          "url": "https://rxdt.github.io/"
         }
       }
     </script>
@@ -136,9 +153,9 @@
           <div class="form-card">
             <div class="title-card">
               <div class="intro">
-                <h1>VRAM Deployment Calculator</h1>
+                <h1>AI Deployment Calculator</h1>
                 <p>
-                  Estimate VRAM GPUs needed and the hardware tier for an AI
+                  Estimate the GPU VRAM and hardware tier needed to deploy an AI
                   model's workload.
                 </p>
               </div>

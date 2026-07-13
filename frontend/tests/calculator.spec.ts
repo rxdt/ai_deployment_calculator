@@ -110,7 +110,7 @@ test("renders the default deployment computed locally", async ({ page }) => {
   await page.goto("/");
 
   await expect(
-    page.getByRole("heading", { name: "VRAM Deployment Calculator" }),
+    page.getByRole("heading", { name: "AI Deployment Calculator" }),
   ).toBeVisible();
   await expect(page.locator('[data-out="total"]')).toHaveText("19.0 GB");
   await expect(page.locator('[data-out="gpu-class"]')).toHaveText(
@@ -446,10 +446,10 @@ test("introduces the calculator with its purpose subtitle in the input pane", as
 
   const subtitle = page
     .locator(".inputs .intro p")
-    .filter({ hasText: "Estimate VRAM GPUs needed" });
+    .filter({ hasText: "Estimate the GPU VRAM" });
   await expect(subtitle).toBeVisible();
   await expect(subtitle).toHaveText(
-    "Estimate VRAM GPUs needed and the hardware tier for an AI model's workload.",
+    "Estimate the GPU VRAM and hardware tier needed to deploy an AI model's workload.",
   );
 });
 

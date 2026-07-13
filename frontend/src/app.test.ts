@@ -301,14 +301,24 @@ describe("static SEO metadata", () => {
       head.querySelector<HTMLMetaElement>(selector)?.content ?? null;
 
     expect(head.querySelector("title")?.textContent).toBe(
-      "VRAM Deployment Calculator | AI GPU Memory Estimator",
+      "AI Deployment Calculator | VRAM & GPU Memory Estimator",
     );
-    expect(meta('meta[name="description"]')).toContain("AI VRAM calculator");
+    expect(meta('meta[name="description"]')).toContain(
+      "AI deployment calculator",
+    );
     expect(meta('meta[name="robots"]')).toContain("max-image-preview:large");
-    expect(meta('meta[property="og:title"]')).toBe(
-      "VRAM Deployment Calculator - AI GPU Memory Estimator",
+    expect(
+      head.querySelector<HTMLLinkElement>('link[rel="canonical"]')?.href,
+    ).toBe("https://aideploymentcalculator.vercel.app/");
+    expect(meta('meta[property="og:url"]')).toBe(
+      "https://aideploymentcalculator.vercel.app/",
     );
-    expect(meta('meta[property="og:image"]')).toBe("/og-image.png");
+    expect(meta('meta[property="og:title"]')).toBe(
+      "AI Deployment Calculator - VRAM & GPU Memory Estimator",
+    );
+    expect(meta('meta[property="og:image"]')).toBe(
+      "https://aideploymentcalculator.vercel.app/og-image.png",
+    );
     expect(meta('meta[property="og:image:alt"]')).toContain(
       "19.0 GB memory estimate",
     );

@@ -113,16 +113,10 @@ competitor.
       type, the `precision` URL schema, and a grouped `<optgroup>` select;
       GGUF bpw folds block-scale metadata so overhead is 1; QLoRA still pins
       the existing 4-bit NF4 base.
-- [ ] **F4. Crawlable prose + FAQ + keyword flip** (effort S). ~600 words of
-      static HTML below the calculator: "How VRAM is calculated" (surface the
-      canonical equation), a quick-reference table (7B/13B/70B x
-      FP16/8-bit/4-bit), and a visible FAQ targeting real query phrasing
-      (70B VRAM, 7B VRAM, LoRA/QLoRA fine-tune VRAM, context length effect,
-      larger-than-VRAM models, SDXL VRAM). FAQPage JSON-LD as a bonus (no
-      rich-result expectations — Google restricted those in 2023). Flip
-      title/H1 to lead with the searched term while keeping breadth:
-      title `VRAM Calculator for LLMs, Diffusion & AI Models` (≤60 chars),
-      H1 similar. The breadth phrasing is mandatory (Goal #1).
+- [x] ~~**F4. Crawlable prose + FAQ + keyword flip** (effort S).~~ DONE
+      2026-07-15: "How VRAM is calculated" section, FAQ, FAQPage JSON-LD, and
+      the breadth-keeping H1/title flip shipped as static HTML below the
+      calculator.
 - [ ] **F5. Prerendered per-model pages** (effort M). Static
       `/models/<slug>.html` pages for each preset (reuse `MODEL_PRESETS` ids
       and the 404-page Vite-input pattern), each with baked-in numbers,
@@ -133,6 +127,11 @@ competitor.
 - [ ] **F7. Inverse mode — "what can my GPU run"** (effort L, last). Pick a
       GPU (or VRAM amount), get the model/quant sizes that fit. We own the
       fit math and hardware data; the work is the curated model list + UI.
+- [ ] **F8. Hardware catalog refresh** (effort S, recurring — take when no
+      other item is actionable). Verify every `GPU_LINKS` URL still resolves,
+      add newly common SKUs to the right tier (2026-07-15 added MI300X 192 GB
+      this way), refresh F6 prices once they exist, and correct dead links.
+      One PR-sized pass per run; log what was checked in the commit message.
 
 Explicitly rejected (do not build): animated inference simulations, live
 multi-provider price feeds, model-quality benchmark scores, accounts,

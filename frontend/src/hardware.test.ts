@@ -47,6 +47,7 @@ describe("canonical hardware table", () => {
     expect(tier(180).examples).toEqual([{ name: "B200", url: GPU_LINKS.b200 }]);
     expect(tier(192).examples).toEqual([
       { name: "Cloud TPU7x", url: GPU_LINKS.tpu7x },
+      { name: "AMD Instinct MI300X", url: GPU_LINKS.mi300x },
     ]);
   });
 

@@ -41,6 +41,8 @@ export const GPU_LINKS = {
   macStudioSpecs: "https://www.apple.com/mac-studio/specs/",
   mi210:
     "https://www.amd.com/en/products/accelerators/instinct/mi200/mi210.html",
+  mi300x:
+    "https://www.amd.com/en/products/accelerators/instinct/mi300/mi300x.html",
   inf2: "https://aws.amazon.com/ec2/instance-types/inf2/",
   rtxPro6000Blackwell:
     "https://www.nvidia.com/en-us/products/workstations/professional-desktop-gpus/rtx-pro-6000/",
@@ -141,7 +143,7 @@ const TIER_EXAMPLES = {
   ],
   141: [card("H200", "h200")],
   180: [card("B200", "b200")],
-  192: [card("Cloud TPU7x", "tpu7x")],
+  192: [card("Cloud TPU7x", "tpu7x"), card("AMD Instinct MI300X", "mi300x")],
 } as const;
 
 export const HARDWARE_TIERS: readonly HardwareTier[] = [

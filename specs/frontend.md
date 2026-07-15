@@ -19,6 +19,26 @@ after each. Feature rationale lives in `specs/plan.md`.
 - `app.ts` is near the 300 code-line cap; new DOM helpers belong in
   `app-dom.ts` with exported JSDoc.
 
+## Loop Discipline (finish, don't dally)
+
+1. Pick the FIRST unchecked feature in `specs/plan.md` Phase 2 whose
+   dependencies are met. One feature per run — never two.
+2. Read Gate Landmines below BEFORE writing code; every landmine has already
+   cost a full debugging cycle once.
+3. Definition of done, all four or it is not done: (a) the contract below is
+   met exactly; (b) `pnpm gate` exits 0; (c) the item is struck `[x]` in
+   `specs/plan.md` with a one-line DONE note; (d) work is committed with a
+   descriptive message.
+4. No drive-by refactors, no renames, no style migrations, no scope
+   extensions outside the feature's contract. If you see an unrelated
+   problem, append one line to `docs/LAUNCH_TODO.md` and keep moving.
+5. If the same gate check fails 3 consecutive attempts, STOP: revert to the
+   last green state, write the blocker (symptom, attempts, hypothesis) under
+   a `## Blockers` heading in `specs/plan.md`, and end the run. Thrashing
+   burns the budget the next feature needs.
+6. Never edit another feature's primary files in the same run; never touch
+   `harness/` config except where a contract explicitly says so.
+
 ## Remaining Phase 2 Contracts
 
 ### F1 — Hugging Face model lookup (M)
@@ -62,6 +82,16 @@ after each. Feature rationale lives in `specs/plan.md`.
 - Add hand-maintained `costPerHourUsd?: number` to GPU example cards in
   `hardware.ts`; render "~$X.XX/hr rented" beside examples that have it.
 - Include a dated source-month comment. No live pricing or backend.
+
+### F8 — Hardware catalog refresh (S, recurring)
+
+- Take only when no other unchecked feature is actionable. One pass per run:
+  HEAD-check every `GPU_LINKS` URL (report, don't guess), fix dead links with
+  the vendor's canonical product page, add at most 2 newly common SKUs to the
+  correct tier with tests updated (pattern: the 2026-07-15 MI300X addition in
+  `hardware.ts` + `hardware.test.ts`), and refresh `costPerHourUsd` values if
+  F6 has shipped (dated comment).
+- No tier restructuring, no threshold changes — data only.
 
 ### F7 — Inverse mode (L, last)
 

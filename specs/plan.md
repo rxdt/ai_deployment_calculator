@@ -157,3 +157,20 @@ Done means, for each feature taken on:
 6. README stays accurate.
 
 > ~~strikethrough~~ strikethrough completed items to clarify what is done
+
+## Blockers
+
+- **The harness DOM-selector gate freezes `app-dom.ts` and `app.ts` (2026-07-15).**
+  Symptom: committing F6 was rejected with
+  `app-dom.ts:...: unlisted data-* selector '[data-tier-fit]'`. Attempts:
+  F6 passed `test:coverage` (100% branches) and `preflight`, but the commit
+  hook's `preferenceProblems` check scans full staged `.ts` content against
+  `ALLOWED_TS_DOM_DATA_SELECTORS` in `harness/preferences.ts`, which omits
+  `[data-tier-fit]` (used by the untouched `renderTierFits`). `app.ts` is
+  frozen too — its `hideSlots` uses `querySelectorAll(variable)`, flagged as a
+  dynamic selector. Hypothesis: the allowlist was tightened after `app-dom.ts`
+  was last committed (`549d433`), leaving a latent trap no loop hit until a UI
+  feature touched those files. Fix is owner-only (forbidden `harness/` path):
+  add `[data-tier-fit]` to the allowlist and permit the `hideSlots` pattern.
+  Blocks F1, F2, F5–F7 UI work; F6 was implemented and reverted to keep a
+  green tree. Detail in `docs/PROJECT_STATUS.md` and `UPSTREAM.md`.

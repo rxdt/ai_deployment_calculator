@@ -295,24 +295,51 @@ export function normalizedState(search: URLSearchParams): FormState {
  
 @param state
 */
+/**
+ Serialize one state value for the share URL, or null when it carries no
+ signal. Booleans emit "on"/"off" only when they differ from the seed, so
+ absence keeps meaning "default". "0" and "" are the same "not provided"
+ value for the empty-default numeric (known model file size), so a cleared
+ field stays out of the URL too.
+@param value - the state value
+@param seed - the default-state value for the same key
+@returns the wire value, or null to omit the parameter
+*/
+function wireValue(
+  value: string | boolean,
+  seed: string | boolean | undefined,
+): string | null {
+  if (typeof value === "boolean") {
+    if (value === seed) {
+      return null;
+    }
+    return value ? "on" : "off";
+  }
+  if (value === "" || value === seed || (value === "0" && seed === "")) {
+    return null;
+  }
+  return value;
+}
+
+/**
+ Encode the deployment as URL query parameters, omitting every value that
+ still matches the seed deployment so share links stay short.
+@param state - normalized form state
+@returns query parameters for the share URL
+*/
 export function searchFromState(state: FormState): URLSearchParams {
   const search = new URLSearchParams();
   const defaultValues = new Map<string, string | boolean>(
     Object.entries(defaultState()),
   );
-  for (const [name, value] of Object.entries(state)) {
-    const wireName = toWireKey(name);
-    if (typeof value === "boolean") {
-      // A checkbox value only carries signal when it differs from the seed:
-      // "on" for checked, and an explicit "off" only where the default is
-      // true (gradient checkpointing) so absence keeps meaning "default".
-      if (value) {
-        search.set(wireName, "on");
-      } else if (defaultValues.get(name) === true) {
-        search.set(wireName, "off");
-      }
-    } else if (typeof value === "string" && value !== "") {
-      search.set(wireName, value);
+  const stateValues = new Map<string, string | boolean>(Object.entries(state));
+  // Serialize only values that differ from the seed deployment: an absent
+  // parameter already reads back as its default, so echoing every field only
+  // bloats share links (one dropdown change was producing 27 parameters).
+  for (const [name, value] of stateValues) {
+    const wire = wireValue(value, defaultValues.get(name));
+    if (wire !== null) {
+      search.set(toWireKey(name), wire);
     }
   }
   return search;

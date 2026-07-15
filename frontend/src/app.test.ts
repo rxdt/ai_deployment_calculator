@@ -309,15 +309,13 @@ describe("static SEO metadata", () => {
     expect(meta('meta[name="robots"]')).toContain("max-image-preview:large");
     expect(
       head.querySelector<HTMLLinkElement>('link[rel="canonical"]')?.href,
-    ).toBe("https://aideploymentcalculator.vercel.app/");
-    expect(meta('meta[property="og:url"]')).toBe(
-      "https://aideploymentcalculator.vercel.app/",
-    );
+    ).toBe("https://vram.rxdt.dev/");
+    expect(meta('meta[property="og:url"]')).toBe("https://vram.rxdt.dev/");
     expect(meta('meta[property="og:title"]')).toBe(
       "AI Deployment Calculator - VRAM & GPU Memory Estimator",
     );
     expect(meta('meta[property="og:image"]')).toBe(
-      "https://aideploymentcalculator.vercel.app/og-image.png",
+      "https://vram.rxdt.dev/og-image.png",
     );
     expect(meta('meta[property="og:image:alt"]')).toContain(
       "19.0 GB memory estimate",
@@ -664,7 +662,7 @@ describe("mounted calculator", () => {
     if (!(brand instanceof HTMLAnchorElement)) {
       throw new TypeError("Brand must be an anchor");
     }
-    expect(brand.href).toBe("https://aideploymentcalculator.vercel.app/");
+    expect(brand.href).toBe("https://vram.rxdt.dev/");
     // The prompt marker sits in its own element so the stylesheet greens only
     // the marker (its "~") and never the product name outside it. One marker
     // holding just "~" plus the full "~VRAM-calculator" text proves the name

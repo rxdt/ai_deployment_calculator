@@ -4,6 +4,9 @@ import indexHtml from "../index.html?raw";
 import { CalculatorApp, mountCalculator } from "./app";
 import { sanitizeNumberInput } from "./input-sanitizer";
 import { MODEL_PRESETS } from "./presets";
+import { buildReport } from "./report";
+import { defaultState } from "./state";
+import type { Precision } from "./types";
 
 const CONTRACTED_LABELS = new Map([
   ["workload-family", "Model Task Family"],
@@ -293,49 +296,213 @@ afterEach(() => {
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
 
+const REFERENCE_PRECISIONS: readonly Precision[] = ["16-bit", "8-bit", "4-bit"];
+
+/**
+ Walk every element under a parsed document or element without CSS selectors.
+@param root - document or element to traverse
+@returns descendant elements in DOM order
+*/
+function allElements(root: Document | Element): Element[] {
+  const owner = root instanceof Document ? root : root.ownerDocument;
+  const walker = owner.createTreeWalker(root, NodeFilter.SHOW_ELEMENT);
+  const elements: Element[] = [];
+  let current = walker.nextNode();
+  while (current !== null) {
+    if (current instanceof Element) {
+      elements.push(current);
+    }
+    current = walker.nextNode();
+  }
+  return elements;
+}
+
+/**
+ Parse the JSON-LD blocks from the static document head.
+@param parsed - parsed index.html document
+@returns structured-data objects in DOM order
+*/
+function structuredData(parsed: Document): Record<string, unknown>[] {
+  return allElements(parsed.head)
+    .filter(
+      (element): element is HTMLScriptElement =>
+        element instanceof HTMLScriptElement &&
+        element.type === "application/ld+json",
+    )
+    .map((script): unknown => JSON.parse(script.textContent))
+    .filter(isRecord);
+}
+
+/**
+ Read one static meta tag by exact attribute value.
+@param head - parsed document head
+@param attribute - meta attribute to match
+@param value - exact attribute value
+@returns the meta content, when present
+*/
+function metaContent(
+  head: HTMLHeadElement,
+  attribute: "name" | "property",
+  value: string,
+): string | null {
+  const meta = allElements(head).find(
+    (entry): entry is HTMLMetaElement =>
+      entry instanceof HTMLMetaElement &&
+      entry.getAttribute(attribute) === value,
+  );
+  return meta?.content ?? null;
+}
+
+/**
+ Read the first canonical link from the static document head.
+@param head - parsed document head
+@returns canonical href, when present
+*/
+function canonicalHref(head: HTMLHeadElement): string | null {
+  const canonical = allElements(head).find(
+    (entry): entry is HTMLLinkElement =>
+      entry instanceof HTMLLinkElement && entry.rel === "canonical",
+  );
+  return canonical?.href ?? null;
+}
+
+/**
+ Read visible FAQ question headings from the crawlable content.
+@param parsed - parsed index.html document
+@returns FAQ question text in DOM order
+*/
+function visibleFaqQuestions(parsed: Document): string[] {
+  return allElements(parsed.body)
+    .filter(
+      (entry): entry is HTMLHeadingElement =>
+        entry instanceof HTMLHeadingElement &&
+        entry.tagName === "H3" &&
+        entry.parentElement?.classList.contains("faq-item") === true,
+    )
+    .map((heading) => heading.textContent.trim());
+}
+
+/**
+ Find the static VRAM reference table.
+@param parsed - parsed index.html document
+@returns the reference table
+*/
+function referenceTable(parsed: Document): HTMLTableElement {
+  const table = allElements(parsed.body).find(
+    (entry): entry is HTMLTableElement =>
+      entry instanceof HTMLTableElement &&
+      entry.dataset.slot === "vram-reference-table",
+  );
+  if (table === undefined) {
+    throw new TypeError("Missing crawlable VRAM reference table");
+  }
+  return table;
+}
+
 describe("static SEO metadata", () => {
-  test("ships descriptive social and structured metadata", () => {
+  test("sets crawlable keyword metadata for the calculator", () => {
     const parsed = new DOMParser().parseFromString(indexHtml, "text/html");
     const { head } = parsed;
-    const meta = (selector: string): string | null =>
-      head.querySelector<HTMLMetaElement>(selector)?.content ?? null;
+    const title = allElements(head).find(
+      (entry): entry is HTMLTitleElement => entry instanceof HTMLTitleElement,
+    );
 
-    expect(head.querySelector("title")?.textContent).toBe(
-      "AI Deployment Calculator | VRAM & GPU Memory Estimator",
+    expect(title?.textContent).toBe(
+      "VRAM Calculator for LLMs, Diffusion & AI Models",
     );
-    expect(meta('meta[name="description"]')).toContain(
-      "AI deployment calculator",
+    expect(metaContent(head, "name", "description")).toContain("inference");
+    expect(metaContent(head, "name", "description")).toContain("fine-tuning");
+    expect(metaContent(head, "name", "description")).toContain("diffusion");
+    expect(metaContent(head, "name", "description")).toContain("video");
+    expect(metaContent(head, "name", "robots")).toContain(
+      "max-image-preview:large",
     );
-    expect(meta('meta[name="robots"]')).toContain("max-image-preview:large");
-    expect(
-      head.querySelector<HTMLLinkElement>('link[rel="canonical"]')?.href,
-    ).toBe("https://vram.rxdt.dev/");
-    expect(meta('meta[property="og:url"]')).toBe("https://vram.rxdt.dev/");
-    expect(meta('meta[property="og:title"]')).toBe(
-      "AI Deployment Calculator - VRAM & GPU Memory Estimator",
+    expect(canonicalHref(head)).toBe("https://vram.rxdt.dev/");
+    expect(metaContent(head, "property", "og:url")).toBe(
+      "https://vram.rxdt.dev/",
     );
-    expect(meta('meta[property="og:image"]')).toBe(
+    expect(metaContent(head, "property", "og:title")).toBe(
+      "VRAM Calculator for LLMs, Diffusion & AI Models",
+    );
+    expect(metaContent(head, "name", "twitter:title")).toBe(
+      "VRAM Calculator for LLMs, Diffusion & AI Models",
+    );
+    expect(metaContent(head, "property", "og:image")).toBe(
       "https://vram.rxdt.dev/og-image.png",
     );
-    expect(meta('meta[property="og:image:alt"]')).toContain(
+    expect(metaContent(head, "property", "og:image:alt")).toContain(
       "19.0 GB memory estimate",
     );
-    expect(meta('meta[name="twitter:card"]')).toBe("summary_large_image");
-
-    const schema = head.querySelector<HTMLScriptElement>(
-      'script[type="application/ld+json"]',
+    expect(metaContent(head, "name", "twitter:card")).toBe(
+      "summary_large_image",
     );
-    const data: unknown = JSON.parse(schema?.textContent ?? "{}");
+  });
+
+  test("describes the web application in structured data", () => {
+    const parsed = new DOMParser().parseFromString(indexHtml, "text/html");
+    const [data] = structuredData(parsed);
     if (!isRecord(data)) {
       throw new TypeError("Structured data must be a JSON object");
     }
+
     expect(data["@type"]).toBe("WebApplication");
+    expect(data.name).toBe("VRAM Calculator for LLMs, Diffusion & AI Models");
     expect(data.applicationCategory).toBe("DeveloperApplication");
     const { offers } = data;
     if (!isRecord(offers)) {
       throw new TypeError("Structured data offers must be a JSON object");
     }
     expect(offers.price).toBe("0");
+  });
+
+  test("mirrors the visible FAQ in structured data", () => {
+    const parsed = new DOMParser().parseFromString(indexHtml, "text/html");
+    const visibleQuestions = visibleFaqQuestions(parsed);
+    const faqSchema = structuredData(parsed).find(
+      (schema) => schema["@type"] === "FAQPage",
+    );
+    if (!isRecord(faqSchema)) {
+      throw new TypeError("FAQ structured data must be a JSON object");
+    }
+    const { mainEntity } = faqSchema;
+    if (!Array.isArray(mainEntity)) {
+      throw new TypeError("FAQ structured data must list questions");
+    }
+    const schemaQuestions = mainEntity.map((item) => {
+      if (!isRecord(item) || typeof item.name !== "string") {
+        throw new TypeError("FAQ question must be named");
+      }
+      return item.name;
+    });
+
+    expect(visibleQuestions).toHaveLength(7);
+    expect(schemaQuestions).toEqual(visibleQuestions);
+  });
+
+  test("keeps the crawlable quick reference table equal to calculator output", () => {
+    const parsed = new DOMParser().parseFromString(indexHtml, "text/html");
+    const table = referenceTable(parsed);
+    const rows = [...(table.tBodies.item(0)?.rows ?? [])];
+
+    expect(rows).toHaveLength(3);
+    for (const row of rows) {
+      const cells = [...row.cells].map((cell) => cell.textContent.trim());
+      const [model, ...values] = cells;
+      if (model === undefined) {
+        throw new TypeError("Reference row must name a model size");
+      }
+      const totalParameters = model.replace("B", "");
+      const expected = REFERENCE_PRECISIONS.map(
+        (precision) =>
+          buildReport({
+            ...defaultState(),
+            totalParams: totalParameters,
+            precision,
+          }).totalRequiredMemory,
+      );
+
+      expect(values).toEqual(expected);
+    }
   });
 });
 
@@ -1705,13 +1872,32 @@ function clickPreset(label: string): void {
   chip.click();
 }
 
+/**
+ Return the hardware-tier fit cells without CSS selector queries.
+@returns tier fit cells in DOM order
+*/
+function tierFitCells(): HTMLElement[] {
+  return allElements(document.body).filter(
+    (node): node is HTMLElement =>
+      node instanceof HTMLElement && node.dataset.tierFit !== undefined,
+  );
+}
+
+/**
+ Return hardware-tier accordion rows without CSS selector queries.
+@returns hardware-tier detail rows in DOM order
+*/
+function tierRows(): HTMLDetailsElement[] {
+  return allElements(document.body).filter((node): node is HTMLDetailsElement =>
+    node.classList.contains("tier"),
+  );
+}
+
 describe("hardware tier reference", () => {
   test("marks only the smallest tier ceiling that covers the estimate", () => {
     loadDom();
     mountCalculator(document);
-    const cells = [
-      ...document.querySelectorAll<HTMLElement>("[data-tier-fit]"),
-    ];
+    const cells = tierFitCells();
 
     expect(cells.map((cell) => cell.dataset.tierFit)).toEqual([
       "24",
@@ -1746,9 +1932,7 @@ describe("hardware tier reference", () => {
     // still within the beyond-single row.
     fireInput("total-params", "104");
 
-    const fits = [
-      ...document.querySelectorAll<HTMLElement>("[data-tier-fit]"),
-    ].map((cell) => cell.dataset.fit);
+    const fits = tierFitCells().map((cell) => cell.dataset.fit);
     expect(fits).toEqual(["false", "false", "false", "false", "true"]);
   });
 
@@ -1757,9 +1941,7 @@ describe("hardware tier reference", () => {
     mountCalculator(document);
     requireButton().click();
 
-    const cells = [
-      ...document.querySelectorAll<HTMLElement>("[data-tier-fit]"),
-    ];
+    const cells = tierFitCells();
     expect(cells.every((cell) => cell.dataset.fit === "false")).toBe(true);
     expect(
       cells.every((cell) => cell.getAttribute("aria-hidden") === "true"),
@@ -1770,9 +1952,7 @@ describe("hardware tier reference", () => {
     loadDom();
     mountCalculator(document);
 
-    const rows = [
-      ...document.querySelectorAll<HTMLDetailsElement>("details.tier"),
-    ];
+    const rows = tierRows();
     expect(rows).toHaveLength(5);
     expect(
       rows.every((row) => row.getAttribute("name") === "hardware-tier"),

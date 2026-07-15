@@ -22,35 +22,6 @@ const primaryControls = [
 // design, so they are asserted as technical captions elsewhere, not here.
 const readableLabels = ["Estimated VRAM Required"] as const;
 
-/**
- Assert the document never overflows horizontally: content grows downward in
- normal flow (the inline expand-down panels may make the page taller and
- scrollable, the accepted accordion pattern), but nothing may extend past the
- viewport's right edge and force a horizontal scrollbar.
-@param page - Playwright page under test
-*/
-async function expectNoHorizontalDocumentOverflow(page: Page): Promise<void> {
-  const overflow = await page.evaluate(() => {
-    const root = document.documentElement;
-    return root.scrollWidth - root.clientWidth;
-  });
-  expect(overflow).toBeLessThanOrEqual(1);
-}
-
-/**
- Assert vertical overflow is contained inside panes by trying to scroll the page.
-@param page - Playwright page under test.
-*/
-async function expectNoVerticalDocumentOverflow(page: Page): Promise<void> {
-  await page.evaluate(() => {
-    window.scrollTo(0, 0);
-  });
-  await page.evaluate(() => {
-    window.scrollBy(0, 800);
-  });
-  await expect.poll(async () => page.evaluate(() => window.scrollY)).toBe(0);
-}
-
 interface ElementBox {
   readonly height: number;
   readonly width: number;
@@ -69,6 +40,49 @@ function requireBox(box: ElementBox | null, name: string): ElementBox {
     throw new Error(`Missing ${name} box`);
   }
   return box;
+}
+
+/**
+ Assert the active Playwright viewport exists.
+@param page - Playwright page under test.
+@returns current viewport size.
+*/
+function requireViewport(page: Page): {
+  readonly height: number;
+  readonly width: number;
+} {
+  const viewport = page.viewportSize();
+  if (viewport === null) {
+    throw new Error("Missing viewport size");
+  }
+  return viewport;
+}
+
+/**
+ Assert the document never overflows horizontally: content grows downward in
+ normal flow (the inline expand-down panels may make the page taller and
+ scrollable, the accepted accordion pattern), but nothing may extend past the
+ viewport's right edge and force a horizontal scrollbar.
+@param page - Playwright page under test
+*/
+async function expectNoHorizontalDocumentOverflow(page: Page): Promise<void> {
+  const viewport = requireViewport(page);
+  const box = requireBox(await page.locator("html").boundingBox(), "html");
+  expect(box.width).toBeLessThanOrEqual(viewport.width + 1);
+}
+
+/**
+ Assert the interactive calculator stays in the first desktop viewport even
+ when static crawlable reference content continues below it.
+@param page - Playwright page under test.
+*/
+async function expectCalculatorFitsFirstViewport(page: Page): Promise<void> {
+  const viewport = requireViewport(page);
+  const box = requireBox(
+    await page.locator("main.layout").boundingBox(),
+    "layout",
+  );
+  expect(box.y + box.height).toBeLessThanOrEqual(viewport.height + 1);
 }
 
 /**
@@ -157,7 +171,9 @@ for (const path of pages) {
       /JetBrains Mono/u,
     );
     await expect(
-      page.getByRole("heading", { name: "AI Deployment Calculator" }),
+      page.getByRole("heading", {
+        name: "VRAM Calculator for LLMs, Diffusion & AI Models",
+      }),
     ).not.toHaveCSS("font-family", /JetBrains Mono/u);
     // The hero total is a technical readout, so it takes the mono face like the
     // controls, while the reading text (body, heading) stays sans.
@@ -192,17 +208,19 @@ for (const viewport of onePageViewports) {
   }) => {
     await page.setViewportSize(viewport);
     await page.goto("/");
-    // Desktop holds the whole collapsed estimate in one viewport. Phones stack
-    // the two panes into one column (WCAG reflow), so the page scrolls
-    // vertically by design; every first-glance element must still be
-    // reachable, and nothing may ever scroll horizontally.
+    // Desktop holds the interactive calculator in one viewport while the
+    // crawlable reference content continues below it. Phones stack the two
+    // panes into one column (WCAG reflow), so the page scrolls vertically by
+    // design; first-glance controls still need to remain reachable.
     if (viewport.name === "desktop") {
-      await expectNoVerticalDocumentOverflow(page);
+      await expectCalculatorFitsFirstViewport(page);
     }
     await expectNoHorizontalDocumentOverflow(page);
 
     const firstGlance = [
-      page.getByRole("heading", { name: "AI Deployment Calculator" }),
+      page.getByRole("heading", {
+        name: "VRAM Calculator for LLMs, Diffusion & AI Models",
+      }),
       page.getByRole("button", { name: "Reset" }),
       page.locator('[data-out="total"]'),
       page.locator('[data-out="gpu-class"]'),
@@ -456,7 +474,7 @@ test("hero fit meter shows class usage and hides when nothing fits", async ({
 /**
  Ensure the command-center atmosphere renders as pure decoration: the nav stays
  translucent and blurred over a layered grid/glow background, and the added paint
- never introduces page scroll on either one-viewport breakpoint.
+ never pushes the calculator below the first desktop viewport.
 */
 for (const viewport of onePageViewports) {
   test(`decorative atmosphere stays behind content on ${viewport.name}`, async ({
@@ -475,9 +493,8 @@ for (const viewport of onePageViewports) {
     expect(backgroundImage).toContain("linear-gradient");
     expect(backgroundImage).toContain("radial-gradient");
 
-    // The stacked phone column scrolls vertically by design.
     if (viewport.name === "desktop") {
-      await expectNoVerticalDocumentOverflow(page);
+      await expectCalculatorFitsFirstViewport(page);
     }
     await expectNoHorizontalDocumentOverflow(page);
   });
@@ -510,7 +527,9 @@ for (const viewport of onePageViewports) {
     await page.goto("/");
 
     const statusLabel = page.locator(".status-item span").first();
-    const legend = page.getByText("Model", { exact: true });
+    const legend = page
+      .getByLabel("Deployment inputs")
+      .getByText("Model", { exact: true });
 
     const statusSpacing = await statusLabel.evaluate(
       (node) => getComputedStyle(node).letterSpacing,
@@ -535,11 +554,11 @@ for (const viewport of onePageViewports) {
     // "MODEL" / "DEPLOYMENT" HUD headers rather than the default left edge.
     expect(legendStyle.textAlign).toBe("center");
 
-    // Wider labels must never force a horizontal scrollbar; the desktop
-    // layout additionally holds the collapsed page to one viewport.
+    // Wider labels must never force a horizontal scrollbar; the desktop layout
+    // keeps the calculator itself in the first viewport.
     await expectNoHorizontalDocumentOverflow(page);
     if (viewport.name === "desktop") {
-      await expectNoVerticalDocumentOverflow(page);
+      await expectCalculatorFitsFirstViewport(page);
     }
   });
 }

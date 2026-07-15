@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta
       name="description"
-      content="Free AI deployment calculator that estimates GPU VRAM, hardware tier, context, batch, LoRA, QLoRA, full-training, multimodal, diffusion, video, audio, and tabular workloads. Runs in the browser, no signup."
+      content="Estimate GPU VRAM for inference, fine-tuning, diffusion, video, audio, and multimodal AI workloads. Browser-based calculator for model weights, context, and hardware fit."
     />
     <meta
       name="robots"
@@ -12,13 +12,19 @@
     />
     <link rel="canonical" href="https://vram.rxdt.dev/" />
     <meta property="og:url" content="https://vram.rxdt.dev/" />
-    <meta name="application-name" content="AI Deployment Calculator" />
+    <meta
+      name="application-name"
+      content="VRAM Calculator for LLMs, Diffusion &amp; AI Models"
+    />
     <meta name="theme-color" content="#1f1f29" />
     <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="AI Deployment Calculator" />
+    <meta
+      property="og:site_name"
+      content="VRAM Calculator for LLMs, Diffusion &amp; AI Models"
+    />
     <meta
       property="og:title"
-      content="AI Deployment Calculator - VRAM &amp; GPU Memory Estimator"
+      content="VRAM Calculator for LLMs, Diffusion &amp; AI Models"
     />
     <meta
       property="og:description"
@@ -29,12 +35,12 @@
     <meta property="og:image:height" content="630" />
     <meta
       property="og:image:alt"
-      content="AI Deployment Calculator showing a 19.0 GB memory estimate and a 24 GB hardware tier."
+      content="VRAM Calculator showing a 19.0 GB memory estimate and a 24 GB hardware tier."
     />
     <meta name="twitter:card" content="summary_large_image" />
     <meta
       name="twitter:title"
-      content="AI Deployment Calculator - VRAM &amp; GPU Memory Estimator"
+      content="VRAM Calculator for LLMs, Diffusion &amp; AI Models"
     />
     <meta
       name="twitter:description"
@@ -43,7 +49,7 @@
     <meta name="twitter:image" content="https://vram.rxdt.dev/og-image.png" />
     <meta
       name="twitter:image:alt"
-      content="AI Deployment Calculator showing a 19.0 GB memory estimate and a 24 GB hardware tier."
+      content="VRAM Calculator showing a 19.0 GB memory estimate and a 24 GB hardware tier."
     />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
@@ -61,17 +67,17 @@
       type="font/woff2"
       crossorigin
     />
-    <title>AI Deployment Calculator | VRAM &amp; GPU Memory Estimator</title>
+    <title>VRAM Calculator for LLMs, Diffusion &amp; AI Models</title>
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
         "@type": "WebApplication",
-        "name": "AI Deployment Calculator",
-        "alternateName": "VRAM Deployment Calculator",
+        "name": "VRAM Calculator for LLMs, Diffusion & AI Models",
+        "alternateName": "GPU Memory Estimator",
         "url": "https://vram.rxdt.dev/",
         "applicationCategory": "DeveloperApplication",
         "operatingSystem": "Any",
-        "description": "Free AI deployment calculator for estimating GPU VRAM, hardware tier, context, batch, LoRA, QLoRA, full-training, multimodal, diffusion, video, audio, and tabular workloads.",
+        "description": "Estimate GPU VRAM for inference, fine-tuning, diffusion, video, audio, and multimodal AI workloads.",
         "isAccessibleForFree": true,
         "offers": {
           "@type": "Offer",
@@ -83,6 +89,70 @@
           "name": "Roxana dT",
           "url": "https://rxdt.github.io/"
         }
+      }
+    </script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "How much VRAM do I need for a 70B model?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "With the default inference settings, a 70B model needs about 166.2 GB at FP16, 89.4 GB at 8-bit, or 51.0 GB at 4-bit. Context length, batch size, and runtime overhead can move that number."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "How much VRAM do I need for a 7B model?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "With the default inference settings, a 7B model needs about 19.0 GB at FP16, 11.3 GB at 8-bit, or 7.5 GB at 4-bit."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "How much VRAM for LoRA vs QLoRA fine-tuning?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "LoRA keeps the base model in the selected precision and adds adapter training state. QLoRA pins the base weights to 4-bit and usually needs less VRAM, but optimizer choice, sequence length, micro-batch size, and checkpointing still matter."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Does context length affect VRAM?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Yes. Text generation stores a KV cache that grows with context length, concurrency, layer count, hidden size, and KV-cache precision."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Can I run a model bigger than my VRAM?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Sometimes. CPU layer offloading or multi-GPU sharding can run models larger than one card's usable VRAM, but speed drops because part of the model or cache moves over slower memory paths."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "How is VRAM calculated?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "The calculator estimates model weights, working memory, training state, runtime overhead, and then applies the selected safety buffer before mapping the result to a hardware tier."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "How much VRAM does SDXL need?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "The SDXL preset uses a diffusion workload rather than a text-generation formula. Resolution and batch size are the key inputs, so use the SDXL preset and adjust image size for your target run."
+            }
+          }
+        ]
       }
     </script>
   </head>
@@ -141,7 +211,7 @@
           <div class="form-card">
             <div class="title-card">
               <div class="intro">
-                <h1>AI Deployment Calculator</h1>
+                <h1>VRAM Calculator for LLMs, Diffusion &amp; AI Models</h1>
                 <p>
                   Estimate the GPU VRAM and hardware tier needed to deploy an AI
                   model's workload.
@@ -1134,6 +1204,131 @@
           </section>
         </section>
       </main>
+
+      <div class="seo-reference">
+        <div class="seo-reference-inner">
+          <section class="seo-block" aria-labelledby="vram-guide-title">
+            <h2 id="vram-guide-title">How VRAM is calculated</h2>
+            <p class="seo-formula">
+              Required_GB = (Weights + Working_Memory + Training_State +
+              Runtime_Overhead) x Buffer
+            </p>
+            <p>
+              The calculator estimates model weights, working memory for context
+              or media activations, training state, runtime overhead, and a
+              safety buffer before selecting a hardware tier. It covers
+              inference, LoRA and QLoRA fine-tuning, full training, multimodal
+              models, diffusion, video, audio, tabular workloads, and custom
+              estimates.
+            </p>
+
+            <table
+              class="seo-table"
+              data-slot="vram-reference-table"
+              aria-describedby="vram-reference-note"
+            >
+              <caption>
+                Quick VRAM reference for default inference settings
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col">Model</th>
+                  <th scope="col">FP16</th>
+                  <th scope="col">8-bit</th>
+                  <th scope="col">4-bit</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <th scope="row">7B</th>
+                  <td>19.0 GB</td>
+                  <td>11.3 GB</td>
+                  <td>7.5 GB</td>
+                </tr>
+                <tr>
+                  <th scope="row">13B</th>
+                  <td>33.1 GB</td>
+                  <td>18.9 GB</td>
+                  <td>11.7 GB</td>
+                </tr>
+                <tr>
+                  <th scope="row">70B</th>
+                  <td>166.2 GB</td>
+                  <td>89.4 GB</td>
+                  <td>51.0 GB</td>
+                </tr>
+              </tbody>
+            </table>
+            <p id="vram-reference-note">
+              These rows use the same default text-generation inference inputs
+              as the calculator above: server/cloud runtime, 8k context, one
+              concurrent request, and no manual model file size override.
+            </p>
+          </section>
+
+          <section class="seo-block" aria-labelledby="faq-title">
+            <h2 id="faq-title">FAQ</h2>
+            <article class="faq-item">
+              <h3>How much VRAM do I need for a 70B model?</h3>
+              <p>
+                With the default inference settings, a 70B model needs about
+                166.2 GB at FP16, 89.4 GB at 8-bit, or 51.0 GB at 4-bit. Context
+                length, batch size, and runtime overhead can move that number.
+              </p>
+            </article>
+            <article class="faq-item">
+              <h3>How much VRAM do I need for a 7B model?</h3>
+              <p>
+                With the default inference settings, a 7B model needs about 19.0
+                GB at FP16, 11.3 GB at 8-bit, or 7.5 GB at 4-bit.
+              </p>
+            </article>
+            <article class="faq-item">
+              <h3>How much VRAM for LoRA vs QLoRA fine-tuning?</h3>
+              <p>
+                LoRA keeps the base model in the selected precision and adds
+                adapter training state. QLoRA pins the base weights to 4-bit and
+                usually needs less VRAM, but optimizer choice, sequence length,
+                micro-batch size, and checkpointing still matter.
+              </p>
+            </article>
+            <article class="faq-item">
+              <h3>Does context length affect VRAM?</h3>
+              <p>
+                Yes. Text generation stores a KV cache that grows with context
+                length, concurrency, layer count, hidden size, and KV-cache
+                precision.
+              </p>
+            </article>
+            <article class="faq-item">
+              <h3>Can I run a model bigger than my VRAM?</h3>
+              <p>
+                Sometimes. CPU layer offloading or multi-GPU sharding can run
+                models larger than one card's usable VRAM, but speed drops
+                because part of the model or cache moves over slower memory
+                paths.
+              </p>
+            </article>
+            <article class="faq-item">
+              <h3>How is VRAM calculated?</h3>
+              <p>
+                The calculator estimates model weights, working memory, training
+                state, runtime overhead, and then applies the selected safety
+                buffer before mapping the result to a hardware tier.
+              </p>
+            </article>
+            <article class="faq-item">
+              <h3>How much VRAM does SDXL need?</h3>
+              <p>
+                The SDXL preset uses a diffusion workload rather than a
+                text-generation formula. Resolution and batch size are the key
+                inputs, so use the SDXL preset and adjust image size for your
+                target run.
+              </p>
+            </article>
+          </section>
+        </div>
+      </div>
 
       <footer class="disclaimer" data-slot="output-disclaimer">
         Estimates are planning guidance. Validate against your target runtime

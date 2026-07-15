@@ -1162,6 +1162,103 @@ summary,
   padding: var(--space-md);
 }
 
+/* Crawlable reference content lives below the interactive calculator. It uses
+   the same capped width and quiet surface language, but stays visually lower
+   priority than the form and report above it. */
+.seo-reference {
+  width: 100%;
+  max-width: var(--layout-max);
+  margin-inline: auto;
+  padding: var(--space-md);
+}
+
+.seo-reference-inner {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 50%));
+  gap: var(--space-lg);
+  padding: var(--space-lg);
+  border: var(--layout-border) solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.seo-block {
+  min-width: 0;
+}
+
+.seo-block h2,
+.seo-block h3,
+.seo-block p,
+.seo-table {
+  margin: 0;
+}
+
+.seo-block h2 {
+  color: var(--color-primary);
+  font-size: var(--font-heading);
+  line-height: var(--font-line-heading);
+}
+
+.seo-block h3 {
+  color: var(--color-text);
+  font-size: var(--font-body);
+  line-height: var(--font-line-heading);
+}
+
+.seo-block p {
+  margin-block-start: var(--space-sm);
+  color: var(--color-subtle);
+}
+
+.seo-formula {
+  font-family: var(--font-mono);
+  overflow-wrap: anywhere;
+}
+
+.seo-table {
+  width: 100%;
+  margin-block-start: var(--space-md);
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.seo-table caption {
+  margin-block-end: var(--space-xs);
+  color: var(--color-muted);
+  text-align: left;
+}
+
+.seo-table th,
+.seo-table td {
+  padding: var(--space-xs) var(--space-sm);
+  border-block-start: var(--layout-border) solid var(--color-border-soft);
+  text-align: right;
+}
+
+.seo-table th {
+  color: var(--color-text);
+  font-weight: var(--font-weight-semi);
+}
+
+.seo-table td {
+  color: var(--color-subtle);
+  font-family: var(--font-mono);
+}
+
+.seo-table th:first-child,
+.seo-table td:first-child {
+  text-align: left;
+}
+
+.faq-item {
+  padding-block: var(--space-md);
+  border-block-start: var(--layout-border) solid var(--color-border-soft);
+}
+
+.faq-item:first-of-type {
+  margin-block-start: var(--space-md);
+}
+
 /* DC disclaimer: a full-width italic footnote pinned to the very bottom of the
    app. It takes the faint step below the intro tagline's muted color so the
    legal footnote recedes further than the descriptive copy. */
@@ -1394,6 +1491,10 @@ code {
 
   .stats {
     grid-template-columns: repeat(2, minmax(0, 50%));
+  }
+
+  .seo-reference-inner {
+    grid-template-columns: minmax(0, 100%);
   }
 
   .hero {

@@ -232,12 +232,27 @@
               <p class="field field--third">
                 <label for="precision">Precision</label>
                 <select id="precision" name="precision">
-                  <option value="4-bit">4-bit</option>
-                  <option value="5-bit GGUF">5-bit GGUF</option>
-                  <option value="6-bit GGUF">6-bit GGUF</option>
-                  <option value="8-bit">8-bit</option>
-                  <option value="16-bit" selected>16-bit</option>
-                  <option value="32-bit">32-bit</option>
+                  <optgroup label="Floating point">
+                    <option value="16-bit" selected>16-bit</option>
+                    <option value="32-bit">32-bit</option>
+                  </optgroup>
+                  <optgroup label="Integer">
+                    <option value="8-bit">8-bit</option>
+                    <option value="4-bit">4-bit</option>
+                    <option value="INT3">INT3</option>
+                    <option value="INT2">INT2</option>
+                  </optgroup>
+                  <optgroup label="GGUF (llama.cpp)">
+                    <option value="Q8_0">Q8_0</option>
+                    <option value="Q6_K">Q6_K</option>
+                    <option value="6-bit GGUF">6-bit GGUF</option>
+                    <option value="Q5_K_M">Q5_K_M</option>
+                    <option value="5-bit GGUF">5-bit GGUF</option>
+                    <option value="Q4_K_M">Q4_K_M</option>
+                    <option value="IQ3_XXS">IQ3_XXS</option>
+                    <option value="IQ2_XXS">IQ2_XXS</option>
+                    <option value="IQ1_S">IQ1_S</option>
+                  </optgroup>
                 </select>
               </p>
             </fieldset>

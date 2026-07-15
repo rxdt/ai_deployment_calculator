@@ -44,7 +44,7 @@ keep working (tests pin it); match existing file structure and comment voice.
 - Only for layered transformer workloads (text_generation, text_encoder,
   encoder_decoder, vision_language). Never for diffusion/video/audio/tabular.
 
-### F3 — Real quant ladder (S)
+### F3 — Real quant ladder (S) — SHIPPED 2026-07-15
 
 - Extend `PRECISION_MAP` (calculator-core.ts) and the `precision` schema
   (state.ts) with published GGUF bits-per-weight entries: IQ1_S 1.56,

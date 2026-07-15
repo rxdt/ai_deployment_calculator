@@ -11,7 +11,21 @@ export type WorkloadFamily =
   | "custom";
 
 export type Precision =
-  "4-bit" | "5-bit GGUF" | "6-bit GGUF" | "8-bit" | "16-bit" | "32-bit";
+  | "4-bit"
+  | "5-bit GGUF"
+  | "6-bit GGUF"
+  | "8-bit"
+  | "16-bit"
+  | "32-bit"
+  | "IQ1_S"
+  | "IQ2_XXS"
+  | "IQ3_XXS"
+  | "Q4_K_M"
+  | "Q5_K_M"
+  | "Q6_K"
+  | "Q8_0"
+  | "INT2"
+  | "INT3";
 
 export type KvPrecision = "8-bit / FP8" | "16-bit" | "32-bit";
 

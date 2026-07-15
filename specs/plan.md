@@ -105,10 +105,14 @@ competitor.
       GPU, rest to CPU" with the per-layer GB figure. Layers come from F1 or
       the existing architecture table. This converts a dead-end "does not
       fit" into an actionable answer for the Ollama/llama.cpp audience.
-- [ ] **F3. Real quant ladder** (effort S). Replace generic bit-widths with
+- [x] ~~**F3. Real quant ladder** (effort S). Replace generic bit-widths with
       real bits-per-weight: GGUF IQ1_S 1.56 … Q4_K_M 4.85 … Q8_0 8.5, plus
       INT2 (0.25 B/param) and INT3 (0.375 B/param) tiers. Keep the existing
-      precision names working (tests pin them); extend, don't rename blindly.
+      precision names working (tests pin them); extend, don't rename blindly.~~
+      DONE 2026-07-15: nine tiers added to `PRECISION_MAP`, the `Precision`
+      type, the `precision` URL schema, and a grouped `<optgroup>` select;
+      GGUF bpw folds block-scale metadata so overhead is 1; QLoRA still pins
+      the existing 4-bit NF4 base.
 - [ ] **F4. Crawlable prose + FAQ + keyword flip** (effort S). ~600 words of
       static HTML below the calculator: "How VRAM is calculated" (surface the
       canonical equation), a quick-reference table (7B/13B/70B x

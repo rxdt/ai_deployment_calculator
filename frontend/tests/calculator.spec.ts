@@ -106,6 +106,30 @@ test("clamps a malformed hand-edited URL to defaults without crashing", async ({
   expect(pageErrors).toEqual([]);
 });
 
+test("offers the real GGUF quant ladder and sizes weights by its bits-per-weight", async ({
+  page,
+}) => {
+  await page.goto("/");
+
+  // Q4_K_M is a new GGUF tier grouped under an <optgroup>; selecting it must
+  // update the value and the compact status strip.
+  await page.getByLabel("Precision", { exact: true }).selectOption("Q4_K_M");
+  await expect(page.getByLabel("Precision", { exact: true })).toHaveValue(
+    "Q4_K_M",
+  );
+  await expect(page.locator('[data-slot="status-precision"]')).toHaveText(
+    "Q4_K_M",
+  );
+
+  // 4.85 bpw => 0.60625 bytes/param; a 7B model's resident weights are
+  // 7 * 0.60625 = 4.24 GB -> "4.2 GB", distinct from nominal 4-bit ("4.0 GB").
+  const modelWeights = page
+    .locator('[data-out="stat-chips"] li')
+    .filter({ hasText: "Model Weights" })
+    .locator("strong");
+  await expect(modelWeights).toHaveText("4.2 GB");
+});
+
 test("renders the default deployment computed locally", async ({ page }) => {
   await page.goto("/");
 

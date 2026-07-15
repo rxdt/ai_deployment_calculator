@@ -12,7 +12,7 @@ import {
 } from "./calculator-core";
 import { HARDWARE_TIERS, type HardwareTier } from "./hardware";
 import { defaultState } from "./state";
-import type { FormState, WorkloadFamily } from "./types";
+import type { FormState, Precision, WorkloadFamily } from "./types";
 import {
   inferenceWorkingMemoryGb,
   memoryBreakdown,
@@ -118,6 +118,10 @@ describe("parameter conversion and precision maps", () => {
   });
 
   test("matches the required precision byte and overhead table", () => {
+    // The GGUF/INT tiers mirror the source expressions (bpw / 8, or explicit
+    // bytes/param) so both sides evaluate to identical IEEE-754 values; their
+    // published bits-per-weight already fold in block-scale metadata, so no
+    // nominal-vs-real overhead multiplier applies (weightOverhead 1).
     expect(PRECISION_MAP).toEqual({
       "4-bit": { weightBytes: 0.5, weightOverhead: 1.15 },
       "5-bit GGUF": { weightBytes: 0.625, weightOverhead: 1.12 },
@@ -125,7 +129,34 @@ describe("parameter conversion and precision maps", () => {
       "8-bit": { weightBytes: 1, weightOverhead: 1.05 },
       "16-bit": { weightBytes: 2, weightOverhead: 1 },
       "32-bit": { weightBytes: 4, weightOverhead: 1 },
+      IQ1_S: { weightBytes: 1.56 / 8, weightOverhead: 1 },
+      IQ2_XXS: { weightBytes: 2.06 / 8, weightOverhead: 1 },
+      IQ3_XXS: { weightBytes: 3.06 / 8, weightOverhead: 1 },
+      Q4_K_M: { weightBytes: 4.85 / 8, weightOverhead: 1 },
+      Q5_K_M: { weightBytes: 5.69 / 8, weightOverhead: 1 },
+      Q6_K: { weightBytes: 6.59 / 8, weightOverhead: 1 },
+      Q8_0: { weightBytes: 8.5 / 8, weightOverhead: 1 },
+      INT2: { weightBytes: 0.25, weightOverhead: 1 },
+      INT3: { weightBytes: 0.375, weightOverhead: 1 },
     });
+  });
+
+  test("sizes real GGUF and integer quant tiers at their published bytes-per-parameter", () => {
+    // A 7B model's resident inference weights must equal params x bytes/param:
+    // GGUF tiers use bpw / 8, INT tiers use their explicit bytes/param, both at
+    // overhead 1. Pins the ladder against transcription or unit-conversion slips.
+    const cases: readonly [Precision, number][] = [
+      ["IQ1_S", 1.56 / 8],
+      ["IQ3_XXS", 3.06 / 8],
+      ["Q4_K_M", 4.85 / 8],
+      ["Q8_0", 8.5 / 8],
+      ["INT2", 0.25],
+      ["INT3", 0.375],
+    ];
+    for (const [precision, bytesPerParameter] of cases) {
+      const spec = specFromState(state({ totalParams: "7", precision }));
+      expect(weightsGb(spec)).toBeCloseTo(7 * bytesPerParameter, 6);
+    }
   });
 });
 

@@ -22,6 +22,20 @@ export const PRECISION_MAP: Record<
   "8-bit": { weightBytes: 1, weightOverhead: 1.05 },
   "16-bit": { weightBytes: 2, weightOverhead: 1 },
   "32-bit": { weightBytes: 4, weightOverhead: 1 },
+  // Real published bits-per-weight tiers. The GGUF k-/i-quant figures already
+  // fold in block-scale metadata (why Q4_K_M is 4.85 bpw, not a flat 4.0), so
+  // weightBytes = bpw / 8 IS the resident bytes/param and no nominal-vs-real
+  // overhead multiplier applies (weightOverhead 1). INT2/INT3 are given directly
+  // in bytes/param (2- and 3-bit integer weights).
+  IQ1_S: { weightBytes: 1.56 / 8, weightOverhead: 1 },
+  IQ2_XXS: { weightBytes: 2.06 / 8, weightOverhead: 1 },
+  IQ3_XXS: { weightBytes: 3.06 / 8, weightOverhead: 1 },
+  Q4_K_M: { weightBytes: 4.85 / 8, weightOverhead: 1 },
+  Q5_K_M: { weightBytes: 5.69 / 8, weightOverhead: 1 },
+  Q6_K: { weightBytes: 6.59 / 8, weightOverhead: 1 },
+  Q8_0: { weightBytes: 8.5 / 8, weightOverhead: 1 },
+  INT2: { weightBytes: 0.25, weightOverhead: 1 },
+  INT3: { weightBytes: 0.375, weightOverhead: 1 },
 };
 
 const UNIT_MULTIPLIERS: Record<ParameterUnit, number> = {
@@ -336,14 +350,11 @@ export function weightsGb(spec: Readonly<CalculationSpec>): number {
   if (spec.knownModelFileSizeGb !== null) {
     return spec.knownModelFileSizeGb * spec.gpuResidentFraction;
   }
-  if (spec.executionMode === "QLoRA fine-tuning") {
-    return (
-      spec.residentParamsB *
-      PRECISION_MAP["4-bit"].weightBytes *
-      PRECISION_MAP["4-bit"].weightOverhead
-    );
-  }
-  const precision = PRECISION_MAP[spec.precision];
+  // QLoRA freezes an NF4 4-bit base regardless of the selected inference
+  // precision, so its weights track the 4-bit tier, not spec.precision.
+  const precisionKey =
+    spec.executionMode === "QLoRA fine-tuning" ? "4-bit" : spec.precision;
+  const precision = PRECISION_MAP[precisionKey];
   return (
     spec.residentParamsB * precision.weightBytes * precision.weightOverhead
   );

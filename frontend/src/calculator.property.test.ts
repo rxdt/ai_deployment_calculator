@@ -25,12 +25,24 @@ const positiveParameterCount = fc
   .map((value) => value.toString());
 
 // Ordered from fewest to most effective weight bytes (weightBytes * weightOverhead):
-// 0.575, 0.7, 0.825, 1.05, 2, 4. Weight memory must not decrease along this order.
+// 0.195, 0.25, 0.2575, 0.375, 0.3825, 0.575, 0.60625, 0.7, 0.71125, 0.82375,
+// 0.825, 1.05, 1.0625, 2, 4. Weight memory must not decrease along this order,
+// and every tier must be strictly distinct (the monotonicity test below asserts
+// both), which pins the full real-quant ladder against overlaps.
 const PRECISION_BY_ASCENDING_WEIGHT: readonly Precision[] = [
+  "IQ1_S",
+  "INT2",
+  "IQ2_XXS",
+  "INT3",
+  "IQ3_XXS",
   "4-bit",
+  "Q4_K_M",
   "5-bit GGUF",
+  "Q5_K_M",
+  "Q6_K",
   "6-bit GGUF",
   "8-bit",
+  "Q8_0",
   "16-bit",
   "32-bit",
 ];

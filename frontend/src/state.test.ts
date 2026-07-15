@@ -81,6 +81,16 @@ describe("normalizedState", () => {
     ).toBe("Adafactor");
   });
 
+  test("accepts the real GGUF and integer quant precision tiers", () => {
+    // Deep links must survive for the added ladder, so each new value has to
+    // parse through the precision schema instead of clamping to the default.
+    for (const precision of ["Q4_K_M", "IQ1_S", "Q8_0", "INT2", "INT3"]) {
+      expect(normalizedState(parameters({ precision })).precision).toBe(
+        precision,
+      );
+    }
+  });
+
   test("treats a present-but-empty numeric value as zero, not the default", () => {
     // An absent key means "initial load" and takes the default; an empty
     // submitted value is a cleared field and must read as zero.

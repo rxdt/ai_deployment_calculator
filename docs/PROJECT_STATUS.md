@@ -19,10 +19,13 @@ Short, current handoff. Deleted lines are the point — keep only what's useful 
   work remained); recurring QA remains in `specs/qa.md`/`specs/plan.md`.
 - Current QA run seeded `frontend/src/adversarial/oracle.test.ts` and
   `docs/qa/adversarial-2026-07-16.md` with PB-scale URL, published bpw,
-  training-order, no-KV, and URL-extreme invariants, then added two Part B
-  oracle cases: the vLLM 0.125 MiB/token Llama-3-8B KV anchor and a
-  weight-quantization twin-invariance case (KV + activation rows stay
-  byte-identical across the weight-precision ladder). Suite is 15 green.
+  training-order, no-KV, and URL-extreme invariants, then added Part B oracle
+  cases: the vLLM 0.125 MiB/token Llama-3-8B KV anchor, a weight-quantization
+  twin-invariance case, and the published full-training bytes/param anchors
+  (AdamW 16, 8-bit Adam 10, SGD 12; weights + training-state equal
+  params×anchor exactly, isolated from working memory). Suite is 18 green.
+  Report notes a definitional limitation: GQA-only architecture buckets would
+  KV-under-count legacy MHA models (e.g. Llama-2-7B) — not filed as our error.
 - Hardware-tier green-check QA is covered by Playwright (`0b8c598`): default
   24 GB, 70B 192 GB, overflow, and reset states keep the correct visible marker
   across all configured browser projects/viewports.
@@ -45,7 +48,7 @@ Short, current handoff. Deleted lines are the point — keep only what's useful 
 - Focused: `playwright test ... --grep "keeps the hardware tier best-fit check
   visible"` passed 6/6 projects (desktop Chrome, desktop Safari, iPhone, Pixel,
   320px, tablet).
-- Focused: `vitest src/adversarial` passed 14 oracle tests; hardware-tier
+- Focused: `vitest src/adversarial` passed 18 oracle tests; hardware-tier
   reference focus passed 4 tests / 106 skipped.
 - Focused after SEO reconciliation: `vitest src/app.test.ts` passed 111 tests;
   Playwright calculator H1/subtitle grep passed 12/12 projects; responsive H1

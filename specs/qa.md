@@ -1,3 +1,6 @@
+> opus-qa (RALPH 1/2) is working on Part B: adding the vLLM 0.125 MiB/token
+> Llama-3-8B KV anchor as an oracle case.
+
 # QA Spec — External Oracles
 
 Veracity is P0 (see `specs/plan.md`). Report-only QA proves the MODEL matches

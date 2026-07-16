@@ -156,8 +156,10 @@ function formulaNumbers(
   buffer: number,
   mode: ExecutionMode,
 ): string {
+  const memoryNumber = (value: number): string =>
+    formatGb(value).replace(" GB", "");
   const sum = MODE_TERMS[mode]
-    .map((term) => term.value(breakdown).toFixed(1))
+    .map((term) => memoryNumber(term.value(breakdown)))
     .join(" + ");
   // "≈": the components are rounded for display, so multiplying them back
   // does not always land exactly on the (separately rounded) total.

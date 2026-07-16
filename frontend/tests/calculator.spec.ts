@@ -138,12 +138,13 @@ test("offers the real GGUF quant ladder and sizes weights by its bits-per-weight
   );
 
   // 4.85 bpw => 0.60625 bytes/param; a 7B model's resident weights are
-  // 7 * 0.60625 = 4.24 GB -> "4.2 GB", distinct from nominal 4-bit ("4.0 GB").
+  // 7 * 0.60625 = 4.24 GB -> "4.3 GB" after upward display rounding,
+  // distinct from nominal 4-bit ("4.1 GB").
   const modelWeights = page
     .locator('[data-out="stat-chips"] li')
     .filter({ hasText: "Model Weights" })
     .locator("strong");
-  await expect(modelWeights).toHaveText("4.2 GB");
+  await expect(modelWeights).toHaveText("4.3 GB");
 });
 
 test("renders the default deployment computed locally", async ({ page }) => {
@@ -171,7 +172,7 @@ test("renders the default deployment computed locally", async ({ page }) => {
   await expect(
     page.locator('[data-slot="hero-gpu-card"] [data-slot="gpu-examples-row"]'),
   ).toHaveCount(1);
-  await expect(page.locator('[data-out="min-cap"]')).toHaveText("22.1 GB");
+  await expect(page.locator('[data-out="min-cap"]')).toHaveText("22.2 GB");
   await expect(page.locator('[data-out="speed"]')).toContainText("tokens/sec");
   await expect(page.locator('[data-out="calculation-rows"] li')).toHaveCount(
     10,
@@ -224,9 +225,9 @@ test("renders the default 7B estimate consistently across the full report", asyn
 
   await page.getByText("Why this recommendation").click();
   await expect(page.locator('[data-out="why"]')).toContainText(
-    "requires hardware with at least 22.1 GB accelerator memory",
+    "requires hardware with at least 22.2 GB accelerator memory",
   );
-  await expect(page.locator('[data-out="min-cap"]')).toHaveText("22.1 GB");
+  await expect(page.locator('[data-out="min-cap"]')).toHaveText("22.2 GB");
   await expect(page.locator('[data-out="usable-target"]')).toHaveText("85%");
   await expect(page.locator('[data-out="usable-on-class"]')).toHaveText(
     "20.4 GB",
@@ -241,14 +242,14 @@ test("renders the default 7B estimate consistently across the full report", asyn
   await page.getByText("Values Used In Calculations").click();
   await expectReportRows(page, "calculation-rows", [
     ["Model weights", "14.0 GB"],
-    ["Context memory", "1.0 GB"],
+    ["Context memory", "1.1 GB"],
     ["Activation memory", "0.5 GB"],
-    ["Working memory subtotal", "1.5 GB"],
+    ["Working memory subtotal", "1.6 GB"],
     ["Training state", "0.0 GB"],
     ["Runtime overhead", "1.5 GB"],
-    ["Base subtotal before buffer", "17.0 GB"],
+    ["Base subtotal before buffer", "17.1 GB"],
     ["Buffer multiplier", "1.10x"],
-    ["Safety buffer", "1.7 GB"],
+    ["Safety buffer", "1.8 GB"],
     ["Total required", "18.8 GB"],
   ]);
 
@@ -258,7 +259,7 @@ test("renders the default 7B estimate consistently across the full report", asyn
   );
   // The general formula is followed by the same terms with the real numbers.
   await expect(page.locator('[data-out="calc-numbers"]')).toHaveText(
-    "18.8 GB ≈ (14.0 + 1.0 + 0.5 + 1.5) GB × 1.10",
+    "18.8 GB ≈ (14.0 + 1.1 + 0.5 + 1.5) GB × 1.10",
   );
 
   // Assumptions are short methodology notes (green-bulleted prose), not an echo

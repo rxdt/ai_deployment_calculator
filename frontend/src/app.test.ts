@@ -1108,7 +1108,7 @@ describe("mounted calculator", () => {
     );
     expect(out("calc-formula")).not.toContain("18.8 GB");
     expect(out("calc-numbers")).toBe(
-      "18.8 GB ≈ (14.0 + 1.0 + 0.5 + 1.5) GB × 1.10",
+      "18.8 GB ≈ (14.0 + 1.1 + 0.5 + 1.5) GB × 1.10",
     );
     expect(out("assumptions")).toContain(
       "Runtime / CUDA overhead estimated at a fixed 1.5 GB",

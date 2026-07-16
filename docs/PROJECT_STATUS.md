@@ -36,6 +36,8 @@ Short, current handoff. Deleted lines are the point — keep only what's useful 
   src/report.test.ts src/hardware.test.ts src/result-format.test.ts
   src/app.test.ts` passed 260 tests.
 - Focused: `vitest src/adversarial` passed 22 oracle tests.
+- Focused Playwright desktop calculator/parity passed 46 tests with 4 expected
+  skips after rounding expectation updates.
 - `pnpm preflight` passed for the implementation commit.
 - `pnpm gate`: pending final run.
 

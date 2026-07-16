@@ -367,7 +367,7 @@ describe("buildReport", () => {
   test("formula numbers substitute the real values into the mode's terms", () => {
     // Inference: (weights + KV cache + activations + overhead) × buffer.
     expect(buildReport(state()).calculationNumbers).toBe(
-      "18.8 GB ≈ (14.0 + 1.0 + 0.5 + 1.5) GB × 1.10",
+      "18.8 GB ≈ (14.0 + 1.1 + 0.5 + 1.5) GB × 1.10",
     );
     // Training modes carry training state instead of KV cache and use the
     // 1.25 training buffer.

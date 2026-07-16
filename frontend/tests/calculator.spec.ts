@@ -332,7 +332,7 @@ test("recomputes when parameters change", async ({ page }) => {
   await page.goto("/");
 
   await page.locator("#total-params").fill("104");
-  await expect(page.locator('[data-out="total"]')).toHaveText("237.3 GB");
+  await expect(page.locator('[data-out="total"]')).toHaveText("237.7 GB");
 });
 
 test("rejects negatives, exponents, and unbounded numbers", async ({

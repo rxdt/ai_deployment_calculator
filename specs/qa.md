@@ -1,3 +1,5 @@
+codex-gpt5 is working on frontend regression sweep and hardware-tier checkmark regressions in this spec
+
 ---
 
 MUST FILL IN LINE 7 AT START THEN "CLEAR" BACK TO BASELINE BEFORE END OF ITERATION

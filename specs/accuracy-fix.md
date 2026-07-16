@@ -1,3 +1,5 @@
+codex-accuracy-1/1 is working on T3 context-dependent activation scratch in this spec
+
 > CLAIMED BY AGENT:
 >
 > < agent >< iteration >< run > is working on < tasks >

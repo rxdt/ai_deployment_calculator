@@ -1,5 +1,3 @@
-codex-plan-1/1 is working on F9 cross-calculator QA run in this spec
-
 # AI Deployment VRAM Calculator Plan
 
 ## Goal

@@ -11,6 +11,9 @@ Short, current handoff. Deleted lines are the point — keep only what's useful 
 - `specs/frontend.md` had no remaining frontend build work after that fix, so
   it was deleted. Active work is now the recurring QA/release loop in
   `specs/qa.md` and `specs/plan.md`.
+- Current QA run seeded `frontend/src/adversarial/oracle.test.ts` and
+  `docs/qa/adversarial-2026-07-16.md` with PB-scale URL, published bpw,
+  training-order, no-KV, and URL-extreme invariants.
 - Production is BEHIND `main` (not yet deployed). Deploy still needs automated
   gate green, one high-level Claude review, and one high-level Codex review;
   owner pushes.
@@ -23,6 +26,8 @@ Short, current handoff. Deleted lines are the point — keep only what's useful 
   before the app-test addition was moved to the focused sanitizer test.
 - Focused: `vitest src/app.test.ts` passed 110 tests after aligning the
   sanitizer expectation with the 2-decimal behavior.
+- Focused: `vitest src/adversarial` passed 13 oracle tests; hardware-tier
+  reference focus passed 4 tests / 106 skipped.
 - Visual screenshots saved in `scratchpad/visual-decimal-input/`: 390px
   default closed (18.8 GB), desktop decimal advanced open (24.5 GB), 320px
   zeroed (0.0 GB), tablet extreme guide open (139.4 GB), desktop panels open
@@ -36,6 +41,8 @@ Short, current handoff. Deleted lines are the point — keep only what's useful 
   (archived at `scratchpad/DO-NOT-DO-phase2-features.md`).
 - Recurring QA/release runs F9/F10 remain actionable in `specs/qa.md` and
   `specs/plan.md`.
+- Frontend regression sweep requested in `specs/qa.md`; current run only
+  spot-checked the hardware-tier checkmark via DOM test and existing screenshot.
 
 ## Blockers
 

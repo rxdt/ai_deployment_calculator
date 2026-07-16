@@ -44,8 +44,8 @@ Short, current handoff. Deleted lines are the point — keep only what's useful 
 - F9 QA rerun: Playwright read production and local preview, then compared
   asmirnov and the HF GGUF Space. ApX remained blocked by Cloudflare Turnstile.
 - `pnpm build` passed for local preview verification.
-- `pnpm preflight` passed for the implementation commit.
-- `pnpm gate` passed after the rounding and browser expectation updates.
+- `pnpm preflight` passed for the F9 report commit.
+- `pnpm gate` passed for the F9 report/release run.
 
 ## Open Work
 

@@ -1,5 +1,3 @@
-claude-orchestrator is working on doc/spec hygiene in this spec
-
 # QA Spec — External Oracles
 
 Veracity is P0 (see `specs/plan.md`). Report-only QA proves the MODEL matches
@@ -8,22 +6,20 @@ competitors, published anchors, physical invariants. Never edit product code
 from external-oracle QA; findings become dated Research Corrections in
 `specs/plan.md`. Anchors beat consensus.
 
-## Part A — Cross-calculator comparison
+## Part A — Cross-calculator comparison (re-run contract)
+
+Last run 2026-07-16: `docs/qa/comparison-2026-07-16.md` — no Research
+Correction; all disagreements definitional. Re-run only after formula changes
+or before a distribution push.
 
 Drive competitor calculators with our canonical scenarios; compare per
-component; triage every disagreement.
-
-Primary targets (headed Playwright for apxml — Cloudflare):
-apxml.com/tools/vram-calculator, vram.asmirnov.xyz,
-huggingface.co/spaces/SadP0i/GGUF-Model-VRAM-Calculator. Secondary: spot-check
-only if a primary disagrees.
-
-Canonical scenarios (read OUR live numbers at run time — never hardcode):
-7B fp16 inf 8k ≈ 18.8; 70B fp16 inf 8k ≈ 161.1; 70B Q4_K_M (live);
-8B QLoRA 2% ≈ 21.1; 7B full-train AdamW ckpt-on ≈ 153; SDXL 1024² ≈ 12.1.
-
-Method: scratch Playwright in `harness/` (deleted after), one polite pass per
-target; normalize GiB-printed-as-GB to decimal GB; compare per component.
+component; triage every disagreement. Targets: vram.asmirnov.xyz,
+huggingface.co/spaces/SadP0i/GGUF-Model-VRAM-Calculator, and
+apxml.com/tools/vram-calculator (Cloudflare Turnstile blocks headless — needs
+an owner headed pass). Scenarios: the six in the last report; read OUR numbers
+live at run time — never hardcode. Method: scratch Playwright in `harness/`
+(deleted after), one polite pass per target; normalize GiB-printed-as-GB to
+decimal GB.
 
 ## Part B — Adversarial oracle suite
 

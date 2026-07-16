@@ -42,20 +42,16 @@ Commands: `pnpm preflight`, `pnpm gate`; QA contracts live in `specs/qa.md`.
 - Use real GGUF bits-per-weight (Q4_K_M = 4.85 bpw) and real KV heads when
   known; do not copy GiB-as-GB or MHA-only shortcuts.
 - Inference activation scratch is fp16 compute-buffer behavior, not quantized
-  resident weight size; keep 70B 4-8k context near the 1-3 GB measured-anchor
-  envelope until architecture-keyed prefill math lands.
+  resident weight size. Anchors of record (llama.cpp compute-buffer logs,
+  summed across GPUs): 70B@8k = 2208 MiB ≈ 2.32 GB (#7804, 1104 MiB × 2 GPUs);
+  70B@32k = 4224 MiB ≈ 4.43 GB (#10003); 0.5 GB floor. Clamp at the anchors —
+  never extrapolate past 32k, never take a single-GPU buffer.
 - Displayed memory requirements and hardware sizing values round upward, never
   down, at one decimal place so boundary cases cannot fit an undersized tier.
 
 ## Current Work
 
-Shipped: F0 activation floor, F3 quant ladder, F4 crawlable prose, F4.1 guide
-relocation/FAQ removal, the decimal-input fix, the context-anchored decoder
-activation scratch (`decoder-scratch.ts`, verified against llama.cpp anchors),
-upward one-decimal memory rounding, post-deploy live verification of the
-corrected production bundle, and the 2026-07-16 cross-calculator QA run.
-`specs/frontend.md` and `specs/deploy-reconcile.md` were deleted because no
-work remained.
+Shipped work is recorded in `docs/PROJECT_STATUS.md`, not here.
 
 Parked by owner directive (2026-07-16): F1, F2, F5, F6, F7, F8. Do not build.
 Rationale: `scratchpad/DO-NOT-DO-phase2-features.md`.
@@ -80,4 +76,4 @@ QA oracle is intentionally red, and keep README/status/specs accurate.
 
 ## Blockers
 
-- None for the completed live-deploy verification.
+- None.

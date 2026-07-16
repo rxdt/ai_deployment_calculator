@@ -4,23 +4,27 @@ Short, current handoff. Deleted lines are the point — keep only what's useful 
 
 ## State (2026-07-16)
 
-- `main` has the Phase 2 F0/F3/F4/F4.1 work, decimal input preservation,
-  context-anchored decoder scratch, SEO reconciliation, and conservative
-  upward memory rounding.
-- Local `main` now includes conservative memory rounding: required totals,
-  component GB display, minimum raw VRAM, and hardware recommendations round
-  upward to one decimal instead of nearest. Boundary case: a 20.4001 GB server
-  workload reports 20.5 GB, 24.2 GB minimum raw, and the 32 GB class rather
-  than fitting into 24 GB.
-- Static crawlable quick-reference rows were updated to calculator output after
-  the rounding change: 7B 8-bit 11.5 GB, 13B fp16 32.3 GB, 70B 8-bit 88.0 GB.
-- Cross-calculator QA rerun:
-  `docs/qa/comparison-2026-07-16.md`. Result: no Research Correction against
-  local `main`; external overlap supports resident weight math.
+- Shipped on `main`: F0 activation floor, F3 quant ladder, F4 crawlable prose,
+  F4.1 guide relocation/FAQ removal, decimal input preservation,
+  context-anchored decoder scratch (llama.cpp anchors, direct anchor test in
+  `decoder-scratch.test.ts`), SEO reconciliation, F9 cross-calculator QA, and
+  conservative upward memory rounding (totals, component display, minimum raw
+  VRAM, and hardware tiers round up at one decimal; a 20.4001 GB workload
+  reports 20.5 GB and the 32 GB class, never a 24 GB fit). `specs/frontend.md`
+  and `specs/deploy-reconcile.md` were deleted — no work remained.
+- Static crawlable quick-reference rows match calculator output after the
+  rounding change: 7B 8-bit 11.5 GB, 13B fp16 32.3 GB, 70B 8-bit 88.0 GB.
+- Cross-calculator QA rerun: `docs/qa/comparison-2026-07-16.md`. No Research
+  Correction against local `main`; external overlap supports resident weight
+  math; all disagreements definitional.
+- Engine accuracy audit (2026-07-16, orchestrator): every core component —
+  fp16/Q4_K_M/int8 weights, GQA KV cache at 8k/32k, decoder activation scratch
+  — recomputed from the real engine and matched its published anchor to 0.0%.
+  Only int8's +5% overhead is a convention rather than a measured anchor.
 - Production `vram.rxdt.dev` is stale for the latest rounding bundle: it reports
   21.0 GB for 8B QLoRA 2% and 12.0 GB for SDXL, while local `main` reports
   21.1 GB and 12.1 GB. Owner-only redeploy required; agents must not deploy.
-- `frontend/src/adversarial/oracle.test.ts` now has 22 green oracle tests,
+- `frontend/src/adversarial/oracle.test.ts` has 22 green oracle tests,
   including the hardware-boundary round-up invariant. The dated report is
   `docs/qa/adversarial-2026-07-16.md`.
 

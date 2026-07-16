@@ -76,8 +76,8 @@ describe("buildReport", () => {
       }),
     );
 
-    expect(report.totalRequiredMemory).toBe("79.1 GB");
-    expect(report.minimumRawVramNeeded).toBe("93.1 GB");
+    expect(report.totalRequiredMemory).toBe("80.7 GB");
+    expect(report.minimumRawVramNeeded).toBe("94.9 GB");
     expect(report.recommendedHardware.recommendedTier).toBe(
       "95 GB Cloud TPU class, e.g. Cloud TPU v5p",
     );
@@ -85,8 +85,8 @@ describe("buildReport", () => {
     expect(report.speed).toBe("400.7 tokens/second");
     expect(report.calculationRows).toEqual(
       expect.arrayContaining([
-        { label: "Working memory subtotal", value: "43.4 GB" },
-        { label: "Total required", value: "79.1 GB" },
+        { label: "Working memory subtotal", value: "44.9 GB" },
+        { label: "Total required", value: "80.7 GB" },
       ]),
     );
   });
@@ -122,7 +122,7 @@ describe("buildReport", () => {
     };
 
     const singleGpu = buildReport(state(base));
-    expect(singleGpu.minimumRawVramNeeded).toBe("142.7 GB");
+    expect(singleGpu.minimumRawVramNeeded).toBe("143.6 GB");
     expect(singleGpu.recommendedHardware.recommendedTier).toBe(
       "180 GB datacenter class, e.g. B200",
     );
@@ -192,7 +192,7 @@ describe("buildReport", () => {
       }),
     );
 
-    expect(report.totalRequiredMemory).toBe("79.7 GB");
+    expect(report.totalRequiredMemory).toBe("84.1 GB");
     expect(report.warnings.join(" ")).not.toContain(
       "Transformer architecture is estimated",
     );

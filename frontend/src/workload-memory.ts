@@ -7,6 +7,7 @@ import {
   type CalculationSpec,
   type MemoryBreakdown,
 } from "./calculator-core";
+import { fp16DecoderActivationScratchGb } from "./decoder-scratch";
 import { estimateSpeed, type HardwareTier } from "./hardware";
 import type { WorkloadFamily } from "./types";
 import {
@@ -24,8 +25,6 @@ const DEFAULT_TEMPORAL_DOWNSAMPLE = 4;
 const DEFAULT_AUDIO_TOKENS_PER_SECOND = 50;
 const DEFAULT_FEATURE_BYTES = 4;
 const DEFAULT_ACTIVATION_BYTES = 2;
-const INFERENCE_ACTIVATION_FLOOR_GB = 0.5;
-const SERVER_DECODER_PREFILL_RATIO = 0.015;
 const ZERO_SPEED_ESTIMATES: ReadonlyMap<WorkloadFamily, string> = new Map([
   ["audio", "0.0 audio tokens/second"],
   ["image_diffusion", "0.0 images/minute"],
@@ -115,19 +114,16 @@ const visionActivationGb = (
   );
 };
 
-const fp16ActivationScratchGb = (
-  spec: Readonly<CalculationSpec>,
-  ratio: number,
-): number =>
-  Math.max(INFERENCE_ACTIVATION_FLOOR_GB, spec.residentParamsB * 2 * ratio);
-
-const decoderPrefillRatio = (spec: Readonly<CalculationSpec>): number =>
-  spec.runtimeProfile === "Local / Edge" ? 0.01 : SERVER_DECODER_PREFILL_RATIO;
-
-const textGenerationMemory: WorkingMemoryBuilder = (spec) => ({
-  kvCacheGb: decoderKvGb(spec, contextField(spec.state.contextTokens, 8000)),
-  inputActivationGb: fp16ActivationScratchGb(spec, decoderPrefillRatio(spec)),
-});
+const textGenerationMemory: WorkingMemoryBuilder = (spec) => {
+  const tokens = contextField(spec.state.contextTokens, 8000);
+  return {
+    kvCacheGb: decoderKvGb(spec, tokens),
+    inputActivationGb: fp16DecoderActivationScratchGb(
+      spec.residentParamsB,
+      tokens,
+    ),
+  };
+};
 
 const textEncoderMemory: WorkingMemoryBuilder = (spec) => ({
   kvCacheGb: 0,
@@ -142,11 +138,13 @@ const encoderDecoderMemory: WorkingMemoryBuilder = (spec) => {
     spec,
     nonNegativeField(spec.state.inputTokens, 1024),
   );
-  const kv = decoderKvGb(spec, nonNegativeField(spec.state.outputTokens, 256));
+  const outputTokens = nonNegativeField(spec.state.outputTokens, 256);
+  const kv = decoderKvGb(spec, outputTokens);
   return {
     kvCacheGb: kv,
     inputActivationGb:
-      input + fp16ActivationScratchGb(spec, SERVER_DECODER_PREFILL_RATIO),
+      input +
+      fp16DecoderActivationScratchGb(spec.residentParamsB, outputTokens),
   };
 };
 
@@ -165,15 +163,15 @@ const visionLanguageMemory: WorkingMemoryBuilder = (spec) => {
   const imageTokenCount =
     nonNegativeField(spec.state.imageCount, 1) *
     (imageTokens(width, height) - 1);
-  const kv = decoderKvGb(
-    spec,
-    nonNegativeField(spec.state.textContextTokens, 4000) + imageTokenCount,
-  );
+  const decoderTokens =
+    nonNegativeField(spec.state.textContextTokens, 4000) + imageTokenCount;
+  const kv = decoderKvGb(spec, decoderTokens);
   const vision = visionActivationGb(spec, imageTokenCount);
   return {
     kvCacheGb: kv,
     inputActivationGb:
-      vision + fp16ActivationScratchGb(spec, SERVER_DECODER_PREFILL_RATIO),
+      vision +
+      fp16DecoderActivationScratchGb(spec.residentParamsB, decoderTokens),
   };
 };
 

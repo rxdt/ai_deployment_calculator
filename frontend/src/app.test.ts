@@ -1099,7 +1099,7 @@ describe("mounted calculator", () => {
     loadDom();
     mountCalculator(document);
     fireInput("total-params", "104");
-    expect(out("total")).toBe("237.3 GB");
+    expect(out("total")).toBe("237.7 GB");
   });
 
   test("preserves fractional model parameter inputs", () => {
@@ -1283,7 +1283,7 @@ describe("hero fit meter", () => {
     expect(meter.value).toBe(95);
     expect(meter.classList.contains("fit-meter--tight")).toBe(true);
     expect(out("vram-say")).toBe(
-      "Tight fit on one 48 GB card: 38.8 GB uses 95% of its 40.8 GB usable VRAM.",
+      "Tight fit on one 48 GB card: 38.9 GB uses 95% of its 40.8 GB usable VRAM.",
     );
   });
 
@@ -1981,7 +1981,7 @@ describe("model presets", () => {
     expect(field("workload-family").value).toBe("text_generation");
     expect(field("precision").value).toBe("16-bit");
     expect(field("moe-enabled")).toHaveProperty("checked", false);
-    expect(out("total")).toBe("160.8 GB");
+    expect(out("total")).toBe("161.1 GB");
     expect(dataSlot("status-model").textContent).toBe("70B");
     expect(out("gpu-class")).toBe("192 GB hardware tier");
   });
@@ -1998,7 +1998,7 @@ describe("model presets", () => {
     expect(field("active-params").value).toBe("12.9");
     expect(isRowHidden("active-params")).toBe(false);
     expect(dataSlot("status-model").textContent).toBe("46.7B MoE");
-    expect(out("total")).toBe("108.8 GB");
+    expect(out("total")).toBe("109.0 GB");
   });
 
   test("computes the preset report from freshly revealed controls", () => {

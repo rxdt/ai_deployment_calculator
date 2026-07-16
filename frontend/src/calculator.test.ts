@@ -105,6 +105,18 @@ function required(overrides: Partial<FormState>): number {
   return memoryBreakdown(specFromState(state(overrides))).requiredGb;
 }
 
+/**
+Compute decoder scratch memory for a text-generation inference case.
+@param overrides Text-generation form overrides.
+@returns activation scratch in GB
+*/
+function decoderScratch(overrides: Partial<FormState>): number {
+  const spec = specFromState(
+    state({ workloadFamily: "text_generation", ...overrides }),
+  );
+  return inferenceWorkingMemoryGb(spec, weightsGb(spec)).inputActivationGb;
+}
+
 describe("parameter conversion and precision maps", () => {
   test("converts B and M units into billions of parameters", () => {
     expect(
@@ -170,7 +182,7 @@ describe("corrected text-generation totals", () => {
         activeParams: "1.3",
         precision: "16-bit",
       },
-      109.5,
+      109.6,
     ],
     ["7B server inference default matches the empty-form estimate", {}, 18.8],
     ["8B server inference defaults to 21.0 GB", { totalParams: "8" }, 21],
@@ -184,7 +196,7 @@ describe("corrected text-generation totals", () => {
         runtimeProfile: "Local / Edge",
         knownModelFileSizeGb: "52",
       },
-      79.7,
+      84.1,
     ],
     [
       "47B local 4-bit MoE applies quantized weight overhead",
@@ -195,7 +207,7 @@ describe("corrected text-generation totals", () => {
         moeEnabled: true,
         activeParams: "1.3",
       },
-      31.1,
+      31.7,
     ],
     [
       "70B long-context 4-bit FP8 KV uses estimated GQA KV heads",
@@ -205,7 +217,7 @@ describe("corrected text-generation totals", () => {
         precision: "4-bit",
         kvCachePrecision: "8-bit / FP8",
       },
-      71.3,
+      73.9,
     ],
     [
       "70B exact file long-context case preserves architecture KV",
@@ -216,12 +228,12 @@ describe("corrected text-generation totals", () => {
         kvCachePrecision: "8-bit / FP8",
         knownModelFileSizeGb: "35",
       },
-      65.5,
+      68.1,
     ],
     [
       "104B 8-bit 16-bit KV uses weight overhead",
       { totalParams: "104", contextTokens: "32000", precision: "8-bit" },
-      139,
+      142.7,
     ],
     [
       "7B million-token context uses estimated GQA",
@@ -268,7 +280,7 @@ describe("corrected text-generation totals", () => {
           precision,
         }),
       ),
-    ).toEqual([443.7, 235.7, 136.9, 87.5]);
+    ).toEqual([448.1, 240.1, 141.3, 91.9]);
   });
 
   test("local 4-bit weights apply quantized overhead", () => {
@@ -737,18 +749,25 @@ describe("training estimates", () => {
 });
 
 describe("workload-family working memory", () => {
-  test("text generation includes decoder scratch by runtime profile", () => {
-    const server = specFromState(state({ totalParams: "70" }));
-    const local = specFromState(
-      state({ totalParams: "70", runtimeProfile: "Local / Edge" }),
-    );
+  test("text generation decoder scratch follows anchored context bands", () => {
+    const at4k = decoderScratch({ totalParams: "70", contextTokens: "4096" });
+    const at8k = decoderScratch({ totalParams: "70", contextTokens: "8192" });
+    const at32k = decoderScratch({
+      totalParams: "70",
+      contextTokens: "32768",
+    });
+    const at128k = decoderScratch({
+      totalParams: "70",
+      contextTokens: "128000",
+    });
 
-    expect(
-      inferenceWorkingMemoryGb(server, weightsGb(server)).inputActivationGb,
-    ).toBeCloseTo(2.1);
-    expect(
-      inferenceWorkingMemoryGb(local, weightsGb(local)).inputActivationGb,
-    ).toBeCloseTo(1.4);
+    expect(at8k).toBeGreaterThanOrEqual(at4k);
+    expect(at32k).toBeGreaterThan(at8k);
+    expect(at128k).toBeGreaterThanOrEqual(at32k);
+    expect(at8k).toBeGreaterThanOrEqual(2.2);
+    expect(at8k).toBeLessThanOrEqual(3.3);
+    expect(at32k).toBeGreaterThanOrEqual(4.3);
+    expect(at32k).toBeLessThanOrEqual(4.6);
   });
 
   test("decoder activation scratch uses fp16 compute weights across quantization", () => {

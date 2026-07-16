@@ -83,7 +83,7 @@ describe("fitMeter", () => {
     expect(meter.fillPercent).toBe(95);
     expect(meter.isTight).toBe(true);
     expect(meter.summary).toBe(
-      "Tight fit on one 48 GB card: 38.8 GB uses 95% of its 40.8 GB usable VRAM.",
+      "Tight fit on one 48 GB card: 38.9 GB uses 95% of its 40.8 GB usable VRAM.",
     );
   });
 

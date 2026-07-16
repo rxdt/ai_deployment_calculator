@@ -15,12 +15,14 @@ Short, current handoff. Deleted lines are the point — keep only what's useful 
   formula to its llama.cpp anchors (70B 8k≈2.32 GB #7804, 32k≈4.43 GB #10003,
   0.5 GB floor, linear scaling, monotonic context growth, out-of-range clamps),
   closing the former P1 accuracy-guard gap; was covered only indirectly before.
-- `specs/frontend.md` had no remaining frontend build work after that fix, so
-  it was deleted. Deploy prep now lives in `specs/deploy-reconcile.md`;
-  recurring QA remains in `specs/qa.md`/`specs/plan.md`.
+- `specs/frontend.md` and `specs/deploy-reconcile.md` were both deleted (no
+  work remained); recurring QA remains in `specs/qa.md`/`specs/plan.md`.
 - Current QA run seeded `frontend/src/adversarial/oracle.test.ts` and
   `docs/qa/adversarial-2026-07-16.md` with PB-scale URL, published bpw,
-  training-order, no-KV, and URL-extreme invariants.
+  training-order, no-KV, and URL-extreme invariants, then added two Part B
+  oracle cases: the vLLM 0.125 MiB/token Llama-3-8B KV anchor and a
+  weight-quantization twin-invariance case (KV + activation rows stay
+  byte-identical across the weight-precision ladder). Suite is 15 green.
 - Hardware-tier green-check QA is covered by Playwright (`0b8c598`): default
   24 GB, 70B 192 GB, overflow, and reset states keep the correct visible marker
   across all configured browser projects/viewports.
@@ -43,7 +45,7 @@ Short, current handoff. Deleted lines are the point — keep only what's useful 
 - Focused: `playwright test ... --grep "keeps the hardware tier best-fit check
   visible"` passed 6/6 projects (desktop Chrome, desktop Safari, iPhone, Pixel,
   320px, tablet).
-- Focused: `vitest src/adversarial` passed 13 oracle tests; hardware-tier
+- Focused: `vitest src/adversarial` passed 14 oracle tests; hardware-tier
   reference focus passed 4 tests / 106 skipped.
 - Focused after SEO reconciliation: `vitest src/app.test.ts` passed 111 tests;
   Playwright calculator H1/subtitle grep passed 12/12 projects; responsive H1
@@ -80,3 +82,7 @@ Short, current handoff. Deleted lines are the point — keep only what's useful 
 ## Known issues
 
 - Small-screen topbar polish around GitHub/brand wrapping is pre-existing.
+- A parallel agent's edit to `harness/playwright.config.js` (cap Playwright
+  `workers: 2`, own the dev-server lifecycle) is uncommitted in the working
+  tree. It is a forbidden path for agents, so it is left staged-out for human
+  review, not committed here.

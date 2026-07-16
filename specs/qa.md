@@ -1,7 +1,3 @@
-> claude (RALPH 2/2) is working on Part B: adding a weight-quantization
-> twin-invariance oracle case (KV + activation rows must not move with the
-> weights precision).
-
 # QA Spec — External Oracles
 
 Veracity is P0 (see `specs/plan.md`). Report-only QA proves the MODEL matches

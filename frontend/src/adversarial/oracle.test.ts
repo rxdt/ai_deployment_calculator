@@ -183,6 +183,48 @@ describe("adversarial oracle suite", () => {
     expect((kv16k - kv8k) / 8000).toBeCloseTo(LLAMA3_8B_KV_GB_PER_TOKEN, 9);
   });
 
+  test("isolates weight quantization from the KV and activation rows of a twin model", () => {
+    // Physical decomposition invariant: the `precision` field sets ONLY the
+    // resident weights row. Decoder KV is governed by kvCachePrecision and the
+    // architecture bucket; inference activation is an fp16 compute buffer
+    // (llama.cpp) — neither reads weight precision. So twins of one model that
+    // differ ONLY in weight quantization must report byte-identical kvCacheGb
+    // and inputActivationGb. This anchor sits outside our weight formula: any
+    // precision leak into the KV or activation math breaks it.
+    const weightLadder: readonly Precision[] = [
+      "32-bit",
+      "16-bit",
+      "Q8_0",
+      "Q6_K",
+      "Q4_K_M",
+      "IQ2_XXS",
+    ];
+    const rows = weightLadder.map((precision) =>
+      memoryBreakdown(
+        specFromState(
+          state({
+            workloadFamily: "text_generation",
+            totalParams: "13",
+            precision,
+            kvCachePrecision: "16-bit",
+            contextTokens: "8000",
+            workloadSize: "4",
+          }),
+        ),
+      ),
+    );
+
+    // KV and activation are byte-identical across every weight tier.
+    expect(new Set(rows.map((row) => row.kvCacheGb)).size).toBe(1);
+    expect(new Set(rows.map((row) => row.inputActivationGb)).size).toBe(1);
+
+    // Guard against a hollow pass: the only varied knob must genuinely move —
+    // weights strictly descend the ladder and take a distinct value per tier.
+    const weights = rows.map((row) => row.weightsGb);
+    expect(weights).toStrictEqual([...weights].sort((a, b) => b - a));
+    expect(new Set(weights).size).toBe(weightLadder.length);
+  });
+
   test("keeps adapter and full-training modes in physical memory order", () => {
     const base = {
       totalParams: "8",

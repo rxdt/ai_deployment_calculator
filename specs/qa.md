@@ -1,5 +1,3 @@
-codex-qa-2/2 is working on adversarial oracle suite invariants in this spec
-
 ---
 
 MUST FILL IN LINE 7 AT START THEN "CLEAR" BACK TO BASELINE BEFORE END OF ITERATION

@@ -1,4 +1,4 @@
-codex-qa-f10 is working on one missing adversarial oracle case in this spec
+codex-qa-f9 is working on Part A cross-calculator comparison in this spec
 
 # QA Spec — External Oracles
 

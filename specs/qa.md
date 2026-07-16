@@ -1,5 +1,3 @@
-codex-gpt5 is working on frontend regression sweep and hardware-tier checkmark regressions in this spec
-
 # QA Spec — External Oracles
 
 Veracity is P0 (see `specs/plan.md`). Report-only QA proves the MODEL matches

@@ -19,6 +19,31 @@ interface ExtremeQuery {
   readonly query: string;
 }
 
+interface PublishedTrainingByteAnchor {
+  readonly optimizer: FormState["optimizer"];
+  readonly bytesPerParam: number;
+  readonly breakdown: string;
+}
+
+// Canonical mixed-precision full-training memory PER PARAMETER — the published
+// training-anatomy decomposition (HuggingFace "Model training anatomy",
+// DeepSpeed/ZeRO, and the same "AdamW ~16 B/param" figure cited in specs/qa.md
+// triage). Each anchor is the sum of the resident-weight row and the
+// training-state row (fp32 master + fp16 gradient + optimizer moments) and
+// EXCLUDES activations, runtime overhead, and the safety buffer. These
+// bytes/param constants come from OUTSIDE our engine, so pinning them catches
+// any drift in the optimizer/master/gradient byte widths absolutely, not by
+// ordering — under-counting here silently OOMs a real training run.
+const PUBLISHED_TRAINING_BYTE_ANCHORS: readonly PublishedTrainingByteAnchor[] =
+  [
+    // 2 fp16 weights + 2 fp16 grad + 4 fp32 master + 4 Adam m + 4 Adam v.
+    { optimizer: "AdamW", bytesPerParam: 16, breakdown: "2+2+4+4+4" },
+    // Adam moments quantized to 8-bit (1 byte each) instead of fp32.
+    { optimizer: "8-bit Adam", bytesPerParam: 10, breakdown: "2+2+4+1+1" },
+    // One fp32 momentum buffer, no second moment.
+    { optimizer: "SGD-like", bytesPerParam: 12, breakdown: "2+2+4+4" },
+  ];
+
 const PUBLISHED_WEIGHT_ANCHORS: readonly PublishedWeightAnchor[] = [
   { precision: "IQ2_XXS", expectedGb: 1.8025 },
   { precision: "Q4_K_M", expectedGb: 4.24375 },
@@ -244,6 +269,51 @@ describe("adversarial oracle suite", () => {
     expect(lora).toBeLessThan(full);
     expect(full).toBeGreaterThan(8 * 16);
   });
+
+  test.each(PUBLISHED_TRAINING_BYTE_ANCHORS)(
+    "matches the published $bytesPerParam-bytes/param fp16 full-training footprint for $optimizer ($breakdown)",
+    ({ optimizer, bytesPerParam }) => {
+      const parameters = 8;
+      const build = (
+        overrides: Partial<FormState>,
+      ): ReturnType<typeof memoryBreakdown> =>
+        memoryBreakdown(
+          specFromState(
+            state({
+              workloadFamily: "text_generation",
+              executionMode: "Full training",
+              precision: "16-bit",
+              optimizer,
+              totalParams: String(parameters),
+              ...overrides,
+            }),
+          ),
+        );
+
+      // Resident weights + full training state equal the published bytes/param
+      // anchor EXACTLY — under-counting OOMs the run, over-counting misreports.
+      const base = build({});
+      expect(base.weightsGb + base.trainingStateGb).toBeCloseTo(
+        parameters * bytesPerParam,
+        6,
+      );
+
+      // Isolation guard: the anchor is a model+optimizer figure ONLY, so pushing
+      // the working-memory drivers hard (context, batch) must leave the weight
+      // and training-state rows — and thus the anchor — byte-identical.
+      const heavier = build({ contextTokens: "128000", workloadSize: "16" });
+      expect(heavier.weightsGb).toBe(base.weightsGb);
+      expect(heavier.trainingStateGb).toBe(base.trainingStateGb);
+
+      // Linearity guard: bytes/param is a constant, so a 10x model is a 10x
+      // footprint and the pass above cannot be a fixed-point coincidence.
+      const bigger = build({ totalParams: String(parameters * 10) });
+      expect(bigger.weightsGb + bigger.trainingStateGb).toBeCloseTo(
+        parameters * 10 * bytesPerParam,
+        6,
+      );
+    },
+  );
 
   test.each(NO_PERSISTENT_KV_FAMILIES)(
     "does not charge persistent decoder KV for %s workloads",

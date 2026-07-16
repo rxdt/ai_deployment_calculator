@@ -10,6 +10,7 @@ const PRESET_IDS = [
   "mixtral-8x7b",
   "gemma-9b",
   "sdxl",
+  "onnx-distilbert",
 ] as const;
 
 // WebKit mirrors Safari's macOS default where plain Tab skips buttons and

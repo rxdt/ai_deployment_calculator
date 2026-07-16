@@ -333,6 +333,14 @@ a:hover {
   min-width: 0;
 }
 
+/* Two nav chips (About, GitHub) sit on one line with the control gap between
+   them; flex keeps them from wrapping into a vertical stack on mobile. */
+.topnav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
 .brand,
 .hero-label,
 legend,
@@ -1495,9 +1503,26 @@ code {
     flex-basis: 100%;
   }
 
-  /* The chip keeps its icon and accessible name; the text would wrap into a
-     vertical letter stack and triple the topbar's height. */
-  .topnav-label {
+  /* The GitHub chip keeps its icon and accessible name; the text would wrap
+     into a vertical letter stack and triple the topbar's height. The About
+     chip has no icon, so its short label stays — hiding it would leave an
+     empty pill and no path to the writeup on phones. */
+  [data-slot="github-link"] .topnav-label {
     display: none;
+  }
+
+  /* Two chips + brand + status only just exceed 320px at desktop chip
+     padding; tighten the chips so the row fits without horizontal scroll,
+     while min-width keeps each an accessible ≥24px touch target. Keep the
+     About label on one line — the global overflow-wrap rule would otherwise
+     stack it into a vertical letter column. */
+  .topnav a {
+    padding-inline: var(--space-sm);
+    min-width: var(--layout-control-size);
+    justify-content: center;
+  }
+
+  [data-slot="about-link"] .topnav-label {
+    white-space: nowrap;
   }
 }

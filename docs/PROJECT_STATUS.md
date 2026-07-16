@@ -43,19 +43,29 @@ Short, current handoff. Deleted lines are the point — keep only what's useful 
   values.
 - `pnpm gate` passed.
 
-## Open work
+## Open work (priority-ranked; see `specs/plan.md` PRIORITIES)
 
-- **Phase 2 feature backlog (F1/F2/F5/F6/F7/F8) is PARKED** — do not build
-  (archived at `scratchpad/DO-NOT-DO-phase2-features.md`).
-- `specs/accuracy-fix.md` T1/T2 remain: owner-gated push/redeploy, then live
-  Playwright verification against 18.8 / 161.1 / Q4_K_M / QLoRA / training
-  anchors.
-- Recurring QA/release runs F9/F10 remain actionable in `specs/qa.md` and
-  `specs/plan.md`.
+- **P0 — Get a correct, non-regressing build DEPLOYABLE.** Prod is stale and
+  serves 19.0 (correct 18.8). `main` is verified more accurate. Deploy is gated
+  on the SEO reconciliation in `specs/deploy-reconcile.md` (GSC tag restored ✅;
+  brand/title decision R2 pending) — NOT a bare `git push`. **Only the owner
+  deploys.** NOTE: `accuracy-fix.md` (T1 "redeploy") and `deploy-reconcile.md`
+  (R1–R4) OVERLAP on the deploy — `deploy-reconcile.md` is the fuller,
+  authoritative path (it includes the brand/title blocker). Do not run two
+  parallel deploy-preps; consolidate on `deploy-reconcile.md` and let
+  `accuracy-fix.md` shrink to nothing.
+- **P1 — Guard the just-fixed accuracy:** add a direct `decoder-scratch.ts`
+  unit test pinning its llama.cpp anchors (≈2.2 GB @8k, ≈4.2 GB @32k for 70B;
+  0.5 GB floor) + context-growth invariant. Currently only covered indirectly.
+- **P1 — Brand/title SEO decision** (`deploy-reconcile.md` R2) — blocks the P0.
+- **P2 — F9/F10** recurring QA/oracle runs (`specs/qa.md`, `specs/plan.md`).
+- **Parked (do not build):** F1/F2/F5/F6/F7/F8
+  (`scratchpad/DO-NOT-DO-phase2-features.md`).
 
 ## Blockers
 
-- Owner has not authorized `git push origin main`; production remains stale.
+- Owner has not authorized deploy; production remains stale (P0).
+- Deploy blocked on the brand/title decision (`deploy-reconcile.md` R2).
 
 ## Known issues
 

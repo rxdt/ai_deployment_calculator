@@ -48,22 +48,36 @@ Commands: `pnpm preflight`, `pnpm gate`; QA contracts live in `specs/qa.md`.
 ## Current Work
 
 Shipped: F0 activation floor, F3 quant ladder, F4 crawlable prose, F4.1 guide
-relocation/FAQ removal, and the decimal-input fix. `specs/frontend.md` was
-deleted because no frontend build item remained.
+relocation/FAQ removal, the decimal-input fix, and the context-anchored decoder
+activation scratch (`decoder-scratch.ts`, verified against llama.cpp anchors).
+`specs/frontend.md` was deleted because no frontend build item remained.
 
 Parked by owner directive (2026-07-16): F1, F2, F5, F6, F7, F8. Do not build.
 Rationale: `scratchpad/DO-NOT-DO-phase2-features.md`.
 
-Actionable recurring work:
+### PRIORITIES (exactly one P0; everything else is P1/P2)
 
-- [ ] **F9. Cross-calculator QA run.** Drive the calculators in
-      `specs/qa.md`, compare canonical scenarios against the live site, triage
-      disagreements against anchors, and write
-      `docs/qa/comparison-YYYY-MM-DD.md`.
-- [ ] **F10. Adversarial oracle suite.** Extend
-      `frontend/src/adversarial/oracle.test.ts` with one missing
-      weird-combination/oracle case from external calculators, published
-      anchors, or physical invariants. Incorrect-source failures stay red.
+- **P0 — The LIVE public site serves WRONG numbers.** https://vram.rxdt.dev/
+  runs the stale pre-F0 bundle (7B default = 19.0 GB; correct = 18.8) and lacks
+  F3/F4/F4.1. `main` is verified more accurate AND fixes the canonical SEO
+  defect, but a deploy needs the SEO reconciliation first (`deploy-reconcile.md`:
+  GSC tag restored ✅, brand/title decision pending). Nothing outranks getting a
+  correct, non-regressing build deployable. **Only the owner deploys.** Until
+  prod is correct, this is THE priority; treat any accuracy regression on `main`
+  as a release blocker, not a backlog item.
+- **P1 — Guard the accuracy that was just fixed.** Add a direct unit test for
+  `decoder-scratch.ts` pinning its cited anchors (≈2.2 GB @8k, ≈4.2 GB @32k for
+  70B; the 0.5 GB floor) and the context-growth invariant, so the formula can't
+  silently drift off its measurements. Currently only covered indirectly.
+- **P1 — Brand/title SEO decision** (in `deploy-reconcile.md` R2): which name
+  ranks better; apply consistently. Blocks the P0 deploy.
+- **P2 — F9. Cross-calculator QA run.** Drive the calculators in `specs/qa.md`,
+  compare canonical scenarios against the live site, triage disagreements
+  against anchors, write `docs/qa/comparison-YYYY-MM-DD.md`.
+- **P2 — F10. Adversarial oracle suite.** Extend
+  `frontend/src/adversarial/oracle.test.ts` with one missing
+  weird-combination/oracle case from external calculators, published anchors, or
+  physical invariants. Incorrect-source failures stay red.
 
 Rejected: animated inference simulations, live price feeds, benchmark scores,
 accounts, iframe widget, raw architecture-field forms, exl2 tiers.

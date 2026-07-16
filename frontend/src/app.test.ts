@@ -539,10 +539,14 @@ describe("CalculatorApp construction", () => {
     );
   });
 
-  test("throws when the fit meter slot is missing", () => {
+  test.each([
+    ["fit-meter", "Missing fit meter"],
+    ["kv-cache-row", "Missing KV cache row"],
+    ["presets", "Missing presets container"],
+  ])("throws when the %s slot is missing", (slot, message) => {
     loadDom();
-    dataSlot("fit-meter").remove();
-    expect(() => mountCalculator(document)).toThrow("Missing fit meter");
+    dataSlot(slot).remove();
+    expect(() => mountCalculator(document)).toThrow(message);
   });
 
   test("throws when the row template lacks slots", () => {
@@ -553,20 +557,6 @@ describe("CalculatorApp construction", () => {
     }
     expect(() => mountCalculator(document)).toThrow(
       "Missing row template slots",
-    );
-  });
-
-  test("throws when the KV cache row is missing", () => {
-    loadDom();
-    dataSlot("kv-cache-row").remove();
-    expect(() => mountCalculator(document)).toThrow("Missing KV cache row");
-  });
-
-  test("throws when the presets container is missing", () => {
-    loadDom();
-    dataSlot("presets").remove();
-    expect(() => mountCalculator(document)).toThrow(
-      "Missing presets container",
     );
   });
 
@@ -1830,28 +1820,31 @@ describe("advanced numeric input caps", () => {
 });
 
 describe("sanitizeNumberInput", () => {
-  test("keeps one decimal point and two decimal digits for decimal inputs", () => {
+  test.each([
+    {
+      name: "keeps one decimal point and two decimal digits for decimal inputs",
+      inputMode: "decimal",
+      value: "1.2.3",
+      expected: "1.23",
+    },
+    {
+      name: "keeps one decimal digit at the global cap",
+      inputMode: "decimal",
+      value: "100000000",
+      expected: "99999999.9",
+    },
+    {
+      name: "leaves an already-clean value untouched",
+      inputMode: "numeric",
+      value: "42",
+      expected: "42",
+    },
+  ])("$name", ({ inputMode, value, expected }) => {
     const input = document.createElement("input");
-    input.inputMode = "decimal";
-    input.value = "1.2.3";
+    input.inputMode = inputMode;
+    input.value = value;
     sanitizeNumberInput(input);
-    expect(input.value).toBe("1.23");
-  });
-
-  test("keeps one decimal digit at the global cap", () => {
-    const input = document.createElement("input");
-    input.inputMode = "decimal";
-    input.value = "100000000";
-    sanitizeNumberInput(input);
-    expect(input.value).toBe("99999999.9");
-  });
-
-  test("leaves an already-clean value untouched", () => {
-    const input = document.createElement("input");
-    input.inputMode = "numeric";
-    input.value = "42";
-    sanitizeNumberInput(input);
-    expect(input.value).toBe("42");
+    expect(input.value).toBe(expected);
   });
 
   test("falls back to the global cap when a field cap is malformed", () => {

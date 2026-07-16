@@ -536,8 +536,10 @@ summary,
 }
 
 /* Cap the tagline's measure so it wraps to balanced lines instead of stranding
-   the last word on its own line. */
+   the last word on its own line; center the capped block so the title card's
+   text-align centers the text AND the box. */
 .intro p {
+  margin-inline: auto;
   max-width: var(--layout-intro-max);
 }
 

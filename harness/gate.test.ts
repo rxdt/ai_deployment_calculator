@@ -1119,20 +1119,26 @@ describe("runGate / runPreflight wiring", () => {
 
   // One run proves both: runGate invokes every configured FULL_CHECK tool, and resolves them from
   // the repo-local harness bin even with PATH entirely unset (must coalesce absent PATH to "").
-  test("runGate defaults to every configured full-check tool, resolved with PATH unset", () => {
-    const repo = makeRepo();
-    const log = stubCheckTools(repo, FULL_CHECKS);
-    stageFile(repo, "frontend/package.json", '{"private":true}\n');
-    stageFile(repo, "harness/package.json", '{"private":true}\n');
-    const originalPath = process.env.PATH;
-    delete process.env.PATH;
-    try {
-      expect(runGate(repo)).toEqual([]);
-    } finally {
-      if (originalPath !== undefined) process.env.PATH = originalPath;
-    }
-    expect(stubbedToolCalls(log)).toEqual(checkToolNames(FULL_CHECKS));
-  });
+  // Spawns one real process per FULL_CHECK (~18); needs headroom beyond the 5s default when the
+  // machine is loaded (e.g. this test running inside the gate's own coverage pass).
+  test(
+    "runGate defaults to every configured full-check tool, resolved with PATH unset",
+    { timeout: 30_000 },
+    () => {
+      const repo = makeRepo();
+      const log = stubCheckTools(repo, FULL_CHECKS);
+      stageFile(repo, "frontend/package.json", '{"private":true}\n');
+      stageFile(repo, "harness/package.json", '{"private":true}\n');
+      const originalPath = process.env.PATH;
+      delete process.env.PATH;
+      try {
+        expect(runGate(repo)).toEqual([]);
+      } finally {
+        if (originalPath !== undefined) process.env.PATH = originalPath;
+      }
+      expect(stubbedToolCalls(log)).toEqual(checkToolNames(FULL_CHECKS));
+    },
+  );
 
   test("runPreflight defaults to the configured commit-check tools", () => {
     const repo = makeRepo();

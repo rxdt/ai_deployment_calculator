@@ -14,13 +14,15 @@ concurrency:
 
 jobs:
   dependency-review:
-    if: github.event_name == 'pull_request'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v6
       - uses: actions/dependency-review-action@v5
         with:
+          # On push there is no PR base/head, so diff the pushed commit range.
+          base-ref: ${{ github.event.pull_request.base.sha || github.event.before }}
+          head-ref: ${{ github.event.pull_request.head.sha || github.event.after }}
           fail-on-severity: moderate
           fail-on-scopes: runtime, development
           license-check: true

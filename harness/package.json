@@ -81,7 +81,7 @@
     "stylelint-media-use-custom-media": "latest",
     "stylelint-plugin-defensive-css": "latest",
     "tsx": "latest",
-    "typescript": "latest",
+    "typescript": "~6.0.3",
     "typescript-eslint": "latest",
     "vite": "latest",
     "vitest": "latest"

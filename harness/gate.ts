@@ -197,7 +197,7 @@ function stagedSymlinks(repo: string): string[] {
     .split("\0")
     .filter((entry) => entry.length > 0)
     .flatMap((entry) => {
-      const [meta = "", file = ""] = entry.split("\t");
+      const [meta = "", file = ""] = entry.split("\t", 2);
       return meta.startsWith("120000") ? [file] : [];
     });
 }

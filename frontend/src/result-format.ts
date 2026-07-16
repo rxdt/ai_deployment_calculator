@@ -133,7 +133,7 @@ export function fitMeter(
   const usable = leadingGb(fit.usableVramOnClass);
   const required = leadingGb(fit.requiredMemory);
   const capacity = leadingCapacity(shortHardwareClass(fit.recommendedTier));
-  if (usable === null || usable <= 0 || required === null || capacity === "") {
+  if (usable === null || required === null || capacity === "" || usable <= 0) {
     // A real estimate with no single-class fit still renders as a meter:
     // pegged full and red. Only a missing estimate hides the bar entirely.
     // (required is parsed from the always-formatted requiredMemory string, so

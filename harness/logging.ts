@@ -318,7 +318,7 @@ export const commitRows: ReadCommits = (repo) => {
     .split("\n")
     .filter(Boolean)
     .map((line) => {
-      const [hash = "", date = "", subject = ""] = line.split("\t");
+      const [hash = "", date = "", subject = ""] = line.split("\t", 3);
       return [hash, date, firstSentence(subject)];
     });
 };

@@ -47,7 +47,7 @@ export function statusFitLabel(report: Readonly<ReportPayload>): string {
   if (hardwareClass.startsWith(">")) {
     return "multi-node";
   }
-  const [amount = ""] = hardwareClass.split(" GB");
+  const [amount = ""] = hardwareClass.split(" GB", 1);
   const capacity = `${amount} GB`;
   return hardwareClass.includes("sharded") ? `${capacity} sharded` : capacity;
 }

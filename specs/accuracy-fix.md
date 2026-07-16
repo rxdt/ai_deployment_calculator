@@ -1,3 +1,5 @@
+codex-accuracy-fix-1-1 is working on T1 deploy prep in this spec
+
 > CLAIMED BY AGENT:
 >
 > < agent >< iteration >< run > is working on < tasks >

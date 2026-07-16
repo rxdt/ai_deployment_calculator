@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import notFoundHtml from "../404.html?raw";
 import indexHtml from "../index.html?raw";
 import { CalculatorApp, mountCalculator } from "./app";
 import { sanitizeNumberInput } from "./input-sanitizer";
@@ -392,7 +393,13 @@ describe("static SEO metadata", () => {
     );
 
     expect(title?.textContent).toBe(
-      "VRAM Calculator for LLMs, Diffusion & AI Models",
+      "AI Deployment Calculator | VRAM & GPU Memory Estimator",
+    );
+    expect(metaContent(head, "name", "google-site-verification")).toBe(
+      "GUhbPyFhhq-ntorAXKLG9Ty_M_FZwZXcuBoU7SWPhYI",
+    );
+    expect(metaContent(head, "name", "application-name")).toBe(
+      "AI Deployment Calculator",
     );
     expect(metaContent(head, "name", "description")).toContain("inference");
     expect(metaContent(head, "name", "description")).toContain("fine-tuning");
@@ -405,11 +412,14 @@ describe("static SEO metadata", () => {
     expect(metaContent(head, "property", "og:url")).toBe(
       "https://vram.rxdt.dev/",
     );
+    expect(metaContent(head, "property", "og:site_name")).toBe(
+      "AI Deployment Calculator",
+    );
     expect(metaContent(head, "property", "og:title")).toBe(
-      "VRAM Calculator for LLMs, Diffusion & AI Models",
+      "AI Deployment Calculator | VRAM & GPU Memory Estimator",
     );
     expect(metaContent(head, "name", "twitter:title")).toBe(
-      "VRAM Calculator for LLMs, Diffusion & AI Models",
+      "AI Deployment Calculator | VRAM & GPU Memory Estimator",
     );
     expect(metaContent(head, "property", "og:image")).toBe(
       "https://vram.rxdt.dev/og-image.png",
@@ -430,7 +440,10 @@ describe("static SEO metadata", () => {
     }
 
     expect(data["@type"]).toBe("WebApplication");
-    expect(data.name).toBe("VRAM Calculator for LLMs, Diffusion & AI Models");
+    expect(data.name).toBe("AI Deployment Calculator");
+    expect(data.alternateName).toBe(
+      "VRAM Calculator for LLMs, Diffusion & AI Models",
+    );
     expect(data.applicationCategory).toBe("DeveloperApplication");
     const { offers } = data;
     if (!isRecord(offers)) {
@@ -449,6 +462,27 @@ describe("static SEO metadata", () => {
 
     expect(faqSchema).toBeUndefined();
     expect(indexHtml).not.toContain("faq-item");
+  });
+
+  test("brands the static 404 page consistently", () => {
+    const parsed = new DOMParser().parseFromString(notFoundHtml, "text/html");
+    const title = allElements(parsed.head).find(
+      (entry): entry is HTMLTitleElement => entry instanceof HTMLTitleElement,
+    );
+    const heading = allElements(parsed.body).find(
+      (entry): entry is HTMLHeadingElement =>
+        entry instanceof HTMLHeadingElement && entry.tagName === "H1",
+    );
+
+    expect(title?.textContent).toBe(
+      "AI Deployment Calculator | Page Not Found",
+    );
+    expect(metaContent(parsed.head, "name", "description")).toContain(
+      "AI Deployment Calculator",
+    );
+    expect(heading?.textContent.trim()).toBe(
+      "AI Deployment Calculator page not found.",
+    );
   });
 
   test("keeps the crawlable quick reference table equal to calculator output", () => {

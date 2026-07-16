@@ -151,7 +151,7 @@ test("renders the default deployment computed locally", async ({ page }) => {
 
   await expect(
     page.getByRole("heading", {
-      name: "VRAM Calculator for LLMs, Diffusion & AI Models",
+      name: "AI Deployment Calculator",
     }),
   ).toBeVisible();
   await expect(page.locator('[data-out="total"]')).toHaveText("18.8 GB");

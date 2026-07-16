@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>A Frontend Loop Needs a Real App</title>
+    <meta
+      name="description"
+      content="Why an AI VRAM calculator — not a todo list — is the right target for an agent loop that writes frontend code."
+    />
+    <script type="module" src="./scripts/calculator-writeup.js"></script>
+  </head>
+  <body>
+    <div class="page">
+      <div class="topbar">
+        <a class="site-link" href="/">Rox dT</a>
+        <a class="site-link" href="https://vram.rxdt.dev/"
+          >Try the calculator &rarr;</a
+        >
+      </div>
+
+      <header class="masthead">
+        <p class="eyebrow">Field Notes &middot; On Loops</p>
+        <h1>A Frontend Loop Needs a Real App</h1>
+        <p class="sub">
+          I built an AI VRAM calculator in TypeScript to test frontend agent
+          loops. It was the right kind of mistake.
+        </p>
+        <p class="byline">
+          <span>By Roxana del Toro</span>
+          <span>Loop engineering</span>
+          <span>Calculator, not todo</span>
+        </p>
+      </header>
+
+      <div class="flow">
+        <p class="lead">
+          I built an AI VRAM calculator because I needed a sample app for
+          TypeScript frontend loops. That turned out to be the right kind of
+          mistake: calculators force generated frontends to deal with real
+          state, real math, real copy, and real edge cases.
+        </p>
+
+        <p>
+          The app is live at
+          <a href="https://vram.rxdt.dev/">vram.rxdt.dev</a>. You give it a
+          model size, precision, workload, and deployment mode; it gives you a
+          VRAM estimate, a hardware tier, a rough speed, and the assumptions it
+          used to get there. Everything runs in the browser. There is no
+          backend.
+        </p>
+
+        <p>
+          This post is about why that app &mdash; and not a todo list &mdash; is
+          the right target for an agent loop that writes frontend code.
+        </p>
+
+        <h2>
+          <span class="kicker">Why this app</span>The domain supplies the rigor
+        </h2>
+        <p>
+          VRAM estimation is a real question people ask before spending real
+          money. &ldquo;Will a 70B model fit on the GPU I&rsquo;m about to
+          buy?&rdquo; has a checkable answer, and getting it wrong is
+          embarrassing in a way a mislabeled todo item never is.
+        </p>
+        <p>
+          More importantly for a loop benchmark, the domain has
+          <em>naturally</em> interacting inputs: model size, precision,
+          quantization overhead, context window, batch size, KV-cache precision,
+          execution mode (inference vs LoRA vs QLoRA vs full training), MoE
+          routing, memory sharding. These aren&rsquo;t invented complexity
+          &mdash; they&rsquo;re the actual variables of the actual problem, and
+          they interact. QLoRA pins you to 4-bit. Training modes hide
+          inference-only fields. MoE changes speed but not resident memory. A
+          Local/Edge profile that outgrows every consumer card needs to
+          <em>say so</em> instead of cheerfully recommending a datacenter
+          accelerator.
+        </p>
+
+        <blockquote class="pull">
+          <p>
+            A loop can fake its way through a todo app. It cannot fake its way
+            through this.
+          </p>
+        </blockquote>
+
+        <h2>
+          <span class="kicker">Why it beats a todo app</span>The failures are
+          visible
+        </h2>
+        <ul class="notes">
+          <li>
+            <strong>Incorrect math is visible.</strong> 70B at fp16 is 140 GB of
+            weights; AdamW mixed precision is ~16 bytes per parameter. Anyone in
+            the field can eyeball the output &mdash; and so does the parity
+            suite, which drives four canonical scenarios through real browser
+            controls.
+          </li>
+          <li>
+            <strong>The UI complexity is natural.</strong> The uncheck path of a
+            checkbox whose default is <code>true</code> was a real bug: HTML
+            forms omit unchecked boxes, normalization fell back to the default,
+            and Gradient Checkpointing could never be turned off. Tests passed,
+            the gate was green, and the bug shipped &mdash; because nobody wrote
+            the <em>uncheck</em> test.
+          </li>
+          <li>
+            <strong>Tests matter because money does.</strong> People may buy
+            hardware based on this output. That reframes 100% branch coverage
+            from vanity metric to floor.
+          </li>
+          <li>
+            <strong>Accessibility is the product.</strong> The suite runs six
+            browser projects, phone to 2560px. That matrix caught a WebKit bug:
+            Safari never restyles a sibling when a
+            <code>&lt;meter&gt;</code> attribute changes, so the fit meter
+            stayed wrong for every real Safari user while Chrome looked perfect.
+          </li>
+        </ul>
+
+        <h2>
+          <span class="kicker">What the loop taught</span>Specs, gates, and copy
+        </h2>
+        <ul class="notes">
+          <li>
+            <strong>Specs beat vibes.</strong> Every behavior worth having was
+            written down before it was generated; the ones that weren&rsquo;t
+            are the ones that churned.
+          </li>
+          <li>
+            <strong>Gates catch boring, real issues.</strong> Eighteen checks
+            &mdash; prettier, eslint, stylelint, typecheck, semgrep,
+            100%-coverage units, the full Playwright matrix, Lighthouse budgets.
+            Almost nothing it rejected was interesting. All of it was real.
+          </li>
+          <li>
+            <strong>Copy is product logic when numbers are uncertain.</strong>
+            &ldquo;Fits on one 24 GB card: 19.0 GB uses 93% of its 20.4 GB
+            usable VRAM&rdquo; took more revisions than the math. An estimate
+            without its assumptions is indistinguishable from a wrong one.
+          </li>
+          <li>
+            <strong>Quality drifts upward when checks are strict.</strong> The
+            gate refuses lint bypass comments, unstages forbidden paths at
+            commit, runs the whole matrix on every push. &ldquo;Demo app&rdquo;
+            stopped being accurate without anyone deciding it should.
+          </li>
+        </ul>
+
+        <h2>
+          <span class="kicker">The takeaway</span>Pick a product-shaped target
+        </h2>
+        <p>
+          Good frontend agent loops need a product-shaped target: something with
+          state that interacts, math that can be checked, copy that carries
+          meaning, and users who would notice. A calculator is a cheat code
+          &mdash; the domain supplies the rigor, and the loop either meets it or
+          fails visibly.
+        </p>
+        <p>
+          This one ended up as both: a tool I actually use before recommending
+          hardware, and the proving ground that shaped
+          <a href="https://github.com/rxdt/loopgate_harness">LoopGate</a
+          >&rsquo;s checks. The todo app never stood a chance.
+        </p>
+      </div>
+
+      <p class="colophon">
+        The calculator is live at
+        <a href="https://vram.rxdt.dev/"><strong>vram.rxdt.dev</strong></a
+        >; source at
+        <a href="https://github.com/rxdt/ai_deployment_calculator"
+          >rxdt/ai_deployment_calculator</a
+        >. The harness it hardened:
+        <a href="https://github.com/rxdt/loopgate_harness"
+          >rxdt/loopgate_harness</a
+        >. <br /><a href="/">Back to Rox dT</a>
+      </p>
+    </div>
+  </body>
+</html>

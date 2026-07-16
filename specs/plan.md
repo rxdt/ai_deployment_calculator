@@ -62,9 +62,10 @@ Commands: `pnpm preflight`, `pnpm gate`; QA contracts live in `specs/qa.md`.
   block stays inline — it is inert data, the documented SEO pattern, and not
   executable JavaScript.
 - NO new files for this: `src/main.ts` and `src/styles.css` are the homes.
-- Build output is exempt: the production build may inline JS/CSS into
-  `dist/index.html` (owner-accepted single-file tradeoff); do not change the
-  build's inlining behavior. `pnpm gate` must stay green.
+- Build output (REVISED by owner 2026-07-16): the single-file inlining
+  exemption is REVOKED — the P1 CSP task below externalizes built JS/CSS so
+  `script-src 'self'; style-src 'self'` holds on the OUTPUT too. `pnpm gate`
+  must stay green.
 
 ## Current Work
 
@@ -91,6 +92,67 @@ Rationale: `scratchpad/DO-NOT-DO-phase2-features.md`.
   Pre-existing (not caused by the F4.1 guide relocation). Fix: let the topnav
   wrap or shrink the GitHub chip on narrow viewports; verify no horizontal
   scroll at 320/390px.
+- **P1 — CSP + no-inline build, gh_site pattern (owner directive 2026-07-16).**
+  Mirror what the owner's other loopgate_js demo app (`~/gh_site`,
+  rxdt.github.io) already shipped; its commits are the reference
+  implementation:
+  - `b7dcc00` — pinned meta-CSP: `CSP_POLICY = "default-src 'self';
+    script-src 'self'; style-src 'self'; img-src 'self' data:; media-src
+    'self'"` exported from the harness vite config; a `cspMeta()`
+    transformIndexHtml plugin prepends it as a `<meta http-equiv>` tag on
+    every built page; `harness/csp.test.ts` builds to a throwaway temp dir
+    and asserts on OUTPUT that every page carries the exact pinned CSP and
+    contains no executable inline JS and no inline CSS (JSON-LD and other
+    data `<script>` types exempt — CSP script-src does not govern them).
+  - `72c2934` — hardening: the csp test also rejects inline `on*=` event
+    handlers and `javascript:` URLs on every element.
+  - `2f73254` — no-bundle output: drop the Vite module entry (it emits
+    `index-*.js` + modulepreload, creating a Lighthouse critical
+    dependency); serve JS as deferred classic scripts from `public/` with
+    `<body hidden>` unhidden by the style-adopting script, keeping zero CLS
+    with an empty critical chain.
+  CONSEQUENCE for this repo: the current single-file inlining of JS/CSS into
+  `dist/index.html` is REPLACED by external `'self'` scripts/styles — this
+  supersedes the "build output is exempt / do not change inlining" line in
+  Source Separation (owner reversed that trade for CSP). `harness/` files
+  (vite config, csp test) are FORBIDDEN to agents: agents do the
+  frontend-side work (external script/style wiring, no inline anywhere,
+  removing anything the csp test flags) and the owner lands the harness-side
+  plugin + test, copied/adapted from gh_site. Gate must stay green,
+  including Lighthouse.
+- **P2 — Security response headers (owner-approved 2026-07-16).** Vercel can
+  set real HTTP headers (unlike GitHub Pages), so ALSO add a `headers` block
+  to `vercel.json` (agent-editable) applied to `/(.*)`:
+  `X-Content-Type-Options: nosniff`; `X-Frame-Options: DENY`;
+  `Referrer-Policy: strict-origin-when-cross-origin`;
+  `Permissions-Policy: camera=(), microphone=(), geolocation=()`; and
+  `Content-Security-Policy` equal to the pinned CSP_POLICY once the P1 CSP
+  work lands (header + meta may coexist; header is authoritative).
+  Agents verify JSON shape and gate; live-header confirmation
+  (`curl -sI https://vram.rxdt.dev/`) is an owner post-deploy step.
+- **P2 — "About" navbar link + writeup page (owner request 2026-07-16).** The
+  owner's writeup was copied into the repo at
+  `frontend/public/calculator-writeup.html` (served as
+  `/calculator-writeup` via cleanUrls). Tasks: (1) add a navbar link with
+  visible text "About" pointing to `/calculator-writeup`, matching existing
+  `.topnav` chip markup/style, without worsening the ≤390px topnav overflow
+  (see that P2 bug); (2) make the copied page work standalone in THIS site:
+  it references `./scripts/calculator-writeup.js` (does not exist here — drop
+  or replace the tag per the Source Separation rules) and carries
+  gh_site-local nav links (`href="/"` "Rox dT" / "Back to Rox dT") that
+  should point somewhere sensible from vram.rxdt.dev (owner's home site or
+  the calculator root). It ships unstyled; style it consistently with the
+  app using `src/styles.css` or a second stylesheet ONLY if the Source
+  Separation no-new-files rule is amended by the owner — otherwise minimal
+  inline-free markup is acceptable. Gate must stay green (html-validate
+  covers `**/*.html`).
+- **P2 — Screenshot hygiene in `scratchpad/` (owner request 2026-07-16).**
+  Existing screenshots there (e.g. `live-checkboxes.png`, 2026-07-12) are
+  stale and may mislead. Update/retake them ONLY IF agents will actually use
+  them during development (e.g. visual regression reference); otherwise
+  delete them. The owner validates where any new screenshot is taken from
+  (local build when ready, or production) — record the question in
+  `docs/PROJECT_STATUS.md` and wait for the owner's answer before capturing.
 - **P2 — F10. Adversarial oracle suite.** Extend
   `frontend/src/adversarial/oracle.test.ts` with one missing
   weird-combination/oracle case from external calculators, published anchors, or

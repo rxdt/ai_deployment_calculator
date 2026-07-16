@@ -45,10 +45,12 @@ rows); QLoRA < LoRA-fp16 < full-training; every normalizer-emittable input
 gives finite, non-negative, non-NaN totals; tier capacity ≥ min raw VRAM.
 
 Structural invariant (owner directive, see plan.md Source Separation): source
-`frontend/index.html` carries no inline `<style>`, no `style=` attributes, and
-no executable inline `<script>` bodies — the JSON-LD structured-data block is
-the sole exemption; all CSS in `src/styles.css`, all script in `src/*.ts`.
-Build-output inlining into `dist/` is exempt and must not be "fixed".
+`frontend/index.html` carries no inline `<style>`, no `style=` attributes, no
+inline `on*=` handlers, no `javascript:` URLs, and no executable inline
+`<script>` bodies — data `<script>` types (JSON-LD etc.) are the sole
+exemption; all CSS in `src/styles.css`, all script in `src/*.ts`. The same
+holds for BUILT output once the plan's P1 CSP/no-inline task lands (the
+former dist-inlining exemption is owner-revoked, 2026-07-16).
 
 ## Triage (every disagreement/failure gets exactly one)
 

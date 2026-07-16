@@ -1,5 +1,3 @@
-Codex-F10 is working on one adversarial oracle case in this spec.
-
 # QA Spec — External Oracles
 
 Veracity is P0 (see `specs/plan.md`). Report-only QA proves the MODEL matches

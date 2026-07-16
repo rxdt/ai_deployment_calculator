@@ -1,3 +1,5 @@
+codex-deploy-reconcile-2-2 is working on R1 GSC restoration and R2 brand/title reconciliation in this spec
+
 > CLAIMED BY AGENT:
 >
 > < agent >< iteration >< run > is working on < tasks >

@@ -1,3 +1,5 @@
+codex-frontend-1/1 is working on decimal input cap in this spec
+
 # Frontend Spec
 
 ---

@@ -1,3 +1,15 @@
+---
+
+MUST FILL IN LINE 7 AT START THEN "CLEAR" BACK TO BASELINE BEFORE END OF ITERATION
+
+> CLAIMED BY AGENT:
+
+< agent >< iteration >< run > is working on < list tasks in this spec you choose >
+
+MUST FILL IN LINE 7 AT START THEN "CLEAR" BACK TO BASELINE BEFORE END OF ITERATION
+
+---
+
 # QA Spec — External Oracles
 
 Report-only QA proving the MODEL matches reality, not just that code matches

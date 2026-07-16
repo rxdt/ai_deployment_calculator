@@ -5,6 +5,18 @@
 Build a GPU VRAM calculator that is usable for non-technical users and
 trustworthy for engineers.
 
+**P0 — VERACITY AND ACCURACY ABOVE ALL.** The numbers being CORRECT is this
+app's entire value; a wrong estimate is worse than no app, because users make
+hardware/spend decisions on it. Accuracy outranks features, polish, speed, and
+deadlines — every time. Non-negotiables: numbers trace to the Research
+Corrections math and published anchors, never to a competitor shortcut or a
+convenient guess; any modeling assumption is stated in `Advanced assumptions`
+so engineers can audit it; extremes stay finite/monotonic/non-NaN; when a value
+cannot be defended against an anchor, say so rather than ship a confident wrong
+number. Every formula-affecting change is validated per `specs/qa.md` (external
+oracles) and cannot deploy without the two high-level reviews. If a change
+trades correctness for anything, it does not ship.
+
 The app must cover more than LLMs: text, embeddings, encoder-decoder, vision,
 multimodal, image diffusion, video, audio, tabular, and custom workloads. Never
 brand or describe it as LLM-only. Keep calculator formulas in frontend

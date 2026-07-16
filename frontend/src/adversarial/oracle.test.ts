@@ -354,6 +354,10 @@ describe("adversarial oracle suite", () => {
           ),
         ),
       );
+      const [firstTrainingRow] = trainingRows;
+      if (firstTrainingRow === undefined) {
+        throw new Error("Missing training memory row");
+      }
 
       expect(inference.kvCacheGb).toBeGreaterThan(0);
       expect(new Set(trainingRows.map((row) => row.kvCacheGb))).toEqual(
@@ -363,8 +367,8 @@ describe("adversarial oracle suite", () => {
         new Set(trainingRows.map((row) => row.inputActivationGb)).size,
       ).toBe(1);
       expect(new Set(trainingRows.map((row) => row.requiredGb)).size).toBe(1);
-      expect(trainingRows[0].inputActivationGb).toBeGreaterThan(0);
-      expect(trainingRows[0].trainingStateGb).toBeGreaterThan(0);
+      expect(firstTrainingRow.inputActivationGb).toBeGreaterThan(0);
+      expect(firstTrainingRow.trainingStateGb).toBeGreaterThan(0);
     },
   );
 

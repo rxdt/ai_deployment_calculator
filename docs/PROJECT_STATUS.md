@@ -82,7 +82,8 @@ Short, current handoff. Deleted lines are the point — keep only what's useful 
 ## Known issues
 
 - Small-screen topbar polish around GitHub/brand wrapping is pre-existing.
-- A parallel agent's edit to `harness/playwright.config.js` (cap Playwright
-  `workers: 2`, own the dev-server lifecycle) is uncommitted in the working
-  tree. It is a forbidden path for agents, so it is left staged-out for human
-  review, not committed here.
+- Concurrent ralph loops each run `pnpm gate`, whose Lighthouse stage binds a
+  fixed preview port (4173); two overlapping runs collide and one fails with
+  `CHROME_INTERSTITIAL_ERROR`. It is transient (retry once the other run's
+  Lighthouse frees the port), not a code regression. A parallel agent already
+  capped Playwright `workers: 2` in `harness/playwright.config.js` (`9782b97`).

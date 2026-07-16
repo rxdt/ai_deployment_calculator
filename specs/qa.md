@@ -22,7 +22,7 @@ only if a primary disagrees.
 
 Canonical scenarios (read OUR live numbers at run time — never hardcode):
 7B fp16 inf 8k ≈ 18.8; 70B fp16 inf 8k ≈ 161.1; 70B Q4_K_M (live);
-8B QLoRA 2% ≈ 21.2; 7B full-train AdamW ckpt-on ≈ 153; SDXL 1024² ≈ 12.
+8B QLoRA 2% ≈ 21.1; 7B full-train AdamW ckpt-on ≈ 153; SDXL 1024² ≈ 12.1.
 
 Method: scratch Playwright in `harness/` (deleted after), one polite pass per
 target; normalize GiB-printed-as-GB to decimal GB; compare per component.

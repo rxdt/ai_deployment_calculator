@@ -1,5 +1,6 @@
 import {
   PRECISION_MAP,
+  roundUpTo,
   roundTo,
   trainingActivationGb,
   trainingStateGb,
@@ -304,7 +305,7 @@ export function memoryBreakdown(
     trainingStateGb: trainingState,
     runtimeOverheadGb: runtimeOverhead,
     safetyBufferGb: required - subtotal,
-    requiredGb: roundTo(required, 1),
+    requiredGb: roundUpTo(required, 1),
   };
 }
 

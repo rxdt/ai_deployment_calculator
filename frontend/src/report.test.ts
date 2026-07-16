@@ -17,13 +17,13 @@ describe("buildReport", () => {
     const report = buildReport(state({ totalParams: "8" }));
 
     expect(report.totalRequiredMemory).toBe("21.0 GB");
-    expect(report.minimumRawVramNeeded).toBe("24.7 GB");
+    expect(report.minimumRawVramNeeded).toBe("24.8 GB");
     expect(report.recommendedHardware).toEqual({
       requiredMemory: "21.0 GB",
       usableVramTarget: "85%",
       usableVramOnClass: "27.2 GB",
       fitHeadroom: "6.2 GB usable margin",
-      minimumRawVram: "24.7 GB",
+      minimumRawVram: "24.8 GB",
       recommendedTier:
         "32 GB high-end consumer class, e.g. RTX 5090 / Radeon PRO W7800 / AWS Inferentia2 / Cloud TPU v6e / Cloud TPU v4",
       exampleCards: [
@@ -42,7 +42,7 @@ describe("buildReport", () => {
         { name: "Cloud TPU v6e", url: GPU_LINKS.tpuV6e },
         { name: "Cloud TPU v4", url: GPU_LINKS.tpuV4 },
       ],
-      math: "Estimated workload memory is 21.0 GB. With a 85% usable memory target, use hardware with at least 24.7 GB of accelerator memory so the workload does not consume the entire device.",
+      math: "Estimated workload memory is 21.0 GB. With a 85% usable memory target, use hardware with at least 24.8 GB of accelerator memory so the workload does not consume the entire device.",
     });
     expect(report.calculation).toBe(
       "VRAM = (weights + KV cache + activations + runtime overhead) × buffer",
@@ -50,16 +50,35 @@ describe("buildReport", () => {
     expect(report.calculation).not.toContain("_GB");
     expect(report.calculationRows).toEqual([
       { label: "Model weights", value: "16.0 GB" },
-      { label: "Context memory", value: "1.0 GB" },
+      { label: "Context memory", value: "1.1 GB" },
       { label: "Activation memory", value: "0.5 GB" },
-      { label: "Working memory subtotal", value: "1.5 GB" },
+      { label: "Working memory subtotal", value: "1.6 GB" },
       { label: "Training state", value: "0.0 GB" },
       { label: "Runtime overhead", value: "1.5 GB" },
-      { label: "Base subtotal before buffer", value: "19.0 GB" },
+      { label: "Base subtotal before buffer", value: "19.1 GB" },
       { label: "Buffer multiplier", value: "1.10x" },
-      { label: "Safety buffer", value: "1.9 GB" },
+      { label: "Safety buffer", value: "2.0 GB" },
       { label: "Total required", value: "21.0 GB" },
     ]);
+  });
+
+  test("rounds memory upward before selecting a hardware boundary tier", () => {
+    const report = buildReport(
+      state({
+        workloadFamily: "custom",
+        totalParams: "0",
+        knownModelFileSizeGb: "17.0455454546",
+        inputSizeMultiplier: "0",
+      }),
+    );
+
+    expect(report.totalRequiredMemory).toBe("20.5 GB");
+    expect(report.minimumRawVramNeeded).toBe("24.2 GB");
+    expect(report.recommendedHardware.recommendedTier).toContain(
+      "32 GB high-end consumer class",
+    );
+    expect(report.recommendedHardware.usableVramOnClass).toBe("27.2 GB");
+    expect(report.recommendedHardware.fitHeadroom).toBe("6.7 GB usable margin");
   });
 
   test("sizes a 47B MoE high-context high-concurrency server stress case", () => {
@@ -76,17 +95,18 @@ describe("buildReport", () => {
       }),
     );
 
-    expect(report.totalRequiredMemory).toBe("80.7 GB");
-    expect(report.minimumRawVramNeeded).toBe("94.9 GB");
+    expect(report.totalRequiredMemory).toBe("80.8 GB");
+    expect(report.minimumRawVramNeeded).toBe("95.1 GB");
     expect(report.recommendedHardware.recommendedTier).toBe(
-      "95 GB Cloud TPU class, e.g. Cloud TPU v5p",
+      "96 GB Apple Silicon class, e.g. Mac Studio M3 Ultra 96 GB / NVIDIA RTX PRO 6000 Blackwell",
     );
-    // MoE compute weight = active 12B * 0.5 * 1.15 = 6.9 GB; TPU v5p 2765 / 6.9 = 400.7.
-    expect(report.speed).toBe("400.7 tokens/second");
+    // MoE compute weight = active 12B * 0.5 * 1.15 = 6.9 GB; 96 GB class
+    // bandwidth 819 / 6.9 = 118.7.
+    expect(report.speed).toBe("118.7 tokens/second");
     expect(report.calculationRows).toEqual(
       expect.arrayContaining([
         { label: "Working memory subtotal", value: "44.9 GB" },
-        { label: "Total required", value: "80.7 GB" },
+        { label: "Total required", value: "80.8 GB" },
       ]),
     );
   });
@@ -192,7 +212,7 @@ describe("buildReport", () => {
       }),
     );
 
-    expect(report.totalRequiredMemory).toBe("84.1 GB");
+    expect(report.totalRequiredMemory).toBe("84.2 GB");
     expect(report.warnings.join(" ")).not.toContain(
       "Transformer architecture is estimated",
     );
@@ -452,7 +472,7 @@ describe("headline stat chips", () => {
     // terms; concurrency is the batch count; spare is the fit meter's leftover.
     expect(chips).toEqual([
       { label: "Model Weights", value: "16.0 GB" },
-      { label: "KV Cache", value: "1.0 GB" },
+      { label: "KV Cache", value: "1.1 GB" },
       { label: "Concurrency", value: "1" },
       { label: "Spare", value: "23%" },
     ]);

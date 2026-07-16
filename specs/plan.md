@@ -44,13 +44,16 @@ Commands: `pnpm preflight`, `pnpm gate`; QA contracts live in `specs/qa.md`.
 - Inference activation scratch is fp16 compute-buffer behavior, not quantized
   resident weight size; keep 70B 4-8k context near the 1-3 GB measured-anchor
   envelope until architecture-keyed prefill math lands.
+- Displayed memory requirements and hardware sizing values round upward, never
+  down, at one decimal place so boundary cases cannot fit an undersized tier.
 
 ## Current Work
 
 Shipped: F0 activation floor, F3 quant ladder, F4 crawlable prose, F4.1 guide
 relocation/FAQ removal, the decimal-input fix, the context-anchored decoder
 activation scratch (`decoder-scratch.ts`, verified against llama.cpp anchors),
-and post-deploy live verification of the corrected production bundle.
+upward one-decimal memory rounding, and post-deploy live verification of the
+corrected production bundle.
 `specs/frontend.md` and `specs/deploy-reconcile.md` were deleted because no
 work remained.
 

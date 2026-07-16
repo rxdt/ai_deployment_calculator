@@ -2,7 +2,7 @@ import fc from "fast-check";
 import { describe, expect, test } from "vitest";
 import {
   PRECISION_MAP,
-  roundTo,
+  roundUpTo,
   specFromState,
   weightsGb,
 } from "./calculator-core";
@@ -379,17 +379,16 @@ describe("calculator properties", () => {
           expect(breakdown.runtimeOverheadGb).toBeGreaterThan(0);
           expect(breakdown.safetyBufferGb).toBeGreaterThan(0);
 
-          // The reported total is the training-buffered (1.25) sum of exactly those components...
+          // The reported total is the training-buffered (1.25) sum, rounded
+          // upward at display precision so it never understates required VRAM.
           const subtotal =
             breakdown.weightsGb +
             breakdown.kvCacheGb +
             breakdown.inputActivationGb +
             breakdown.trainingStateGb +
             breakdown.runtimeOverheadGb;
-          expect(breakdown.requiredGb).toBeCloseTo(
-            roundTo(subtotal * 1.25, 1),
-            6,
-          );
+          expect(breakdown.requiredGb).toBeGreaterThanOrEqual(subtotal * 1.25);
+          expect(breakdown.requiredGb).toBeLessThan(subtotal * 1.25 + 0.1);
 
           // ...and therefore strictly above the bare parameter-state shortcut it must not restore.
           expect(breakdown.requiredGb).toBeGreaterThan(
@@ -443,7 +442,7 @@ describe("calculator properties", () => {
         fc.boolean(),
         (estimatedRequiredGb, utilization, allowSharding) => {
           const recommendation = hardwareRecommendation(
-            roundTo(estimatedRequiredGb, 1),
+            roundUpTo(estimatedRequiredGb, 1),
             utilization,
             { allowSharding },
           );

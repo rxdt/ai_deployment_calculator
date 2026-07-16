@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { specFromState, weightsGb } from "../calculator-core";
+import { buildReport } from "../report";
 import { defaultState, normalizedState, searchFromState } from "../state";
 import type {
   FormState,
@@ -61,6 +62,7 @@ const PUBLISHED_WEIGHT_ANCHORS: readonly PublishedWeightAnchor[] = [
 // head-dim geometry or its 16-bit KV byte width, absolutely rather than by
 // ordering. MiB is 1024^2 bytes; the calculator reports decimal GB (1e9 bytes).
 const LLAMA3_8B_KV_GB_PER_TOKEN = (0.125 * 1024 * 1024) / 1_000_000_000;
+const TWENTY_FOUR_GB_CLASS_USABLE_GB = 24 * 0.85;
 
 const NO_PERSISTENT_KV_FAMILIES: readonly WorkloadFamily[] = [
   "text_encoder",
@@ -254,6 +256,30 @@ describe("adversarial oracle suite", () => {
     const weights = rows.map((row) => row.weightsGb);
     expect(weights).toStrictEqual([...weights].sort((a, b) => b - a));
     expect(new Set(weights).size).toBe(weightLadder.length);
+  });
+
+  test("never rounds a hardware-boundary requirement down into a smaller card", () => {
+    // Physical fit invariant: a 24 GB class at the server/cloud 85% usable
+    // target exposes 20.4 GB usable. This crafted known-file workload lands
+    // just above that boundary before one-decimal display rounding, so any
+    // recommendation below the next 32 GB class would be an OOM-prone
+    // under-estimate, independent of the model-family formulas.
+    const report = buildReport(
+      state({
+        workloadFamily: "custom",
+        totalParams: "0",
+        knownModelFileSizeGb: "17.0455454546",
+        inputSizeMultiplier: "0",
+      }),
+    );
+
+    expect(report.totalRequiredMemory).toBe("20.5 GB");
+    expect(
+      Number(report.totalRequiredMemory.replace(" GB", "")),
+    ).toBeGreaterThan(TWENTY_FOUR_GB_CLASS_USABLE_GB);
+    expect(report.minimumRawVramNeeded).toBe("24.2 GB");
+    expect(report.recommendedHardware.recommendedTier).toContain("32 GB");
+    expect(report.recommendedHardware.recommendedTier).not.toContain("24 GB");
   });
 
   test("keeps adapter and full-training modes in physical memory order", () => {

@@ -3,6 +3,7 @@ import type { CalculationSpec } from "./calculator-core";
 import {
   PRECISION_MAP,
   architectureFor,
+  roundUpTo,
   roundTo,
   runtimeAssumptions,
   specFromState,
@@ -182,7 +183,7 @@ describe("corrected text-generation totals", () => {
         activeParams: "1.3",
         precision: "16-bit",
       },
-      109.6,
+      109.7,
     ],
     ["7B server inference default matches the empty-form estimate", {}, 18.8],
     ["8B server inference defaults to 21.0 GB", { totalParams: "8" }, 21],
@@ -196,7 +197,7 @@ describe("corrected text-generation totals", () => {
         runtimeProfile: "Local / Edge",
         knownModelFileSizeGb: "52",
       },
-      84.1,
+      84.2,
     ],
     [
       "47B local 4-bit MoE applies quantized weight overhead",
@@ -207,7 +208,7 @@ describe("corrected text-generation totals", () => {
         moeEnabled: true,
         activeParams: "1.3",
       },
-      31.7,
+      31.8,
     ],
     [
       "70B long-context 4-bit FP8 KV uses estimated GQA KV heads",
@@ -233,7 +234,7 @@ describe("corrected text-generation totals", () => {
     [
       "104B 8-bit 16-bit KV uses weight overhead",
       { totalParams: "104", contextTokens: "32000", precision: "8-bit" },
-      142.7,
+      142.8,
     ],
     [
       "7B million-token context uses estimated GQA",
@@ -259,7 +260,7 @@ describe("corrected text-generation totals", () => {
           precision,
         }),
       ),
-    ).toEqual([38.6, 21, 12.6, 8.4]);
+    ).toEqual([38.6, 21, 12.6, 8.5]);
   });
 
   test("compares a 104B local precision sweep at 32k context with 32-bit KV", () => {
@@ -280,7 +281,7 @@ describe("corrected text-generation totals", () => {
           precision,
         }),
       ),
-    ).toEqual([448.1, 240.1, 141.3, 91.9]);
+    ).toEqual([448.2, 240.2, 141.4, 92]);
   });
 
   test("local 4-bit weights apply quantized overhead", () => {
@@ -305,7 +306,7 @@ describe("training estimates", () => {
         executionMode: "QLoRA fine-tuning",
         loraTrainablePercent: "2",
       },
-      21,
+      21.1,
     ],
     [
       "7B full training includes weights, states, activations, overhead, and buffer",
@@ -329,7 +330,7 @@ describe("training estimates", () => {
         precision: "4-bit",
         executionMode: "QLoRA fine-tuning",
       },
-      19.2,
+      19.3,
     ],
     [
       "70B default QLoRA scales adapter state and activations",
@@ -357,7 +358,7 @@ describe("training estimates", () => {
         executionMode: "QLoRA fine-tuning",
         loraTrainablePercent: "2",
       },
-      115.6,
+      115.7,
     ],
   ])("%s", (scenario, overrides, expected) => {
     expect(required(overrides), scenario).toBe(expected);
@@ -944,7 +945,7 @@ describe("workload-family working memory", () => {
     expect(spec.visionArchitecture).toBeNull();
     expect(working.kvCacheGb).toBeCloseTo(1.061158912, 9);
     expect(working.inputActivationGb).toBeCloseTo(0.567108864, 9);
-    expect(memoryBreakdown(spec).requiredGb.toFixed(1)).toBe("18.8");
+    expect(memoryBreakdown(spec).requiredGb.toFixed(1)).toBe("18.9");
   });
 
   test("vision-language pixel fallback keeps image count in KV only", () => {
@@ -1103,5 +1104,11 @@ describe("architecture, runtime, accuracy, and speed helpers", () => {
   test("roundTo produces fixed one-decimal contract values", () => {
     expect(roundTo(20.44, 1).toFixed(1)).toBe("20.4");
     expect(roundTo(20.45, 1).toFixed(1)).toBe("20.5");
+  });
+
+  test("roundUpTo never rounds memory requirements below the raw estimate", () => {
+    expect(roundUpTo(20.4, 1).toFixed(1)).toBe("20.4");
+    expect(roundUpTo(20.4001, 1).toFixed(1)).toBe("20.5");
+    expect(roundUpTo(20.45, 1).toFixed(1)).toBe("20.5");
   });
 });

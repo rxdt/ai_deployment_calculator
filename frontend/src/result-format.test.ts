@@ -37,7 +37,7 @@ describe("whyText", () => {
     const report = buildReport(state({ totalParams: "8" }));
 
     expect(whyText(report)).toBe(
-      "At an 85% usable memory target, 21.0 GB requires hardware with at least 24.7 GB accelerator memory. The hardware tier has capacity 32 GB.",
+      "At an 85% usable memory target, 21.0 GB requires hardware with at least 24.8 GB accelerator memory. The hardware tier has capacity 32 GB.",
     );
   });
 

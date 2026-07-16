@@ -982,7 +982,7 @@ describe("mounted calculator", () => {
     expect(dataSlot("gpu-class-label").textContent.trim()).toBe(
       "Recommended Example",
     );
-    expect(out("min-cap")).toBe("22.1 GB");
+    expect(out("min-cap")).toBe("22.2 GB");
     expect(out("speed")).toMatch(/tokens\/sec$/u);
     expect(outSlot("calculation-rows").children).toHaveLength(10);
   });
@@ -1096,7 +1096,7 @@ describe("mounted calculator", () => {
     }
 
     expect(out("why")).toContain("accelerator memory");
-    expect(out("min-cap")).toBe("22.1 GB");
+    expect(out("min-cap")).toBe("22.2 GB");
     expect(out("usable-target")).toBe("85%");
     expect(out("usable-on-class")).toBe("20.4 GB");
     expect(out("fit-headroom")).toBe("1.6 GB usable margin");
@@ -1800,7 +1800,7 @@ describe("adaptive controls", () => {
 
     fireChange("kv-cache-precision", "32-bit");
 
-    expect(out("total")).toBe("19.9 GB");
+    expect(out("total")).toBe("20.0 GB");
     expect(out("assumptions")).toContain("32-bit");
   });
 
@@ -2077,7 +2077,7 @@ describe("model presets", () => {
     expect(field("precision").value).toBe("16-bit");
     // image_diffusion has no decoder KV cache, so the MoE control is not applicable.
     expect(field("moe-enabled")).toHaveProperty("checked", false);
-    expect(out("total")).toBe("12.0 GB");
+    expect(out("total")).toBe("12.1 GB");
   });
 
   test("reset clears a loaded preset back to the empty estimate", () => {

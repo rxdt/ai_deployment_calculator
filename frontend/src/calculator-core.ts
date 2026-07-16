@@ -159,6 +159,15 @@ export function roundTo(value: number, digits: number): number {
   return Math.round((value + Number.EPSILON) * factor) / factor;
 }
 
+/**
+Round a memory quantity toward more memory at the requested precision.
+@param value
+@param digits
+*/
+export function roundUpTo(value: number, digits: number): number {
+  return Math.ceil(value * 10 ** digits) / 10 ** digits;
+}
+
 // Transformer shape by parameter count (billions). Ordered ascending by the inclusive upper bound;
 // the last entry (Infinity) is the fallback for the largest models.
 interface ArchitectureBucket {

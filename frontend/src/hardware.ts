@@ -1,3 +1,4 @@
+import { roundUpTo } from "./calculator-core";
 import type { GpuCard, HardwareRecommendation } from "./types";
 
 export interface HardwareTier {
@@ -179,7 +180,8 @@ export const HARDWARE_TIERS: readonly HardwareTier[] = [
 const exampleText = (cards: readonly GpuCard[]): string =>
   cards.map((gpu) => gpu.name).join(" / ");
 
-export const formatGb = (value: number): string => `${value.toFixed(1)} GB`;
+export const formatGb = (value: number): string =>
+  `${roundUpTo(value, 1).toFixed(1)} GB`;
 
 const formatPercent = (value: number): string => `${value.toString()}%`;
 

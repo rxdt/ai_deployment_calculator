@@ -10,15 +10,16 @@ Scope: seeded `frontend/src/adversarial/oracle.test.ts` outside the gate glob.
 | Weight-quant twin invariance | Physical decomposition: `precision` sets ONLY the weight row | Pass: KV and activation are byte-identical across the fp32→IQ2_XXS weight ladder while weights strictly descend |
 | Full-training bytes/param | Training-anatomy anchors: AdamW 16, 8-bit Adam 10, SGD 12 B/param (fp16 mixed precision) | Pass: weights + training-state equal params×anchor exactly; isolated from working memory; linear in params |
 | Adapter training order | QLoRA frozen 4-bit base; LoRA trains adapters; full training carries full parameter state | Pass: QLoRA < LoRA fp16 < full training |
+| Hardware-boundary round-up | Physical fit invariant: a 24 GB server/cloud class exposes 20.4 GB usable | Pass: a 20.400+ GB workload rounds to 20.5 GB and recommends the 32 GB class, never 24 GB |
 | Training-mode decoder KV leak | Physical invariant: training memory is activations + trainable state, not persistent inference KV | Pass: LoRA, QLoRA, and full training keep zero KV and identical totals across KV precisions with a 1M-token context |
 | Non-decoder workload KV | Physical invariant: no persistent generation KV without decoder cache | Pass: encoder, vision, diffusion, video, audio, tabular, custom remain zero-KV |
 | URL-emittable extremes | Physical invariant: normalized user-shareable inputs stay finite and non-negative | Pass: tiny, capped, and 100% adapter cases round-trip |
 
-Verdict: no product correction filed; all 21 oracle tests pass, so the model still
-tracks external ground truth. The remaining gap is coverage depth, not a known
-wrong number: future QA runs should add competitor-derived banded totals and
-leave any unexplained failures red. Noted definitional limitation (not our
-error): the architecture buckets model modern GQA (8 KV heads), so a legacy
-MHA model such as Llama-2-7B would be KV-under-counted — acceptable because the
-calculator targets current GQA architectures and the vLLM Llama-3-8B anchor
-above confirms that default.
+Verdict: product correction shipped for one-decimal memory rounding; all 22
+oracle tests pass. The remaining gap is coverage depth, not a known wrong
+number: future QA runs should add competitor-derived banded totals and leave any
+unexplained failures red. Noted definitional limitation (not our error): the
+architecture buckets model modern GQA (8 KV heads), so a legacy MHA model such
+as Llama-2-7B would be KV-under-counted — acceptable because the calculator
+targets current GQA architectures and the vLLM Llama-3-8B anchor above confirms
+that default.

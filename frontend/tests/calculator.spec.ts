@@ -46,6 +46,22 @@ async function expectNoConfidenceOutput(page: Page): Promise<void> {
   expect(slotNames).not.toContain("confidence-label");
 }
 
+/**
+Assert the hardware tier table exposes exactly one green best-fit marker.
+@param page Browser page.
+@param ceiling Tier ceiling carried by the best-fit cell.
+*/
+async function expectBestFitTier(page: Page, ceiling: string): Promise<void> {
+  const bestFit = page.locator(`.tier-fit[data-tier-fit="${ceiling}"]`);
+
+  await expect(page.locator(".tier-fit")).toHaveCount(5);
+  await expect(page.locator('.tier-fit[data-fit="true"]')).toHaveCount(1);
+  await expect(bestFit).toHaveAttribute("data-fit", "true");
+  await expect(bestFit).toHaveAttribute("aria-hidden", "false");
+  await expect(bestFit).toHaveCSS("color", "rgb(34, 197, 94)");
+  await expect(bestFit).toHaveText("✓");
+}
+
 test("page has no accessibility violations", async ({ page }) => {
   await page.goto("/");
   const results = await new AxeBuilder({ page }).analyze();
@@ -160,6 +176,36 @@ test("renders the default deployment computed locally", async ({ page }) => {
   await expect(page.locator('[data-out="calculation-rows"] li')).toHaveCount(
     10,
   );
+});
+
+test("keeps the hardware tier best-fit check visible as estimates change", async ({
+  page,
+}) => {
+  await page.goto("/");
+
+  await expect(page.locator('[data-out="gpu-class"]')).toHaveText(
+    "24 GB hardware tier",
+  );
+  await expectBestFitTier(page, "24");
+
+  await page.getByLabel("Total Model Parameters").fill("70");
+  await expect(page.locator('[data-out="gpu-class"]')).toHaveText(
+    "192 GB hardware tier",
+  );
+  await expectBestFitTier(page, "192");
+
+  await page.getByLabel("Total Model Parameters").fill("400");
+  await expect(page.locator('[data-out="gpu-class"]')).toContainText(
+    "distributed multi-node",
+  );
+  await expectBestFitTier(page, "100000");
+
+  await page.getByRole("button", { name: "Reset" }).click();
+  await expect(page.locator('[data-out="gpu-class"]')).toHaveText(
+    "No model loaded",
+  );
+  await expect(page.locator('.tier-fit[data-fit="true"]')).toHaveCount(0);
+  await expect(page.locator('.tier-fit[aria-hidden="false"]')).toHaveCount(0);
 });
 
 test("renders the default 7B estimate consistently across the full report", async ({

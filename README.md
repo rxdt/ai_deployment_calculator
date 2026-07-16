@@ -18,8 +18,6 @@ assumptions behind every estimate are shown in the UI, and recommendations are
 measured against _usable_ VRAM (advertised capacity minus the driver/CUDA
 reserve), **not** the sticker number.
 
-_[The loop harness that built this is here](https://github.com/rxdt/loopgate_js)_
-
 _[Based on the (more mature) Python ralph agent harness](https://github.com/rxdt/loopgate_harness)_
 
 ![VRAM Deployment Calculator screenshot](.calc.png)
@@ -89,8 +87,38 @@ pnpm --prefix frontend run test:coverage
 pnpm --prefix frontend run test:e2e
 ```
 
-## Deploy
+## Why build this
 
-Owner-only. Vercel builds from GitHub `main`: push, and the gated CI deploy
-job in `.github/workflows/ci.yml` ships `frontend/dist` to production once
-checks pass (requires `VERCEL_*` secrets and `VERCEL_DEPLOY_ENABLED=true`).
+**Without a real app in production a harness cannot be trusted. This app was developed alongside [L∞pGate JS](https://github.com/rxdt/loopgate_js) to learn from (painfully) and serve as `v0` proof.** As a fan of dev tooling, meta-absuridism, and cycles, building the most deterministic self-referential Ai tool conceivable on the fly _(an AI GPU calculator)_ all while building a looping harness just feels right.
+
+Generally, frontend work has a messy non-deterministic contract. Yet an app must remain accessible/build/render/respond/fit across viewports and loading paths. _AND_ have ✨taste.✨ UI has a gradient of quality and Agents stop ASAP unless forced to improve. That's why this heavy WIP harness is here. With web we don't get simple deterministic outcome like with a [Python harness](https://github.com/rxdt/loopgate_harness). A frontend agent can pass tests while shipping a blank page. So the loop is strict on purpose The harness uses tooling to force an agent to build an app to look like a human did. These checks cover different failure modes:
+
+- TS, HTML, CSS, JSON format
+- lint
+- types
+- architecture
+- dead code
+- security
+- build
+- unit coverage
+- e2e Playwright
+- Lighthouse must be 100
+- preferences.ts checking for smells that an app is not responsive...
+- etc.
+
+Agents struggle more with frontend for structural reasons. They can reason over code, but frontend correctness is not simply in code text. It is the interaction between:
+
+- generated HTML
+- bundled JS
+- CSS cascade
+- layout engine
+- viewport size
+- browser defaults
+- assets
+- async hydration
+- events
+- accessibility tree
+- CSP/headers
+- performance timing
+
+A backend bug has a crisp functional target, e.g. this function returns wrong value. A frontend issue often says without words: “the thing looks wrong”. Agents need heavy tool feedback to _'see'_ issues or they are guessing from source. The loopgate_js harness doesn't promise to fix all of the above. It is a first attempt to expose some and enforce that agents make fixes.

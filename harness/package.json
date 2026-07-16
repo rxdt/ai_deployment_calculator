@@ -8,7 +8,7 @@
   },
   "engines": {
     "node": "^22.22.0 || >=24.8.0",
-    "npm": ">=10"
+    "pnpm": ">=10"
   },
   "scripts": {
     "format": "cd .. && prettier frontend/ harness/ --check --ignore-path harness/.prettierignore",
@@ -71,8 +71,7 @@
     "jiti": "latest",
     "jsdom": "latest",
     "knip": "latest",
-    "lighthouse": "^12.6.1",
-    "pnpm": "latest",
+    "lighthouse": "latest",
     "prettier": "latest",
     "secretlint": "latest",
     "size-limit": "latest",

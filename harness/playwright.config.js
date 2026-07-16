@@ -4,10 +4,19 @@ import { defineConfig, devices } from "@playwright/test";
 // this harness-owned config drives the frontend app via the dev server below.
 export default defineConfig({
   testDir: "../frontend/tests",
+  // Cap concurrent browser workers so one e2e run cannot saturate all cores.
+  // Without this, Playwright defaults to CPU-count workers (~10 here) and, with
+  // multiple loop agents each running `pnpm gate`, pegs the machine and freezes
+  // the desktop. 2 keeps the suite fast enough while leaving headroom.
+  workers: 2,
   webServer: {
     command: "npm --prefix ../frontend run dev -- --port 5173",
     url: "http://127.0.0.1:5173",
-    reuseExistingServer: !process.env.CI,
+    // Always own the dev-server lifecycle so Playwright starts AND stops it; a
+    // reused server would linger after the run and leak across gate invocations.
+    reuseExistingServer: false,
+    timeout: 60_000,
+    gracefulShutdown: { signal: "SIGTERM", timeout: 5_000 },
   },
   use: {
     baseURL: "http://127.0.0.1:5173",

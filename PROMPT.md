@@ -15,18 +15,17 @@ YOU ARE NOT ALONE: multiple agents work in this repo at the same time. Claim you
 3. Inspect the relevant code and tests before editing.
 4. Implement the changes that advance your chosen unfinished items.
 5. Update tests which prove behavior and challenge the source; use durable, behavior-focused names and docstrings.
-6. Run `pnpm preflight` (fast check) while iterating.
-7. **Run `pnpm gate` and get it FULLY GREEN before you commit.** `preflight` is NOT enough — it skips tests, coverage, e2e, and Lighthouse. `pnpm gate` is the real bar; a commit that leaves `pnpm gate` red is a broken commit that blocks the owner's push. NEVER commit product-code changes on a green `preflight` alone.
-8. Commit grouped items ONLY once `pnpm gate` is green.
-9. Fix failures without weakening tests, coverage, typing, security checks, or the gate.
-10. SHRINK specs to the truth: DELETE every contract/item you completed (no struck `[x]` DONE notes left behind), and update `docs/PROJECT_STATUS.md` to match what changed. Keep only what the NEXT agent needs.
-11. List blockers in `docs/PROJECT_STATUS.md`.
-12. Re-run `pnpm gate` as the final check — it MUST exit 0 before you end the run.
-13. RELEASE your claim: remove your claim line from the spec. Commit on the current branch. This step is NON-OPTIONAL — a run that ends without releasing its claim is an incomplete run.
+6. Run `pnpm preflight` before EACH commit — this is the commit bar (format, lint, style, html; fast, no browsers). Commit only when `preflight` is green. Do NOT run `pnpm gate` per commit.
+7. Commit grouped items on green `preflight`.
+8. Fix failures without weakening tests, coverage, typing, security checks, or the gate.
+9. SHRINK specs to the truth: DELETE every contract/item you completed (no struck `[x]` DONE notes left behind), and update `docs/PROJECT_STATUS.md` to match what changed. Keep only what the NEXT agent needs.
+10. List blockers in `docs/PROJECT_STATUS.md`.
+11. Run `pnpm gate` ONCE, at the END of your run, as the final check — it MUST exit 0 before you end. `gate` is the push bar (adds tests, coverage, e2e browsers, Lighthouse) and is EXPENSIVE — run it once, not per commit. Budget several minutes for it; never start it so late the loop's timeout kills it mid-run (that orphans browsers and cooks the machine).
+12. RELEASE your claim: remove your claim line from the spec. Commit on the current branch. This step is NON-OPTIONAL — a run that ends without releasing its claim is an incomplete run.
 
 Rules:
 
-- `pnpm gate` MUST BE GREEN — this is P0 right now. The owner cannot push while the gate is red, and a commit that leaves `pnpm gate` failing blocks the entire deploy. `pnpm preflight` passing is NOT sufficient (it skips tests, coverage, e2e, Lighthouse). Every commit that touches product code must be made on a green `pnpm gate`; if you cannot get the gate green, REVERT your change rather than commit it red, and record the failing stage under `## Blockers` in `docs/PROJECT_STATUS.md`. Leaving `main` gate-red is the worst thing you can do to the team right now.
+- GATE vs PREFLIGHT — do not confuse them. `pnpm preflight` (fast: format/lint/style/html, no browsers) is the PER-COMMIT bar — run it before every commit. `pnpm gate` (adds tests/coverage/e2e-browsers/Lighthouse) is the END-OF-RUN / push bar — run it ONCE at the end, never per commit. Running the full gate on every commit spawns a browser swarm per commit and pegs the machine. Your run must END on a green `pnpm gate`; if you cannot get it green, REVERT and record the failing stage under `## Blockers` in `docs/PROJECT_STATUS.md` rather than leave `main` broken.
 - ONLY THE OWNER DEPLOYS. NEVER run `git push`, `vercel`/`vercel deploy`, or any outward publish/deploy command — not to fix accuracy, not to fix SEO, not for any reason. The public site is live and announced; a bad or partial deploy is an outward-facing mistake only the owner may make. When work is deploy-ready, run the gate, write a one-paragraph deploy-delta summary, and hand the owner the exact command — then STOP. Committing to the LOCAL current branch is allowed; pushing to `origin`/deploying is FORBIDDEN.
 - CLAIM before you work (step 2): add a line at the TOP of the spec you are taking — `<agent-id> is working on <these tasks> in this spec` — so no other agent takes it. Commit that claim BEFORE any other edit. Skip any spec that already carries another agent's claim line and pick the next unclaimed one. RELEASE the claim (step 12) when you finish or abandon — a run that leaves its claim line behind is incomplete. If you find a claim line whose agent is plainly gone (its work is committed or the tree is clean), you may reap it and claim the spec yourself.
 - Specs SHRINK as work completes (step 9): DELETE each contract/item when it is done — do not leave a struck `[x]` or a DONE note; the git history is the record. A spec with no remaining work is DELETED, not archived. Carry forward only what the next agent needs (a one-line "shipped" belongs in `docs/PROJECT_STATUS.md`, not the spec). A growing spec is a red flag that we are not doing our job.

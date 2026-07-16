@@ -35,14 +35,43 @@ try {
   tsxLoader = require.resolve("tsx");
 }
 
+// Run the CLI in its own process GROUP (detached) so we can tear down the
+// ENTIRE descendant tree — vite dev server, Playwright browsers, Lighthouse
+// Chrome — on exit or signal. Without this, a killed loop (e.g. the ralph.sh
+// gtimeout firing mid-gate) orphans dozens of Chromium processes that pile up
+// and peg the machine. `-child.pid` targets the whole group.
 const child = spawn(
   process.execPath,
   ["--import", tsxLoader, "--eval", runCli, "--", ...args],
   {
     cwd: process.cwd(),
     stdio: "inherit",
+    detached: true,
   },
 );
+
+let toreDown = false;
+const killTree = (signal) => {
+  if (toreDown) return;
+  toreDown = true;
+  try {
+    process.kill(-child.pid, signal);
+  } catch {
+    // group already gone
+  }
+};
+
+// Forward the fatal signals to the whole group, then let our own default
+// handling exit us. This is what makes a killed loop reap its browsers.
+for (const sig of ["SIGINT", "SIGTERM", "SIGHUP"]) {
+  process.on(sig, () => {
+    killTree(sig);
+  });
+}
+// Belt and suspenders: if this process exits for any reason, take the group.
+process.on("exit", () => {
+  killTree("SIGKILL");
+});
 
 child.on("error", (error) => {
   process.stderr.write(`harness: failed to launch JS CLI: ${error.message}\n`);
@@ -54,5 +83,6 @@ child.on("exit", (code, signal) => {
     process.exitCode = code ?? 1;
     return;
   }
-  process.kill(process.pid, signal);
+  killTree(signal);
+  process.exitCode = 1;
 });

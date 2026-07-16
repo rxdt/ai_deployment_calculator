@@ -58,6 +58,16 @@ Rationale: `scratchpad/DO-NOT-DO-phase2-features.md`.
 
 ### PRIORITIES
 
+- **P1 — BUG: tagline not centered (owner report, in production).** The intro
+  tagline "Estimate the GPU VRAM and hardware tier needed to deploy an AI
+  model's workload." must be horizontally centered in the title card. Root
+  cause: `.intro p` in `frontend/src/styles.css` caps `max-width:
+  var(--layout-intro-max)` without centering the capped block, so the 16rem
+  paragraph box sits at the container's left edge while `.title-card`'s
+  `text-align: center` only centers text inside that box. Fix: center the
+  block (e.g. `margin-inline: auto` on `.intro p`), keep the measure cap.
+  Verify visually in the running app at desktop and ≤30em widths, and cover
+  with a behavior-focused check.
 - **P2 — F10. Adversarial oracle suite.** Extend
   `frontend/src/adversarial/oracle.test.ts` with one missing
   weird-combination/oracle case from external calculators, published anchors, or

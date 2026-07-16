@@ -16,7 +16,7 @@ Runtime_Overhead) x Safety_Buffer, measured against a usable-VRAM target
 - [Calculator](/): the app itself; every input is mirrored into the URL query
   string, so results are shareable deep links (e.g.
   /?total-params=70&precision=16-bit&execution-mode=Inference)
-- One-click presets: Llama 8B, Llama 70B, Mixtral 8x7B, Gemma 2 9B, SDXL
+- One-click presets: Llama 8B, Llama 70B, Mixtral 8x7B, Gemma 2 9B, SDXL, ONNX DistilBERT (67M, 8-bit)
 
 ## Documentation
 

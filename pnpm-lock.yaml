@@ -9,6 +9,7 @@ overrides:
   uuid: '>=11.1.1'
   fast-json-patch: '>=3.1.1'
   '@opentelemetry/core': '>=2.8.0'
+  '@asyncapi/specs': 6.11.1
 
 importers:
 

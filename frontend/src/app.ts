@@ -6,6 +6,7 @@ import {
   renderGpuClass,
   renderGpuExamples,
   renderParallelismCallout,
+  clearUrlState,
   renderPresetSelection,
   renderTierFits,
   searchFromForm,
@@ -17,7 +18,7 @@ import { buildReport } from "./report";
 import { guardNumericInsertion, sanitizeNumberInput } from "./input-sanitizer";
 import { activePreset, MODEL_PRESETS } from "./presets";
 import { fitMeter, formatSpeed, speedLabel, whyText } from "./result-format";
-import { defaultState, normalizedState, zeroState } from "./state";
+import { defaultState, normalizedState } from "./state";
 import {
   statusFitLabel,
   statusModeLabel,
@@ -98,7 +99,11 @@ export class CalculatorApp {
     });
     this.form.addEventListener("submit", (event) => {
       event.preventDefault();
-      this.applyValues(zeroState());
+      // Reset returns to the exact starting state: the default deployment the
+      // page first renders, with the URL's query string dropped so the address
+      // bar matches a fresh load rather than encoding a zeroed form.
+      this.applyValues(defaultState(), {}, false);
+      clearUrlState();
     });
   }
 

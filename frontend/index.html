@@ -181,6 +181,13 @@
                   <button type="button" class="preset" data-preset="sdxl">
                     SDXL
                   </button>
+                  <button
+                    type="button"
+                    class="preset"
+                    data-preset="onnx-distilbert"
+                  >
+                    ONNX
+                  </button>
                 </div>
               </div>
             </div>
@@ -673,7 +680,7 @@
                The four disclosures share one bordered surface so they read as
                rows of a single reasoning group, not separate cards. -->
           <div class="panel-group">
-            <details class="panel" data-slot="why-panel">
+            <details class="panel" name="result-panel" data-slot="why-panel">
               <summary>Why this recommendation</summary>
               <div class="panel-body">
                 <p data-out="why"></p>
@@ -702,7 +709,7 @@
               </div>
             </details>
 
-            <details class="panel">
+            <details class="panel" name="result-panel">
               <summary>Values Used In Calculations</summary>
               <div class="panel-body">
                 <ul
@@ -713,7 +720,7 @@
               </div>
             </details>
 
-            <details class="panel">
+            <details class="panel" name="result-panel">
               <summary>Formula used</summary>
               <div class="panel-body">
                 <code data-out="calc-formula"></code>
@@ -721,7 +728,7 @@
               </div>
             </details>
 
-            <details class="panel">
+            <details class="panel" name="result-panel">
               <summary>Assumptions used</summary>
               <div class="panel-body">
                 <ul
@@ -734,6 +741,7 @@
 
             <details
               class="panel"
+              name="result-panel"
               aria-labelledby="vram-guide-title"
               data-slot="vram-guide-panel"
             >

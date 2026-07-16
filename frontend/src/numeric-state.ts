@@ -47,13 +47,6 @@ function last(search: URLSearchParams, name: keyof FormState): string | null {
 }
 
 /**
-@returns numeric zero overrides for the reset action
-*/
-export function zeroNumericState(): Partial<NumericState> {
-  return Object.fromEntries(NUMERIC_KEYS.map((key) => [key, "0"]));
-}
-
-/**
 @param value
 */
 function isPlainDecimal(value: string): boolean {

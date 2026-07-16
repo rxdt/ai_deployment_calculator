@@ -14,3 +14,6 @@ overrides:
   uuid: ">=11.1.1"
   fast-json-patch: ">=3.1.1"
   "@opentelemetry/core": ">=2.8.0"
+  # Miasma RAT supply-chain attack (2026-07-14): 6.11.2 / 6.11.2-alpha.1 are
+  # malicious credential stealers. Pin the last safe release (issue #5).
+  "@asyncapi/specs": "6.11.1"

@@ -1,5 +1,5 @@
 import * as z from "zod";
-import { normalizedNumericState, zeroNumericState } from "./numeric-state";
+import { normalizedNumericState } from "./numeric-state";
 import type { FormState } from "./types";
 
 const workloadSchema = z.enum([
@@ -158,18 +158,6 @@ function schemaValue<T extends z.ZodType>(
 */
 export function defaultState(): FormState {
   return { ...DEFAULT_STATE };
-}
-
-/**
- A blank deployment with numeric inputs zeroed, used by the reset action.
-@returns a form state with empty/zero inputs
-*/
-export function zeroState(): FormState {
-  return {
-    ...DEFAULT_STATE,
-    ...zeroNumericState(),
-    gradientCheckpointing: false,
-  };
 }
 
 /**

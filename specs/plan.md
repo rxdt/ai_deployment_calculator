@@ -76,29 +76,19 @@ Rationale: `scratchpad/DO-NOT-DO-phase2-features.md`.
 
 ### PRIORITIES
 
-- **P1 — BUG: tagline not centered (owner report, in production).** The intro
-  tagline "Estimate the GPU VRAM and hardware tier needed to deploy an AI
-  model's workload." must be horizontally centered in the title card. Root
-  cause: `.intro p` in `frontend/src/styles.css` caps `max-width:
-  var(--layout-intro-max)` without centering the capped block, so the 16rem
-  paragraph box sits at the container's left edge while `.title-card`'s
-  `text-align: center` only centers text inside that box. Fix: center the
-  block (e.g. `margin-inline: auto` on `.intro p`), keep the measure cap.
-  Verify visually in the running app at desktop and ≤30em widths, and cover
-  with a behavior-focused check.
-- **P2 — BUG: topnav GitHub chip overflows narrow viewports.** The top-bar
-  GitHub nav link (`[data-slot="github-link"]`, `.topnav`) extends ~13px past
-  a 320px viewport and also overflows at 390px, causing horizontal scroll.
-  Pre-existing (not caused by the F4.1 guide relocation). Fix: let the topnav
-  wrap or shrink the GitHub chip on narrow viewports; verify no horizontal
-  scroll at 320/390px.
+- **P2 — BUG: topnav brand + GitHub chip degrade on narrow viewports.** No
+  horizontal scroll remains (verified 320/390/768 on 2026-07-16), but at
+  ≤390px the brand "~VRAM-calculator" wraps mid-word ("calculat/or") and the
+  GitHub chip renders as a near-empty circle. Fix: let the topnav wrap or
+  shrink/abbreviate brand + chip on narrow viewports; verify visually at
+  320/390px.
 - **P1 — CSP + no-inline build, gh_site pattern (owner directive 2026-07-16).**
   Mirror what the owner's other loopgate_js demo app (`~/gh_site`,
   rxdt.github.io) already shipped; its commits are the reference
   implementation:
   - `b7dcc00` — pinned meta-CSP: `CSP_POLICY = "default-src 'self';
-    script-src 'self'; style-src 'self'; img-src 'self' data:; media-src
-    'self'"` exported from the harness vite config; a `cspMeta()`
+script-src 'self'; style-src 'self'; img-src 'self' data:; media-src
+'self'"` exported from the harness vite config; a `cspMeta()`
     transformIndexHtml plugin prepends it as a `<meta http-equiv>` tag on
     every built page; `harness/csp.test.ts` builds to a throwaway temp dir
     and asserts on OUTPUT that every page carries the exact pinned CSP and
@@ -111,15 +101,15 @@ Rationale: `scratchpad/DO-NOT-DO-phase2-features.md`.
     dependency); serve JS as deferred classic scripts from `public/` with
     `<body hidden>` unhidden by the style-adopting script, keeping zero CLS
     with an empty critical chain.
-  CONSEQUENCE for this repo: the current single-file inlining of JS/CSS into
-  `dist/index.html` is REPLACED by external `'self'` scripts/styles — this
-  supersedes the "build output is exempt / do not change inlining" line in
-  Source Separation (owner reversed that trade for CSP). `harness/` files
-  (vite config, csp test) are FORBIDDEN to agents: agents do the
-  frontend-side work (external script/style wiring, no inline anywhere,
-  removing anything the csp test flags) and the owner lands the harness-side
-  plugin + test, copied/adapted from gh_site. Gate must stay green,
-  including Lighthouse.
+    CONSEQUENCE for this repo: the current single-file inlining of JS/CSS into
+    `dist/index.html` is REPLACED by external `'self'` scripts/styles — this
+    supersedes the "build output is exempt / do not change inlining" line in
+    Source Separation (owner reversed that trade for CSP). `harness/` files
+    (vite config, csp test) are FORBIDDEN to agents: agents do the
+    frontend-side work (external script/style wiring, no inline anywhere,
+    removing anything the csp test flags) and the owner lands the harness-side
+    plugin + test, copied/adapted from gh_site. Gate must stay green,
+    including Lighthouse.
 - **P2 — Security response headers (owner-approved 2026-07-16).** Vercel can
   set real HTTP headers (unlike GitHub Pages), so ALSO add a `headers` block
   to `vercel.json` (agent-editable) applied to `/(.*)`:
@@ -157,6 +147,14 @@ Rationale: `scratchpad/DO-NOT-DO-phase2-features.md`.
   `frontend/src/adversarial/oracle.test.ts` with one missing
   weird-combination/oracle case from external calculators, published anchors, or
   physical invariants. Incorrect-source failures stay red.
+- **P3 — UX findings from the 2026-07-16 naive-user verification pass**
+  (two independent agent testers; details in `docs/PROJECT_STATUS.md`):
+  QLoRA silently flips Runtime Profile and doesn't lock 4-bit once entered;
+  GPU Resident Fraction is a dead control unless Known Model File Size is
+  set (no hint); Active Parameters accepts values above total params with no
+  warning; tier table has label gaps (25–31, 49–63, 97–140 GB); Headroom
+  reads "0%" at overload instead of signaling negative. All non-blocking;
+  triage before building.
 
 Rejected: animated inference simulations, live price feeds, benchmark scores,
 accounts, iframe widget, raw architecture-field forms, exl2 tiers.

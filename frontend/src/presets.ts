@@ -79,6 +79,20 @@ export const MODEL_PRESETS: readonly ModelPreset[] = [
       precision: "16-bit",
     },
   },
+  {
+    // DistilBERT MNLI classifier in its ONNX int8 export — the catalog's tiny
+    // end: a 67M-parameter encoder at 8-bit, the smallest published file
+    // (67.5 MB; the repo's q4 keeps fp32 layers and is larger at 124.6 MB).
+    id: "onnx-distilbert",
+    label: "ONNX",
+    url: "https://huggingface.co/onnx-community/distilbert-base-uncased-mnli-ONNX",
+    overrides: {
+      workloadFamily: "text_encoder",
+      totalParams: "67",
+      parameterUnit: "M",
+      precision: "8-bit",
+    },
+  },
 ];
 
 /**

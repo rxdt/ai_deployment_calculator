@@ -873,30 +873,27 @@ describe("runChecks", () => {
     expect(failureFor(failures, "empty").toLowerCase()).toContain("empty");
   });
 
-  test("skips a missing binary (ENOENT) instead of failing, and warns loudly", () => {
-    const stderr: string[] = [];
-    vi.spyOn(process.stderr, "write").mockImplementation((chunk) => {
-      stderr.push(String(chunk));
-      return true;
-    });
+  test("FAILS on a missing binary (ENOENT) — a check must never silently not run", () => {
     const failures = runChecks(makeRepo(), {
       missing: ["definitely-not-a-real-gate-binary"],
     });
-    // A young template must not fail a consumer who hasn't installed an external tool: the check
-    // is skipped (no problem), but the skip is announced loudly so it can never pass silently.
-    expect(failures).toEqual([]);
-    const warning = stderr.join("");
-    expect(warning).toContain("SKIPPED");
-    expect(warning).toContain("definitely-not-a-real-gate-binary");
+    // Every check tool is a pinned harness dependency or an installed external (semgrep): a
+    // missing binary means a broken environment, so the gate FAILS rather than skip (matching
+    // Semgrep/Lighthouse CI). Silent skips let the sast check quietly not run on CI runners.
+    expect(failures).toHaveLength(1);
+    expect(failures[0]).toMatch(/^missing failed:/u);
+    expect(failures[0]).toContain("definitely-not-a-real-gate-binary");
+    expect(failures[0]).toContain("not installed");
   });
 
-  test("skips a missing harness tool (ENOENT) regardless of staged packages", () => {
+  test("FAILS on a missing harness tool (ENOENT) regardless of staged packages", () => {
     const repo = makeRepo();
     stageFile(repo, "harness/package.json", '{"private":true}\n');
     const failures = runChecks(repo, {
       harnessToolCheck: [harnessTool("definitely-missing")],
     });
-    expect(failures).toEqual([]);
+    expect(failures).toHaveLength(1);
+    expect(failures[0]).toMatch(/^harnessToolCheck failed:/u);
   });
 
   test("fails closed when a present tool exits non-zero (not ENOENT)", () => {
@@ -909,7 +906,7 @@ describe("runChecks", () => {
   });
 
   test.each(["semgrep", "osv-scanner"])(
-    "skips external gate tool %s when it is not installed (ENOENT)",
+    "FAILS on external gate tool %s when it is not installed (ENOENT)",
     (tool) => {
       const repo = makeRepo();
       const failures = withEmptyPath(() =>
@@ -917,7 +914,8 @@ describe("runChecks", () => {
           external: [tool, "--version"],
         }),
       );
-      expect(failures).toEqual([]);
+      expect(failures).toHaveLength(1);
+      expect(failures[0]).toMatch(/^external failed:/u);
     },
   );
 });

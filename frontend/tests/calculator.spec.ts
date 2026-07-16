@@ -202,11 +202,11 @@ test("keeps the hardware tier best-fit check visible as estimates change", async
   await expectBestFitTier(page, "100000");
 
   await page.getByRole("button", { name: "Reset" }).click();
+  // Reset returns to the default 7B deployment, whose fit is the 24 GB tier.
   await expect(page.locator('[data-out="gpu-class"]')).toHaveText(
-    "No model loaded",
+    "24 GB hardware tier",
   );
-  await expect(page.locator('.tier-fit[data-fit="true"]')).toHaveCount(0);
-  await expect(page.locator('.tier-fit[aria-hidden="false"]')).toHaveCount(0);
+  await expectBestFitTier(page, "24");
 });
 
 test("renders the default 7B estimate consistently across the full report", async ({
@@ -355,15 +355,21 @@ test("rejects negatives, exponents, and unbounded numbers", async ({
   await expect(page.locator("#context-tokens")).toHaveValue("99999999");
 });
 
-test("reset zeroes inputs and outputs", async ({ page }) => {
+test("reset restores the starting deployment and cleans the URL", async ({
+  page,
+}) => {
   await page.goto("/");
 
   await page.locator("#total-params").fill("104");
-  await expect(page.locator('[data-out="total"]')).not.toHaveText("0.0 GB");
+  await expect(page.locator('[data-out="total"]')).not.toHaveText("18.8 GB");
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/total-params=104/u);
 
   await page.getByRole("button", { name: "Reset" }).click();
-  await expect(page.locator("#total-params")).toHaveValue("0");
-  await expect(page.locator('[data-out="total"]')).toHaveText("0.0 GB");
+  // Back to the exact first-load state: default 7B deployment, no query string.
+  await expect(page.locator("#total-params")).toHaveValue("7");
+  await expect(page.locator('[data-out="total"]')).toHaveText("18.8 GB");
+  await expect(page).toHaveURL(/\/$/u);
 });
 
 test("keyboard-only walkthrough reaches and activates core controls", async ({
@@ -387,10 +393,10 @@ test("keyboard-only walkthrough reaches and activates core controls", async ({
   await expect(page.locator('[data-out="why"]')).toBeVisible();
 
   await page.getByLabel("Total Model Parameters").fill("104");
-  await expect(page.locator('[data-out="total"]')).not.toHaveText("0.0 GB");
+  await expect(page.locator('[data-out="total"]')).not.toHaveText("18.8 GB");
   await page.getByRole("button", { name: "Reset" }).focus();
   await page.keyboard.press("Enter");
-  await expect(page.locator('[data-out="total"]')).toHaveText("0.0 GB");
+  await expect(page.locator('[data-out="total"]')).toHaveText("18.8 GB");
 });
 
 test("keeps secondary math hidden until detail panels expand", async ({

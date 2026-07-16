@@ -240,7 +240,7 @@ describe("buildReport", () => {
     expect(smallLocal.warnings).not.toContain(localWarning);
   });
 
-  test("adds conditional MoE and training warnings", () => {
+  test("keeps the MoE caveat out of warnings", () => {
     const report = buildReport(
       state({
         executionMode: "QLoRA fine-tuning",
@@ -249,9 +249,6 @@ describe("buildReport", () => {
       }),
     );
 
-    expect(report.warnings).toContain(
-      "Training estimates include parameter state and checkpointed activations, but real runs vary by optimizer, sequence packing, and framework.",
-    );
     // The MoE routing caveat is a methodology note, so it renders as an
     // assumption bullet rather than a warning.
     expect(report.warnings).not.toContainEqual(
@@ -376,6 +373,19 @@ describe("buildReport", () => {
     expect(training.calculationNumbers).toMatch(/ GB × 1\.25$/u);
   });
 
+  test("drops the KV cache term for families that compute no KV cache", () => {
+    // Decoder families cache attention keys/values; diffusion does not, so its
+    // formula must not name memory the estimate doesn't contain.
+    const diffusion = buildReport(state({ workloadFamily: "image_diffusion" }));
+    expect(diffusion.calculation).toBe(
+      "VRAM = (weights + activations + runtime overhead) × buffer",
+    );
+    expect(diffusion.calculationNumbers.split("+")).toHaveLength(3);
+
+    const decoder = buildReport(state());
+    expect(decoder.calculation).toContain("KV cache");
+  });
+
   test("assumptions are methodology notes, not an echo of the user's inputs", () => {
     const notes = buildReport(state()).assumptions.map((row) => row.label);
 
@@ -474,7 +484,7 @@ describe("headline stat chips", () => {
       { label: "Model Weights", value: "16.0 GB" },
       { label: "KV Cache", value: "1.1 GB" },
       { label: "Concurrency", value: "1" },
-      { label: "Spare", value: "23%" },
+      { label: "Headroom", value: "23%" },
     ]);
   });
 
@@ -503,6 +513,6 @@ describe("headline stat chips", () => {
 
     // With no model there is no usable-VRAM budget to divide, so the fit meter
     // yields nothing and the spare chip degrades to a neutral placeholder.
-    expect(chips[3]).toEqual({ label: "Spare", value: "–" });
+    expect(chips[3]).toEqual({ label: "Headroom", value: "–" });
   });
 });

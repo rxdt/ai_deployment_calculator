@@ -1,10 +1,5 @@
 import { describe, expect, test } from "vitest";
-import {
-  defaultState,
-  normalizedState,
-  searchFromState,
-  zeroState,
-} from "./state";
+import { defaultState, normalizedState, searchFromState } from "./state";
 import type { FormState } from "./types";
 
 /**
@@ -20,19 +15,12 @@ function parameters(entries: Record<string, string>): URLSearchParams {
   return search;
 }
 
-describe("defaultState and zeroState", () => {
+describe("defaultState", () => {
   test("default state seeds a 7B text-generation deployment", () => {
     const state = defaultState();
     expect(state.totalParams).toBe("7");
     expect(state.workloadFamily).toBe("text_generation");
     expect(state.moeEnabled).toBe(false);
-  });
-
-  test("zero state blanks the numeric inputs", () => {
-    const state = zeroState();
-    expect(state.totalParams).toBe("0");
-    expect(state.workloadSize).toBe("0");
-    expect(state.contextTokens).toBe("0");
   });
 });
 
@@ -220,7 +208,7 @@ describe("normalizedState", () => {
 describe("searchFromState", () => {
   test("serializes booleans only when they differ from defaults and drops empty strings", () => {
     const state: FormState = {
-      ...zeroState(),
+      ...defaultState(),
       moeEnabled: true,
       memoryShardingEnabled: false,
       gradientCheckpointing: false,

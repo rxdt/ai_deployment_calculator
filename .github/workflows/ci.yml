@@ -29,6 +29,19 @@ jobs:
           vulnerability-check: true
           warn-only: false
 
+  semgrep:
+    name: Run Semgrep CI Scan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    container:
+      image: semgrep/semgrep
+    if: (github.actor != 'dependabot[bot]')
+    steps:
+      - uses: actions/checkout@v6
+      - run: semgrep scan --config auto
+        env:
+          SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_SECRET }}
+
   checks:
     runs-on: ubuntu-24.04
     timeout-minutes: 45
@@ -50,6 +63,11 @@ jobs:
 
       - name: Install browsers
         run: pnpm --prefix harness run setup:e2e -- chromium webkit
+
+      # The gate's sast check spawns the semgrep binary; a missing tool FAILS the gate (no
+      # silent skip). Install per the Semgrep docs (docs.semgrep.dev/semgrep-ci/sample-ci-configs).
+      - name: Install semgrep
+        run: pip install semgrep
 
       - name: Run checks
         run: node harness/harness.mjs gate

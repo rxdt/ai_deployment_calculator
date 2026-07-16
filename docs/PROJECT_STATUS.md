@@ -2,39 +2,49 @@
 
 Short, current handoff. Deleted lines are the point — keep only what's useful now.
 
-## State (2026-07-16)
+## State (2026-07-16, pre-push)
 
-- Shipped on local `main`: F0 activation floor, F3 quant ladder, F4 crawlable
-  prose, F4.1 guide relocation/FAQ removal, decimal input preservation,
-  context-anchored decoder scratch (llama.cpp anchors, direct anchor test in
-  `decoder-scratch.test.ts`), SEO reconciliation, F9 cross-calculator QA, and
-  conservative upward memory rounding (totals, component display, minimum raw
-  VRAM, and hardware tiers round up at one decimal; a 20.4001 GB workload
-  reports 20.5 GB and the 32 GB class, never a 24 GB fit).
-- Static crawlable quick-reference rows match calculator output after the
-  rounding change: 7B 8-bit 11.5 GB, 13B fp16 32.3 GB, 70B 8-bit 88.0 GB.
-- Cross-calculator QA rerun: `docs/qa/comparison-2026-07-16.md`. No Research
-  Correction against local `main`; external overlap supports resident weight
-  math; all disagreements definitional.
-- Engine accuracy audit (2026-07-16, orchestrator): every core component —
-  fp16/Q4_K_M/int8 weights, GQA KV cache at 8k/32k, decoder activation scratch
-  — recomputed from the real engine and matched its published anchor to 0.0%.
-  Only int8's +5% overhead is a convention rather than a measured anchor.
-  Vision/diffusion/video/audio/tabular branches have no verified external
-  anchor yet; F10 exists to close that.
-- **Production is stale because `main` is unpushed.** `origin/main` = `e1e5af9`
-  (pushed 2026-07-15 19:16); local `main` is ~38 commits ahead. Vercel builds
-  from GitHub, and the owner confirmed the latest Vercel deployment's source
-  commit is `e1e5af9`, so live `vram.rxdt.dev` serves pre-rounding numbers —
-  verified 2026-07-16 by curl: live static rows 11.4/32.2/87.9 GB vs local
-  11.5/32.3/88.0 GB; live under-reports and 87.9 sits on the wrong side of a
-  tier boundary. Fix: owner runs `git push`.
-- `frontend/src/adversarial/oracle.test.ts` has 22 green oracle tests,
-  including the hardware-boundary round-up invariant. The dated report is
-  `docs/qa/adversarial-2026-07-16.md`.
-- Vercel deploy path: a gated CI deploy job exists in
-  `.github/workflows/ci.yml` (`needs: checks`, push-to-main only, off unless
-  `VERCEL_DEPLOY_ENABLED=true` + `VERCEL_*` secrets are set).
+- Local `main` = `10ba12a` + one squashed release commit (security + UX round),
+  push imminent per owner directive ("get launched"), superseding the earlier
+  no-agent-push note. The release commit contains:
+  - **Security:** pnpm `overrides` restored (tmp, uuid, fast-json-patch,
+    @opentelemetry/core — they had been dropped in `10ba12a`, reintroducing
+    audit failures); `@asyncapi/specs` pinned 6.11.1 against the Miasma RAT
+    attack (issue #5 — repo verified NOT compromised, safe version was always
+    locked); dependency-review runs on push AND PR; a standalone semgrep CI
+    job plus `pip install semgrep` in checks so the gate's sast check runs on
+    runners; the gate now FAILS on a missing tool (ENOENT) instead of the old
+    silent skip that let sast quietly not run in CI.
+  - **UX:** result panels and hardware tier rows are exclusive accordions
+    (native `details name=`); Reset restores the exact starting 7B deployment
+    and clears the URL query (formerly zeroed the form and wrote the zeros
+    into the URL); new ONNX preset (distilbert-base-uncased-mnli, 67M, 8-bit
+    int8 export = smallest published file, verified against the HF API);
+    "Formula used" is workload-aware — the KV-cache term drops for families
+    that compute none (diffusion/vision/tabular/…); the blanket
+    training-estimates warning is deleted; the 4th stat chip is renamed
+    Spare → Headroom; intro tagline centered (`margin-inline: auto`);
+    calculator-writeup gained canonical + sitemap entries.
+  - **Tooling:** typescript pinned ~6.0.3; repetitive tests parameterized;
+    split-limit/simple-condition lint fixes; the spawn-heavy
+    `runGate defaults…` test got an explicit 30s timeout (it flaked at the
+    5s default under full-gate load).
+- Verification for this release: `node harness/harness.mjs gate` green
+  (0 issues, all 18 checks incl. 6-project Playwright + Lighthouse), plus two
+  independent naive-user agent testers drove the app in a real browser at
+  320/390/768/1280: all launch checks PASS (exclusive accordions, reset+URL,
+  ONNX numbers, dynamic formula, garbage-input safety, deep links, no
+  horizontal scroll, zero console errors). Their non-blocking findings are
+  filed as P3 in `specs/plan.md`.
+- Dependabot: 0 open alerts (all 65 fixed as of 16:46 UTC). Issue #5
+  (AsyncAPI/Miasma) can be closed: lockfile pins safe 6.11.1, no malicious
+  version was ever installed, and the pin now prevents drift.
+- Vercel deploy path: gated CI deploy job in `.github/workflows/ci.yml`
+  (`needs: checks`, push-to-main only, requires `VERCEL_DEPLOY_ENABLED=true`
+  and the `VERCEL_*` secrets). The new semgrep job reads
+  `secrets.SEMGREP_APP_SECRET` (same name as gh_site); the owner still needs
+  to add that secret — the scan runs without it, it just skips the AppSec
+  upload.
 
 ## Current Local Sentinels
 
@@ -42,30 +52,18 @@ Short, current handoff. Deleted lines are the point — keep only what's useful 
 - 8B server inference: 21.0 GB total, 24.8 GB minimum raw.
 - 8B QLoRA at 2% adapters: 21.1 GB.
 - SDXL 1024x1024 image diffusion preset: 12.1 GB.
+- ONNX DistilBERT preset (67M, 8-bit): 1.9 GB total, 8 GB class.
 - 47B MoE high-context server case: 95.1 GB raw, 96 GB class (not the 95 GB
   TPU class).
 
-## Checks (agent run of 2026-07-16, pre-rounding-release gate)
-
-- Focused vitest (calculator/property/report/hardware/result-format/app):
-  260 tests passed.
-- Focused `vitest src/adversarial`: 22 oracle tests passed (re-verified by
-  orchestrator 2026-07-16).
-- Focused Playwright desktop calculator/parity: 46 passed, 4 expected skips.
-- `pnpm build`, `pnpm preflight`, and `pnpm gate` all passed for the F9
-  report/release run.
-
 ## Open Work
 
-- Agent priorities live in `specs/plan.md` PRIORITIES (P1 tagline centering,
-  P2 topnav overflow at 320/390px, P2 F10 oracle extension).
-- **Owner: push and deploy.** `git push` publishes the ~38 local commits
-  (including the rounding fix); then deploy via the CI job (if armed) or
-  `vercel deploy --prod` from this checkout. Until pushed, ANY deploy sourced
-  from GitHub ships the stale `e1e5af9` code. No agent may push or deploy.
-- **Owner device pass:** real-device check (iPhone Safari, Android Chrome):
-  no horizontal scroll at 320/390px, no <=30em label overlap. Optional
-  post-launch owner calls: analytics, error monitoring.
+- Agent priorities live in `specs/plan.md` PRIORITIES (P1 CSP/no-inline
+  build, P2 topnav narrow-viewport polish, P2 security headers, P2 About
+  link/writeup integration, P2 screenshot hygiene, P2 F10 oracle extension,
+  P3 naive-user UX findings).
+- **Owner:** add `SEMGREP_APP_SECRET` repo secret; real-device pass (iPhone
+  Safari, Android Chrome); optional analytics/error monitoring.
 - **Parked (do not build):** F1/F2/F5/F6/F7/F8
   (`scratchpad/DO-NOT-DO-phase2-features.md`).
 
@@ -73,10 +71,8 @@ Short, current handoff. Deleted lines are the point — keep only what's useful 
 
 - apxml Part A primary is blocked in headless Playwright by Cloudflare
   Turnstile; needs an owner/manual headed pass if exact ApX rows are required.
-- Production serves pre-rounding numbers until the owner pushes and redeploys
-  (see State).
 
 ## Known Issues
 
-- Parallel `pnpm gate` runs can collide on Lighthouse preview port 4173; retry
-  after the other run exits if `CHROME_INTERSTITIAL_ERROR` appears.
+- Parallel `pnpm gate` runs can collide on the dev/preview ports (5173/4173);
+  kill stale vite processes or retry after the other run exits.

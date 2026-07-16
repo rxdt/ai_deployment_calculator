@@ -31,6 +31,14 @@ export function writeUrlFromState(state: Readonly<FormState>): void {
 }
 
 /**
+Drop the query string entirely, returning the address bar to the clean
+starting URL (used by reset, whose state is the no-query default).
+*/
+export function clearUrlState(): void {
+  history.replaceState(null, "", location.pathname);
+}
+
+/**
 @param element
 */
 function selectEntry(element: HTMLSelectElement): [string, string] | null {

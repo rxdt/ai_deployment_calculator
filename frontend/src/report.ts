@@ -59,20 +59,6 @@ const PARALLELISM_STRATEGIES: readonly ParallelismStrategy[] = [
   },
 ];
 
-/**
-Collect the conditional caveats shown in the warnings list.
-@param state - normalized form state
-@returns the warnings to render, possibly empty
-*/
-function warningsFor(state: Readonly<FormState>): string[] {
-  // Real training runs vary too much for a point estimate to go uncaveated.
-  return state.executionMode === "Inference"
-    ? []
-    : [
-        "Training estimates include parameter state and checkpointed activations, but real runs vary by optimizer, sequence packing, and framework.",
-      ];
-}
-
 // The per-mode formula terms, mirroring the real composition (memoryBreakdown):
 // the buffer multiplies the whole subtotal, runtime overhead is included, and
 // training modes carry no KV cache. The "Formula used" prose and the numbers
@@ -83,6 +69,10 @@ function warningsFor(state: Readonly<FormState>): string[] {
 interface FormulaTerm {
   readonly name: string;
   readonly value: (breakdown: Readonly<MemoryBreakdown>) => number;
+  // Structural terms always print; a workload-dependent term (KV cache) drops
+  // out of the formula when the family computes it as zero (diffusion, vision,
+  // tabular…), so the prose never names memory the estimate doesn't contain.
+  readonly omitWhenZero?: true;
 }
 
 const weightsTerm = (name: string): FormulaTerm => ({
@@ -92,6 +82,7 @@ const weightsTerm = (name: string): FormulaTerm => ({
 const kvCacheTerm: FormulaTerm = {
   name: "KV cache",
   value: (breakdown) => breakdown.kvCacheGb,
+  omitWhenZero: true,
 };
 const activationsTerm: FormulaTerm = {
   name: "activations",
@@ -134,12 +125,35 @@ const MODE_TERMS: Readonly<Record<ExecutionMode, readonly FormulaTerm[]>> = {
 };
 
 /**
-Compose the plain-language formula for the workload's execution mode.
+Select the mode's formula terms that apply to this estimate: structural terms
+always, workload-dependent terms only when non-zero. Both the prose and the
+numbers line derive from this one selection so they stay in lockstep.
 @param mode - the execution mode
-@returns the one-line formula naming the mode's terms
+@param breakdown - the computed memory breakdown
+@returns the terms the formula should print, in order
 */
-function formulaText(mode: ExecutionMode): string {
-  const names = MODE_TERMS[mode].map((term) => term.name).join(" + ");
+function formulaTerms(
+  mode: ExecutionMode,
+  breakdown: Readonly<MemoryBreakdown>,
+): readonly FormulaTerm[] {
+  return MODE_TERMS[mode].filter(
+    (term) => term.omitWhenZero !== true || term.value(breakdown) > 0,
+  );
+}
+
+/**
+Compose the plain-language formula for this estimate's applicable terms.
+@param mode - the execution mode
+@param breakdown - the computed memory breakdown
+@returns the one-line formula naming the estimate's terms
+*/
+function formulaText(
+  mode: ExecutionMode,
+  breakdown: Readonly<MemoryBreakdown>,
+): string {
+  const names = formulaTerms(mode, breakdown)
+    .map((term) => term.name)
+    .join(" + ");
   return `VRAM = (${names}) × buffer`;
 }
 
@@ -158,7 +172,7 @@ function formulaNumbers(
 ): string {
   const memoryNumber = (value: number): string =>
     formatGb(value).replace(" GB", "");
-  const sum = MODE_TERMS[mode]
+  const sum = formulaTerms(mode, breakdown)
     .map((term) => memoryNumber(term.value(breakdown)))
     .join(" + ");
   // "≈": the components are rounded for display, so multiplying them back
@@ -200,7 +214,7 @@ function calculationRows(
 The four headline stat chips shown under the hero: the answer's biggest levers
 at a glance. Model weights and the dominant working-memory term (KV cache for
 decoders, else activations) are the two largest contributors; the batch chip
-reads as "Concurrency" for inference and "Micro Batch" for training; "Spare"
+reads as "Concurrency" for inference and "Micro Batch" for training; "Headroom"
 mirrors the fit meter's leftover budget, or "–" when no single card fits and
 there is no usable-VRAM budget to divide.
 @param state - normalized form state
@@ -228,7 +242,7 @@ function statChips(
       value: String(concurrency),
     },
     {
-      label: "Spare",
+      label: "Headroom",
       value: meter === null ? "–" : `${(100 - meter.fillPercent).toString()}%`,
     },
   ];
@@ -254,7 +268,7 @@ export function buildReport(state: Readonly<FormState>): ReportPayload {
   const tier = hardware(minimumRaw, { allowSharding: canShard });
   const speedTier = speedTierFor(tier);
   const requiresMultiGpu = speedTier.requiresSharding;
-  const warnings = warningsFor(state);
+  const warnings: string[] = [];
   // The tier catalog is shared across runtime profiles, so a big Local / Edge
   // deployment can land on a datacenter class (H200/B200). Say what that means
   // locally instead of letting it read as a hardware-store suggestion. 96 GB
@@ -277,7 +291,7 @@ export function buildReport(state: Readonly<FormState>): ReportPayload {
     assumptions: assumptionRows(state, spec),
     warnings,
     parallelismStrategies: requiresMultiGpu ? PARALLELISM_STRATEGIES : [],
-    calculation: formulaText(state.executionMode),
+    calculation: formulaText(state.executionMode, breakdown),
     calculationNumbers: formulaNumbers(
       breakdown,
       spec.runtime.buffer,

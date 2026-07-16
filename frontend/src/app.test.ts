@@ -718,15 +718,18 @@ describe("enter and reset semantics", () => {
     expect(field("precision").dispatchEvent(enterOnSelect)).toBe(true);
   });
 
-  test("submit resets the reactive form without allowing navigation", () => {
+  test("submit restores the starting deployment and cleans the URL without navigating", () => {
+    history.replaceState(null, "", "/?total-params=104");
     loadDom();
     mountCalculator(document);
     fireInput("total-params", "104");
     const event = new Event("submit", { bubbles: true, cancelable: true });
     const wasSubmissionAllowed = inputsForm().dispatchEvent(event);
     expect(wasSubmissionAllowed).toBe(false);
-    expect(field("total-params").value).toBe("0");
-    expect(out("total")).toBe("0.0 GB");
+    // Reset = the exact first-load state: default 7B deployment, no query.
+    expect(field("total-params").value).toBe("7");
+    expect(out("total")).toBe("18.8 GB");
+    expect(location.search).toBe("");
   });
 });
 
@@ -1175,12 +1178,10 @@ describe("mounted calculator", () => {
     expect(field("context-tokens").value).toBe("99999999");
   });
 
-  test("reset zeroes inputs and outputs and explains the empty estimate", () => {
+  test("clearing the model size explains the empty estimate", () => {
     loadDom();
     mountCalculator(document);
-    fireInput("total-params", "104");
-    requireButton().click();
-    expect(field("total-params").value).toBe("0");
+    fireInput("total-params", "0");
     expect(out("total")).toBe("0.0 GB");
     expect(out("gpu-class")).toBe("No model loaded");
     expect(out("why")).toContain("Enter model and workload inputs");
@@ -1197,13 +1198,13 @@ describe("mounted calculator", () => {
     expect(out("total")).toBe("18.8 GB");
   });
 
-  test("renders training warnings and drops the standard disclaimer", () => {
+  test("renders no blanket training warning", () => {
     loadDom();
     mountCalculator(document);
     fireChange("execution-mode", "Full training");
     const warnings =
       document.querySelector('[data-out="warnings"]')?.textContent ?? "";
-    expect(warnings).toContain("Training estimates include parameter state");
+    expect(warnings).not.toContain("Training estimates include");
     expect(warnings).not.toContain("vendor guarantee");
   });
 
@@ -1351,7 +1352,7 @@ describe("hero fit meter", () => {
   test("hides the fit meter entirely when no model is loaded", () => {
     loadDom();
     mountCalculator(document);
-    requireButton().click();
+    fireInput("total-params", "0");
     const meter = dataSlot("fit-meter");
     if (!(meter instanceof HTMLMeterElement)) {
       throw new TypeError("Missing fit meter");
@@ -1473,7 +1474,7 @@ describe("recommended GPU examples", () => {
   test("drops the example row when no model is loaded", () => {
     loadDom();
     mountCalculator(document);
-    requireButton().click();
+    fireInput("total-params", "0");
 
     expect(out("gpu-class")).toBe("No model loaded");
     expect(out("gpu-examples")).toBe("");
@@ -1958,7 +1959,7 @@ describe("hardware tier reference", () => {
   test("clears every check when no model is loaded", () => {
     loadDom();
     mountCalculator(document);
-    requireButton().click();
+    fireInput("total-params", "0");
 
     const cells = tierFitCells();
     expect(cells.every((cell) => cell.dataset.fit === "false")).toBe(true);
@@ -2073,7 +2074,7 @@ describe("model presets", () => {
     expect(out("total")).toBe("12.1 GB");
   });
 
-  test("reset clears a loaded preset back to the empty estimate", () => {
+  test("reset returns a loaded preset to the starting deployment", () => {
     loadDom();
     mountCalculator(document);
     clickPreset("Llama 8B");
@@ -2081,8 +2082,8 @@ describe("model presets", () => {
 
     requireButton().click();
 
-    expect(field("total-params").value).toBe("0");
-    expect(out("total")).toBe("0.0 GB");
+    expect(field("total-params").value).toBe("7");
+    expect(out("total")).toBe("18.8 GB");
   });
 
   test("links the header MODEL word to each loaded preset's model page", () => {
@@ -2102,23 +2103,16 @@ describe("model presets", () => {
   test("keeps the chip of the still-matching preset green", () => {
     loadDom();
     mountCalculator(document);
-    expect(pressedStates()).toEqual([
-      "false",
-      "false",
-      "false",
-      "false",
-      "false",
-    ]);
+    const allOff = MODEL_PRESETS.map(() => "false");
+    expect(pressedStates()).toEqual(allOff);
 
     clickPreset("Mixtral");
 
-    expect(pressedStates()).toEqual([
-      "false",
-      "false",
-      "true",
-      "false",
-      "false",
-    ]);
+    expect(pressedStates()).toEqual(
+      MODEL_PRESETS.map((preset) =>
+        preset.label === "Mixtral" ? "true" : "false",
+      ),
+    );
   });
 
   test("drops the model link and highlight once an input diverges", () => {
@@ -2173,7 +2167,7 @@ describe("headline stat chips", () => {
       "Model Weights",
       "KV Cache",
       "Concurrency",
-      "Spare",
+      "Headroom",
     ]);
     expect(outSlot("stat-chips").getAttribute("aria-busy")).toBeNull();
   });
@@ -2190,7 +2184,7 @@ describe("headline stat chips", () => {
       "Model Weights",
       "Activations",
       "Concurrency",
-      "Spare",
+      "Headroom",
     ]);
   });
 });

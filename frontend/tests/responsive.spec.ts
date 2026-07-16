@@ -647,7 +647,10 @@ test("expanded result rows preserve alignment and warning prose", async ({
   // a flex line whose empty value cell stays hidden.
   await expect(assumptionRow).toHaveCSS("display", "flex");
   await expect(assumptionRow.locator("strong")).toHaveCSS("display", "none");
+  // Drive a state that emits a warning (beyond-local-hardware): Full training
+  // on Local / Edge needs far more than 96 GB for the default 7B model.
   await page.getByLabel("Execution Mode").selectOption("Full training");
+  await page.getByLabel("Runtime Profile").selectOption("Local / Edge");
   const warning = page.locator(".warnings .metric").first();
   await expect(warning).toHaveCSS("display", "block");
   await expect(warning.locator("strong")).toHaveCSS("display", "none");

@@ -25,16 +25,16 @@ anchor-correct; the stale defect is the (now-fixed) activation model.
 Not "matches our tests" — checked against published external ground truth. All
 recomputed from the exact `main` formulas.
 
-| Component | `main` output | External anchor | Verdict |
-|---|---|---|---|
-| 7B fp16 weights | 14.0 GB | fp16 = params×2 → 14.0 | **EXACT** |
-| 70B fp16 weights | 140.0 GB | params×2 → 140.0 | **EXACT** |
-| KV per-token (7B/8B bucket) | 0.1250 MiB/token | vLLM Llama-3-8B = 0.125 | **EXACT** |
-| 70B Q4_K_M weights | 42.44 GB | real HF GGUF file ≈ 42.5 | **MATCH** |
-| 70B Q8_0 weights | 74.38 GB | 8.5 bpw → ≈ 74.5 | **MATCH** |
-| Precision ladder (4-bit→16-bit) | monotonic | bpw ordering | **HOLDS** |
-| 7B full-train AdamW state | 98.0 GB (P×14) | AdamW ≈ 16 B/param | **IN-ANCHOR** |
-| 70B activation @ 8k | 2.1 GB | llama.cpp 2.2–3.3 GB | **~envelope (mild under)** |
+| Component                       | `main` output    | External anchor          | Verdict                    |
+| ------------------------------- | ---------------- | ------------------------ | -------------------------- |
+| 7B fp16 weights                 | 14.0 GB          | fp16 = params×2 → 14.0   | **EXACT**                  |
+| 70B fp16 weights                | 140.0 GB         | params×2 → 140.0         | **EXACT**                  |
+| KV per-token (7B/8B bucket)     | 0.1250 MiB/token | vLLM Llama-3-8B = 0.125  | **EXACT**                  |
+| 70B Q4_K_M weights              | 42.44 GB         | real HF GGUF file ≈ 42.5 | **MATCH**                  |
+| 70B Q8_0 weights                | 74.38 GB         | 8.5 bpw → ≈ 74.5         | **MATCH**                  |
+| Precision ladder (4-bit→16-bit) | monotonic        | bpw ordering             | **HOLDS**                  |
+| 7B full-train AdamW state       | 98.0 GB (P×14)   | AdamW ≈ 16 B/param       | **IN-ANCHOR**              |
+| 70B activation @ 8k             | 2.1 GB           | llama.cpp 2.2–3.3 GB     | **~envelope (mild under)** |
 
 Canonical totals (post-F0, anchor-traced): 7B=18.8, 70B=160.8, 8B QLoRA 2%=21.0,
 7B full-train=152.9. All reproduced from formulas + anchors, not test pins.
@@ -77,16 +77,16 @@ After the owner deploy, Playwright drove `https://vram.rxdt.dev/` with absolute
 URLs and JS hydration. **Verdict: GO.** Production now serves the corrected
 bundle, not the stale one.
 
-| Live check | Expected | Actual | Verdict |
-|---|---:|---:|---|
-| `/` | 18.8 GB | 18.8 GB | PASS |
-| `/?total-params=70` | 161.1 GB | 161.1 GB | PASS |
-| `/?total-params=70&context-tokens=32000` | 172.0 GB | 172.0 GB | PASS |
-| `/?total-params=70&precision=Q4_K_M` | 53.8 GB | 53.8 GB | PASS |
-| `/?total-params=8&execution-mode=QLoRA fine-tuning&lora-trainable-percent=2` | 21.0 GB | 21.0 GB | PASS |
-| `/?total-params=7&execution-mode=Full training` | 152.9 GB | 152.9 GB | PASS |
-| Guide panel | present | present | PASS |
-| Formula numbers | `18.8 GB ≈ (14.0 + 1.0 + 0.5 + 1.5) GB × 1.10` | same | PASS |
-| H1 | `AI Deployment Calculator` | same | PASS |
-| Canonical | `https://vram.rxdt.dev/` | same | PASS |
-| GSC tag | present | present | PASS |
+| Live check                                                                   |                                       Expected |   Actual | Verdict |
+| ---------------------------------------------------------------------------- | ---------------------------------------------: | -------: | ------- |
+| `/`                                                                          |                                        18.8 GB |  18.8 GB | PASS    |
+| `/?total-params=70`                                                          |                                       161.1 GB | 161.1 GB | PASS    |
+| `/?total-params=70&context-tokens=32000`                                     |                                       172.0 GB | 172.0 GB | PASS    |
+| `/?total-params=70&precision=Q4_K_M`                                         |                                        53.8 GB |  53.8 GB | PASS    |
+| `/?total-params=8&execution-mode=QLoRA fine-tuning&lora-trainable-percent=2` |                                        21.0 GB |  21.0 GB | PASS    |
+| `/?total-params=7&execution-mode=Full training`                              |                                       152.9 GB | 152.9 GB | PASS    |
+| Guide panel                                                                  |                                        present |  present | PASS    |
+| Formula numbers                                                              | `18.8 GB ≈ (14.0 + 1.0 + 0.5 + 1.5) GB × 1.10` |     same | PASS    |
+| H1                                                                           |                     `AI Deployment Calculator` |     same | PASS    |
+| Canonical                                                                    |                       `https://vram.rxdt.dev/` |     same | PASS    |
+| GSC tag                                                                      |                                        present |  present | PASS    |

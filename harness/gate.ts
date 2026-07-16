@@ -92,29 +92,20 @@ interface CheckContext {
   timeoutMs: number;
 }
 
-// A missing tool is a spawn ENOENT (error.code "ENOENT"). A young template must not fail a
-// consumer who hasn't installed an external tool (semgrep/osv-scanner aren't npm) — so we SKIP
-// the check, but warn LOUDLY on every run so ignoring it is the consumer's choice.
+// A missing tool is a spawn ENOENT (error.code "ENOENT"). Every check tool is either a pinned
+// harness devDependency or an installed external (semgrep), so a missing one means a broken
+// environment, not an optional extra — it FAILS the gate (matching Semgrep/Lighthouse CI).
+// Silent skips let a check quietly not run: the sast check skipped this way on CI runners
+// that lacked semgrep, passing the gate without ever scanning.
 /**
 @param result
-@param binary
 */
-function isToolMissing(
-  result: SpawnSyncReturns<string>,
-  binary: string,
-): boolean {
+function isToolMissing(result: SpawnSyncReturns<string>): boolean {
   const code =
     result.error !== undefined && "code" in result.error
       ? result.error.code
       : undefined;
-  if (code !== "ENOENT") {
-    return false;
-  }
-  process.stderr.write(
-    `\n⚠️  harness: SKIPPED — '${binary}' is not installed on this machine.\n` +
-      `   install it to enable this check; it runs on every gate.\n\n`,
-  );
-  return true;
+  return code === "ENOENT";
 }
 
 // Failure detail from a non-passing spawn; empty output falls back to the command. stdout/stderr
@@ -164,8 +155,8 @@ function runOneCheck(
       `status=${String(result.status)} signal=${String(result.signal)} ` +
       `error=${result.error === undefined ? "none" : String(result.error)}\n`,
   );
-  if (isToolMissing(result, executable)) {
-    return undefined;
+  if (isToolMissing(result)) {
+    return `${name} failed:\n'${executable}' is not installed on this machine; install it — this check runs on every gate.`;
   }
   if (
     result.status === 0 &&

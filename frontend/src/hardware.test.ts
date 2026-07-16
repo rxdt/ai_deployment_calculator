@@ -251,15 +251,15 @@ describe("hardwareRecommendation display", () => {
   });
 
   test("reports usable VRAM and positive fit headroom on the recommended class", () => {
-    // 8B server default: required 21.3, tier 32, usable 32 * 0.85 = 27.2.
-    const recommendation = hardwareRecommendation(21.3, 0.85, {
+    // 8B server default: required 21.0, tier 32, usable 32 * 0.85 = 27.2.
+    const recommendation = hardwareRecommendation(21, 0.85, {
       allowSharding: false,
     });
     expect(recommendation.recommendedTier).toContain(
       "32 GB high-end consumer class",
     );
     expect(recommendation.usableVramOnClass).toBe("27.2 GB");
-    expect(recommendation.fitHeadroom).toBe("5.9 GB usable margin");
+    expect(recommendation.fitHeadroom).toBe("6.2 GB usable margin");
   });
 
   test("reports overflow with no usable-class or headroom values", () => {

@@ -54,6 +54,9 @@ export function assumptionRows(
   if (hasDecoderKvCache(state)) {
     notes.push(`KV cache precision: ${state.kvCachePrecision}.`);
   }
+  if (state.executionMode === "Inference") {
+    notes.push("Activation memory estimated at fp16 compute precision.");
+  }
   notes.push(
     `${percent(1 - spec.runtime.utilization)} of advertised card VRAM reserved for the driver + CUDA context.`,
     ...trainingNotes(state),

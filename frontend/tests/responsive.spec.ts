@@ -449,9 +449,9 @@ test("hero fit meter shows class usage and hides when nothing fits", async ({
   await expect(meter).toBeVisible();
   await expect(meter).toBeInViewport();
   await expect(meter).toHaveJSProperty("max", 100);
-  await expect(meter).toHaveJSProperty("value", 93);
+  await expect(meter).toHaveJSProperty("value", 92);
   await expect(page.locator('[data-out="vram-say"]')).toHaveText(
-    "Fits on one 24 GB card: 19.0 GB uses 93% of its 20.4 GB usable VRAM.",
+    "Fits on one 24 GB card: 18.8 GB uses 92% of its 20.4 GB usable VRAM.",
   );
   // The scale row labels the bar: USAGE on the left, the usable budget the
   // bar measures on the right.

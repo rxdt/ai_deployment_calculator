@@ -170,10 +170,10 @@ describe("corrected text-generation totals", () => {
         activeParams: "1.3",
         precision: "16-bit",
       },
-      113.1,
+      109.5,
     ],
-    ["7B server inference default matches the empty-form estimate", {}, 19],
-    ["8B server inference defaults to 21.3 GB", { totalParams: "8" }, 21.3],
+    ["7B server inference default matches the empty-form estimate", {}, 18.8],
+    ["8B server inference defaults to 21.0 GB", { totalParams: "8" }, 21],
     [
       "104B local exact GGUF file uses local overhead and no server buffer",
       {
@@ -184,7 +184,7 @@ describe("corrected text-generation totals", () => {
         runtimeProfile: "Local / Edge",
         knownModelFileSizeGb: "52",
       },
-      79.2,
+      79.7,
     ],
     [
       "47B local 4-bit MoE applies quantized weight overhead",
@@ -195,7 +195,7 @@ describe("corrected text-generation totals", () => {
         moeEnabled: true,
         activeParams: "1.3",
       },
-      31,
+      31.1,
     ],
     [
       "70B long-context 4-bit FP8 KV uses estimated GQA KV heads",
@@ -205,7 +205,7 @@ describe("corrected text-generation totals", () => {
         precision: "4-bit",
         kvCachePrecision: "8-bit / FP8",
       },
-      71.2,
+      71.3,
     ],
     [
       "70B exact file long-context case preserves architecture KV",
@@ -216,17 +216,17 @@ describe("corrected text-generation totals", () => {
         kvCachePrecision: "8-bit / FP8",
         knownModelFileSizeGb: "35",
       },
-      65.1,
+      65.5,
     ],
     [
       "104B 8-bit 16-bit KV uses weight overhead",
       { totalParams: "104", contextTokens: "32000", precision: "8-bit" },
-      141.6,
+      139,
     ],
     [
       "7B million-token context uses estimated GQA",
       { contextTokens: "1000000", precision: "8-bit" },
-      154.3,
+      154.5,
     ],
   ])("%s", (scenario, overrides, expected) => {
     expect(required(overrides), scenario).toBe(expected);
@@ -247,7 +247,7 @@ describe("corrected text-generation totals", () => {
           precision,
         }),
       ),
-    ).toEqual([39.8, 21.3, 12.5, 8.1]);
+    ).toEqual([38.6, 21, 12.6, 8.4]);
   });
 
   test("compares a 104B local precision sweep at 32k context with 32-bit KV", () => {
@@ -268,7 +268,7 @@ describe("corrected text-generation totals", () => {
           precision,
         }),
       ),
-    ).toEqual([454.1, 239.9, 138.1, 87.3]);
+    ).toEqual([443.7, 235.7, 136.9, 87.5]);
   });
 
   test("local 4-bit weights apply quantized overhead", () => {
@@ -434,7 +434,7 @@ describe("training estimates", () => {
     expect(spec.knownModelFileSizeGb).toBe(52);
     expect(weightsGb(spec)).toBe(52);
     expect(breakdown.runtimeOverheadGb).toBe(1.5);
-    expect(breakdown.requiredGb).toBe(62);
+    expect(breakdown.requiredGb).toBeCloseTo(59.7, 9);
     expect(speedEstimate(spec, weightsGb(spec), SPEED_TIER)).not.toBe(
       "0.0 tokens/second",
     );
@@ -707,15 +707,44 @@ describe("training estimates", () => {
 
 describe("workload-family working memory", () => {
   test("text generation includes decoder scratch by runtime profile", () => {
-    const server = specFromState(state());
-    const local = specFromState(state({ runtimeProfile: "Local / Edge" }));
+    const server = specFromState(state({ totalParams: "70" }));
+    const local = specFromState(
+      state({ totalParams: "70", runtimeProfile: "Local / Edge" }),
+    );
 
     expect(
       inferenceWorkingMemoryGb(server, weightsGb(server)).inputActivationGb,
-    ).toBeCloseTo(0.7);
+    ).toBeCloseTo(2.1);
     expect(
       inferenceWorkingMemoryGb(local, weightsGb(local)).inputActivationGb,
-    ).toBeCloseTo(0.42);
+    ).toBeCloseTo(1.4);
+  });
+
+  test("decoder activation scratch uses fp16 compute weights across quantization", () => {
+    const fp16 = specFromState(
+      state({ totalParams: "70", precision: "16-bit" }),
+    );
+    const q4 = specFromState(state({ totalParams: "70", precision: "Q4_K_M" }));
+    const fp16Activation = inferenceWorkingMemoryGb(
+      fp16,
+      weightsGb(fp16),
+    ).inputActivationGb;
+
+    expect(inferenceWorkingMemoryGb(q4, weightsGb(q4)).inputActivationGb).toBe(
+      fp16Activation,
+    );
+    expect(fp16Activation).toBeGreaterThanOrEqual(1);
+    expect(fp16Activation).toBeLessThanOrEqual(3);
+  });
+
+  test("decoder activation scratch has a small-model floor", () => {
+    const tiny = specFromState(
+      state({ totalParams: "0.1", precision: "Q4_K_M" }),
+    );
+
+    expect(
+      inferenceWorkingMemoryGb(tiny, weightsGb(tiny)).inputActivationGb,
+    ).toBe(0.5);
   });
 
   test("decoder families scale persistent KV cache while encoder-like families do not", () => {
@@ -780,7 +809,7 @@ describe("workload-family working memory", () => {
       family: "encoder_decoder",
       overrides: { inputTokens: "2048" },
       key: "inputActivationGb",
-      expected: 1.773741824,
+      expected: 1.573741824,
     },
     {
       scenario: "diffusion latent resolution",
@@ -864,8 +893,8 @@ describe("workload-family working memory", () => {
 
     expect(spec.visionArchitecture).toBeNull();
     expect(working.kvCacheGb).toBeCloseTo(1.061158912, 9);
-    expect(working.inputActivationGb).toBeCloseTo(0.347108864, 9);
-    expect(memoryBreakdown(spec).requiredGb.toFixed(1)).toBe("18.6");
+    expect(working.inputActivationGb).toBeCloseTo(0.567108864, 9);
+    expect(memoryBreakdown(spec).requiredGb.toFixed(1)).toBe("18.8");
   });
 
   test("vision-language pixel fallback keeps image count in KV only", () => {
@@ -896,7 +925,7 @@ describe("workload-family working memory", () => {
 
     expect(
       inferenceWorkingMemoryGb(spec, weightsGb(spec)).inputActivationGb,
-    ).toBeCloseTo(0.682653184, 9);
+    ).toBeCloseTo(0.902653184, 9);
   });
 
   test("working-memory helpers fall back for invalid raw workload fields", () => {

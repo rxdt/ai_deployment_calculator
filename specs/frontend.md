@@ -3,8 +3,9 @@
 ## Priority
 
 Phase 1 (compact, trustworthy VRAM calculator matching the DC design) is
-shipped and live at https://vram.rxdt.dev/. Phase 2 shipped so far: F3 real
-quant ladder and F4 crawlable prose/FAQ/keyword flip (both 2026-07-15).
+shipped and live at https://vram.rxdt.dev/. Phase 2 shipped so far: F0
+activation floor hotfix (2026-07-16), F3 real quant ladder, and F4 crawlable
+prose/FAQ keyword flip (2026-07-15).
 
 Current priority: finish F1, F2, F5, F6, then F7 one at a time, gate-green
 after each. Feature rationale lives in `specs/plan.md`.
@@ -101,6 +102,10 @@ after each. Feature rationale lives in `specs/plan.md`.
 
 ## Shipped Phase 2
 
+- F0 — Activation floor hotfix (2026-07-16): decoder inference activation
+  scratch is estimated from fp16-equivalent model weights, clamps to a 0.5 GB
+  floor, keeps 70B default activations in the 1-3 GB anchor envelope, and the
+  assumptions panel names fp16 compute precision.
 - F3 — Real quant ladder (2026-07-15): added GGUF bpw tiers (`IQ1_S`,
   `IQ2_XXS`, `IQ3_XXS`, `Q4_K_M`, `Q5_K_M`, `Q6_K`, `Q8_0`) plus `INT2` and
   `INT3`; existing option values stayed stable; QLoRA remains pinned to the

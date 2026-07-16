@@ -1,63 +1,47 @@
 > Handoff. Keep it short and current.
 
-## State (2026-07-15)
+## State (2026-07-16)
 
-- **Committed this iteration (prior-run leftovers, verified green):**
-  - `5671d28` F8 MI300X 192 GB card + GPU_LINKS page; Phase 2 spec sync
-    (F4 marked done, F8 contract, loop-discipline section).
-  - `6a12431` share-URL serialization tidy (`wireValue`) that omits
-    seed-default values so links stay short.
-- **F6 was implemented and verified green, then reverted — it cannot be
-  committed (see Blockers).** The implementation was: optional
-  `costPerHourUsd` on `GpuCard`; dated 2026-07 indicative rates on
-  A100/H100/H200/B200/MI300X; a muted "~$X.XX/hr rented" caption appended in
-  `gpuExampleNodes` (`app-dom.ts`); the anti-pricing report test retargeted at
-  prose fields; a render test + per-card-rate test. It passed
-  `test:coverage` (273 tests, 100% branches) and `preflight`, but the commit
-  hook rejected it.
-- Prior shipped: F3 real quant ladder, F4 crawlable prose/FAQ/keyword flip.
-- Branch: `main`, ahead of `origin/main`. `UPSTREAM.md` remains untracked.
+- F0 activation floor hotfix is implemented on `main` for the final current
+  branch commit: decoder-family inference scratch now uses fp16-equivalent
+  weights, floors at 0.5 GB, and shows the fp16 compute-precision assumption.
+- Crawlable default VRAM reference and FAQ numbers were refreshed from
+  `buildReport`; default 7B fp16 is now 18.8 GB and 70B fp16 is 160.8 GB.
+- Prior shipped: F3 real quant ladder and F4 crawlable prose/FAQ/keyword flip.
+- Existing uncommitted owner/handoff files remain outside this F0 staging set:
+  `frontend/src/app-dom.ts`, `frontend/src/app.ts`, `harness/preferences.ts`,
+  `harness/qa-*.mjs`, `UPSTREAM.md`, and `specs/qa*.md`.
 
 ## Checks
 
-- Passed (F6 working tree, before revert): `pnpm --dir frontend run
-  test:coverage` — 273 tests, 100% statements/branches/functions/lines;
-  `pnpm preflight`.
-- The F6 commit was **rejected by the harness gate** (see Blockers).
+- Passed: `pnpm --dir frontend run test:coverage` — 273 tests, 100% coverage.
+- Passed: affected Playwright specs
+  (`calculator`, `calculator-parity`, `responsive`) — 310 passed, 8 skipped.
+- `pnpm preflight` fails only on forbidden untracked `harness/qa-*.mjs`
+  Prettier formatting.
+- `pnpm gate` passes lint/type/build/coverage/E2E/Lighthouse for F0, then
+  fails on forbidden untracked `harness/qa-*.mjs` format/deadcode and cspell
+  fallout from existing human-owned files.
+- Commit attempt blocked by the same preflight hook: forbidden untracked
+  `harness/qa-*.mjs` files fail Prettier.
 
 ## Blockers
 
-- **HARNESS TRAP blocks F6 and any `app-dom.ts` / `app.ts` change.** The
-  `preferenceProblems` gate (`harness/gate.ts` → `harness/preferences.ts`)
-  scans the full staged content of every `.ts` file in a commit and rejects
-  DOM selectors not in `ALLOWED_TS_DOM_DATA_SELECTORS`. That allowlist is
-  missing `[data-tier-fit]`, used by the pre-existing `renderTierFits` in
-  `app-dom.ts`, so staging `app-dom.ts` fails with
-  `unlisted data-* selector '[data-tier-fit]'`. `app.ts` is likewise frozen:
-  its `hideSlots` calls `querySelectorAll(selector)` with a variable, which
-  the same gate flags as a dynamic selector. `app-dom.ts` was last committed
-  in `549d433`; no commit since has touched it, so this latent trap was never
-  hit until F6. **Fix is owner-only** (forbidden `harness/` path): add
-  `"[data-tier-fit]"` to `ALLOWED_TS_DOM_DATA_SELECTORS` and either allowlist
-  the `hideSlots` pattern or exempt variable selectors. After that, F6 is a
-  ~15-minute redo from the description above. Logged in `UPSTREAM.md`.
-- **F1 (HF model lookup) is too large for one gate-green iteration.** It needs,
-  in one atomic commit under the 100% branch gate: a typeahead UI in a frozen
-  `app.ts`, a mocked fetch layer (quicksearch + config.json + safetensors
-  index), new resolved-architecture state fields, real `num_key_value_heads`
-  feeding the KV math (`calculator-core.ts` hardcodes GQA kvHeads=8 in
-  `ARCHITECTURE_BUCKETS`), URL state storing resolved numbers, and fetch-mock
-  tests + a manual-fallback e2e. It is also gated by the same harness trap
-  (touches `app.ts`). Split into sub-PRs: (1) resolved-arch state + calculator
-  KV override + tests; (2) pure HF fetch/parse module + tests; (3) typeahead
-  UI + e2e.
-- **F5 (prerendered per-model pages) is blocked by the forbidden-path rule:**
-  its contract requires adding rollup inputs in `harness/vite.config.ts`, and
-  `harness/` may not be edited by the loop.
+- **Harness selector trap still blocks most UI features.** `app-dom.ts` and
+  `app.ts` have pre-existing/handoff edits to work around the selector gate,
+  and `harness/preferences.ts` is forbidden for loop agents. Owner review is
+  still needed before F1/F2/F6 UI work can move safely.
+- **Forbidden QA harness files block preflight/gate and likely commit hooks.**
+  Untracked `harness/qa-*.mjs` files fail Prettier/deadcode/spelling checks,
+  but loop agents may not edit or delete `harness/`.
+- **F5 remains blocked by forbidden-path rules.** Its contract requires Vite
+  rollup inputs in `harness/vite.config.ts`, which this loop may not edit.
+- **F1 remains too large for one safe UI commit while the selector trap is
+  unresolved.** Split into state/KV math, HF fetch/parse, then typeahead UI.
 
 ## Next
 
-- Owner: fix the harness selector allowlist (see Blockers) to unfreeze
-  `app-dom.ts` / `app.ts`; nearly all remaining Phase 2 UI work depends on it.
-- Once unfrozen, F6 is the fastest win, then F1 (per the sub-PR split), then F2.
-- F8 is a recurring data-only refresh and stays committable independently.
+- Owner: clean or remove the untracked `harness/qa-*.mjs` files, then rerun
+  `pnpm preflight` and `pnpm gate`.
+- Commit only the staged F0 code, tests, static HTML, specs, and this status
+  file once the forbidden harness blocker is cleared.

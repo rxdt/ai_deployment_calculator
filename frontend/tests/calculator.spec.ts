@@ -66,14 +66,14 @@ test("screen-reader smoke path exposes labels, landmarks, and live results", asy
   );
   await expect(
     page.getByRole("status", { name: "Estimated VRAM required" }),
-  ).toHaveText("19.0 GB");
+  ).toHaveText("18.8 GB");
   await expect(page.getByLabel("Model Task Family")).toBeVisible();
   await expect(page.getByLabel("Total Model Parameters")).toHaveValue("7");
 
   await page.getByLabel("Total Model Parameters").fill("400");
   await expect(
     page.getByRole("status", { name: "Estimated VRAM required" }),
-  ).not.toHaveText("19.0 GB");
+  ).not.toHaveText("18.8 GB");
   await expect(
     page.getByRole("note", { name: "Multi-GPU deployment guidance" }),
   ).toBeVisible();
@@ -95,7 +95,7 @@ test("clamps a malformed hand-edited URL to defaults without crashing", async ({
 
   // Every unparsable value falls back to its default, so the page renders the
   // seed 7B estimate instead of crashing or reflecting the injected markup.
-  await expect(page.locator('[data-out="total"]')).toHaveText("19.0 GB");
+  await expect(page.locator('[data-out="total"]')).toHaveText("18.8 GB");
   await expect(page.locator('[data-out="gpu-class"]')).toHaveText(
     "24 GB hardware tier",
   );
@@ -138,7 +138,7 @@ test("renders the default deployment computed locally", async ({ page }) => {
       name: "VRAM Calculator for LLMs, Diffusion & AI Models",
     }),
   ).toBeVisible();
-  await expect(page.locator('[data-out="total"]')).toHaveText("19.0 GB");
+  await expect(page.locator('[data-out="total"]')).toHaveText("18.8 GB");
   await expect(page.locator('[data-out="gpu-class"]')).toHaveText(
     "24 GB hardware tier",
   );
@@ -155,7 +155,7 @@ test("renders the default deployment computed locally", async ({ page }) => {
   await expect(
     page.locator('[data-slot="hero-gpu-card"] [data-slot="gpu-examples-row"]'),
   ).toHaveCount(1);
-  await expect(page.locator('[data-out="min-cap"]')).toHaveText("22.4 GB");
+  await expect(page.locator('[data-out="min-cap"]')).toHaveText("22.1 GB");
   await expect(page.locator('[data-out="speed"]')).toContainText("tokens/sec");
   await expect(page.locator('[data-out="calculation-rows"] li')).toHaveCount(
     10,
@@ -167,9 +167,9 @@ test("renders the default 7B estimate consistently across the full report", asyn
 }) => {
   await page.goto("/");
 
-  await expect(page.locator('[data-out="total"]')).toHaveText("19.0 GB");
+  await expect(page.locator('[data-out="total"]')).toHaveText("18.8 GB");
   await expect(page.locator('[data-out="vram-say"]')).toHaveText(
-    "Fits on one 24 GB card: 19.0 GB uses 93% of its 20.4 GB usable VRAM.",
+    "Fits on one 24 GB card: 18.8 GB uses 92% of its 20.4 GB usable VRAM.",
   );
   await expect(page.locator('[data-out="gpu-class"]')).toHaveText(
     "24 GB hardware tier",
@@ -178,15 +178,15 @@ test("renders the default 7B estimate consistently across the full report", asyn
 
   await page.getByText("Why this recommendation").click();
   await expect(page.locator('[data-out="why"]')).toContainText(
-    "requires hardware with at least 22.4 GB accelerator memory",
+    "requires hardware with at least 22.1 GB accelerator memory",
   );
-  await expect(page.locator('[data-out="min-cap"]')).toHaveText("22.4 GB");
+  await expect(page.locator('[data-out="min-cap"]')).toHaveText("22.1 GB");
   await expect(page.locator('[data-out="usable-target"]')).toHaveText("85%");
   await expect(page.locator('[data-out="usable-on-class"]')).toHaveText(
     "20.4 GB",
   );
   await expect(page.locator('[data-out="fit-headroom"]')).toHaveText(
-    "1.4 GB usable margin",
+    "1.6 GB usable margin",
   );
   await expect(page.locator('[data-out="speed"]')).toHaveText(
     "66.9 tokens/sec",
@@ -196,14 +196,14 @@ test("renders the default 7B estimate consistently across the full report", asyn
   await expectReportRows(page, "calculation-rows", [
     ["Model weights", "14.0 GB"],
     ["Context memory", "1.0 GB"],
-    ["Activation memory", "0.7 GB"],
-    ["Working memory subtotal", "1.7 GB"],
+    ["Activation memory", "0.5 GB"],
+    ["Working memory subtotal", "1.5 GB"],
     ["Training state", "0.0 GB"],
     ["Runtime overhead", "1.5 GB"],
-    ["Base subtotal before buffer", "17.2 GB"],
+    ["Base subtotal before buffer", "17.0 GB"],
     ["Buffer multiplier", "1.10x"],
     ["Safety buffer", "1.7 GB"],
-    ["Total required", "19.0 GB"],
+    ["Total required", "18.8 GB"],
   ]);
 
   await page.getByText("Formula used").click();
@@ -212,7 +212,7 @@ test("renders the default 7B estimate consistently across the full report", asyn
   );
   // The general formula is followed by the same terms with the real numbers.
   await expect(page.locator('[data-out="calc-numbers"]')).toHaveText(
-    "19.0 GB ≈ (14.0 + 1.0 + 0.7 + 1.5) GB × 1.10",
+    "18.8 GB ≈ (14.0 + 1.0 + 0.5 + 1.5) GB × 1.10",
   );
 
   // Assumptions are short methodology notes (green-bulleted prose), not an echo
@@ -221,6 +221,7 @@ test("renders the default 7B estimate consistently across the full report", asyn
   await expect(page.locator('[data-out="assumptions"] li span')).toHaveText([
     "Runtime / CUDA overhead estimated at a fixed 1.5 GB for this mode and runtime profile.",
     "KV cache precision: 16-bit.",
+    "Activation memory estimated at fp16 compute precision.",
     "15% of advertised card VRAM reserved for the driver + CUDA context.",
   ]);
   await expect(page.locator('[data-out="warnings"]')).toBeHidden();
@@ -285,7 +286,7 @@ test("recomputes when parameters change", async ({ page }) => {
   await page.goto("/");
 
   await page.locator("#total-params").fill("104");
-  await expect(page.locator('[data-out="total"]')).toHaveText("245.4 GB");
+  await expect(page.locator('[data-out="total"]')).toHaveText("237.3 GB");
 });
 
 test("rejects negatives, exponents, and unbounded numbers", async ({
@@ -462,7 +463,7 @@ test("ignores reflected query values without injecting markup", async ({
     Boolean(Reflect.get(globalThis, "injected")),
   );
   expect(wasInjected).toBe(false);
-  await expect(page.locator('[data-out="total"]')).toHaveText("19.0 GB");
+  await expect(page.locator('[data-out="total"]')).toHaveText("18.8 GB");
 });
 
 test("introduces the calculator with its purpose subtitle in the input pane", async ({

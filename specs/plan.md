@@ -71,6 +71,20 @@ These are non-negotiable:
   fp16, MHA-only KV, flat 2.5x/1.5x/1.2x training multipliers, or GiB
   mislabeled as GB — we verified all of these wrong against published
   reference points.
+- (2026-07-15 owner review; grounded against llama.cpp allocation logs)
+  Inference activation scratch is currently derived from resident weight
+  bytes, so a quantized model wrongly shows smaller activations than its
+  fp16 twin. Reality: activations are computed in fp16 regardless of weight
+  quant, and the peak is PREFILL compute buffers (prompt ingestion), roughly
+  bounded by chunk-tokens x intermediate size x 2 bytes and capped by
+  micro-batch chunking — not a clean function of context (llama.cpp
+  maintainers confirm no closed form exists). Re-key the heuristic on
+  architecture (fits F1's data) and pin the fix against measured anchors:
+  Llama-3 70B @ 8k ctx = 2,270 + 1,104 MiB compute buffers (split across two
+  devices); 70B @ 4k chunked = 507 MiB; largest single 70B activation
+  (MLP up_proj) ~0.3 GB per batch element. Target envelope ~1-3 GB for 70B
+  at 4-8k, scaling down with model size.
+  (github.com/ggml-org/llama.cpp discussions 9784, 9936, 10068)
 
 ## Phase 1 — Core calculator: COMPLETE (2026-07-12)
 
@@ -94,12 +108,18 @@ file-size override, usable-VRAM-aware recommendations, training depth
 (LoRA/QLoRA/full), and workload breadth are already ours and ahead of every
 competitor.
 
+- [x] ~~**F0. Activation floor hotfix** (effort S).~~ DONE 2026-07-16:
+      decoder-family inference activation scratch uses fp16-equivalent model
+      weights instead of selected quantized weights, clamps at 0.5 GB, keeps
+      70B default activation memory in the 1-3 GB anchor envelope, updates the
+      assumptions note, and refreshes the crawlable quick-reference values.
 - [ ] **F1. Hugging Face model lookup** (effort M). Client-side, no backend:
       HF quicksearch API for typeahead, then `config.json` (+ safetensors
       index when present) for exact params, layers, hidden size, and
       `num_key_value_heads`. Fills the form; manual entry stays as the
       fallback (gated models 401 on config fetch — degrade gracefully).
-      Fixes the GQA correction above with real KV-head counts.
+      Fixes the GQA correction above with real KV-head counts. Also replaces
+      the F0 interim activation floor with architecture-keyed prefill math.
 - [ ] **F2. Layer-offload output** (effort S once F1 lands). When the model
       does not fit the selected/recommended GPU, output "N of L layers fit on
       GPU, rest to CPU" with the per-layer GB figure. Layers come from F1 or
@@ -132,6 +152,25 @@ competitor.
       add newly common SKUs to the right tier (2026-07-15 added MI300X 192 GB
       this way), refresh F6 prices once they exist, and correct dead links.
       One PR-sized pass per run; log what was checked in the commit message.
+- [ ] **F9. Cross-calculator QA run** (effort S, recurring, report-only —
+      full contract in `specs/qa.md`). Drive the primary competitor
+      calculators (apxml, vram.asmirnov.xyz, the SadP0i GGUF Space) with our
+      canonical scenarios, compare per-component numbers against the live
+      site, triage every disagreement against published anchors, and write
+      `docs/qa/comparison-YYYY-MM-DD.md`. Never edits product code — "our
+      error" findings become dated Research Corrections here. Run after every
+      formula-affecting change (F0/F1/F3-class) and before distribution
+      pushes.
+- [ ] **F10. Adversarial oracle suite** (effort M first run, then recurring —
+      full contract in `specs/qa-adversarial.md`). Red-team the math: audit
+      existing tests for tautologies and one-way coverage, then write
+      adversarial and weird-combination cases in
+      `frontend/adversarial/oracle.test.ts` — a suite deliberately OUTSIDE
+      the gate's glob — whose assertions come only from external calculators,
+      published anchors, and physical invariants, never our own equations.
+      Failures caused by incorrect source stay RED as living bug reports,
+      each filed as a dated Research Correction naming the red test as
+      reproducer. Lint must pass; assertions may fail.
 
 Explicitly rejected (do not build): animated inference simulations, live
 multi-provider price feeds, model-quality benchmark scores, accounts,
@@ -160,6 +199,13 @@ Done means, for each feature taken on:
 
 ## Blockers
 
+- **Untracked forbidden QA harness files block preflight/gate (2026-07-16).**
+  Symptom: `pnpm preflight` fails Prettier on `harness/qa-*.mjs`; final
+  `pnpm gate` passes F0 lint/type/build/coverage/E2E/Lighthouse but fails on
+  those forbidden files via Prettier, knip deadcode, and cspell fallout.
+  The commit hook fails on the same Prettier check. Attempts: F0-owned
+  lint/test/E2E failures were fixed; the remaining files are under forbidden
+  `harness/`. Owner must clean or remove them before commits can pass hooks.
 - **The harness DOM-selector gate freezes `app-dom.ts` and `app.ts` (2026-07-15).**
   Symptom: committing F6 was rejected with
   `app-dom.ts:...: unlisted data-* selector '[data-tier-fit]'`. Attempts:

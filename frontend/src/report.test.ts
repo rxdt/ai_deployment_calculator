@@ -16,14 +16,14 @@ describe("buildReport", () => {
   test("builds the default report locally without network access", () => {
     const report = buildReport(state({ totalParams: "8" }));
 
-    expect(report.totalRequiredMemory).toBe("21.3 GB");
-    expect(report.minimumRawVramNeeded).toBe("25.1 GB");
+    expect(report.totalRequiredMemory).toBe("21.0 GB");
+    expect(report.minimumRawVramNeeded).toBe("24.7 GB");
     expect(report.recommendedHardware).toEqual({
-      requiredMemory: "21.3 GB",
+      requiredMemory: "21.0 GB",
       usableVramTarget: "85%",
       usableVramOnClass: "27.2 GB",
-      fitHeadroom: "5.9 GB usable margin",
-      minimumRawVram: "25.1 GB",
+      fitHeadroom: "6.2 GB usable margin",
+      minimumRawVram: "24.7 GB",
       recommendedTier:
         "32 GB high-end consumer class, e.g. RTX 5090 / Radeon PRO W7800 / AWS Inferentia2 / Cloud TPU v6e / Cloud TPU v4",
       exampleCards: [
@@ -42,7 +42,7 @@ describe("buildReport", () => {
         { name: "Cloud TPU v6e", url: GPU_LINKS.tpuV6e },
         { name: "Cloud TPU v4", url: GPU_LINKS.tpuV4 },
       ],
-      math: "Estimated workload memory is 21.3 GB. With a 85% usable memory target, use hardware with at least 25.1 GB of accelerator memory so the workload does not consume the entire device.",
+      math: "Estimated workload memory is 21.0 GB. With a 85% usable memory target, use hardware with at least 24.7 GB of accelerator memory so the workload does not consume the entire device.",
     });
     expect(report.calculation).toBe(
       "VRAM = (weights + KV cache + activations + runtime overhead) × buffer",
@@ -51,14 +51,14 @@ describe("buildReport", () => {
     expect(report.calculationRows).toEqual([
       { label: "Model weights", value: "16.0 GB" },
       { label: "Context memory", value: "1.0 GB" },
-      { label: "Activation memory", value: "0.8 GB" },
-      { label: "Working memory subtotal", value: "1.8 GB" },
+      { label: "Activation memory", value: "0.5 GB" },
+      { label: "Working memory subtotal", value: "1.5 GB" },
       { label: "Training state", value: "0.0 GB" },
       { label: "Runtime overhead", value: "1.5 GB" },
-      { label: "Base subtotal before buffer", value: "19.3 GB" },
+      { label: "Base subtotal before buffer", value: "19.0 GB" },
       { label: "Buffer multiplier", value: "1.10x" },
       { label: "Safety buffer", value: "1.9 GB" },
-      { label: "Total required", value: "21.3 GB" },
+      { label: "Total required", value: "21.0 GB" },
     ]);
   });
 
@@ -76,8 +76,8 @@ describe("buildReport", () => {
       }),
     );
 
-    expect(report.totalRequiredMemory).toBe("79.0 GB");
-    expect(report.minimumRawVramNeeded).toBe("92.9 GB");
+    expect(report.totalRequiredMemory).toBe("79.1 GB");
+    expect(report.minimumRawVramNeeded).toBe("93.1 GB");
     expect(report.recommendedHardware.recommendedTier).toBe(
       "95 GB Cloud TPU class, e.g. Cloud TPU v5p",
     );
@@ -85,8 +85,8 @@ describe("buildReport", () => {
     expect(report.speed).toBe("400.7 tokens/second");
     expect(report.calculationRows).toEqual(
       expect.arrayContaining([
-        { label: "Working memory subtotal", value: "43.3 GB" },
-        { label: "Total required", value: "79.0 GB" },
+        { label: "Working memory subtotal", value: "43.4 GB" },
+        { label: "Total required", value: "79.1 GB" },
       ]),
     );
   });
@@ -107,8 +107,8 @@ describe("buildReport", () => {
       }),
     );
 
-    expect(report.totalRequiredMemory).toBe("1.0 GB");
-    expect(report.minimumRawVramNeeded).toBe("1.1 GB");
+    expect(report.totalRequiredMemory).toBe("1.5 GB");
+    expect(report.minimumRawVramNeeded).toBe("1.7 GB");
     expect(report.recommendedHardware.recommendedTier).toBe(
       "8 GB consumer class, e.g. RTX 4060 / older 8 GB GPUs",
     );
@@ -122,7 +122,7 @@ describe("buildReport", () => {
     };
 
     const singleGpu = buildReport(state(base));
-    expect(singleGpu.minimumRawVramNeeded).toBe("145.3 GB");
+    expect(singleGpu.minimumRawVramNeeded).toBe("142.7 GB");
     expect(singleGpu.recommendedHardware.recommendedTier).toBe(
       "180 GB datacenter class, e.g. B200",
     );
@@ -192,7 +192,7 @@ describe("buildReport", () => {
       }),
     );
 
-    expect(report.totalRequiredMemory).toBe("79.2 GB");
+    expect(report.totalRequiredMemory).toBe("79.7 GB");
     expect(report.warnings.join(" ")).not.toContain(
       "Transformer architecture is estimated",
     );
@@ -347,7 +347,7 @@ describe("buildReport", () => {
   test("formula numbers substitute the real values into the mode's terms", () => {
     // Inference: (weights + KV cache + activations + overhead) × buffer.
     expect(buildReport(state()).calculationNumbers).toBe(
-      "19.0 GB ≈ (14.0 + 1.0 + 0.7 + 1.5) GB × 1.10",
+      "18.8 GB ≈ (14.0 + 1.0 + 0.5 + 1.5) GB × 1.10",
     );
     // Training modes carry training state instead of KV cache and use the
     // 1.25 training buffer.
@@ -363,6 +363,7 @@ describe("buildReport", () => {
     expect(notes).toEqual([
       "Runtime / CUDA overhead estimated at a fixed 1.5 GB for this mode and runtime profile.",
       "KV cache precision: 16-bit.",
+      "Activation memory estimated at fp16 compute precision.",
       "15% of advertised card VRAM reserved for the driver + CUDA context.",
     ]);
     // The inputs the user typed are not repeated as assumption rows, and every
@@ -453,7 +454,7 @@ describe("headline stat chips", () => {
       { label: "Model Weights", value: "16.0 GB" },
       { label: "KV Cache", value: "1.0 GB" },
       { label: "Concurrency", value: "1" },
-      { label: "Spare", value: "22%" },
+      { label: "Spare", value: "23%" },
     ]);
   });
 

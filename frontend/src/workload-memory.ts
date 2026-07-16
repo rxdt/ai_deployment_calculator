@@ -19,6 +19,8 @@ const DEFAULT_TEMPORAL_DOWNSAMPLE = 4;
 const DEFAULT_AUDIO_TOKENS_PER_SECOND = 50;
 const DEFAULT_FEATURE_BYTES = 4;
 const DEFAULT_ACTIVATION_BYTES = 2;
+const INFERENCE_ACTIVATION_FLOOR_GB = 0.5;
+const SERVER_DECODER_PREFILL_RATIO = 0.015;
 const ZERO_SPEED_ESTIMATES: ReadonlyMap<WorkloadFamily, string> = new Map([
   ["audio", "0.0 audio tokens/second"],
   ["image_diffusion", "0.0 images/minute"],
@@ -76,10 +78,13 @@ const activationGb = (
 const encoderActivationGb = (
   spec: Readonly<CalculationSpec>,
   tokens: number,
-): number => {
-  const arch = spec.architecture;
-  return activationGb(spec, tokens, arch.layers, arch.hidden);
-};
+): number =>
+  activationGb(
+    spec,
+    tokens,
+    spec.architecture.layers,
+    spec.architecture.hidden,
+  );
 
 const pixelProxyGb = (
   spec: Readonly<CalculationSpec>,
@@ -105,16 +110,22 @@ const visionActivationGb = (
   );
 };
 
-const textGenerationMemory: WorkingMemoryBuilder = (spec, currentWeightsGb) => {
-  const scratchRatio = spec.runtimeProfile === "Local / Edge" ? 0.03 : 0.05;
-  return {
-    kvCacheGb: decoderKvGb(
-      spec,
-      nonNegativeField(spec.state.contextTokens, 8000),
-    ),
-    inputActivationGb: currentWeightsGb * scratchRatio,
-  };
-};
+const fp16ActivationScratchGb = (
+  spec: Readonly<CalculationSpec>,
+  ratio: number,
+): number =>
+  Math.max(INFERENCE_ACTIVATION_FLOOR_GB, spec.residentParamsB * 2 * ratio);
+
+const decoderPrefillRatio = (spec: Readonly<CalculationSpec>): number =>
+  spec.runtimeProfile === "Local / Edge" ? 0.01 : SERVER_DECODER_PREFILL_RATIO;
+
+const textGenerationMemory: WorkingMemoryBuilder = (spec) => ({
+  kvCacheGb: decoderKvGb(
+    spec,
+    nonNegativeField(spec.state.contextTokens, 8000),
+  ),
+  inputActivationGb: fp16ActivationScratchGb(spec, decoderPrefillRatio(spec)),
+});
 
 const textEncoderMemory: WorkingMemoryBuilder = (spec) => {
   return {
@@ -126,7 +137,7 @@ const textEncoderMemory: WorkingMemoryBuilder = (spec) => {
   };
 };
 
-const encoderDecoderMemory: WorkingMemoryBuilder = (spec, currentWeightsGb) => {
+const encoderDecoderMemory: WorkingMemoryBuilder = (spec) => {
   const input = encoderActivationGb(
     spec,
     nonNegativeField(spec.state.inputTokens, 1024),
@@ -134,7 +145,8 @@ const encoderDecoderMemory: WorkingMemoryBuilder = (spec, currentWeightsGb) => {
   const kv = decoderKvGb(spec, nonNegativeField(spec.state.outputTokens, 256));
   return {
     kvCacheGb: kv,
-    inputActivationGb: input + currentWeightsGb * 0.05,
+    inputActivationGb:
+      input + fp16ActivationScratchGb(spec, SERVER_DECODER_PREFILL_RATIO),
   };
 };
 
@@ -147,7 +159,7 @@ const visionMemory: WorkingMemoryBuilder = (spec) => {
   return { kvCacheGb: 0, inputActivationGb: Math.max(transformer, pixels) };
 };
 
-const visionLanguageMemory: WorkingMemoryBuilder = (spec, currentWeightsGb) => {
+const visionLanguageMemory: WorkingMemoryBuilder = (spec) => {
   const width = nonNegativeField(spec.state.imageWidth, 1024);
   const height = nonNegativeField(spec.state.imageHeight, 1024);
   const imageTokenCount =
@@ -160,7 +172,8 @@ const visionLanguageMemory: WorkingMemoryBuilder = (spec, currentWeightsGb) => {
   const vision = visionActivationGb(spec, imageTokenCount);
   return {
     kvCacheGb: kv,
-    inputActivationGb: vision + currentWeightsGb * 0.02,
+    inputActivationGb:
+      vision + fp16ActivationScratchGb(spec, SERVER_DECODER_PREFILL_RATIO),
   };
 };
 

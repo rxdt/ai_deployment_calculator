@@ -431,7 +431,7 @@ describe("static SEO metadata", () => {
       "https://vram.rxdt.dev/og-image.png",
     );
     expect(metaContent(head, "property", "og:image:alt")).toContain(
-      "19.0 GB memory estimate",
+      "18.8 GB memory estimate",
     );
     expect(metaContent(head, "name", "twitter:card")).toBe(
       "summary_large_image",
@@ -956,15 +956,15 @@ describe("mounted calculator", () => {
   test("renders the default 7B estimate on mount", () => {
     loadDom();
     mountCalculator(document);
-    expect(out("total")).toBe("19.0 GB");
+    expect(out("total")).toBe("18.8 GB");
     expect(out("vram-say")).toBe(
-      "Fits on one 24 GB card: 19.0 GB uses 93% of its 20.4 GB usable VRAM.",
+      "Fits on one 24 GB card: 18.8 GB uses 92% of its 20.4 GB usable VRAM.",
     );
     expect(out("gpu-class")).toBe("24 GB hardware tier");
     expect(dataSlot("gpu-class-label").textContent.trim()).toBe(
       "Recommended Example",
     );
-    expect(out("min-cap")).toBe("22.4 GB");
+    expect(out("min-cap")).toBe("22.1 GB");
     expect(out("speed")).toMatch(/tokens\/sec$/u);
     expect(outSlot("calculation-rows").children).toHaveLength(10);
   });
@@ -1059,9 +1059,9 @@ describe("mounted calculator", () => {
       "assumptions",
     ];
 
-    expect(out("total")).toBe("19.0 GB");
+    expect(out("total")).toBe("18.8 GB");
     expect(out("vram-say")).toBe(
-      "Fits on one 24 GB card: 19.0 GB uses 93% of its 20.4 GB usable VRAM.",
+      "Fits on one 24 GB card: 18.8 GB uses 92% of its 20.4 GB usable VRAM.",
     );
     expect(out("gpu-class")).toBe("24 GB hardware tier");
     for (const name of firstGlanceSlots) {
@@ -1071,19 +1071,19 @@ describe("mounted calculator", () => {
     }
 
     expect(out("why")).toContain("accelerator memory");
-    expect(out("min-cap")).toBe("22.4 GB");
+    expect(out("min-cap")).toBe("22.1 GB");
     expect(out("usable-target")).toBe("85%");
     expect(out("usable-on-class")).toBe("20.4 GB");
-    expect(out("fit-headroom")).toBe("1.4 GB usable margin");
+    expect(out("fit-headroom")).toBe("1.6 GB usable margin");
     expect(out("speed")).toMatch(/tokens\/sec$/u);
     expect(out("calculation-rows")).toContain("Total required");
-    expect(out("calculation-rows")).toContain("19.0 GB");
+    expect(out("calculation-rows")).toContain("18.8 GB");
     expect(out("calc-formula")).toContain(
       "(weights + KV cache + activations + runtime overhead) × buffer",
     );
-    expect(out("calc-formula")).not.toContain("19.0 GB");
+    expect(out("calc-formula")).not.toContain("18.8 GB");
     expect(out("calc-numbers")).toBe(
-      "19.0 GB ≈ (14.0 + 1.0 + 0.7 + 1.5) GB × 1.10",
+      "18.8 GB ≈ (14.0 + 1.0 + 0.5 + 1.5) GB × 1.10",
     );
     expect(out("assumptions")).toContain(
       "Runtime / CUDA overhead estimated at a fixed 1.5 GB",
@@ -1108,7 +1108,7 @@ describe("mounted calculator", () => {
     loadDom();
     mountCalculator(document);
     fireInput("total-params", "104");
-    expect(out("total")).toBe("245.4 GB");
+    expect(out("total")).toBe("237.3 GB");
   });
 
   test("preserves fractional model parameter inputs", () => {
@@ -1116,7 +1116,7 @@ describe("mounted calculator", () => {
     mountCalculator(document);
     fireInput("total-params", "3.8");
     expect(field("total-params").value).toBe("3.8");
-    expect(out("total")).toBe("11.4 GB");
+    expect(out("total")).toBe("11.6 GB");
   });
 
   test("recomputes on input and change from a select", () => {
@@ -1178,7 +1178,7 @@ describe("mounted calculator", () => {
       moe.checked = true;
     }
     moe.dispatchEvent(new Event("change", { bubbles: true }));
-    expect(out("total")).toBe("19.0 GB");
+    expect(out("total")).toBe("18.8 GB");
   });
 
   test("renders training warnings and drops the standard disclaimer", () => {
@@ -1268,11 +1268,11 @@ describe("hero fit meter", () => {
     }
 
     expect(meter.hidden).toBe(false);
-    expect(meter.value).toBe(93);
-    // The default sits at 93%, under the 95% threshold, so the bar stays calm.
+    expect(meter.value).toBe(92);
+    // The default sits at 92%, under the 95% threshold, so the bar stays calm.
     expect(meter.classList.contains("fit-meter--tight")).toBe(false);
     expect(out("vram-say")).toBe(
-      "Fits on one 24 GB card: 19.0 GB uses 93% of its 20.4 GB usable VRAM.",
+      "Fits on one 24 GB card: 18.8 GB uses 92% of its 20.4 GB usable VRAM.",
     );
     // The scale row under the bar names the usable budget the bar measures.
     expect(out("capacity")).toBe("20.4 GB usable of 24 GB");
@@ -1288,10 +1288,10 @@ describe("hero fit meter", () => {
     }
 
     expect(meter.hidden).toBe(false);
-    expect(meter.value).toBe(98);
+    expect(meter.value).toBe(95);
     expect(meter.classList.contains("fit-meter--tight")).toBe(true);
     expect(out("vram-say")).toBe(
-      "Tight fit on one 48 GB card: 40.1 GB uses 98% of its 40.8 GB usable VRAM.",
+      "Tight fit on one 48 GB card: 38.8 GB uses 95% of its 40.8 GB usable VRAM.",
     );
   });
 
@@ -1774,7 +1774,7 @@ describe("adaptive controls", () => {
 
     fireChange("kv-cache-precision", "32-bit");
 
-    expect(out("total")).toBe("20.1 GB");
+    expect(out("total")).toBe("19.9 GB");
     expect(out("assumptions")).toContain("32-bit");
   });
 
@@ -1989,9 +1989,9 @@ describe("model presets", () => {
     expect(field("workload-family").value).toBe("text_generation");
     expect(field("precision").value).toBe("16-bit");
     expect(field("moe-enabled")).toHaveProperty("checked", false);
-    expect(out("total")).toBe("166.2 GB");
+    expect(out("total")).toBe("160.8 GB");
     expect(dataSlot("status-model").textContent).toBe("70B");
-    expect(out("gpu-class")).toContain("memory sharding");
+    expect(out("gpu-class")).toBe("192 GB hardware tier");
   });
 
   test("loads a mixture-of-experts preset with its active parameters", () => {
@@ -2006,7 +2006,7 @@ describe("model presets", () => {
     expect(field("active-params").value).toBe("12.9");
     expect(isRowHidden("active-params")).toBe(false);
     expect(dataSlot("status-model").textContent).toBe("46.7B MoE");
-    expect(out("total")).toBe("112.4 GB");
+    expect(out("total")).toBe("108.8 GB");
   });
 
   test("computes the preset report from freshly revealed controls", () => {
@@ -2037,7 +2037,7 @@ describe("model presets", () => {
 
     expect(submitCount).toBe(0);
     expect(field("total-params").value).toBe("9");
-    expect(out("total")).toBe("23.6 GB");
+    expect(out("total")).toBe("23.2 GB");
   });
 
   test("loads an image-diffusion preset that leaves the text-generation family", () => {
@@ -2058,7 +2058,7 @@ describe("model presets", () => {
     loadDom();
     mountCalculator(document);
     clickPreset("Llama 8B");
-    expect(out("total")).toBe("21.3 GB");
+    expect(out("total")).toBe("21.0 GB");
 
     requireButton().click();
 
@@ -2180,6 +2180,6 @@ describe("main entrypoint", () => {
   test("mounts against the document on import", async () => {
     loadDom();
     await import("./main");
-    expect(out("total")).toBe("19.0 GB");
+    expect(out("total")).toBe("18.8 GB");
   });
 });

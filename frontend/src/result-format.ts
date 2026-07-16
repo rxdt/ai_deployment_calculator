@@ -11,7 +11,7 @@ export interface FitMeter {
 // A fit consuming 95% or more of the class's usable VRAM shows the dim amber
 // tight signal. The estimate already carries the runtime safety buffer and the
 // usable-VRAM derate, so only a near-exhausted budget warrants a warning; the
-// default 7B/24 GB example at 93% deliberately reads as a comfortable fit.
+// default 7B/24 GB example at 92% deliberately reads as a comfortable fit.
 const TIGHT_FILL_PERCENT = 95;
 
 /**

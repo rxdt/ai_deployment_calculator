@@ -37,7 +37,7 @@ describe("whyText", () => {
     const report = buildReport(state({ totalParams: "8" }));
 
     expect(whyText(report)).toBe(
-      "At an 85% usable memory target, 21.3 GB requires hardware with at least 25.1 GB accelerator memory. The hardware tier has capacity 32 GB.",
+      "At an 85% usable memory target, 21.0 GB requires hardware with at least 24.7 GB accelerator memory. The hardware tier has capacity 32 GB.",
     );
   });
 
@@ -62,28 +62,28 @@ describe("fitMeter", () => {
       throw new Error("Expected a fit meter for the default workload");
     }
     expect(meter.capacity).toBe("20.4 GB usable of 24 GB");
-    expect(meter.fillPercent).toBe(93);
-    // 93% is under the 95% tight threshold: the padded estimate fitting its
+    expect(meter.fillPercent).toBe(92);
+    // 92% is under the 95% tight threshold: the padded estimate fitting its
     // usable budget reads as a comfortable fit, not a warning.
     expect(meter.isTight).toBe(false);
     expect(meter.summary).toBe(
-      "Fits on one 24 GB card: 19.0 GB uses 93% of its 20.4 GB usable VRAM.",
+      "Fits on one 24 GB card: 18.8 GB uses 92% of its 20.4 GB usable VRAM.",
     );
   });
 
   test("flags a near-budget fit as tight and leads the caption with it", () => {
-    // 16B at 16-bit needs 40.1 GB and the smallest fitting class offers 40.8 GB
-    // usable, consuming 98% of the budget with only 0.7 GB spare.
+    // 16B at 16-bit needs 38.8 GB and the smallest fitting class offers 40.8 GB
+    // usable, consuming 95% of the budget with 2.0 GB spare.
     const report = buildReport(state({ totalParams: "16" }));
     const meter = fitMeter(report.recommendedHardware);
 
     if (meter === null) {
       throw new Error("Expected a fit meter for a near-budget workload");
     }
-    expect(meter.fillPercent).toBe(98);
+    expect(meter.fillPercent).toBe(95);
     expect(meter.isTight).toBe(true);
     expect(meter.summary).toBe(
-      "Tight fit on one 48 GB card: 40.1 GB uses 98% of its 40.8 GB usable VRAM.",
+      "Tight fit on one 48 GB card: 38.8 GB uses 95% of its 40.8 GB usable VRAM.",
     );
   });
 

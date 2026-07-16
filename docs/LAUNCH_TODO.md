@@ -5,8 +5,6 @@ launch risk. Legend: `[B]` blocker, `[H]` high, `[M]` medium, `[L]` low.
 
 ## 0. Ship Blockers
 
-- [ ] [B] Choose hosting. Build output is `frontend/dist`; root-domain hosting
-      needs no Vite `base`, subpath hosting does.
 - [ ] [B] Add deploy job after the gate once hosting is chosen.
 - [ ] [B] Decide production URL/base path, then add canonical/OG URL.
 - [ ] [B] Commit, PR, merge to `main`.
@@ -30,10 +28,6 @@ launch risk. Legend: `[B]` blocker, `[H]` high, `[M]` medium, `[L]` low.
 ## 5. Performance
 
 - [ ] [H] Re-run Lighthouse against the deployed URL.
-
-## 7. Docs And Repo Hygiene
-
-- [ ] [L] Add LICENSE if the repo is public.
 
 ## 8. Optional Post-Launch
 

@@ -70,3 +70,23 @@ External anchors from `specs/qa.md` + `specs/plan.md` Research Corrections;
 outputs recomputed from `frontend/src/calculator-core.ts` /
 `workload-memory.ts` formulas. No product code, tests, or specs edited. Deploy
 facts from `git merge-base` / `git rev-list origin/main..main`.
+
+## 5. Post-deploy verification
+
+After the owner deploy, Playwright drove `https://vram.rxdt.dev/` with absolute
+URLs and JS hydration. **Verdict: GO.** Production now serves the corrected
+bundle, not the stale one.
+
+| Live check | Expected | Actual | Verdict |
+|---|---:|---:|---|
+| `/` | 18.8 GB | 18.8 GB | PASS |
+| `/?total-params=70` | 161.1 GB | 161.1 GB | PASS |
+| `/?total-params=70&context-tokens=32000` | 172.0 GB | 172.0 GB | PASS |
+| `/?total-params=70&precision=Q4_K_M` | 53.8 GB | 53.8 GB | PASS |
+| `/?total-params=8&execution-mode=QLoRA fine-tuning&lora-trainable-percent=2` | 21.0 GB | 21.0 GB | PASS |
+| `/?total-params=7&execution-mode=Full training` | 152.9 GB | 152.9 GB | PASS |
+| Guide panel | present | present | PASS |
+| Formula numbers | `18.8 GB ≈ (14.0 + 1.0 + 0.5 + 1.5) GB × 1.10` | same | PASS |
+| H1 | `AI Deployment Calculator` | same | PASS |
+| Canonical | `https://vram.rxdt.dev/` | same | PASS |
+| GSC tag | present | present | PASS |

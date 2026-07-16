@@ -29,9 +29,9 @@ Short, current handoff. Deleted lines are the point — keep only what's useful 
   VRAM/GPU memory keywords remain in title/meta; the broader prior title is
   JSON-LD `alternateName`. Local diff vs `origin/main` confirmed the other
   live-only SEO assets were the old Vercel canonical sitemap/robots.
-- Production is BEHIND `main` (not yet deployed). Deploy prep now has local
-  build/preflight/gate green and a Codex deploy-delta review; it still needs the
-  required Claude review and owner push.
+- Production live verification passed after the owner deploy: `vram.rxdt.dev`
+  serves the corrected 18.8 GB default, 70B/context/Q4_K_M/training sentinel
+  values, guide panel, formula string, canonical, H1, and GSC tag.
 
 ## Checks
 
@@ -50,6 +50,9 @@ Short, current handoff. Deleted lines are the point — keep only what's useful 
   grep passed 18/18 projects.
 - Deploy prep checks after SEO reconciliation: `pnpm build`, `pnpm preflight`,
   and `pnpm gate` passed.
+- Live deploy verification: Playwright against `https://vram.rxdt.dev/` passed
+  all `specs/deploy-reconcile.md` R4 rows (`18.8`, `161.1`, `172.0`, `53.8`,
+  `21.0`, `152.9` GB) plus guide/formula/H1/canonical/GSC checks.
 - Codex deploy-delta review: GO after required Claude review and owner deploy;
   the delta is accuracy-positive (7B 18.8, 70B 161.1, Q4_K_M 42.44 GB weights)
   and SEO-safe (GSC restored, `AI Deployment Calculator` restored, VRAM/GPU
@@ -66,22 +69,13 @@ Short, current handoff. Deleted lines are the point — keep only what's useful 
 
 ## Open work (priority-ranked; see `specs/plan.md` PRIORITIES)
 
-- **P0 — Confirm the deploy landed (owner is gating + pushing `main` now).**
-  `main` is verified strictly better, no regressions (see plan.md P0). The four
-  "regressions" seen on the live site (7B=19.0, missing guide panel, `0.7/19.0`
-  formula, rejected Q4_K_M) were ALL the stale bundle — deploying fixes all of
-  them. Active gap-closer: `deploy-reconcile.md` R4 — after the push, drive the
-  LIVE site and confirm the corrected values (do NOT assume the deploy landed;
-  caches can serve stale). **Only the owner deploys.**
 - **P2 — F9/F10** recurring QA/oracle runs (`specs/qa.md`, `specs/plan.md`).
 - **Parked (do not build):** F1/F2/F5/F6/F7/F8
   (`scratchpad/DO-NOT-DO-phase2-features.md`).
 
 ## Blockers
 
-- Owner is gating + pushing `main` now, but `git ls-remote origin
-  refs/heads/main` still reports GSC-only `2401b9b`; production remains stale
-  until that ref changes. Prefer a lease-protected push over a plain push.
+- None for the completed live deploy verification.
 
 ## Known issues
 

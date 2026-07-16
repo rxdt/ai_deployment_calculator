@@ -48,27 +48,17 @@ Commands: `pnpm preflight`, `pnpm gate`; QA contracts live in `specs/qa.md`.
 ## Current Work
 
 Shipped: F0 activation floor, F3 quant ladder, F4 crawlable prose, F4.1 guide
-relocation/FAQ removal, the decimal-input fix, and the context-anchored decoder
-activation scratch (`decoder-scratch.ts`, verified against llama.cpp anchors).
-`specs/frontend.md` was deleted because no frontend build item remained.
+relocation/FAQ removal, the decimal-input fix, the context-anchored decoder
+activation scratch (`decoder-scratch.ts`, verified against llama.cpp anchors),
+and post-deploy live verification of the corrected production bundle.
+`specs/frontend.md` and `specs/deploy-reconcile.md` were deleted because no
+work remained.
 
 Parked by owner directive (2026-07-16): F1, F2, F5, F6, F7, F8. Do not build.
 Rationale: `scratchpad/DO-NOT-DO-phase2-features.md`.
 
-### PRIORITIES (exactly one P0; everything else is P1/P2)
+### PRIORITIES
 
-- **P0 — Confirm the live site actually got the fix (owner is deploying now).**
-  The owner is gating and pushing `main`. `main` is INDEPENDENTLY VERIFIED
-  (2026-07-16) strictly better with no regressions: activation context-anchored
-  (70B 2.32→4.36 GB across 8k→32k, cites llama.cpp #7804/#10003); 70B@8k=161.1
-  reproduced by hand; fp16=params×2, KV=0.125 MiB/tok (vLLM), Q4_K_M weights
-  42.4≈real GGUF all exact; GSC tag + "AI Deployment Calculator" brand match
-  live; 279 tests / 100% cov / gate green. The four things previously seen as
-  "regressions" on the live site (7B=19.0, missing guide panel, `0.7/19.0`
-  formula, rejected Q4_K_M) were ALL the stale bundle — `main` fixes every one.
-  Do NOT re-verify `main`; the open work is R4 in `deploy-reconcile.md`: after
-  the push, drive the LIVE site and confirm it now serves the correct values
-  (don't assume the deploy landed — caches lie). **ONLY THE OWNER DEPLOYS.**
 - **P2 — F9. Cross-calculator QA run.** Drive the calculators in `specs/qa.md`,
   compare canonical scenarios against the live site, triage disagreements
   against anchors, write `docs/qa/comparison-YYYY-MM-DD.md`.
@@ -90,5 +80,4 @@ QA oracle is intentionally red, and keep README/status/specs accurate.
 
 ## Blockers
 
-- Required Claude deploy review cannot run: local `claude` says `Not logged in`.
-- Owner has not deployed; production remains stale.
+- None for the completed live-deploy verification.

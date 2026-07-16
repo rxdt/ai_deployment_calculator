@@ -21,9 +21,9 @@ Short, current handoff. Deleted lines are the point — keep only what's useful 
   `docs/qa/adversarial-2026-07-16.md` with PB-scale URL, published bpw,
   training-order, no-KV, and URL-extreme invariants, then added Part B oracle
   cases: the vLLM 0.125 MiB/token Llama-3-8B KV anchor, a weight-quantization
-  twin-invariance case, and the published full-training bytes/param anchors
-  (AdamW 16, 8-bit Adam 10, SGD 12; weights + training-state equal
-  params×anchor exactly, isolated from working memory). Suite is 18 green.
+  twin-invariance case, the published full-training bytes/param anchors, and a
+  training-mode KV-leak guard proving LoRA/QLoRA/full training stay zero-KV and
+  KV-precision invariant at 1M context. Suite is 21 green.
   Report notes a definitional limitation: GQA-only architecture buckets would
   KV-under-count legacy MHA models (e.g. Llama-2-7B) — not filed as our error.
 - Hardware-tier green-check QA is covered by Playwright (`0b8c598`): default
@@ -48,7 +48,7 @@ Short, current handoff. Deleted lines are the point — keep only what's useful 
 - Focused: `playwright test ... --grep "keeps the hardware tier best-fit check
   visible"` passed 6/6 projects (desktop Chrome, desktop Safari, iPhone, Pixel,
   320px, tablet).
-- Focused: `vitest src/adversarial` passed 18 oracle tests; hardware-tier
+- Focused: `vitest src/adversarial` passed 21 oracle tests; hardware-tier
   reference focus passed 4 tests / 106 skipped.
 - Focused after SEO reconciliation: `vitest src/app.test.ts` passed 111 tests;
   Playwright calculator H1/subtitle grep passed 12/12 projects; responsive H1

@@ -78,6 +78,12 @@ const KV_PRECISIONS: readonly KvPrecision[] = [
   "32-bit",
 ];
 
+const TRAINING_MODES: readonly FormState["executionMode"][] = [
+  "LoRA fine-tuning",
+  "QLoRA fine-tuning",
+  "Full training",
+];
+
 const EXTREME_QUERIES: readonly ExtremeQuery[] = [
   {
     scenario: "small model with million-token context",
@@ -312,6 +318,53 @@ describe("adversarial oracle suite", () => {
         parameters * 10 * bytesPerParam,
         6,
       );
+    },
+  );
+
+  test.each(TRAINING_MODES)(
+    "does not let persistent decoder KV cache leak into %s",
+    (executionMode) => {
+      // Physical training invariant: decoder KV cache is an inference serving
+      // artifact. Training memory is activations plus trainable state, so even
+      // a hostile million-token context with 32-bit KV selected must not carry
+      // a persistent KV row or let the KV-precision dropdown move the estimate.
+      const base = {
+        workloadFamily: "text_generation",
+        totalParams: "8",
+        contextTokens: "1000000",
+        workloadSize: "8",
+      } satisfies Partial<FormState>;
+      const inference = memoryBreakdown(
+        specFromState(
+          state({
+            ...base,
+            executionMode: "Inference",
+            kvCachePrecision: "32-bit",
+          }),
+        ),
+      );
+      const trainingRows = KV_PRECISIONS.map((kvCachePrecision) =>
+        memoryBreakdown(
+          specFromState(
+            state({
+              ...base,
+              executionMode,
+              kvCachePrecision,
+            }),
+          ),
+        ),
+      );
+
+      expect(inference.kvCacheGb).toBeGreaterThan(0);
+      expect(new Set(trainingRows.map((row) => row.kvCacheGb))).toEqual(
+        new Set([0]),
+      );
+      expect(
+        new Set(trainingRows.map((row) => row.inputActivationGb)).size,
+      ).toBe(1);
+      expect(new Set(trainingRows.map((row) => row.requiredGb)).size).toBe(1);
+      expect(trainingRows[0].inputActivationGb).toBeGreaterThan(0);
+      expect(trainingRows[0].trainingStateGb).toBeGreaterThan(0);
     },
   );
 

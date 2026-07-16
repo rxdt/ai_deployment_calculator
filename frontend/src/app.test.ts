@@ -984,14 +984,10 @@ describe("mounted calculator", () => {
     const calculationPanel = containingDetails(outSlot("calculation-rows"));
     const formulaPanel = containingDetails(outSlot("calc-formula"));
     const assumptionsPanel = containingDetails(outSlot("assumptions"));
-    const guideSummary = document.querySelector("#vram-guide-title");
-    if (
-      !(guideSummary instanceof HTMLElement) ||
-      !(guideSummary.parentElement instanceof HTMLDetailsElement)
-    ) {
+    const guidePanel = dataSlot("vram-guide-panel");
+    if (!(guidePanel instanceof HTMLDetailsElement)) {
       throw new TypeError("Missing crawlable guide panel");
     }
-    const guidePanel = guideSummary.parentElement;
     const summaries = [
       whyPanel,
       calculationPanel,
@@ -1800,12 +1796,12 @@ describe("advanced numeric input caps", () => {
 });
 
 describe("sanitizeNumberInput", () => {
-  test("keeps a single decimal point for decimal inputs", () => {
+  test("keeps one decimal point and two decimal digits for decimal inputs", () => {
     const input = document.createElement("input");
     input.inputMode = "decimal";
     input.value = "1.2.3";
     sanitizeNumberInput(input);
-    expect(input.value).toBe("1.2");
+    expect(input.value).toBe("1.23");
   });
 
   test("keeps one decimal digit at the global cap", () => {

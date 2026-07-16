@@ -4,39 +4,38 @@ Short, current handoff. Deleted lines are the point — keep only what's useful 
 
 ## State (2026-07-16)
 
-- Committed on `main`: F0 activation fix (`0b80fa1`), then bug-fix batch
-  (`a06f2dd`) carrying the F4.1 UI rework, the 256-token context floor, and
-  spec cleanup. 274 unit tests, 100% coverage; build green.
-- **F4.1 done:** FAQ section + FAQPage JSON-LD removed; "How VRAM is
-  calculated" relocated into the reasoning `.panel-group` (shared `.panel`
-  styling, green chevron); bespoke `.seo-*`/`.faq-item` CSS gone; hero subtitle
-  width now uses the `--layout-intro-max` token.
-- Current run pinned F4.1 behavior: fifth guide panel order/closed state,
-  keyboard Enter toggle, hidden-then-open guide table, and Total Model
-  Parameters staying a free-form text input.
-- Production is BEHIND `main` (not yet deployed). Deploy is gated by the
-  Release Rule (gate + Claude review + Codex review) in `specs/frontend.md`.
+- `main` includes the Phase 2 F0/F3/F4/F4.1 work plus the decimal-input fix
+  (`d5cbaf0`): URL normalization and decimal text inputs now preserve up to 2
+  decimal places, including `gpuResidentFraction=0.75` and
+  `loraTrainablePercent=0.05`.
+- `specs/frontend.md` had no remaining frontend build work after that fix, so
+  it was deleted. Active work is now the recurring QA/release loop in
+  `specs/qa.md` and `specs/plan.md`.
+- Production is BEHIND `main` (not yet deployed). Deploy still needs automated
+  gate green, one high-level Claude review, and one high-level Codex review;
+  owner pushes.
 
 ## Checks
 
 - `pnpm preflight` passed.
+- Focused: `vitest src/state.test.ts src/input-sanitizer.test.ts` passed 22
+  tests; earlier focused `src/state.test.ts src/app.test.ts` passed 131 tests
+  before the app-test addition was moved to the focused sanitizer test.
+- Focused: `vitest src/app.test.ts` passed 110 tests after aligning the
+  sanitizer expectation with the 2-decimal behavior.
+- Visual screenshots saved in `scratchpad/visual-decimal-input/`: 390px
+  default closed (18.8 GB), desktop decimal advanced open (24.5 GB), 320px
+  zeroed (0.0 GB), tablet extreme guide open (139.4 GB), desktop panels open
+  (90.6 GB). Script checked no horizontal overflow and preserved decimal field
+  values.
 - `pnpm gate` passed.
-- Focused: `vitest src/app.test.ts` passed 110 tests; affected Playwright specs
-  passed 314 tests / 10 skipped.
-- Visual screenshots saved in `scratchpad/visual-f4.1/`: default closed
-  (18.8 GB), 70B 8-bit open guide (87.7 GB), 390px zeroed (0.0 GB), 320px 13B
-  4-bit guide (11.9 GB), tablet 104B extreme (237.3 GB). Script checked no
-  horizontal overflow for each.
 
 ## Open work
 
-- **Decimal-input fix (only calc change the audit warrants):** relax
-  `numeric-state.ts` `isPlainDecimal` to accept 2 decimals so
-  `gpuResidentFraction=0.75` etc. don't silently revert; pin with a URL
-  round-trip test. Details in `specs/frontend.md` "Edge-Case Audit Verdicts".
 - **Phase 2 feature backlog (F1/F2/F5/F6/F7/F8) is PARKED** — do not build
-  (archived at `scratchpad/DO-NOT-DO-phase2-features.md`). Recurring QA runs
-  F9/F10 remain actionable (`specs/qa.md`).
+  (archived at `scratchpad/DO-NOT-DO-phase2-features.md`).
+- Recurring QA/release runs F9/F10 remain actionable in `specs/qa.md` and
+  `specs/plan.md`.
 
 ## Blockers
 
@@ -44,5 +43,4 @@ Short, current handoff. Deleted lines are the point — keep only what's useful 
 
 ## Known issues
 
-- Small-screen topbar polish around GitHub/brand wrapping is pre-existing, not
-  from F4.1. Logged in `docs/LAUNCH_TODO.md` (section 4).
+- Small-screen topbar polish around GitHub/brand wrapping is pre-existing.

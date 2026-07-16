@@ -59,18 +59,21 @@ Rationale: `scratchpad/DO-NOT-DO-phase2-features.md`.
 
 - **P0 — The LIVE public site serves WRONG numbers.** https://vram.rxdt.dev/
   runs the stale pre-F0 bundle (7B default = 19.0 GB; correct = 18.8) and lacks
-  F3/F4/F4.1. `main` is verified more accurate AND fixes the canonical SEO
-  defect, but a deploy needs the SEO reconciliation first (`deploy-reconcile.md`:
-  GSC tag restored ✅, brand/title decision pending). Nothing outranks getting a
-  correct, non-regressing build deployable. **Only the owner deploys.** Until
-  prod is correct, this is THE priority; treat any accuracy regression on `main`
-  as a release blocker, not a backlog item.
+  F3/F4/F4.1. `main` is INDEPENDENTLY VERIFIED (2026-07-16) as strictly better,
+  no regressions: activation now context-anchored (70B 2.32→4.36 GB across
+  8k→32k, cites llama.cpp #7804/#10003); 70B@8k total = 161.1 GB reproduced by
+  hand from anchors; fp16=params×2 and KV=0.125 MiB/tok (vLLM) exact; GSC tag
+  value matches live; brand H1 "AI Deployment Calculator" already matches live
+  (deploy does NOT rebrand); 279 tests / 100% cov / gate green. SEO
+  reconciliation complete (GSC, sitemap/robots on vram.rxdt.dev, brand).
+  Nothing outranks getting this correct, non-regressing build deployable —
+  remaining gate is only the two high-level reviews + consolidating the
+  overlapping deploy specs. **ONLY THE OWNER DEPLOYS.** Treat any accuracy
+  regression on `main` as a release blocker, not a backlog item.
 - **P1 — Guard the accuracy that was just fixed.** Add a direct unit test for
   `decoder-scratch.ts` pinning its cited anchors (≈2.2 GB @8k, ≈4.2 GB @32k for
   70B; the 0.5 GB floor) and the context-growth invariant, so the formula can't
   silently drift off its measurements. Currently only covered indirectly.
-- **P1 — Brand/title SEO decision** (in `deploy-reconcile.md` R2): which name
-  ranks better; apply consistently. Blocks the P0 deploy.
 - **P2 — F9. Cross-calculator QA run.** Drive the calculators in `specs/qa.md`,
   compare canonical scenarios against the live site, triage disagreements
   against anchors, write `docs/qa/comparison-YYYY-MM-DD.md`.

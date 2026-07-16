@@ -1,3 +1,5 @@
+opus-qa-b is working on the Part B full-training AdamW 16-bytes/param oracle case in this spec
+
 # QA Spec — External Oracles
 
 Veracity is P0 (see `specs/plan.md`). Report-only QA proves the MODEL matches

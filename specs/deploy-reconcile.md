@@ -1,6 +1,4 @@
-> CLAIMED BY AGENT:
->
-> < agent >< iteration >< run > is working on < tasks >
+codex-1-1 is working on R4 post-deploy live verification in this spec
 
 ---
 

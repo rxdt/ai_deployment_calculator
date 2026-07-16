@@ -11,6 +11,10 @@ Short, current handoff. Deleted lines are the point — keep only what's useful 
 - `main` also includes the T3 decoder activation fix (`3d40a46`): inference
   scratch now follows llama.cpp 70B 8k/32k compute-buffer anchors, so
   `?total-params=70` is 161.1 GB and 70B@32k is no longer context-flat.
+- Shipped: direct `decoder-scratch.test.ts` (`0ead7c7`) pins that activation
+  formula to its llama.cpp anchors (70B 8k≈2.32 GB #7804, 32k≈4.43 GB #10003,
+  0.5 GB floor, linear scaling, monotonic context growth, out-of-range clamps),
+  closing the former P1 accuracy-guard gap; was covered only indirectly before.
 - `specs/frontend.md` had no remaining frontend build work after that fix, so
   it was deleted. Deploy prep now lives in `specs/deploy-reconcile.md`;
   recurring QA remains in `specs/qa.md`/`specs/plan.md`.
@@ -69,9 +73,6 @@ Short, current handoff. Deleted lines are the point — keep only what's useful 
   them. Active gap-closer: `deploy-reconcile.md` R4 — after the push, drive the
   LIVE site and confirm the corrected values (do NOT assume the deploy landed;
   caches can serve stale). **Only the owner deploys.**
-- **P1 — Guard the just-fixed accuracy:** add a direct `decoder-scratch.ts`
-  unit test pinning its llama.cpp anchors (≈2.2 GB @8k, ≈4.2 GB @32k for 70B;
-  0.5 GB floor) + context-growth invariant. Currently only covered indirectly.
 - **P2 — F9/F10** recurring QA/oracle runs (`specs/qa.md`, `specs/plan.md`).
 - **Parked (do not build):** F1/F2/F5/F6/F7/F8
   (`scratchpad/DO-NOT-DO-phase2-features.md`).

@@ -72,10 +72,6 @@ Rationale: `scratchpad/DO-NOT-DO-phase2-features.md`.
   Do NOT re-verify `main`; the open work is R4 in `deploy-reconcile.md`: after
   the push, drive the LIVE site and confirm it now serves the correct values
   (don't assume the deploy landed — caches lie). **ONLY THE OWNER DEPLOYS.**
-- **P1 — Guard the accuracy that was just fixed.** Add a direct unit test for
-  `decoder-scratch.ts` pinning its cited anchors (≈2.2 GB @8k, ≈4.2 GB @32k for
-  70B; the 0.5 GB floor) and the context-growth invariant, so the formula can't
-  silently drift off its measurements. Currently only covered indirectly.
 - **P2 — F9. Cross-calculator QA run.** Drive the calculators in `specs/qa.md`,
   compare canonical scenarios against the live site, triage disagreements
   against anchors, write `docs/qa/comparison-YYYY-MM-DD.md`.

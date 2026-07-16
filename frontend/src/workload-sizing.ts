@@ -4,6 +4,11 @@ const DEFAULT_PATCH_SIZE = 16;
 const DEFAULT_TEMPORAL_DOWNSAMPLE = 4;
 const DEFAULT_AUDIO_TOKENS_PER_SECOND = 50;
 
+// Smallest context worth pricing: a real prompt is at least a couple of
+// sentences, so a below-floor value (blank, 0, or a stale URL) would give a
+// meaningless KV cache of ~0 rather than the field's honest default.
+const MIN_CONTEXT_TOKENS = 256;
+
 /**
 @param value raw numeric field value
 @param fallback value used for malformed direct state
@@ -12,6 +17,15 @@ const DEFAULT_AUDIO_TOKENS_PER_SECOND = 50;
 export function nonNegativeField(value: string, fallback: number): number {
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
+}
+
+/**
+@param value raw context-length field value
+@param fallback value used for malformed direct state
+@returns context length held at or above the minimum floor
+*/
+export function contextField(value: string, fallback: number): number {
+  return Math.max(nonNegativeField(value, fallback), MIN_CONTEXT_TOKENS);
 }
 
 /**
@@ -110,5 +124,5 @@ export function trainingTokenCount(state: Readonly<FormState>): number {
   if (buildCount !== undefined) {
     return buildCount(state);
   }
-  return nonNegativeField(state.contextTokens, 8000);
+  return contextField(state.contextTokens, 8000);
 }

@@ -648,6 +648,37 @@ describe("training estimates", () => {
     );
   });
 
+  /**
+  A live model must never price a zero-length context: blank or 0 (including a
+  stale shared URL) floors to the 256-token minimum, so the KV cache stays
+  nonzero and matches an explicit 256 rather than collapsing to ~0.
+  */
+  test("context length floors to the 256-token minimum for a live model", () => {
+    const floored = specFromState(
+      state({ totalParams: "7", contextTokens: "256" }),
+    );
+    const flooredKv = inferenceWorkingMemoryGb(
+      floored,
+      weightsGb(floored),
+    ).kvCacheGb;
+
+    for (const raw of ["0", ""]) {
+      const spec = specFromState(
+        state({ totalParams: "7", contextTokens: raw }),
+      );
+      const kv = inferenceWorkingMemoryGb(spec, weightsGb(spec)).kvCacheGb;
+      expect(kv).toBeGreaterThan(0);
+      expect(kv).toBe(flooredKv);
+    }
+
+    const defaultSpec = specFromState(
+      state({ totalParams: "7", contextTokens: "8000" }),
+    );
+    expect(flooredKv).toBeLessThan(
+      inferenceWorkingMemoryGb(defaultSpec, weightsGb(defaultSpec)).kvCacheGb,
+    );
+  });
+
   test("zero baseline produces zero output memory and speed", () => {
     const spec = specFromState(
       state({

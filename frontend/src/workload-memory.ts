@@ -9,7 +9,12 @@ import {
 } from "./calculator-core";
 import { estimateSpeed, type HardwareTier } from "./hardware";
 import type { WorkloadFamily } from "./types";
-import { imageTokens, nonNegativeField, videoSize } from "./workload-sizing";
+import {
+  contextField,
+  imageTokens,
+  nonNegativeField,
+  videoSize,
+} from "./workload-sizing";
 import { hasMoeControl } from "./workload-visibility";
 
 const BYTES_PER_GB = 1_000_000_000;
@@ -120,10 +125,7 @@ const decoderPrefillRatio = (spec: Readonly<CalculationSpec>): number =>
   spec.runtimeProfile === "Local / Edge" ? 0.01 : SERVER_DECODER_PREFILL_RATIO;
 
 const textGenerationMemory: WorkingMemoryBuilder = (spec) => ({
-  kvCacheGb: decoderKvGb(
-    spec,
-    nonNegativeField(spec.state.contextTokens, 8000),
-  ),
+  kvCacheGb: decoderKvGb(spec, contextField(spec.state.contextTokens, 8000)),
   inputActivationGb: fp16ActivationScratchGb(spec, decoderPrefillRatio(spec)),
 });
 

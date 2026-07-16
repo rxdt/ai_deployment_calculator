@@ -367,22 +367,6 @@ function canonicalHref(head: HTMLHeadElement): string | null {
 }
 
 /**
- Read visible FAQ question headings from the crawlable content.
-@param parsed - parsed index.html document
-@returns FAQ question text in DOM order
-*/
-function visibleFaqQuestions(parsed: Document): string[] {
-  return allElements(parsed.body)
-    .filter(
-      (entry): entry is HTMLHeadingElement =>
-        entry instanceof HTMLHeadingElement &&
-        entry.tagName === "H3" &&
-        entry.parentElement?.classList.contains("faq-item") === true,
-    )
-    .map((heading) => heading.textContent.trim());
-}
-
-/**
  Find the static VRAM reference table.
 @param parsed - parsed index.html document
 @returns the reference table
@@ -455,28 +439,16 @@ describe("static SEO metadata", () => {
     expect(offers.price).toBe("0");
   });
 
-  test("mirrors the visible FAQ in structured data", () => {
+  test("ships no FAQ structured data while the FAQ section is removed (F4.1)", () => {
+    // The visible FAQ widget was dropped in F4.1; structured data must not
+    // describe content absent from the page, so no FAQPage schema may remain.
     const parsed = new DOMParser().parseFromString(indexHtml, "text/html");
-    const visibleQuestions = visibleFaqQuestions(parsed);
     const faqSchema = structuredData(parsed).find(
       (schema) => schema["@type"] === "FAQPage",
     );
-    if (!isRecord(faqSchema)) {
-      throw new TypeError("FAQ structured data must be a JSON object");
-    }
-    const { mainEntity } = faqSchema;
-    if (!Array.isArray(mainEntity)) {
-      throw new TypeError("FAQ structured data must list questions");
-    }
-    const schemaQuestions = mainEntity.map((item) => {
-      if (!isRecord(item) || typeof item.name !== "string") {
-        throw new TypeError("FAQ question must be named");
-      }
-      return item.name;
-    });
 
-    expect(visibleQuestions).toHaveLength(7);
-    expect(schemaQuestions).toEqual(visibleQuestions);
+    expect(faqSchema).toBeUndefined();
+    expect(indexHtml).not.toContain("faq-item");
   });
 
   test("keeps the crawlable quick reference table equal to calculator output", () => {
@@ -1150,11 +1122,12 @@ describe("mounted calculator", () => {
     // Truncate at the first non-numeric character instead of deleting it in
     // place, so scientific notation and signs cannot be reinterpreted as a
     // plausible-but-wrong magnitude: a leading "-" yields empty, and "9e5"
-    // keeps only the leading "9" rather than fusing into "95".
+    // keeps only the leading "9" rather than fusing into "95". The context
+    // field's 256-token floor then normalizes that "9" up to "256".
     fireInput("context-tokens", "-9e5");
     expect(field("context-tokens").value).toBe("");
     fireInput("context-tokens", "9e5");
-    expect(field("context-tokens").value).toBe("9");
+    expect(field("context-tokens").value).toBe("256");
     fireInput("context-tokens", "100000000");
     expect(field("context-tokens").value).toBe("99999999");
   });

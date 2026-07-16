@@ -91,70 +91,6 @@
         }
       }
     </script>
-    <script type="application/ld+json">
-      {
-        "@context": "https://schema.org",
-        "@type": "FAQPage",
-        "mainEntity": [
-          {
-            "@type": "Question",
-            "name": "How much VRAM do I need for a 70B model?",
-            "acceptedAnswer": {
-              "@type": "Answer",
-              "text": "With the default inference settings, a 70B model needs about 160.8 GB at FP16, 87.7 GB at 8-bit, or 51.1 GB at 4-bit. Context length, batch size, and runtime overhead can move that number."
-            }
-          },
-          {
-            "@type": "Question",
-            "name": "How much VRAM do I need for a 7B model?",
-            "acceptedAnswer": {
-              "@type": "Answer",
-              "text": "With the default inference settings, a 7B model needs about 18.8 GB at FP16, 11.4 GB at 8-bit, or 7.8 GB at 4-bit."
-            }
-          },
-          {
-            "@type": "Question",
-            "name": "How much VRAM for LoRA vs QLoRA fine-tuning?",
-            "acceptedAnswer": {
-              "@type": "Answer",
-              "text": "LoRA keeps the base model in the selected precision and adds adapter training state. QLoRA pins the base weights to 4-bit and usually needs less VRAM, but optimizer choice, sequence length, micro-batch size, and checkpointing still matter."
-            }
-          },
-          {
-            "@type": "Question",
-            "name": "Does context length affect VRAM?",
-            "acceptedAnswer": {
-              "@type": "Answer",
-              "text": "Yes. Text generation stores a KV cache that grows with context length, concurrency, layer count, hidden size, and KV-cache precision."
-            }
-          },
-          {
-            "@type": "Question",
-            "name": "Can I run a model bigger than my VRAM?",
-            "acceptedAnswer": {
-              "@type": "Answer",
-              "text": "Sometimes. CPU layer offloading or multi-GPU sharding can run models larger than one card's usable VRAM, but speed drops because part of the model or cache moves over slower memory paths."
-            }
-          },
-          {
-            "@type": "Question",
-            "name": "How is VRAM calculated?",
-            "acceptedAnswer": {
-              "@type": "Answer",
-              "text": "The calculator estimates model weights, working memory, training state, runtime overhead, and then applies the selected safety buffer before mapping the result to a hardware tier."
-            }
-          },
-          {
-            "@type": "Question",
-            "name": "How much VRAM does SDXL need?",
-            "acceptedAnswer": {
-              "@type": "Answer",
-              "text": "The SDXL preset uses a diffusion workload rather than a text-generation formula. Resolution and batch size are the key inputs, so use the SDXL preset and adjust image size for your target run."
-            }
-          }
-        ]
-      }
-    </script>
   </head>
   <body>
     <div class="app">
@@ -357,6 +293,7 @@
                   name="context-tokens"
                   type="text"
                   inputmode="numeric"
+                  data-number-min="256"
                   value="8000"
                 />
               </p>
@@ -796,6 +733,78 @@
                 ></ul>
               </div>
             </details>
+
+            <details class="panel" aria-labelledby="vram-guide-title">
+              <summary id="vram-guide-title">How VRAM is calculated</summary>
+              <div class="panel-body">
+                <code class="seo-formula">
+                  Required_GB = (Weights + Working_Memory + Training_State +
+                  Runtime_Overhead) x Buffer
+                </code>
+                <p>
+                  This LLM VRAM calculator estimates model weights, working
+                  memory for context or media activations, training state,
+                  runtime overhead, and a safety buffer before selecting a
+                  hardware tier. Use it to work out how much VRAM a 70B model
+                  needs, the GPU memory for LoRA or QLoRA fine-tuning, or the
+                  requirements for full training, multimodal models, diffusion,
+                  video, audio, tabular, and custom workloads.
+                </p>
+                <h3 class="seo-subhead">
+                  How much VRAM do I need for a 70B model?
+                </h3>
+                <p>
+                  At default inference settings a 70B model needs about 160.8 GB
+                  at FP16, 87.7 GB at 8-bit, or 51.1 GB at 4-bit. Context
+                  length, batch size, and runtime overhead move that number; the
+                  table below lists common model sizes at each precision.
+                </p>
+                <table
+                  class="seo-table"
+                  data-slot="vram-reference-table"
+                  aria-describedby="vram-reference-note"
+                >
+                  <caption>
+                    Quick VRAM reference: GPU memory per model size and
+                    precision
+                  </caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">Model</th>
+                      <th scope="col">FP16</th>
+                      <th scope="col">8-bit</th>
+                      <th scope="col">4-bit</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <th scope="row">7B</th>
+                      <td>18.8 GB</td>
+                      <td>11.4 GB</td>
+                      <td>7.8 GB</td>
+                    </tr>
+                    <tr>
+                      <th scope="row">13B</th>
+                      <td>32.2 GB</td>
+                      <td>18.7 GB</td>
+                      <td>11.9 GB</td>
+                    </tr>
+                    <tr>
+                      <th scope="row">70B</th>
+                      <td>160.8 GB</td>
+                      <td>87.7 GB</td>
+                      <td>51.1 GB</td>
+                    </tr>
+                  </tbody>
+                </table>
+                <p id="vram-reference-note">
+                  These rows use the same default text-generation inference
+                  inputs as the calculator above: server/cloud runtime, 8k
+                  context, one concurrent request, and no manual model file size
+                  override.
+                </p>
+              </div>
+            </details>
           </div>
 
           <ul class="warnings" data-out="warnings" aria-busy="true"></ul>
@@ -1204,131 +1213,6 @@
           </section>
         </section>
       </main>
-
-      <div class="seo-reference">
-        <div class="seo-reference-inner">
-          <section class="seo-block" aria-labelledby="vram-guide-title">
-            <h2 id="vram-guide-title">How VRAM is calculated</h2>
-            <p class="seo-formula">
-              Required_GB = (Weights + Working_Memory + Training_State +
-              Runtime_Overhead) x Buffer
-            </p>
-            <p>
-              The calculator estimates model weights, working memory for context
-              or media activations, training state, runtime overhead, and a
-              safety buffer before selecting a hardware tier. It covers
-              inference, LoRA and QLoRA fine-tuning, full training, multimodal
-              models, diffusion, video, audio, tabular workloads, and custom
-              estimates.
-            </p>
-
-            <table
-              class="seo-table"
-              data-slot="vram-reference-table"
-              aria-describedby="vram-reference-note"
-            >
-              <caption>
-                Quick VRAM reference for default inference settings
-              </caption>
-              <thead>
-                <tr>
-                  <th scope="col">Model</th>
-                  <th scope="col">FP16</th>
-                  <th scope="col">8-bit</th>
-                  <th scope="col">4-bit</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <th scope="row">7B</th>
-                  <td>18.8 GB</td>
-                  <td>11.4 GB</td>
-                  <td>7.8 GB</td>
-                </tr>
-                <tr>
-                  <th scope="row">13B</th>
-                  <td>32.2 GB</td>
-                  <td>18.7 GB</td>
-                  <td>11.9 GB</td>
-                </tr>
-                <tr>
-                  <th scope="row">70B</th>
-                  <td>160.8 GB</td>
-                  <td>87.7 GB</td>
-                  <td>51.1 GB</td>
-                </tr>
-              </tbody>
-            </table>
-            <p id="vram-reference-note">
-              These rows use the same default text-generation inference inputs
-              as the calculator above: server/cloud runtime, 8k context, one
-              concurrent request, and no manual model file size override.
-            </p>
-          </section>
-
-          <section class="seo-block" aria-labelledby="faq-title">
-            <h2 id="faq-title">FAQ</h2>
-            <article class="faq-item">
-              <h3>How much VRAM do I need for a 70B model?</h3>
-              <p>
-                With the default inference settings, a 70B model needs about
-                160.8 GB at FP16, 87.7 GB at 8-bit, or 51.1 GB at 4-bit. Context
-                length, batch size, and runtime overhead can move that number.
-              </p>
-            </article>
-            <article class="faq-item">
-              <h3>How much VRAM do I need for a 7B model?</h3>
-              <p>
-                With the default inference settings, a 7B model needs about 18.8
-                GB at FP16, 11.4 GB at 8-bit, or 7.8 GB at 4-bit.
-              </p>
-            </article>
-            <article class="faq-item">
-              <h3>How much VRAM for LoRA vs QLoRA fine-tuning?</h3>
-              <p>
-                LoRA keeps the base model in the selected precision and adds
-                adapter training state. QLoRA pins the base weights to 4-bit and
-                usually needs less VRAM, but optimizer choice, sequence length,
-                micro-batch size, and checkpointing still matter.
-              </p>
-            </article>
-            <article class="faq-item">
-              <h3>Does context length affect VRAM?</h3>
-              <p>
-                Yes. Text generation stores a KV cache that grows with context
-                length, concurrency, layer count, hidden size, and KV-cache
-                precision.
-              </p>
-            </article>
-            <article class="faq-item">
-              <h3>Can I run a model bigger than my VRAM?</h3>
-              <p>
-                Sometimes. CPU layer offloading or multi-GPU sharding can run
-                models larger than one card's usable VRAM, but speed drops
-                because part of the model or cache moves over slower memory
-                paths.
-              </p>
-            </article>
-            <article class="faq-item">
-              <h3>How is VRAM calculated?</h3>
-              <p>
-                The calculator estimates model weights, working memory, training
-                state, runtime overhead, and then applies the selected safety
-                buffer before mapping the result to a hardware tier.
-              </p>
-            </article>
-            <article class="faq-item">
-              <h3>How much VRAM does SDXL need?</h3>
-              <p>
-                The SDXL preset uses a diffusion workload rather than a
-                text-generation formula. Resolution and batch size are the key
-                inputs, so use the SDXL preset and adjust image size for your
-                target run.
-              </p>
-            </article>
-          </section>
-        </div>
-      </div>
 
       <footer class="disclaimer" data-slot="output-disclaimer">
         Estimates are planning guidance. Validate against your target runtime

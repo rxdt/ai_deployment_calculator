@@ -1,5 +1,6 @@
 import {
   dataSlot,
+  fieldGroupNodes,
   fillFormValues,
   renderFitMeterBar,
   renderGpuClass,
@@ -11,6 +12,7 @@ import {
   setHiddenWithControls,
   writeUrlFromState,
 } from "./app-dom";
+import type { FieldGroup } from "./app-dom";
 import { buildReport } from "./report";
 import { guardNumericInsertion, sanitizeNumberInput } from "./input-sanitizer";
 import { activePreset, MODEL_PRESETS } from "./presets";
@@ -258,10 +260,10 @@ export class CalculatorApp {
     }
   }
 
-  // Toggle every field matching a data-attribute selector, disabling its inner
-  // controls when hidden so hidden inputs never feed the calculation.
-  private hideSlots(selector: string, isHidden: boolean): void {
-    for (const node of this.root.querySelectorAll<HTMLElement>(selector)) {
+  // Toggle every field in a marker group, disabling its inner controls when
+  // hidden so hidden inputs never feed the calculation.
+  private hideSlots(kind: FieldGroup, isHidden: boolean): void {
+    for (const node of fieldGroupNodes(this.root, kind)) {
       setHiddenWithControls(node, isHidden);
     }
   }
@@ -317,16 +319,16 @@ export class CalculatorApp {
     }
     const isMoeApplicable = hasMoeControl(family);
     this.setCheckboxChecked("moe-enabled", state.moeEnabled && isMoeApplicable);
-    this.hideSlots("[data-moe-families]", !isMoeApplicable);
-    this.hideSlots("[data-active]", !(isMoeApplicable && state.moeEnabled));
+    this.hideSlots("moe", !isMoeApplicable);
+    this.hideSlots("active", !(isMoeApplicable && state.moeEnabled));
     // LoRA Trainable % only sizes the adapter for the LoRA / QLoRA modes (both
     // contain "LoRA"); in Inference and Full training it has no effect, so hide
     // it rather than imply a setting that does nothing.
-    this.hideSlots("[data-lora]", !state.executionMode.includes("LoRA"));
+    this.hideSlots("lora", !state.executionMode.includes("LoRA"));
     // Gradient Checkpointing and the optimizer only size training state, so
     // these training-only inputs must not imply an effect on inference
     // estimates; hide them whenever the mode is plain Inference.
-    this.hideSlots("[data-training]", state.executionMode === "Inference");
+    this.hideSlots("training", state.executionMode === "Inference");
     setHiddenWithControls(this.kvCacheRow, !hasDecoderKvCache(state));
     const label =
       state.executionMode === "Inference"

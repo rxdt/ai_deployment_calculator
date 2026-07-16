@@ -35,12 +35,15 @@ const ALLOWED_TS_DOM_DATA_SELECTORS = new Set([
   '[data-action="reset"]',
   "[data-active]",
   "[data-families]",
+  "[data-lora]",
   "[data-moe-families]",
   "[data-out]",
   '[data-out="breakdown"]',
   '[data-out="total"]',
   '[data-out="warnings"]',
   "[data-slot]",
+  "[data-tier-fit]",
+  "[data-training]",
   "[data-workload-label]",
 ]);
 const CSS_ATTRIBUTE_SELECTOR_QUOTE_CHARACTERS = new Set(['"', "'"]);

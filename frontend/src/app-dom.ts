@@ -189,6 +189,33 @@ export function dataSlot(root: ParentNode, name: string): HTMLElement | null {
   return null;
 }
 
+/** A togglable field group keyed by its data-* marker attribute. */
+export type FieldGroup = "active" | "lora" | "moe" | "training";
+
+/**
+Nodes for one togglable field group. Each branch queries with a literal
+selector because the gate's DOM-selector check verifies string literals
+against its allowlist and rejects dynamic selectors by design.
+@param root - DOM root to search
+@param kind - the field group
+@returns the group's field nodes
+*/
+export function fieldGroupNodes(
+  root: ParentNode,
+  kind: FieldGroup,
+): HTMLElement[] {
+  if (kind === "moe") {
+    return [...root.querySelectorAll<HTMLElement>("[data-moe-families]")];
+  }
+  if (kind === "active") {
+    return [...root.querySelectorAll<HTMLElement>("[data-active]")];
+  }
+  if (kind === "lora") {
+    return [...root.querySelectorAll<HTMLElement>("[data-lora]")];
+  }
+  return [...root.querySelectorAll<HTMLElement>("[data-training]")];
+}
+
 /**
 Render the hero fit meter bar and its USAGE/CAPACITY scale row. A tight fit
 turns the bar amber; the caption's "Tight fit" prefix carries the same signal

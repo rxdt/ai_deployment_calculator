@@ -14,6 +14,9 @@ The repo is your memory. Specs say what to build. You decide what is the next mo
 
 Rules:
 
+- CLAIM before you work: add a line at the TOP of the spec you are taking — `<agent-id> is working on <these tasks> in this spec` — so no other agent takes it. Commit that claim first. Remove your claim line when you finish or abandon the spec. Skip any spec already claimed by another agent and pick the next unclaimed one.
+- Specs SHRINK as work completes: strike or delete each contract when it is done (do not leave finished contracts sitting in the spec). A spec with no remaining work is DELETED, not archived. If nothing is left to shrink, we are not doing our job — a growing spec is a red flag.
+- Expect commit CLASHES with parallel agents — that is OK. Do not stop or try to reconcile a dirty git state; a dirty working tree is tolerated until all specs/tasks are cleared. Commit your own scoped work, leave others' changes alone, and keep moving.
 - Use all your allotted time (90 wall clock minutes) to do productive work. Do NOT fake work. Do NOT skip out early. It is a waste of the owner's real world tokens and money.
 - If you cannot use all your allotted time to contribute productively, you MUST have documented blockers in `docs/PROJECT_STATUS.md`.
 - Do not batch unrelated work in your scoped tasks.

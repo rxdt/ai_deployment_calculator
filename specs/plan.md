@@ -113,6 +113,10 @@ competitor.
       weights instead of selected quantized weights, clamps at 0.5 GB, keeps
       70B default activation memory in the 1-3 GB anchor envelope, updates the
       assumptions note, and refreshes the crawlable quick-reference values.
+- [ ] **F4.1. Collapse the crawlable sections** (effort S — owner request
+      2026-07-15, take before F1). "How VRAM is calculated" collapses; each
+      FAQ question/answer pair collapses; the whole FAQ section collapses;
+      EVERYTHING closed on first load. Contract in `specs/frontend.md`.
 - [ ] **F1. Hugging Face model lookup** (effort M). Client-side, no backend:
       HF quicksearch API for typeahead, then `config.json` (+ safetensors
       index when present) for exact params, layers, hidden size, and

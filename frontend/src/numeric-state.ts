@@ -61,7 +61,7 @@ function isPlainDecimal(value: string): boolean {
   if (parts.length > 2) {
     return false;
   }
-  if (parts[1] !== undefined && parts[1].length > 1) {
+  if (parts[1] !== undefined && parts[1].length > 2) {
     return false;
   }
   const digits = parts.join("");

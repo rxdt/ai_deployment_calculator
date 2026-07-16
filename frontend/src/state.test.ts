@@ -159,9 +159,19 @@ describe("normalizedState", () => {
     );
   });
 
-  test("rejects numbers with more than one decimal digit", () => {
+  test("accepts numbers with up to two decimal digits", () => {
     expect(
       normalizedState(parameters({ totalParams: "7.25" })).totalParams,
+    ).toBe("7.25");
+    expect(
+      normalizedState(parameters({ loraTrainablePercent: "0.05" }))
+        .loraTrainablePercent,
+    ).toBe("0.05");
+  });
+
+  test("rejects numbers with more than two decimal digits", () => {
+    expect(
+      normalizedState(parameters({ totalParams: "7.125" })).totalParams,
     ).toBe(defaultState().totalParams);
   });
 
@@ -223,5 +233,19 @@ describe("searchFromState", () => {
     expect(search.get("gradient-checkpointing")).toBe("off");
     expect(search.get("total-params")).toBe("8");
     expect(search.has("known-model-file-size-gb")).toBe(false);
+  });
+
+  test("round-trips two-decimal advanced numeric values through the URL", () => {
+    const source: FormState = {
+      ...defaultState(),
+      knownModelFileSizeGb: "12.34",
+      gpuResidentFraction: "0.75",
+      loraTrainablePercent: "0.05",
+    };
+    const roundTrip = normalizedState(searchFromState(source));
+
+    expect(roundTrip.knownModelFileSizeGb).toBe("12.34");
+    expect(roundTrip.gpuResidentFraction).toBe("0.75");
+    expect(roundTrip.loraTrainablePercent).toBe("0.05");
   });
 });

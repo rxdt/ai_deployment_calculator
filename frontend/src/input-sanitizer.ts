@@ -87,7 +87,7 @@ export function sanitizeNumberInput(input: HTMLInputElement): void {
   const isDecimal = input.inputMode === "decimal";
   const next = clampedToRange(
     isDecimal && fractions.length > 0
-      ? `${integer}.${fractions.join("").slice(0, 1)}`
+      ? `${integer}.${fractions.join("").slice(0, 2)}`
       : integer,
     input,
   );

@@ -5,8 +5,8 @@ Short, current handoff. Deleted lines are the point — keep only what's useful 
 ## State (2026-07-16)
 
 - `main` has the Phase 2 F0/F3/F4/F4.1 work, decimal input preservation,
-  context-anchored decoder scratch, SEO reconciliation, and owner-verified live
-  production bundle from the prior deploy.
+  context-anchored decoder scratch, SEO reconciliation, and conservative
+  upward memory rounding.
 - Local `main` now includes conservative memory rounding: required totals,
   component GB display, minimum raw VRAM, and hardware recommendations round
   upward to one decimal instead of nearest. Boundary case: a 20.4001 GB server
@@ -14,12 +14,15 @@ Short, current handoff. Deleted lines are the point — keep only what's useful 
   than fitting into 24 GB.
 - Static crawlable quick-reference rows were updated to calculator output after
   the rounding change: 7B 8-bit 11.5 GB, 13B fp16 32.3 GB, 70B 8-bit 88.0 GB.
+- Cross-calculator QA rerun:
+  `docs/qa/comparison-2026-07-16.md`. Result: no Research Correction against
+  local `main`; external overlap supports resident weight math.
+- Production `vram.rxdt.dev` is stale for the latest rounding bundle: it reports
+  21.0 GB for 8B QLoRA 2% and 12.0 GB for SDXL, while local `main` reports
+  21.1 GB and 12.1 GB. Owner-only redeploy required; agents must not deploy.
 - `frontend/src/adversarial/oracle.test.ts` now has 22 green oracle tests,
   including the hardware-boundary round-up invariant. The dated report is
   `docs/qa/adversarial-2026-07-16.md`.
-- Production `vram.rxdt.dev` is expected to remain on the prior deployed bundle
-  until the owner deploys. Do not push or deploy; owner-only command after a
-  green final gate is `vercel deploy --prod`.
 
 ## Current Local Sentinels
 
@@ -38,12 +41,15 @@ Short, current handoff. Deleted lines are the point — keep only what's useful 
 - Focused: `vitest src/adversarial` passed 22 oracle tests.
 - Focused Playwright desktop calculator/parity passed 46 tests with 4 expected
   skips after rounding expectation updates.
+- F9 QA rerun: Playwright read production and local preview, then compared
+  asmirnov and the HF GGUF Space. ApX remained blocked by Cloudflare Turnstile.
+- `pnpm build` passed for local preview verification.
 - `pnpm preflight` passed for the implementation commit.
 - `pnpm gate` passed after the rounding and browser expectation updates.
 
 ## Open Work
 
-- **P2 — F9/F10** recurring QA/oracle runs (`specs/qa.md`, `specs/plan.md`).
+- **P2 — F10** adversarial oracle extension (`specs/qa.md`, `specs/plan.md`).
 - **Owner deploy:** after final green gate, deploy the local rounding correction
   with `vercel deploy --prod`; no agent may run it.
 - **Parked (do not build):** F1/F2/F5/F6/F7/F8
@@ -53,6 +59,8 @@ Short, current handoff. Deleted lines are the point — keep only what's useful 
 
 - apxml Part A primary is blocked in headless Playwright by Cloudflare
   Turnstile; needs an owner/manual headed pass if exact ApX rows are required.
+- Production is stale for local upward rounding and under-reports two canonical
+  totals by 0.1 GB; only the owner may redeploy.
 
 ## Known Issues
 

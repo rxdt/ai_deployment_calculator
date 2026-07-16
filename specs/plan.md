@@ -52,8 +52,8 @@ Commands: `pnpm preflight`, `pnpm gate`; QA contracts live in `specs/qa.md`.
 Shipped: F0 activation floor, F3 quant ladder, F4 crawlable prose, F4.1 guide
 relocation/FAQ removal, the decimal-input fix, the context-anchored decoder
 activation scratch (`decoder-scratch.ts`, verified against llama.cpp anchors),
-upward one-decimal memory rounding, and post-deploy live verification of the
-corrected production bundle.
+upward one-decimal memory rounding, post-deploy live verification of the
+corrected production bundle, and the 2026-07-16 cross-calculator QA run.
 `specs/frontend.md` and `specs/deploy-reconcile.md` were deleted because no
 work remained.
 
@@ -62,9 +62,6 @@ Rationale: `scratchpad/DO-NOT-DO-phase2-features.md`.
 
 ### PRIORITIES
 
-- **P2 — F9. Cross-calculator QA run.** Drive the calculators in `specs/qa.md`,
-  compare canonical scenarios against the live site, triage disagreements
-  against anchors, write `docs/qa/comparison-YYYY-MM-DD.md`.
 - **P2 — F10. Adversarial oracle suite.** Extend
   `frontend/src/adversarial/oracle.test.ts` with one missing
   weird-combination/oracle case from external calculators, published anchors, or

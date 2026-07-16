@@ -26,6 +26,9 @@ Short, current handoff. Deleted lines are the point — keep only what's useful 
   KV-precision invariant at 1M context. Suite is 21 green.
   Report notes a definitional limitation: GQA-only architecture buckets would
   KV-under-count legacy MHA models (e.g. Llama-2-7B) — not filed as our error.
+- Cross-calculator QA report `docs/qa/comparison-2026-07-16.md`: live totals
+  still match sentinels; asmirnov/HF overlaps support resident weight math;
+  disagreements were definitional, so no Research Correction was filed.
 - Hardware-tier green-check QA is covered by Playwright (`0b8c598`): default
   24 GB, 70B 192 GB, overflow, and reset states keep the correct visible marker
   across all configured browser projects/viewports.
@@ -50,6 +53,8 @@ Short, current handoff. Deleted lines are the point — keep only what's useful 
   320px, tablet).
 - Focused: `vitest src/adversarial` passed 21 oracle tests; hardware-tier
   reference focus passed 4 tests / 106 skipped.
+- Cross-calculator Playwright pass read live `vram.rxdt.dev`, asmirnov, and HF
+  GGUF rows; apxml reached only Cloudflare verification.
 - Focused after SEO reconciliation: `vitest src/app.test.ts` passed 111 tests;
   Playwright calculator H1/subtitle grep passed 12/12 projects; responsive H1
   grep passed 18/18 projects.
@@ -80,7 +85,8 @@ Short, current handoff. Deleted lines are the point — keep only what's useful 
 
 ## Blockers
 
-- None for the completed live deploy verification.
+- apxml Part A primary is blocked in headless Playwright by Cloudflare
+  Turnstile; needs an owner/manual headed pass if exact ApX rows are required.
 
 ## Known issues
 

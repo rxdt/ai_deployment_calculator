@@ -65,10 +65,10 @@ Rationale: `scratchpad/DO-NOT-DO-phase2-features.md`.
   hand from anchors; fp16=params×2 and KV=0.125 MiB/tok (vLLM) exact; GSC tag
   value matches live; brand H1 "AI Deployment Calculator" already matches live
   (deploy does NOT rebrand); 279 tests / 100% cov / gate green. SEO
-  reconciliation complete (GSC, sitemap/robots on vram.rxdt.dev, brand).
-  Nothing outranks getting this correct, non-regressing build deployable —
-  remaining gate is only the two high-level reviews + consolidating the
-  overlapping deploy specs. **ONLY THE OWNER DEPLOYS.** Treat any accuracy
+  reconciliation complete (GSC, sitemap/robots on vram.rxdt.dev, brand). Local
+  build/preflight/gate passed, and Codex review is recorded; the required Claude
+  review is blocked by CLI auth. Nothing outranks getting this correct,
+  non-regressing build deployed. **ONLY THE OWNER DEPLOYS.** Treat any accuracy
   regression on `main` as a release blocker, not a backlog item.
 - **P1 — Guard the accuracy that was just fixed.** Add a direct unit test for
   `decoder-scratch.ts` pinning its cited anchors (≈2.2 GB @8k, ≈4.2 GB @32k for
@@ -95,4 +95,5 @@ QA oracle is intentionally red, and keep README/status/specs accurate.
 
 ## Blockers
 
-None open. Add symptom, attempts, and hypothesis here if a gate check fails 3x.
+- Required Claude deploy review cannot run: local `claude` says `Not logged in`.
+- Owner has not deployed; production remains stale.

@@ -12,17 +12,22 @@ Short, current handoff. Deleted lines are the point — keep only what's useful 
   scratch now follows llama.cpp 70B 8k/32k compute-buffer anchors, so
   `?total-params=70` is 161.1 GB and 70B@32k is no longer context-flat.
 - `specs/frontend.md` had no remaining frontend build work after that fix, so
-  it was deleted. Active work is now the owner-gated redeploy/verification in
-  `specs/accuracy-fix.md` plus recurring QA in `specs/qa.md`/`specs/plan.md`.
+  it was deleted. Deploy prep now lives in `specs/deploy-reconcile.md`;
+  recurring QA remains in `specs/qa.md`/`specs/plan.md`.
 - Current QA run seeded `frontend/src/adversarial/oracle.test.ts` and
   `docs/qa/adversarial-2026-07-16.md` with PB-scale URL, published bpw,
   training-order, no-KV, and URL-extreme invariants.
 - Hardware-tier green-check QA is covered by Playwright (`0b8c598`): default
   24 GB, 70B 192 GB, overflow, and reset states keep the correct visible marker
   across all configured browser projects/viewports.
-- Production is BEHIND `main` (not yet deployed). Deploy still needs automated
-  gate green, one high-level Claude review, and one high-level Codex review;
-  owner pushes.
+- Deploy SEO reconciliation is on `main` (`be3386e`): the GSC verification tag
+  is restored; `AI Deployment Calculator` is again the title/H1/JSON-LD name;
+  VRAM/GPU memory keywords remain in title/meta; the broader prior title is
+  JSON-LD `alternateName`. Local diff vs `origin/main` confirmed the other
+  live-only SEO assets were the old Vercel canonical sitemap/robots.
+- Production is BEHIND `main` (not yet deployed). Deploy prep now has local
+  build/preflight/gate green and a Codex deploy-delta review; it still needs the
+  required Claude review and owner push.
 
 ## Checks
 
@@ -36,28 +41,32 @@ Short, current handoff. Deleted lines are the point — keep only what's useful 
   320px, tablet).
 - Focused: `vitest src/adversarial` passed 13 oracle tests; hardware-tier
   reference focus passed 4 tests / 106 skipped.
+- Focused after SEO reconciliation: `vitest src/app.test.ts` passed 111 tests;
+  Playwright calculator H1/subtitle grep passed 12/12 projects; responsive H1
+  grep passed 18/18 projects.
+- Deploy prep checks after SEO reconciliation: `pnpm build`, `pnpm preflight`,
+  and `pnpm gate` passed.
+- Codex deploy-delta review: GO after required Claude review and owner deploy;
+  the delta is accuracy-positive (7B 18.8, 70B 161.1, Q4_K_M 42.44 GB weights)
+  and SEO-safe (GSC restored, `AI Deployment Calculator` restored, VRAM/GPU
+  keywords retained).
 - Visual screenshots saved in `scratchpad/visual-decimal-input/`: 390px
   default closed (18.8 GB), desktop decimal advanced open (24.5 GB), 320px
   zeroed (0.0 GB), tablet extreme guide open (139.4 GB), desktop panels open
   (90.6 GB). Script checked no horizontal overflow and preserved decimal field
   values.
-- `pnpm gate` passed.
+- Prior `pnpm gate` passed after the activation work.
 
 ## Open work (priority-ranked; see `specs/plan.md` PRIORITIES)
 
 - **P0 — Get a correct, non-regressing build DEPLOYABLE.** Prod is stale and
   serves 19.0 (correct 18.8). `main` is verified more accurate. Deploy is gated
-  on the SEO reconciliation in `specs/deploy-reconcile.md` (GSC tag restored ✅;
-  brand/title decision R2 pending) — NOT a bare `git push`. **Only the owner
-  deploys.** NOTE: `accuracy-fix.md` (T1 "redeploy") and `deploy-reconcile.md`
-  (R1–R4) OVERLAP on the deploy — `deploy-reconcile.md` is the fuller,
-  authoritative path (it includes the brand/title blocker). Do not run two
-  parallel deploy-preps; consolidate on `deploy-reconcile.md` and let
-  `accuracy-fix.md` shrink to nothing.
+  on the required Claude review and owner push in `specs/deploy-reconcile.md`.
+  **Only the owner deploys.** `specs/accuracy-fix.md` was deleted because its
+  remaining deploy/verification work duplicated `specs/deploy-reconcile.md`.
 - **P1 — Guard the just-fixed accuracy:** add a direct `decoder-scratch.ts`
   unit test pinning its llama.cpp anchors (≈2.2 GB @8k, ≈4.2 GB @32k for 70B;
   0.5 GB floor) + context-growth invariant. Currently only covered indirectly.
-- **P1 — Brand/title SEO decision** (`deploy-reconcile.md` R2) — blocks the P0.
 - **P2 — F9/F10** recurring QA/oracle runs (`specs/qa.md`, `specs/plan.md`).
 - **Parked (do not build):** F1/F2/F5/F6/F7/F8
   (`scratchpad/DO-NOT-DO-phase2-features.md`).
@@ -65,7 +74,10 @@ Short, current handoff. Deleted lines are the point — keep only what's useful 
 ## Blockers
 
 - Owner has not authorized deploy; production remains stale (P0).
-- Deploy blocked on the brand/title decision (`deploy-reconcile.md` R2).
+- Required Claude review is blocked locally: `claude --bare -p ...` returns
+  `Not logged in`.
+- `origin/main` diverges at GSC-only `2401b9b`; after Claude review, the owner
+  should deploy with a lease-protected push, not a plain push.
 
 ## Known issues
 

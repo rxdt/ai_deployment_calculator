@@ -53,11 +53,20 @@ Short, current handoff. Deleted lines are the point — keep only what's useful 
 
 ## Open Work
 
-- **P2 — F10** adversarial oracle extension (`specs/qa.md`, `specs/plan.md`).
-- **Owner deploy:** after final green gate, deploy the local rounding correction
-  with `vercel deploy --prod`; no agent may run it.
+- Agent priorities live in `specs/plan.md` PRIORITIES (tagline centering,
+  topnav overflow, F10 oracle extension).
+- **Owner deploy:** ship the local rounding correction. Either
+  `vercel deploy --prod`, or activate the gated CI deploy job
+  (`.github/workflows/ci.yml`): set `VERCEL_TOKEN`/`VERCEL_ORG_ID`/
+  `VERCEL_PROJECT_ID` secrets + `VERCEL_DEPLOY_ENABLED=true` repo variable,
+  then `git push`. No agent may deploy or push.
+- **Owner device pass:** real-device check (iPhone Safari, Android Chrome):
+  no horizontal scroll at 320/390px, no <=30em label overlap. Optional
+  post-launch owner calls: analytics, error monitoring.
 - **Parked (do not build):** F1/F2/F5/F6/F7/F8
   (`scratchpad/DO-NOT-DO-phase2-features.md`).
+- `docs/LAUNCH_TODO.md` deleted 2026-07-16: launch happened; done items
+  removed, live defects moved to plan PRIORITIES, owner items moved here.
 
 ## Blockers
 

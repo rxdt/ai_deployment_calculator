@@ -68,6 +68,12 @@ Rationale: `scratchpad/DO-NOT-DO-phase2-features.md`.
   block (e.g. `margin-inline: auto` on `.intro p`), keep the measure cap.
   Verify visually in the running app at desktop and ≤30em widths, and cover
   with a behavior-focused check.
+- **P2 — BUG: topnav GitHub chip overflows narrow viewports.** The top-bar
+  GitHub nav link (`[data-slot="github-link"]`, `.topnav`) extends ~13px past
+  a 320px viewport and also overflows at 390px, causing horizontal scroll.
+  Pre-existing (not caused by the F4.1 guide relocation). Fix: let the topnav
+  wrap or shrink the GitHub chip on narrow viewports; verify no horizontal
+  scroll at 320/390px.
 - **P2 — F10. Adversarial oracle suite.** Extend
   `frontend/src/adversarial/oracle.test.ts` with one missing
   weird-combination/oracle case from external calculators, published anchors, or

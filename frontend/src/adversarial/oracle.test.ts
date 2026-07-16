@@ -28,6 +28,15 @@ const PUBLISHED_WEIGHT_ANCHORS: readonly PublishedWeightAnchor[] = [
   { precision: "32-bit", expectedGb: 28 },
 ];
 
+// vLLM's paged-attention KV math for Llama-3-8B (32 transformer layers, 8 GQA
+// KV heads, head_dim 128, fp16 KV) footprints one token of context at
+// 2 (K+V) * 32 * 8 * 128 * 2 bytes = 131072 bytes = 0.125 MiB. This is an
+// EXTERNAL, published per-token figure — not our formula restated — so pinning
+// it catches any regression in the 8B architecture bucket's layer/kv-head/
+// head-dim geometry or its 16-bit KV byte width, absolutely rather than by
+// ordering. MiB is 1024^2 bytes; the calculator reports decimal GB (1e9 bytes).
+const LLAMA3_8B_KV_GB_PER_TOKEN = (0.125 * 1024 * 1024) / 1_000_000_000;
+
 const NO_PERSISTENT_KV_FAMILIES: readonly WorkloadFamily[] = [
   "text_encoder",
   "vision",
@@ -76,6 +85,25 @@ Calculate the app's reported required memory for a targeted scenario.
 */
 function requiredGb(overrides: Partial<FormState>): number {
   return memoryBreakdown(specFromState(state(overrides))).requiredGb;
+}
+
+/**
+Calculate 8B text-generation KV cache memory for a given context.
+@param contextTokens - context window length in tokens
+@returns KV cache memory in decimal GB
+*/
+function llama3EightBTextGenerationKvGb(contextTokens: string): number {
+  return memoryBreakdown(
+    specFromState(
+      state({
+        workloadFamily: "text_generation",
+        totalParams: "8",
+        kvCachePrecision: "16-bit",
+        workloadSize: "1",
+        contextTokens,
+      }),
+    ),
+  ).kvCacheGb;
 }
 
 /**
@@ -141,6 +169,18 @@ describe("adversarial oracle suite", () => {
       expect(observed[index]).toBeCloseTo(anchor.expectedGb, 6);
     }
     expect(observed).toStrictEqual([...observed].sort((a, b) => a - b));
+  });
+
+  test("reproduces vLLM's 0.125 MiB/token KV footprint for Llama-3-8B at 16-bit KV", () => {
+    const kv8k = llama3EightBTextGenerationKvGb("8000");
+    const kv16k = llama3EightBTextGenerationKvGb("16000");
+
+    // The KV term has zero intercept, so resident KV at 8k equals the anchored
+    // per-token cost times the token count...
+    expect(kv8k).toBeCloseTo(8000 * LLAMA3_8B_KV_GB_PER_TOKEN, 6);
+    // ...and the marginal cost of each extra context token equals the vLLM
+    // published anchor exactly, isolated from the constant weight/activation rows.
+    expect((kv16k - kv8k) / 8000).toBeCloseTo(LLAMA3_8B_KV_GB_PER_TOKEN, 9);
   });
 
   test("keeps adapter and full-training modes in physical memory order", () => {

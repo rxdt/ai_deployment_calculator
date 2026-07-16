@@ -17,6 +17,9 @@ Short, current handoff. Deleted lines are the point — keep only what's useful 
 - Current QA run seeded `frontend/src/adversarial/oracle.test.ts` and
   `docs/qa/adversarial-2026-07-16.md` with PB-scale URL, published bpw,
   training-order, no-KV, and URL-extreme invariants.
+- Hardware-tier green-check QA is covered by Playwright (`0b8c598`): default
+  24 GB, 70B 192 GB, overflow, and reset states keep the correct visible marker
+  across all configured browser projects/viewports.
 - Production is BEHIND `main` (not yet deployed). Deploy still needs automated
   gate green, one high-level Claude review, and one high-level Codex review;
   owner pushes.
@@ -28,6 +31,9 @@ Short, current handoff. Deleted lines are the point — keep only what's useful 
   functions/lines.
 - Focused: `vitest src/calculator.test.ts`, `src/report.test.ts`, and
   `src/app.test.ts` passed after the activation anchor update.
+- Focused: `playwright test ... --grep "keeps the hardware tier best-fit check
+  visible"` passed 6/6 projects (desktop Chrome, desktop Safari, iPhone, Pixel,
+  320px, tablet).
 - Focused: `vitest src/adversarial` passed 13 oracle tests; hardware-tier
   reference focus passed 4 tests / 106 skipped.
 - Visual screenshots saved in `scratchpad/visual-decimal-input/`: 390px
@@ -46,14 +52,10 @@ Short, current handoff. Deleted lines are the point — keep only what's useful 
   anchors.
 - Recurring QA/release runs F9/F10 remain actionable in `specs/qa.md` and
   `specs/plan.md`.
-- Frontend regression sweep requested in `specs/qa.md`; current run only
-  spot-checked the hardware-tier checkmark via DOM test and existing screenshot.
 
 ## Blockers
 
 - Owner has not authorized `git push origin main`; production remains stale.
-- `specs/qa.md` is claimed by another agent and still names the pre-T3 70B
-  canonical 160.8 GB; refresh it to 161.1 GB when that claim is released.
 
 ## Known issues
 

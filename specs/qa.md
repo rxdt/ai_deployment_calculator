@@ -1,24 +1,5 @@
 codex-gpt5 is working on frontend regression sweep and hardware-tier checkmark regressions in this spec
 
----
-
-MUST FILL IN LINE 7 AT START THEN "CLEAR" BACK TO BASELINE BEFORE END OF ITERATION
-
-> CLAIMED BY AGENT:
-
-< agent >< iteration >< run > is working on < list tasks in this spec you choose >
-
-MUST FILL IN LINE 7 AT START THEN "CLEAR" BACK TO BASELINE BEFORE END OF ITERATION
-
----
-
-## Frontend Regression Sweep
-
-- [ ] Owner reported a missing green checkmark on the relevant Hardware tier
-      row. Fresh QA should test varied viewports and interactions for broken
-      buttons, input reactions, invisible outputs, color changes, and related
-      regressions; fix reproducible issues.
-
 # QA Spec — External Oracles
 
 Veracity is P0 (see `specs/plan.md`). Report-only QA proves the MODEL matches
@@ -38,7 +19,7 @@ huggingface.co/spaces/SadP0i/GGUF-Model-VRAM-Calculator. Secondary: spot-check
 only if a primary disagrees.
 
 Canonical scenarios (read OUR live numbers at run time — never hardcode):
-7B fp16 inf 8k ≈ 18.8; 70B fp16 inf 8k ≈ 160.8; 70B Q4_K_M (live);
+7B fp16 inf 8k ≈ 18.8; 70B fp16 inf 8k ≈ 161.1; 70B Q4_K_M (live);
 8B QLoRA 2% ≈ 21.2; 7B full-train AdamW ckpt-on ≈ 153; SDXL 1024² ≈ 12.
 
 Method: scratch Playwright in `harness/` (deleted after), one polite pass per

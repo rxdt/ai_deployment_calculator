@@ -1,3 +1,5 @@
+claude-orchestrator is working on doc/spec hygiene in this spec
+
 # QA Spec — External Oracles
 
 Veracity is P0 (see `specs/plan.md`). Report-only QA proves the MODEL matches

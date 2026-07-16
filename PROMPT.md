@@ -10,7 +10,7 @@ CURRENT PRIORITIES (in order): (1) the LIVE public site is stale and serves a wr
 
 YOU ARE NOT ALONE: multiple agents work in this repo at the same time. Claim your spec (see rules), expect concurrent edits and commit clashes, and never assume the working tree or a spec is exactly as you last left it — re-read before you act. MAINTAIN your claimed spec BEFORE (claim it + read it fully), DURING (keep it the accurate source of truth as you work — correct it the moment reality diverges), and AFTER (shrink out completed items, release your claim). A spec that lies about the current state is worse than no spec.
 
-1. Read `specs/frontend.md`. The app needs to be shippable TODAY.
+1. Read the specs in `specs/` (start with `specs/plan.md`, then the priority specs above). The app is LIVE and announced; correctness comes before new work.
 2. CLAIM the spec you will work (see Rules) and commit that claim FIRST, before any other edit.
 3. Inspect the relevant code and tests before editing.
 4. Implement the changes that advance your chosen unfinished items.

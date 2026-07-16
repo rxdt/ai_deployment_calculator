@@ -1,5 +1,3 @@
-codex-qa-f9 is working on Part A cross-calculator comparison in this spec
-
 # QA Spec — External Oracles
 
 Veracity is P0 (see `specs/plan.md`). Report-only QA proves the MODEL matches

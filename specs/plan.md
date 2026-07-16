@@ -82,7 +82,7 @@ Rationale: `scratchpad/DO-NOT-DO-phase2-features.md`.
 Rejected: animated inference simulations, live price feeds, benchmark scores,
 accounts, iframe widget, raw architecture-field forms, exl2 tiers.
 
-Distribution owner tasks live in `docs/LAUNCH_TODO.md`.
+Owner-only tasks (deploy, device pass) live in `docs/PROJECT_STATUS.md`.
 
 ## Acceptance
 

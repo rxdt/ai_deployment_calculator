@@ -44,6 +44,12 @@ quantized-twin equality (same model, two precisions → identical KV + activatio
 rows); QLoRA < LoRA-fp16 < full-training; every normalizer-emittable input
 gives finite, non-negative, non-NaN totals; tier capacity ≥ min raw VRAM.
 
+Structural invariant (owner directive, see plan.md Source Separation): source
+`frontend/index.html` carries no inline `<style>`, no `style=` attributes, and
+no executable inline `<script>` bodies — the JSON-LD structured-data block is
+the sole exemption; all CSS in `src/styles.css`, all script in `src/*.ts`.
+Build-output inlining into `dist/` is exempt and must not be "fixed".
+
 ## Triage (every disagreement/failure gets exactly one)
 
 - **Definitional** (GiB-as-GB, buffer/scope, KV-by-default): note, no action.

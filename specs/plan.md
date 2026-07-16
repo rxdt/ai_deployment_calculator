@@ -49,6 +49,23 @@ Commands: `pnpm preflight`, `pnpm gate`; QA contracts live in `specs/qa.md`.
 - Displayed memory requirements and hardware sizing values round upward, never
   down, at one decimal place so boundary cases cannot fit an undersized tier.
 
+## Source Separation (owner directive 2026-07-16, standing invariant)
+
+`frontend/index.html` contains markup only:
+
+- No inline `<style>` blocks and no `style=` attributes: all CSS lives in
+  `frontend/src/styles.css`.
+- No inline executable `<script>` bodies: all JavaScript/TypeScript lives in
+  `.ts`/`.js` files under `frontend/src/` (the external
+  `<script type="module" src=...>` entry tag is markup, not inline code).
+- Exemption: the single `<script type="application/ld+json">` structured-data
+  block stays inline — it is inert data, the documented SEO pattern, and not
+  executable JavaScript.
+- NO new files for this: `src/main.ts` and `src/styles.css` are the homes.
+- Build output is exempt: the production build may inline JS/CSS into
+  `dist/index.html` (owner-accepted single-file tradeoff); do not change the
+  build's inlining behavior. `pnpm gate` must stay green.
+
 ## Current Work
 
 Shipped work is recorded in `docs/PROJECT_STATUS.md`, not here.

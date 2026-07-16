@@ -1,5 +1,7 @@
 The repo is your memory. Specs say what to build. You decide what is the next most useful change.
 
+P0 — VERACITY AND ACCURACY OF THE APP IS PARAMOUNT, ALL AROUND. Correct numbers are the whole product; a wrong estimate is worse than shipping nothing. Accuracy outranks features, polish, speed, and deadlines. Numbers must trace to the Research Corrections math and published anchors (never a competitor shortcut or a convenient guess), assumptions must be stated so engineers can audit them, and if a value cannot be defended against an anchor, say so rather than ship a confident wrong number. See `specs/plan.md` Goal and `specs/qa.md`.
+
 YOU ARE NOT ALONE: multiple agents work in this repo at the same time. Claim your spec (see rules), expect concurrent edits and commit clashes, and never assume the working tree or a spec is exactly as you last left it — re-read before you act.
 
 1. Read `specs/frontend.md`. The app needs to be shippable TODAY.

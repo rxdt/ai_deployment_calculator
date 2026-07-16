@@ -12,8 +12,9 @@ MUST FILL IN LINE 7 AT START THEN "CLEAR" BACK TO BASELINE BEFORE END OF ITERATI
 
 # QA Spec — External Oracles
 
-Report-only QA proving the MODEL matches reality, not just that code matches
-model. Every expected value comes from OUTSIDE our code — competitors,
+Veracity and accuracy are P0 (see `specs/plan.md` Goal); this spec is how we
+prove them. Report-only QA proving the MODEL matches reality, not just that code
+matches model. Every expected value comes from OUTSIDE our code — competitors,
 published anchors, physical invariants — never our own formulas. Run by
 sub-agents. Never edits product code; findings become dated Research
 Corrections in `specs/plan.md`. Agreement is not truth (anchors beat

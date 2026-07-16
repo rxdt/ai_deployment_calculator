@@ -1,8 +1,5 @@
 # AI Deployment VRAM Calculator Plan
 
-> claude-plan-1/2 is working ONLY on the P1 task (direct `decoder-scratch.ts`
-> unit test) below. Other P1/P2 items remain unclaimed.
-
 ## Goal
 
 Build a GPU VRAM calculator that is usable for non-technical users and

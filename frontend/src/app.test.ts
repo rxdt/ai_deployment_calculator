@@ -615,6 +615,18 @@ describe("naming contract", () => {
       expect(document.body.textContent).not.toContain(oldName);
     }
   });
+
+  test("keeps total parameters as sanitized free-form text input", () => {
+    loadDom();
+    mountCalculator(document);
+    const totalParameters = field("total-params");
+
+    if (!(totalParameters instanceof HTMLInputElement)) {
+      throw new TypeError("Total Model Parameters must be a text input");
+    }
+    expect(totalParameters.type).toBe("text");
+    expect(totalParameters.inputMode).toBe("decimal");
+  });
 });
 
 describe("checkbox indicators", () => {
@@ -972,11 +984,20 @@ describe("mounted calculator", () => {
     const calculationPanel = containingDetails(outSlot("calculation-rows"));
     const formulaPanel = containingDetails(outSlot("calc-formula"));
     const assumptionsPanel = containingDetails(outSlot("assumptions"));
+    const guideSummary = document.querySelector("#vram-guide-title");
+    if (
+      !(guideSummary instanceof HTMLElement) ||
+      !(guideSummary.parentElement instanceof HTMLDetailsElement)
+    ) {
+      throw new TypeError("Missing crawlable guide panel");
+    }
+    const guidePanel = guideSummary.parentElement;
     const summaries = [
       whyPanel,
       calculationPanel,
       formulaPanel,
       assumptionsPanel,
+      guidePanel,
     ].map((panel) => panel.firstElementChild?.textContent);
 
     expect(summaries).toEqual([
@@ -984,12 +1005,14 @@ describe("mounted calculator", () => {
       "Values Used In Calculations",
       "Formula used",
       "Assumptions used",
+      "How VRAM is calculated",
     ]);
     for (const panel of [
       whyPanel,
       calculationPanel,
       formulaPanel,
       assumptionsPanel,
+      guidePanel,
     ]) {
       expect(panel.open).toBe(false);
     }

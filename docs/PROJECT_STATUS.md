@@ -1,50 +1,48 @@
-> Handoff. Keep it short and current.
+# Project Status
 
-## State (2026-07-15, post-F0-deploy prep)
+Short, current handoff. Deleted lines are the point — keep only what's useful now.
 
-- **F0 activation fix is COMMITTED** on `main` as `0b80fa1` (fp16-equivalent
-  decoder scratch, 0.5 GB floor, fp16 compute-precision assumption row,
-  refreshed crawlable numbers). 273 unit tests, 100% coverage; preflight green.
-- Production (`origin/main`) is still BEHIND local `main` — the F0/F3 work is
-  committed locally but not deployed. Deploy is gated by the Release Rule (two
-  high-level reviews) in `specs/frontend.md`.
-- An adversarial edge-case audit + behavior-research pass ran; verdicts are
-  recorded in `specs/frontend.md` under "Edge-Case Audit Verdicts". Net: ONE
-  calc-layer fix warranted (relax the decimal-input cap to 2 places); every
-  other finding is correct-but-silent or intentional — leave as-is.
+## State (2026-07-16)
 
-## Uncommitted working tree (mixed authorship — needs owner triage)
+- Committed on `main`: F0 activation fix (`0b80fa1`), then bug-fix batch
+  (`a06f2dd`) carrying the F4.1 UI rework, the 256-token context floor, and
+  spec cleanup. 274 unit tests, 100% coverage; build green.
+- **F4.1 done:** FAQ section + FAQPage JSON-LD removed; "How VRAM is
+  calculated" relocated into the reasoning `.panel-group` (shared `.panel`
+  styling, green chevron); bespoke `.seo-*`/`.faq-item` CSS gone; hero subtitle
+  width now uses the `--layout-intro-max` token.
+- Current run pinned F4.1 behavior: fifth guide panel order/closed state,
+  keyboard Enter toggle, hidden-then-open guide table, and Total Model
+  Parameters staying a free-form text input.
+- Production is BEHIND `main` (not yet deployed). Deploy is gated by the
+  Release Rule (gate + Claude review + Codex review) in `specs/frontend.md`.
 
-Multiple in-flight changes sit together, NOT yet committed:
+## Checks
 
-- **UI rework (partial, in `index.html` + `styles.css`):** "How VRAM is
-  calculated" was moved into the right-column `.panel-group` as a 5th
-  `.panel` after "Assumptions used". The old standalone `.seo-reference`
-  block (old How-VRAM copy + the whole FAQ) is STILL PRESENT and must be
-  deleted, along with the `FAQPage` JSON-LD in `<head>` and the now-unused
-  `.seo-*`/`.faq-item` CSS. See F4.1 (owner revision) in `specs/frontend.md`.
-  Owner mandate: FAQ removed for now; guide styling MUST match the app.
-- **Context minimum (complete):** 256-token floor on `contextTokens` at both
-  UI (`data-number-min="256"`) and calc layers (`workload-sizing.ts`
-  `contextField`, used by `workload-memory.ts`); test added in
-  `calculator.test.ts`; `app.test.ts:1157` sanitizer assertion updated to the
-  floored value.
-- **Pre-existing:** `app.ts`/`app-dom.ts` selector-gate refactor (behavior
-  preserving); forbidden `harness/*` (cspell, preferences) — loop agents may
-  not edit these.
+- `pnpm preflight` passed.
+- `pnpm gate` passed.
+- Focused: `vitest src/app.test.ts` passed 110 tests; affected Playwright specs
+  passed 314 tests / 10 skipped.
+- Visual screenshots saved in `scratchpad/visual-f4.1/`: default closed
+  (18.8 GB), 70B 8-bit open guide (87.7 GB), 390px zeroed (0.0 GB), 320px 13B
+  4-bit guide (11.9 GB), tablet 104B extreme (237.3 GB). Script checked no
+  horizontal overflow for each.
 
-## Known failing test (expected, tracks in-progress rework)
+## Open work
 
-- `app.test.ts:478` "mirrors the visible FAQ in structured data" now fails
-  (expects 7 visible FAQ questions, sees 0) because the FAQ markup is being
-  removed. This test must be DELETED with the FAQ, not "fixed". Once the F4.1
-  rework lands, this and the FAQ JSON-LD assertions go away together.
+- **Decimal-input fix (only calc change the audit warrants):** relax
+  `numeric-state.ts` `isPlainDecimal` to accept 2 decimals so
+  `gpuResidentFraction=0.75` etc. don't silently revert; pin with a URL
+  round-trip test. Details in `specs/frontend.md` "Edge-Case Audit Verdicts".
+- **Phase 2 feature backlog (F1/F2/F5/F6/F7/F8) is PARKED** — do not build
+  (archived at `scratchpad/DO-NOT-DO-phase2-features.md`). Recurring QA runs
+  F9/F10 remain actionable (`specs/qa.md`).
 
-## Next (for loop agents / owner)
+## Blockers
 
-1. Finish F4.1: delete the standalone `.seo-reference` FAQ block + `FAQPage`
-   JSON-LD + unused `.seo-*`/`.faq-item` CSS; remove FAQ-structure tests
-   (incl. `app.test.ts:478`). Keep the relocated guide panel.
-2. Apply the one calc fix: relax `isPlainDecimal` to accept 2 decimals; pin
-   with a URL round-trip test.
-3. Run `pnpm gate` green, then the two high-level reviews, then owner deploys.
+- None open.
+
+## Known issues
+
+- Small-screen topbar polish around GitHub/brand wrapping is pre-existing, not
+  from F4.1. Logged in `docs/LAUNCH_TODO.md` (section 4).

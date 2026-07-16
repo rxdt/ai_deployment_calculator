@@ -1,13 +1,25 @@
-codex-gpt5 is working on F4.1 relocate guide/drop FAQ in this spec
-
 # Frontend Spec
+
+---
+
+MUST FILL IN LINE 9 AT START THEN "CLEAR" BACK TO BASELINE BEFORE END OF ITERATION
+
+> CLAIMED BY AGENT:
+
+< agent >< iteration >< run > is working on < list tasks in this spec you choose >
+
+MUST FILL IN LINE 9 AT START THEN "CLEAR" BACK TO BASELINE BEFORE END OF ITERATION
+
+---
 
 ## Priority
 
 Phase 1 is shipped and live at https://vram.rxdt.dev/; Phase 2 F0/F3/F4/F4.1
-have landed. Remaining features (F1, F2, F5, F6, F8, F7) have contracts in
-`specs/contracts.md` and rationale in `specs/plan.md` — take one per run,
-gate-green after each, strike it when done, delete `contracts.md` when empty.
+have landed. The F1/F2/F5/F6/F7/F8 feature backlog is PARKED (owner directive
+2026-07-16 — do not build; archived at
+`scratchpad/DO-NOT-DO-phase2-features.md`). Only actionable work now: the
+decimal-input fix (see Edge-Case Audit Verdicts) and the recurring QA runs
+F9/F10 (`specs/qa.md`, `specs/plan.md`).
 
 ## Shared Rules
 
@@ -25,37 +37,31 @@ gate-green after each, strike it when done, delete `contracts.md` when empty.
   Rationale: a competitor survey found free fine-grained inputs cap at
   `step=0.01` (2 decimals); 1-decimal GB display is acceptable though slightly
   coarser than the 2-decimal peer norm.
+- SEO rule (any crawlable content): static client-side app, so only served HTML
+  counts. Keep a single H1 (hero); content in closed `<details>` is still
+  indexed (mobile-first). Do NOT use `FAQPage` schema (Google removed the FAQ
+  rich result, May 2026) — write any Q&A as ordinary crawlable
+  prose/subheadings mirroring real queries ("how much VRAM for a 70B model",
+  "GPU memory for LoRA/QLoRA"). The 7B/13B/70B × FP16/8-bit/4-bit table (pinned
+  to `buildReport`) is the strongest asset. Match `.panel` styling — no bespoke
+  SEO CSS.
 
 ## Visual Verification Rule (owner mandate, 2026-07-15)
 
-Any UI-affecting change MUST be visually verified before it is called done —
-tests and typecheck are not enough. The agent starts the app (dev server or
-built `dist` via Playwright under `harness/`) and screenshots it:
-
-- Multiple STATES: default load, a computed result, panels/disclosures open
-  and closed, an empty/zeroed form, an extreme-input result.
-- Multiple VIEWPORTS: mobile (320 / 390px), tablet, desktop. No horizontal
-  scroll at 320/390; no label overlap at ≤30em.
-- Various calculator INPUTS across families/modes/precisions.
-
-For each, verify three things and report them: (1) the app LOOKS ok (nothing
-visually broken, clipped, overlapping, or unstyled); (2) the OUTPUT numbers are
-accurate (spot-check against the formula/anchors, not just "a number appeared");
-(3) styling is CONSISTENT across viewports and no element renders "broken"
-(mis-aligned chevron, wrong font, spacing unlike the rest of the app, off-theme
-color). Attach/save screenshots to the run's report; a claim of "verified"
-without screenshots is not verified.
+Any UI-affecting change needs screenshots, not just tests/typecheck. Start the
+app and capture multiple states (default, computed, panels open/closed, zeroed,
+extreme), multiple viewports (320/390px mobile, tablet, desktop), and varied
+inputs. Report: no visual breakage/overlap/horizontal scroll, output numbers
+spot-check against formulas/anchors, styling consistent. Save screenshots; no
+screenshots means not verified.
 
 ## Release Rule (owner mandate, 2026-07-15)
 
-Before deploying to production, a change must pass TWO independent high-level
-reviews — one by Claude and one by Codex — in addition to the automated gate.
-A deploy (push to main) happens only after, in order: (1) the automated gate
-green (lint, type-check, build, coverage, E2E, Lighthouse), (2) one HIGH-LEVEL
-review by Claude, (3) one HIGH-LEVEL review by Codex. High-level means
-whole-delta judgment — correctness of the numbers against anchors, user-facing
-copy, recommendation behavior changes — not a lint re-run. Reviews go to the
-owner; the owner pushes.
+Production deploy only after, in order: automated gate green (lint, type-check,
+build, coverage, E2E, Lighthouse), one high-level Claude review, one high-level
+Codex review. High-level means whole-delta judgment: numbers against anchors,
+user-facing copy, and recommendation behavior, not another lint run. Owner
+pushes.
 
 ## Edge-Case Audit Verdicts (2026-07-15)
 
@@ -77,20 +83,22 @@ Fix ONE thing; the rest are correct-but-silent or intentional — do NOT change.
 
 ## Loop Discipline (finish, don't dally)
 
-1. Pick the FIRST unchecked feature in `specs/plan.md` Phase 2 whose
-   dependencies are met. One feature per run — never two.
-2. Read Gate Landmines below BEFORE writing code; every landmine has already
-   cost a full debugging cycle once.
-3. Definition of done, all four or it is not done: (a) the contract below is
-   met exactly; (b) `pnpm gate` exits 0; (c) the item is struck `[x]` in
-   `specs/plan.md` with a one-line DONE note; (d) work is committed with a
-   descriptive message.
-4. No drive-by refactors, no renames, no style migrations, no scope
-   extensions outside the feature's contract. If you see an unrelated
-   problem, append one line to `docs/LAUNCH_TODO.md` and keep moving.
-5. If the same gate check fails 3 consecutive attempts, STOP: revert to the
-   last green state, write the blocker (symptom, attempts, hypothesis) under
-   a `## Blockers` heading in `specs/plan.md`, and end the run. Thrashing
-   burns the budget the next feature needs.
-6. Never edit another feature's primary files in the same run; never touch
-   `harness/` config except where a contract explicitly says so.
+1. Pick the first actionable Phase 2 item whose dependencies are met; one per
+   run.
+2. Done means contract met, `pnpm gate` exits 0, plan/spec/status shrink to the
+   truth, and work is committed.
+3. No drive-by refactors, renames, style migrations, or scope extension. Log
+   unrelated issues in `docs/LAUNCH_TODO.md`.
+4. If the same gate check fails 3 times, stop and write symptom, attempts, and
+   hypothesis under `## Blockers`.
+5. Never edit another feature's primary files or `harness/` config unless the
+   contract explicitly says so.
+
+## Checks / Gate Landmines
+
+- Focused: `pnpm --dir frontend exec vitest run src/report.test.ts src/app.test.ts --config ../harness/vitest.config.js`.
+- Full units: `pnpm --dir frontend run test:coverage`; final: `pnpm gate`.
+- Gate rejects linter-disable comments, TypeScript ignore comments, exclusive
+  test markers, skipped tests, and broad suppression. TS lint bans unsafe `as`.
+- Stylelint dislikes qualifying selectors + descending specificity.
+- Playwright `getByLabel("Precision")` needs `{ exact: true }`.

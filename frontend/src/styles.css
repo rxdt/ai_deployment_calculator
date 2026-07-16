@@ -152,6 +152,7 @@
   /* Tier-table rails: the memory-range and fit-check column widths. */
   --layout-tier-memory: 4.5rem;
   --layout-tier-fit: 3.5rem;
+  --layout-intro-max: 16rem;
 
   /* Cap the overall layout so the panes never stretch edge to edge on wide
      monitors; that viewport-fill stretch is what inflated the whole tool. */
@@ -534,10 +535,10 @@ summary,
   line-height: var(--font-line-heading);
 }
 
-/* Cap the tagline's measure so it wraps to balanced lines instead of leaving
-   the last word ("workload") stranded alone on a second line. */
+/* Cap the tagline's measure so it wraps to balanced lines instead of stranding
+   the last word on its own line. */
 .intro p {
-  max-width: 34ch;
+  max-width: var(--layout-intro-max);
 }
 
 .intro p,

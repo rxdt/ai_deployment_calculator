@@ -129,15 +129,13 @@ const textGenerationMemory: WorkingMemoryBuilder = (spec) => ({
   inputActivationGb: fp16ActivationScratchGb(spec, decoderPrefillRatio(spec)),
 });
 
-const textEncoderMemory: WorkingMemoryBuilder = (spec) => {
-  return {
-    kvCacheGb: 0,
-    inputActivationGb: encoderActivationGb(
-      spec,
-      nonNegativeField(spec.state.sequenceTokens, 512),
-    ),
-  };
-};
+const textEncoderMemory: WorkingMemoryBuilder = (spec) => ({
+  kvCacheGb: 0,
+  inputActivationGb: encoderActivationGb(
+    spec,
+    nonNegativeField(spec.state.sequenceTokens, 512),
+  ),
+});
 
 const encoderDecoderMemory: WorkingMemoryBuilder = (spec) => {
   const input = encoderActivationGb(
@@ -215,15 +213,14 @@ const videoMemory: WorkingMemoryBuilder = (spec, currentWeightsGb) => {
   };
 };
 
-const audioMemory: WorkingMemoryBuilder = (spec) => {
-  const tokens =
+const audioMemory: WorkingMemoryBuilder = (spec) => ({
+  kvCacheGb: 0,
+  inputActivationGb: encoderActivationGb(
+    spec,
     nonNegativeField(spec.state.audioSeconds, 30) *
-    DEFAULT_AUDIO_TOKENS_PER_SECOND;
-  return {
-    kvCacheGb: 0,
-    inputActivationGb: encoderActivationGb(spec, tokens),
-  };
-};
+      DEFAULT_AUDIO_TOKENS_PER_SECOND,
+  ),
+});
 
 const tabularMemory: WorkingMemoryBuilder = (spec) => {
   const tabular =
@@ -234,15 +231,13 @@ const tabularMemory: WorkingMemoryBuilder = (spec) => {
   return { kvCacheGb: 0, inputActivationGb: tabular * 4 };
 };
 
-const customMemory: WorkingMemoryBuilder = (spec, currentWeightsGb) => {
-  return {
-    kvCacheGb: 0,
-    inputActivationGb:
-      currentWeightsGb *
-      0.25 *
-      nonNegativeField(spec.state.inputSizeMultiplier, 1),
-  };
-};
+const customMemory: WorkingMemoryBuilder = (spec, currentWeightsGb) => ({
+  kvCacheGb: 0,
+  inputActivationGb:
+    currentWeightsGb *
+    0.25 *
+    nonNegativeField(spec.state.inputSizeMultiplier, 1),
+});
 
 const formatSpeed = (tokens: number, family: WorkloadFamily): string => {
   const style = SPEED_STYLES.get(family) ?? TOKEN_SPEED_STYLE;

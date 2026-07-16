@@ -569,11 +569,11 @@ test("desktop result detail panels group as rows on one bordered surface", async
   await page.setViewportSize({ height: 720, width: 1280 });
   await page.goto("/");
 
-  // The four reasoning disclosures live inside one bordered group container.
+  // The reasoning disclosures live inside one bordered group container.
   const group = page.locator(".results .panel-group");
   await expect(group).toHaveCSS("border-top-style", "solid");
   const panels = group.locator("> details.panel");
-  await expect(panels).toHaveCount(4);
+  await expect(panels).toHaveCount(5);
 
   const whyBox = requireBox(await panels.nth(0).boundingBox(), "why panel");
   const calculationBox = requireBox(
@@ -588,10 +588,17 @@ test("desktop result detail panels group as rows on one bordered surface", async
     await panels.nth(3).boundingBox(),
     "assumptions panel",
   );
+  const guideBox = requireBox(await panels.nth(4).boundingBox(), "guide panel");
 
   // The panels stack as full-width rows of the group: each shares the left
   // edge and width of the "why" panel and sits strictly below the one before.
-  const stacked = [whyBox, calculationBox, formulaBox, assumptionsBox];
+  const stacked = [
+    whyBox,
+    calculationBox,
+    formulaBox,
+    assumptionsBox,
+    guideBox,
+  ];
   let previousY = -Infinity;
   for (const box of stacked) {
     expect(box.x).toBeCloseTo(whyBox.x, 0);

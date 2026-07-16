@@ -220,6 +220,21 @@ test("advanced assumptions opens, toggles MoE, and closes by keyboard", async ({
   await expect(moe).toBeHidden();
 });
 
+test("relocated VRAM guide opens and closes from its summary key", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const summary = page.getByText("How VRAM is calculated", { exact: true });
+  const panel = page.locator("details.panel", { has: summary });
+
+  await expect(panel).not.toHaveAttribute("open", "");
+  await summary.focus();
+  await page.keyboard.press("Enter");
+  await expect(panel).toHaveAttribute("open", "");
+  await page.keyboard.press("Enter");
+  await expect(panel).not.toHaveAttribute("open", "");
+});
+
 test("a preset chip loads its model when activated with Enter", async ({
   page,
 }) => {

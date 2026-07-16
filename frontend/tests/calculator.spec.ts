@@ -383,6 +383,12 @@ test("keeps secondary math hidden until detail panels expand", async ({
 
   await page.getByText("Assumptions used").click();
   await expect(page.locator('[data-out="assumptions"]')).toBeVisible();
+
+  await expect(page.locator('[data-slot="vram-reference-table"]')).toBeHidden();
+  await page.getByText("How VRAM is calculated", { exact: true }).click();
+  await expect(
+    page.locator('[data-slot="vram-reference-table"]'),
+  ).toBeVisible();
 });
 
 test("uses green only for expanded result detail headings", async ({

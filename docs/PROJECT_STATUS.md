@@ -23,12 +23,12 @@ Short, current handoff. Deleted lines are the point — keep only what's useful 
   Vision/diffusion/video/audio/tabular branches have no verified external
   anchor yet; F10 exists to close that.
 - **Production is stale because `main` is unpushed.** `origin/main` = `e1e5af9`
-  (pushed 2026-07-15 19:16); local `main` is ~38 commits ahead. The owner
-  deployed 2026-07-15 and again 2026-07-16, but both deploys predate or exclude
-  the upward-rounding work, so live `vram.rxdt.dev` serves pre-rounding
-  numbers — verified 2026-07-16 by curl: live static rows 11.4/32.2/87.9 GB vs
-  local 11.5/32.3/88.0 GB; live under-reports and 87.9 sits on the wrong side
-  of a tier boundary.
+  (pushed 2026-07-15 19:16); local `main` is ~38 commits ahead. Vercel builds
+  from GitHub, and the owner confirmed the latest Vercel deployment's source
+  commit is `e1e5af9`, so live `vram.rxdt.dev` serves pre-rounding numbers —
+  verified 2026-07-16 by curl: live static rows 11.4/32.2/87.9 GB vs local
+  11.5/32.3/88.0 GB; live under-reports and 87.9 sits on the wrong side of a
+  tier boundary. Fix: owner runs `git push`.
 - `frontend/src/adversarial/oracle.test.ts` has 22 green oracle tests,
   including the hardware-boundary round-up invariant. The dated report is
   `docs/qa/adversarial-2026-07-16.md`.

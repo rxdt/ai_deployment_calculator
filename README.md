@@ -57,7 +57,7 @@ Validate against your target stack before buying hardware.
 - Calculation: `frontend/src/calculator-core.ts`, `frontend/src/workload-memory.ts`
 - Hardware tiers: `frontend/src/hardware.ts`
 - Report assembly: `frontend/src/report.ts`
-- Specs: `specs/plan.md`, `specs/frontend.md`
+- Specs: `specs/plan.md`, `specs/qa.md`
 
 ## Requirements
 
@@ -79,24 +79,18 @@ pnpm build
 pnpm preview
 ```
 
-## Deploy
-
-Build output is static and lives in `frontend/dist`. Root-domain static host
-settings:
-
-```txt
-pnpm build  # Build command
-frontend/dist  # Publish directory
-npx vercel deploy --prod  # redeploy vercel
-```
-
-If hosting under a subpath, set the Vite base path before building.
-
 ## Checks
 
 ```sh
+# checks
 pnpm preflight
 pnpm gate
 pnpm --prefix frontend run test:coverage
 pnpm --prefix frontend run test:e2e
 ```
+
+## Deploy
+
+Owner-only. Vercel builds from GitHub `main`: push, and the gated CI deploy
+job in `.github/workflows/ci.yml` ships `frontend/dist` to production once
+checks pass (requires `VERCEL_*` secrets and `VERCEL_DEPLOY_ENABLED=true`).

@@ -40,8 +40,9 @@ Multiple agents share this repo. Full protocol in `PROMPT.md`; the essentials:
    `docs/PROJECT_STATUS.md`, not the spec. A growing spec is a red flag.
 3. **Release last.** Remove your claim line at run end — non-optional. A dead
    agent's stale claim (work committed / tree clean) may be reaped by the next.
-4. Expect commit clashes and a dirty tree across parallel agents — that is OK;
-   commit your own scoped work and keep moving.
+4. KEEP GIT CLEAN. End your run with a committed, clean tree — no stray
+   uncommitted/untracked files. On a clash, keep both sides' committed work
+   (never discard another agent's), then leave the tree clean.
 
 ## Research Corrections
 

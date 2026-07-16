@@ -39,7 +39,7 @@ Short, current handoff. Deleted lines are the point — keep only what's useful 
 - Focused Playwright desktop calculator/parity passed 46 tests with 4 expected
   skips after rounding expectation updates.
 - `pnpm preflight` passed for the implementation commit.
-- `pnpm gate`: pending final run.
+- `pnpm gate` passed after the rounding and browser expectation updates.
 
 ## Open Work
 

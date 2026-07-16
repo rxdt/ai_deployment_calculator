@@ -26,21 +26,36 @@ task, gate-green, delete it when done; delete this file when empty.
   `alternateName`.
 - Domain (settled): vram.rxdt.dev is canonical; Vercel 308s the .app to it.
 
-## R3 — Prep the deploy (owner-gated; NEVER self-push)
+## R3 — Deploy (OWNER is running the gate + pushing; NEVER self-push)
 
-- Remaining blocker: run the required Claude review of the deploy delta vs live
-  (local CLI currently says `Not logged in`). If it passes, hand the OWNER the
-  deploy-delta summary and exact lease-protected push command. STOP. **Only the
-  owner deploys.**
+- The owner is gating and deploying `main` directly. Agents do NOT push. This
+  task is done from the loop's side; the active gap-closer is R4.
 
-## R4 — Post-deploy live verification (after the owner deploys)
+## R4 — Post-deploy live verification (ACTIVE once prod is pushed)
 
-- Playwright, absolute URLs on https://vram.rxdt.dev/ (deep-links are
-  JS-hydrated): 7B default=18.8; `?total-params=70`=161.1;
-  `?total-params=70&precision=Q4_K_M` resolves ≈42.4; 8B QLoRA 2%=21.0;
-  7B full-train=152.9. Confirm `AI Deployment Calculator`, canonical=
-  vram.rxdt.dev, and the GSC tag are live. Append results to
-  `docs/qa/verification-2026-07-16-live-staleness.md`.
+Do NOT assume the push landed — a deploy can cache-miss or serve a stale bundle.
+Drive https://vram.rxdt.dev/ with Playwright (absolute URLs, real browser;
+deep-link `[data-out]` values are JS-hydrated, so a plain curl only sees the
+seeded default). Verify against these independently-recomputed expected values
+(from `main`'s shipping code, cross-checked to external anchors):
+
+| URL (on vram.rxdt.dev) | data-out="total" | key check |
+| --- | --- | --- |
+| `/` (7B fp16 8k default) | **18.8 GB** | was 19.0 when stale; activation row 0.5 not 0.7 |
+| `/?total-params=70` | **161.1 GB** | act 2.3 (llama.cpp), was 166.2 stale |
+| `/?total-params=70&context-tokens=32000` | **172.0 GB** | act grows to 4.4 (context-anchored) |
+| `/?total-params=70&precision=Q4_K_M` | **53.8 GB** | F3 live (weights 42.4 ≈ real GGUF); NOT rejected/fallback |
+| `/?total-params=8&execution-mode=QLoRA fine-tuning&lora-trainable-percent=2` | **21.0 GB** | QLoRA < full-train |
+| `/?total-params=7&execution-mode=Full training` | **152.9 GB** | AdamW state 98 |
+
+Also confirm on the live page: the "How VRAM is calculated" guide panel is
+present (missing while stale); the "Formula used" default reads
+`18.8 GB ≈ (14.0 + 1.0 + 0.5 + 1.5) GB × 1.10` (NOT the `0.7 / 19.0` stale
+string); H1 = "AI Deployment Calculator"; canonical = `https://vram.rxdt.dev/`;
+GSC tag present. Any mismatch = the deploy did not fully land (cache/branch),
+NOT a code bug — report it, do not "fix" the math. Append the result table to
+`docs/qa/verification-2026-07-16-live-staleness.md`; when all rows pass, this
+spec is empty — delete it.
 
 ## Rule
 

@@ -57,19 +57,18 @@ Rationale: `scratchpad/DO-NOT-DO-phase2-features.md`.
 
 ### PRIORITIES (exactly one P0; everything else is P1/P2)
 
-- **P0 — The LIVE public site serves WRONG numbers.** https://vram.rxdt.dev/
-  runs the stale pre-F0 bundle (7B default = 19.0 GB; correct = 18.8) and lacks
-  F3/F4/F4.1. `main` is INDEPENDENTLY VERIFIED (2026-07-16) as strictly better,
-  no regressions: activation now context-anchored (70B 2.32→4.36 GB across
-  8k→32k, cites llama.cpp #7804/#10003); 70B@8k total = 161.1 GB reproduced by
-  hand from anchors; fp16=params×2 and KV=0.125 MiB/tok (vLLM) exact; GSC tag
-  value matches live; brand H1 "AI Deployment Calculator" already matches live
-  (deploy does NOT rebrand); 279 tests / 100% cov / gate green. SEO
-  reconciliation complete (GSC, sitemap/robots on vram.rxdt.dev, brand). Local
-  build/preflight/gate passed, and Codex review is recorded; the required Claude
-  review is blocked by CLI auth. Nothing outranks getting this correct,
-  non-regressing build deployed. **ONLY THE OWNER DEPLOYS.** Treat any accuracy
-  regression on `main` as a release blocker, not a backlog item.
+- **P0 — Confirm the live site actually got the fix (owner is deploying now).**
+  The owner is gating and pushing `main`. `main` is INDEPENDENTLY VERIFIED
+  (2026-07-16) strictly better with no regressions: activation context-anchored
+  (70B 2.32→4.36 GB across 8k→32k, cites llama.cpp #7804/#10003); 70B@8k=161.1
+  reproduced by hand; fp16=params×2, KV=0.125 MiB/tok (vLLM), Q4_K_M weights
+  42.4≈real GGUF all exact; GSC tag + "AI Deployment Calculator" brand match
+  live; 279 tests / 100% cov / gate green. The four things previously seen as
+  "regressions" on the live site (7B=19.0, missing guide panel, `0.7/19.0`
+  formula, rejected Q4_K_M) were ALL the stale bundle — `main` fixes every one.
+  Do NOT re-verify `main`; the open work is R4 in `deploy-reconcile.md`: after
+  the push, drive the LIVE site and confirm it now serves the correct values
+  (don't assume the deploy landed — caches lie). **ONLY THE OWNER DEPLOYS.**
 - **P1 — Guard the accuracy that was just fixed.** Add a direct unit test for
   `decoder-scratch.ts` pinning its cited anchors (≈2.2 GB @8k, ≈4.2 GB @32k for
   70B; the 0.5 GB floor) and the context-growth invariant, so the formula can't

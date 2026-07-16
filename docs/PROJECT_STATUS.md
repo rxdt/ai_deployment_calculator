@@ -50,6 +50,9 @@ Short, current handoff. Deleted lines are the point — keep only what's useful 
   the delta is accuracy-positive (7B 18.8, 70B 161.1, Q4_K_M 42.44 GB weights)
   and SEO-safe (GSC restored, `AI Deployment Calculator` restored, VRAM/GPU
   keywords retained).
+- Guide-panel regression sweep: current `index.html` still has all five result
+  panels plus the guide formula/prose/reference table; focused Vitest summary
+  test and Playwright details-panel test passed.
 - Visual screenshots saved in `scratchpad/visual-decimal-input/`: 390px
   default closed (18.8 GB), desktop decimal advanced open (24.5 GB), 320px
   zeroed (0.0 GB), tablet extreme guide open (139.4 GB), desktop panels open
@@ -59,11 +62,13 @@ Short, current handoff. Deleted lines are the point — keep only what's useful 
 
 ## Open work (priority-ranked; see `specs/plan.md` PRIORITIES)
 
-- **P0 — Get a correct, non-regressing build DEPLOYABLE.** Prod is stale and
-  serves 19.0 (correct 18.8). `main` is verified more accurate. Deploy is gated
-  on the required Claude review and owner push in `specs/deploy-reconcile.md`.
-  **Only the owner deploys.** `specs/accuracy-fix.md` was deleted because its
-  remaining deploy/verification work duplicated `specs/deploy-reconcile.md`.
+- **P0 — Confirm the deploy landed (owner is gating + pushing `main` now).**
+  `main` is verified strictly better, no regressions (see plan.md P0). The four
+  "regressions" seen on the live site (7B=19.0, missing guide panel, `0.7/19.0`
+  formula, rejected Q4_K_M) were ALL the stale bundle — deploying fixes all of
+  them. Active gap-closer: `deploy-reconcile.md` R4 — after the push, drive the
+  LIVE site and confirm the corrected values (do NOT assume the deploy landed;
+  caches can serve stale). **Only the owner deploys.**
 - **P1 — Guard the just-fixed accuracy:** add a direct `decoder-scratch.ts`
   unit test pinning its llama.cpp anchors (≈2.2 GB @8k, ≈4.2 GB @32k for 70B;
   0.5 GB floor) + context-growth invariant. Currently only covered indirectly.
@@ -73,11 +78,9 @@ Short, current handoff. Deleted lines are the point — keep only what's useful 
 
 ## Blockers
 
-- Owner has not authorized deploy; production remains stale (P0).
-- Required Claude review is blocked locally: `claude --bare -p ...` returns
-  `Not logged in`.
-- `origin/main` diverges at GSC-only `2401b9b`; after Claude review, the owner
-  should deploy with a lease-protected push, not a plain push.
+- Owner is gating + pushing `main` now, but `git ls-remote origin
+  refs/heads/main` still reports GSC-only `2401b9b`; production remains stale
+  until that ref changes. Prefer a lease-protected push over a plain push.
 
 ## Known issues
 

@@ -48,21 +48,7 @@ Estimates vary with model architecture, kernels, quantization, sequence packing,
 batching, sharding, offload, framework overhead, and runtime configuration.
 Validate against your target stack before buying hardware.
 
-## Key Files
-
-- UI: `frontend/index.html` and `frontend/src/app.ts`
-- State: `frontend/src/state.ts`
-- Calculation: `frontend/src/calculator-core.ts`, `frontend/src/workload-memory.ts`
-- Hardware tiers: `frontend/src/hardware.ts`
-- Report assembly: `frontend/src/report.ts`
-- Specs: `specs/plan.md`, `specs/qa.md`
-
-## Requirements
-
-- Node.js `^22.16.0 || >=24.8.0`
-- pnpm `>=10` (`pnpm@11.9.0` declared)
-
-## Local
+## Run Locally
 
 ```sh
 pnpm install
@@ -77,7 +63,7 @@ pnpm build
 pnpm preview
 ```
 
-## Checks
+## Development Checks
 
 ```sh
 # checks
@@ -87,11 +73,27 @@ pnpm --prefix frontend run test:coverage
 pnpm --prefix frontend run test:e2e
 ```
 
-## Why build this
+## Key Files
 
-**Without a real app in production a harness cannot be trusted. This app was developed alongside [L∞pGate JS](https://github.com/rxdt/loopgate_js) to learn from (painfully) and serve as `v0` proof.** As a fan of dev tooling, meta-absuridism, and cycles, building the most deterministic self-referential Ai tool conceivable on the fly _(an AI GPU calculator)_ all while building a looping harness just feels right.
+- UI: `frontend/index.html` and `frontend/src/app.ts`
+- State: `frontend/src/state.ts`
+- Calculation: `frontend/src/calculator-core.ts`, `frontend/src/workload-memory.ts`
+- Hardware tiers: `frontend/src/hardware.ts`
+- Report assembly: `frontend/src/report.ts`
+- Specs: `specs/plan.md`, `specs/qa.md`
 
-Generally, frontend work has a messy non-deterministic contract. Yet an app must remain accessible/build/render/respond/fit across viewports and loading paths. _AND_ have ✨taste.✨ UI has a gradient of quality and Agents stop ASAP unless forced to improve. That's why this heavy WIP harness is here. With web we don't get simple deterministic outcome like with a [Python harness](https://github.com/rxdt/loopgate_harness). A frontend agent can pass tests while shipping a blank page. So the loop is strict on purpose The harness uses tooling to force an agent to build an app to look like a human did. These checks cover different failure modes:
+## Requirements
+
+- Node.js `^22.16.0 || >=24.8.0`
+- pnpm `>=10` (`pnpm@11.9.0` declared)
+
+---
+
+# Why build this
+
+**Without a real app in production a harness cannot be trusted. This app was developed alongside [L∞pGate JS](https://github.com/rxdt/loopgate_js) to learn from (painfully) and serve as `v0` proof.** As a fan of dev tooling, meta-absuridism, and cycles, building the most deterministic self-referential Ai tool conceivable on the fly _(an AI GPU calculator)_ all while building a looping harness just felt right.
+
+Generally, frontend work has a messy non-deterministic contract. Yet an app must remain accessible/build/render/respond/fit across viewports and loading paths. _AND_ have ✨taste✨. UI has a gradient of quality and Agents stop ASAP unless forced to improve. That's why this heavy WIP harness is here. With web we don't get simple deterministic outcome like with a [Python harness](https://github.com/rxdt/loopgate_harness). A frontend agent can pass tests while shipping a blank page. So the loop is strict on purpose The harness uses tooling to force an agent to build an app to look like a human did. These checks cover different failure modes:
 
 - TS, HTML, CSS, JSON format
 - lint
@@ -121,4 +123,4 @@ Agents struggle more with frontend for structural reasons. They can reason over 
 - CSP/headers
 - performance timing
 
-A backend bug has a crisp functional target, e.g. this function returns wrong value. A frontend issue often says without words: “the thing looks wrong”. Agents need heavy tool feedback to _'see'_ issues or they are guessing from source. The loopgate_js harness doesn't promise to fix all of the above. It is a first attempt to expose some and enforce that agents make fixes.
+A backend bug has a crisp functional target, e.g. this function returns wrong value. A frontend issue often says without words: “the thing looks wrong”. Agents need heavy tool feedback to _'see'_ issues or they are guessing from source. [`loopgate_js`](https://github.com/rxdt/loopgate_js) harness doesn't promise to fix all of the above. It is a first attempt to expose some and enforce that agents make fixes.

@@ -632,14 +632,12 @@ describe("CalculatorApp construction", () => {
     );
   });
 
-  test("throws when the QLoRA runtime select is missing", () => {
+  test("throws when the runtime profile control is missing", () => {
     loadDom();
     const runtime = field("runtime-profile");
-    const replacement = document.createElement("input");
-    replacement.name = "runtime-profile";
-    runtime.replaceWith(replacement);
+    runtime.remove();
     expect(() => mountCalculator(document)).toThrow(
-      "Missing select control: runtime-profile",
+      "Missing form control: runtime-profile",
     );
   });
 
@@ -1017,7 +1015,36 @@ describe("mounted calculator", () => {
     }
     expect(field("gpu-resident-fraction").value).toBe("1.0");
   });
+});
 
+describe("assumption tooltips", () => {
+  test("renders the file-size assumptions as accessible label tooltips", () => {
+    loadDom();
+    mountCalculator(document);
+
+    const knownTip = document.querySelector<HTMLElement>(
+      "#known-model-file-size-gb-tip",
+    );
+    const residentTip = document.querySelector<HTMLElement>(
+      "#gpu-resident-fraction-tip",
+    );
+    expect(knownTip?.textContent.trim().replaceAll(/\s+/gu, " ")).toBe(
+      "On-disk weight size in GB. Overrides the parameter-based weight estimate when set.",
+    );
+    expect(residentTip?.textContent.trim().replaceAll(/\s+/gu, " ")).toBe(
+      "Fraction (0–1, not a percentage) of the known file kept in VRAM. Only applies when Known Model File Size is set.",
+    );
+    expect(
+      field("known-model-file-size-gb").getAttribute("aria-describedby"),
+    ).toBe("known-model-file-size-gb-tip");
+    expect(
+      field("gpu-resident-fraction").getAttribute("aria-describedby"),
+    ).toBe("gpu-resident-fraction-tip");
+    expect(document.querySelectorAll(".field-tip-btn")).toHaveLength(2);
+  });
+});
+
+describe("mounted calculator", () => {
   test("renders the output disclaimer below the estimate", () => {
     loadDom();
     mountCalculator(document);
@@ -1210,20 +1237,19 @@ describe("mounted calculator", () => {
     expect(out("total")).not.toBe("19.0 GB");
   });
 
-  test("QLoRA forces and locks precision and runtime with a visible note", () => {
+  test("QLoRA locks precision but keeps runtime selectable", () => {
     loadDom();
     mountCalculator(document);
 
     fireChange("execution-mode", "QLoRA fine-tuning");
 
     expect(field("precision").value).toBe("4-bit");
-    expect(field("runtime-profile").value).toBe("Local / Edge");
-    // The pinned selects are disabled (not silently re-snapping under the user)
-    // and each explains why with an unhidden lock note.
+    expect(field("runtime-profile").value).toBe("Server / Cloud");
+    // Only the frozen base precision is pinned; runtime is an independent
+    // deployment choice for local and cloud QLoRA training.
     expect(field("precision").disabled).toBe(true);
-    expect(field("runtime-profile").disabled).toBe(true);
+    expect(field("runtime-profile").disabled).toBe(false);
     expect(dataSlot("precision-lock").hidden).toBe(false);
-    expect(dataSlot("runtime-lock").hidden).toBe(false);
   });
 
   test("sanitizes negatives, exponents, and clamps the maximum", () => {
@@ -1583,7 +1609,7 @@ describe("recommended GPU examples", () => {
 });
 
 describe("QLoRA precision locking", () => {
-  test("leaving QLoRA re-enables the selects and hides the lock notes", () => {
+  test("leaving QLoRA re-enables precision and keeps runtime editable", () => {
     loadDom();
     mountCalculator(document);
 
@@ -1597,7 +1623,6 @@ describe("QLoRA precision locking", () => {
     expect(field("precision").disabled).toBe(false);
     expect(field("runtime-profile").disabled).toBe(false);
     expect(dataSlot("precision-lock").hidden).toBe(true);
-    expect(dataSlot("runtime-lock").hidden).toBe(true);
     expect(field("total-params").value).toBe("8");
     expect(out("total")).not.toBe("0.0 GB");
   });

@@ -301,11 +301,10 @@ export class CalculatorApp {
     this.setControlValue("precision", state.precision);
     this.setControlValue("runtime-profile", state.runtimeProfile);
     this.setControlValue("optimizer", state.optimizer);
-    // QLoRA pins 4-bit + Local/Edge; lock both selects and show why rather than
-    // letting them silently snap back under the user.
+    // QLoRA pins the frozen base to 4-bit; runtime remains an independent
+    // deployment choice because QLoRA can run locally or in the cloud.
     const isQlora = state.executionMode === "QLoRA fine-tuning";
     this.lockControl("precision", "precision-lock", isQlora);
-    this.lockControl("runtime-profile", "runtime-lock", isQlora);
 
     const family = state.workloadFamily;
     for (const node of this.root.querySelectorAll<HTMLElement>(

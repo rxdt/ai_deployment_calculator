@@ -715,7 +715,7 @@ summary,
    stay on the individual rules. Section legends keep their green HUD style. */
 .presets-label,
 .field--check label,
-.field:not(.field--check) > label,
+:is(.field-label, .field:not(.field--check)) > label,
 .actions button,
 .hero-secondary .hero-label,
 .fit-scale,
@@ -728,9 +728,18 @@ summary,
 }
 
 /* Field captions center over their control and hold one line. */
-.field:not(.field--check) > label {
+:is(.field-label, .field:not(.field--check)) > label {
   text-align: center;
   white-space: nowrap;
+}
+
+.field-label {
+  min-width: 0;
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
 }
 
 .field--check input {

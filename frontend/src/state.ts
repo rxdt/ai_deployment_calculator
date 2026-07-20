@@ -153,7 +153,7 @@ function schemaValue<T extends z.ZodType>(
 }
 
 /**
-Apply the execution mode's hard constraints (QLoRA pins 4-bit, Local/Edge, and AdamW).
+Apply the execution mode's hard constraints (QLoRA pins 4-bit and AdamW).
 @param state - normalized form state
 @returns the state with mode constraints enforced
 */
@@ -162,7 +162,6 @@ function withModeConstraints(state: FormState): FormState {
     return {
       ...state,
       precision: "4-bit",
-      runtimeProfile: "Local / Edge",
       optimizer: "AdamW",
     };
   }

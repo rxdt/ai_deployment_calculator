@@ -189,7 +189,7 @@ describe("normalizedState", () => {
     ).toBe(defaultState().contextTokens);
   });
 
-  test("QLoRA forces a frozen 4-bit local base", () => {
+  test("QLoRA forces a frozen 4-bit base without changing runtime", () => {
     const state = normalizedState(
       parameters({
         executionMode: "QLoRA fine-tuning",
@@ -198,7 +198,7 @@ describe("normalizedState", () => {
       }),
     );
     expect(state.precision).toBe("4-bit");
-    expect(state.runtimeProfile).toBe("Local / Edge");
+    expect(state.runtimeProfile).toBe("Server / Cloud");
   });
 
   test("uses the training context default for a QLoRA deep link", () => {

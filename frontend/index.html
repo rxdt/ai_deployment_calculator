@@ -298,10 +298,6 @@
                     Server / Cloud
                   </option>
                 </select>
-                <span class="field-note" data-slot="runtime-lock" hidden
-                  >Locked to Local / Edge by QLoRA fine-tuning. Switch Execution
-                  Mode to change.</span
-                >
               </p>
 
               <p class="field" data-families="text_generation">
@@ -546,26 +542,59 @@
                   </select>
                 </p>
                 <p class="field">
-                  <label for="known-model-file-size-gb"
-                    >Known Model File Size (GB)</label
-                  >
+                  <span class="field-label">
+                    <label for="known-model-file-size-gb"
+                      >Known Model File Size (GB)</label
+                    >
+                    <span class="field-tip">
+                      <button
+                        type="button"
+                        class="field-tip-btn"
+                        aria-label="Known Model File Size help"
+                      >
+                        i
+                      </button>
+                      <span
+                        class="field-tip-bubble"
+                        role="tooltip"
+                        id="known-model-file-size-gb-tip"
+                        >On-disk weight size in GB. Overrides the
+                        parameter-based weight estimate when set.</span
+                      >
+                    </span>
+                  </span>
                   <input
                     id="known-model-file-size-gb"
                     name="known-model-file-size-gb"
                     type="text"
                     inputmode="decimal"
                     placeholder="e.g. 4.1"
-                    aria-describedby="known-model-file-size-gb-note"
+                    aria-describedby="known-model-file-size-gb-tip"
                   />
-                  <span class="field-note" id="known-model-file-size-gb-note"
-                    >On-disk weight size in GB. Overrides the parameter-based
-                    weight estimate when set.</span
-                  >
                 </p>
                 <p class="field" data-resident-fraction>
-                  <label for="gpu-resident-fraction"
-                    >GPU Resident Fraction</label
-                  >
+                  <span class="field-label">
+                    <label for="gpu-resident-fraction"
+                      >GPU Resident Fraction</label
+                    >
+                    <span class="field-tip">
+                      <button
+                        type="button"
+                        class="field-tip-btn"
+                        aria-label="GPU Resident Fraction help"
+                      >
+                        i
+                      </button>
+                      <span
+                        class="field-tip-bubble"
+                        role="tooltip"
+                        id="gpu-resident-fraction-tip"
+                        >Fraction (0–1, not a percentage) of the known file kept
+                        in VRAM. Only applies when Known Model File Size is
+                        set.</span
+                      >
+                    </span>
+                  </span>
                   <input
                     id="gpu-resident-fraction"
                     name="gpu-resident-fraction"
@@ -573,12 +602,8 @@
                     inputmode="decimal"
                     data-number-max="1"
                     value="1.0"
-                    aria-describedby="gpu-resident-fraction-note"
+                    aria-describedby="gpu-resident-fraction-tip"
                   />
-                  <span class="field-note" id="gpu-resident-fraction-note"
-                    >Enter Known Model File Size first. Fraction (0–1, not a
-                    percentage) of that file kept in VRAM.</span
-                  >
                 </p>
                 <p class="field" data-lora>
                   <label for="lora-trainable-percent">LoRA Trainable %</label>

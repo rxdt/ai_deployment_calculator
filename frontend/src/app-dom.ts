@@ -399,3 +399,20 @@ export function setHiddenWithControls(
   node.hidden = isHidden;
   setDescendantControlsDisabled(node, isHidden);
 }
+
+/**
+Keep a field in the layout but mark it inapplicable: its controls are disabled
+(so searchFromForm skips them and they never feed the calculation, exactly as a
+hidden field did) and data-inapplicable drives the greyed style. Unlike
+setHiddenWithControls this never sets `hidden`, so the grid keeps a stable set
+of rows instead of reflowing as fields appear and disappear.
+@param node
+@param isInapplicable
+*/
+export function setInapplicableWithControls(
+  node: HTMLElement,
+  isInapplicable: boolean,
+): void {
+  node.toggleAttribute("data-inapplicable", isInapplicable);
+  setDescendantControlsDisabled(node, isInapplicable);
+}

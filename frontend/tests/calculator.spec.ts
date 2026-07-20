@@ -152,7 +152,7 @@ test("renders the default deployment computed locally", async ({ page }) => {
 
   await expect(
     page.getByRole("heading", {
-      name: "AI Deployment Calculator",
+      name: "VRAM Calculator for Inference & Fine-Tuning",
     }),
   ).toBeVisible();
   await expect(page.locator('[data-out="total"]')).toHaveText("18.8 GB");
@@ -537,23 +537,26 @@ test("introduces the calculator with its purpose subtitle in the input pane", as
   );
 });
 
-test("swaps adaptive inputs and hides MoE per workload family", async ({
+test("swaps adaptive inputs and greys MoE per workload family", async ({
   page,
 }) => {
   await page.goto("/");
 
   await page.getByText("Advanced assumptions").click();
+  // Family-specific inputs still hide, but the Advanced/training fields stay in
+  // place and only enable or disable, so the grid keeps a stable shape.
   await expect(page.locator("#context-tokens")).toBeVisible();
-  await expect(page.locator("#kv-cache-precision")).toBeVisible();
+  await expect(page.locator("#kv-cache-precision")).toBeEnabled();
   await page.locator("#workload-family").selectOption("vision");
   await expect(page.locator("#context-tokens")).toBeHidden();
   await expect(page.locator("#image-width")).toBeVisible();
-  await expect(page.locator("#moe-enabled")).toBeHidden();
-  await expect(page.locator("#kv-cache-precision")).toBeHidden();
+  await expect(page.locator("#moe-enabled")).toBeVisible();
+  await expect(page.locator("#moe-enabled")).toBeDisabled();
+  await expect(page.locator("#kv-cache-precision")).toBeDisabled();
   await page.locator("#workload-family").selectOption("encoder_decoder");
-  await expect(page.locator("#kv-cache-precision")).toBeVisible();
+  await expect(page.locator("#kv-cache-precision")).toBeEnabled();
   await page.locator("#execution-mode").selectOption("Full training");
-  await expect(page.locator("#kv-cache-precision")).toBeHidden();
+  await expect(page.locator("#kv-cache-precision")).toBeDisabled();
 });
 
 test("switches the workload size label and never shows generic Batch Size", async ({
@@ -571,13 +574,15 @@ test("switches the workload size label and never shows generic Batch Size", asyn
   await expect(page.getByText("Batch Size", { exact: true })).toHaveCount(0);
 });
 
-test("reveals active parameters only when MoE is enabled", async ({ page }) => {
+test("enables active parameters only when MoE is checked", async ({ page }) => {
   await page.goto("/");
 
   // MoE and its dependent Active Parameters field live in the advanced panel.
+  // Active Parameters stays visible but greyed until MoE is checked.
   await page.getByText("Advanced assumptions", { exact: true }).click();
 
-  await expect(page.locator("#active-params")).toBeHidden();
-  await page.locator("#moe-enabled").check();
   await expect(page.locator("#active-params")).toBeVisible();
+  await expect(page.locator("#active-params")).toBeDisabled();
+  await page.locator("#moe-enabled").check();
+  await expect(page.locator("#active-params")).toBeEnabled();
 });

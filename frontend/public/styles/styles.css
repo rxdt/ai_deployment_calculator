@@ -162,6 +162,7 @@
   --radius-sm: 0.25rem;
   --radius-md: 0.5rem;
   --radius-lg: 0.75rem;
+  --radius-round: 50%;
   --space-2xs: 0.125rem;
   --space-xs: 0.25rem;
   --space-sm: 0.375rem;
@@ -586,6 +587,16 @@ summary,
   justify-items: center;
 }
 
+/* A field that does not apply to the current selection stays in place but reads
+   as inert: dimmed, non-interactive, and skipped by pointers and the keyboard.
+   Its controls are also `disabled`, so this is purely the visual half. Keeping
+   the row present holds the advanced grid steady instead of reflowing as
+   options come and go. */
+.field[data-inapplicable] {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
 /* DC centers each control in its cell and centers the value text inside it,
    so the input group reads as one centered column beneath its caption. */
 .field > input,
@@ -604,6 +615,69 @@ summary,
   text-align: center;
   text-transform: none;
   letter-spacing: normal;
+}
+
+/* An inline "info" affordance beside an Advanced-assumption label: a small
+   circled i whose plain-English bubble appears on hover and on keyboard focus,
+   so mouse, touch (focus fires on tap), and screen-reader users all reach it. */
+.field-tip {
+  position: relative;
+  display: inline-flex;
+}
+
+.field-tip-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--font-status);
+  height: var(--font-status);
+  padding: 0;
+  border: var(--layout-border) solid var(--color-border-strong);
+  border-radius: var(--radius-round);
+  background: var(--color-raised);
+  color: var(--color-subtle);
+  font-family: var(--font-mono);
+  font-size: var(--font-nav);
+  font-style: italic;
+  line-height: var(--font-line-solid);
+  cursor: help;
+}
+
+.field-tip-btn:focus-visible {
+  outline: var(--layout-border) solid var(--color-cyan);
+  outline-offset: var(--layout-border);
+}
+
+/* The bubble: a small dark card floated above the button. Hidden until the tip
+   is hovered or its button focused; text is plain sentence case, not the HUD
+   uppercase of the labels. */
+.field-tip-bubble {
+  position: absolute;
+  bottom: calc(100% + var(--space-xs));
+  left: 50%;
+  z-index: var(--z-tooltip);
+  width: max-content;
+  max-width: var(--layout-intro-max);
+  padding: var(--space-xs) var(--space-sm);
+  transform: translateX(-50%);
+  border: var(--layout-border) solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-subtle);
+  font-size: var(--font-nav);
+  line-height: var(--font-line-body);
+  letter-spacing: normal;
+  text-align: left;
+  text-transform: none;
+  white-space: normal;
+  visibility: hidden;
+  opacity: 0;
+}
+
+.field-tip:hover .field-tip-bubble,
+.field-tip-btn:focus-visible + .field-tip-bubble {
+  visibility: visible;
+  opacity: 1;
 }
 
 .field--wide {

@@ -172,7 +172,7 @@ for (const path of pages) {
     );
     await expect(
       page.getByRole("heading", {
-        name: "AI Deployment Calculator",
+        name: "VRAM Calculator for Inference & Fine-Tuning",
       }),
     ).not.toHaveCSS("font-family", /JetBrains Mono/u);
     // The hero total is a technical readout, so it takes the mono face like the
@@ -219,7 +219,7 @@ for (const viewport of onePageViewports) {
 
     const firstGlance = [
       page.getByRole("heading", {
-        name: "AI Deployment Calculator",
+        name: "VRAM Calculator for Inference & Fine-Tuning",
       }),
       page.getByRole("button", { name: "Reset" }),
       page.locator('[data-out="total"]'),

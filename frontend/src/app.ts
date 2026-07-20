@@ -11,6 +11,7 @@ import {
   renderTierFits,
   searchFromForm,
   setHiddenWithControls,
+  setInapplicableWithControls,
   writeUrlFromState,
 } from "./app-dom";
 import type { FieldGroup } from "./app-dom";
@@ -251,11 +252,12 @@ export class CalculatorApp {
     }
   }
 
-  // Toggle every field in a marker group, disabling its inner controls when
-  // hidden so hidden inputs never feed the calculation.
-  private hideSlots(kind: FieldGroup, isHidden: boolean): void {
+  // Grey every field in a marker group when inapplicable, keeping it visible so
+  // the advanced grid holds a stable shape instead of reflowing. Disabling the
+  // inner controls still excludes them from the calculation.
+  private disableSlots(kind: FieldGroup, isInapplicable: boolean): void {
     for (const node of fieldGroupNodes(this.root, kind)) {
-      setHiddenWithControls(node, isHidden);
+      setInapplicableWithControls(node, isInapplicable);
     }
   }
 
@@ -315,17 +317,21 @@ export class CalculatorApp {
     }
     const isMoeApplicable = hasMoeControl(family);
     this.setCheckboxChecked("moe-enabled", state.moeEnabled && isMoeApplicable);
-    this.hideSlots("moe", !isMoeApplicable);
-    this.hideSlots("active", !(isMoeApplicable && state.moeEnabled));
+    // Advanced Assumptions and training fields stay in the layout and grey out
+    // when inapplicable, so the advanced grid keeps a steady shape rather than
+    // reflowing as options come and go. Disabling still keeps them out of the
+    // calculation.
+    this.disableSlots("moe", !isMoeApplicable);
+    this.disableSlots("active", !(isMoeApplicable && state.moeEnabled));
     // LoRA Trainable % only sizes the adapter for the LoRA / QLoRA modes (both
-    // contain "LoRA"); in Inference and Full training it has no effect, so hide
+    // contain "LoRA"); in Inference and Full training it has no effect, so grey
     // it rather than imply a setting that does nothing.
-    this.hideSlots("lora", !state.executionMode.includes("LoRA"));
+    this.disableSlots("lora", !state.executionMode.includes("LoRA"));
     // Gradient Checkpointing and the optimizer only size training state, so
     // these training-only inputs must not imply an effect on inference
-    // estimates; hide them whenever the mode is plain Inference.
-    this.hideSlots("training", state.executionMode === "Inference");
-    setHiddenWithControls(this.kvCacheRow, !hasDecoderKvCache(state));
+    // estimates; grey them whenever the mode is plain Inference.
+    this.disableSlots("training", state.executionMode === "Inference");
+    setInapplicableWithControls(this.kvCacheRow, !hasDecoderKvCache(state));
     const label =
       state.executionMode === "Inference"
         ? "Concurrent Batch Requests"

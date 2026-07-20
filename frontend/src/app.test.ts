@@ -17,7 +17,7 @@ const CONTRACTED_LABELS = new Map([
   ["execution-mode", "Execution Mode"],
   ["runtime-profile", "Runtime Profile"],
   ["known-model-file-size-gb", "Known Model File Size (GB)"],
-  ["gpu-resident-fraction", "GPU Resident Fraction (0–1)"],
+  ["gpu-resident-fraction", "GPU Resident Share [0, 1]"],
 ]);
 
 const PUBLIC_WORKLOAD_NAMES = [
@@ -271,6 +271,21 @@ function isRowHidden(name: string): boolean {
 }
 
 /**
+Whether a control's enclosing field row is greyed as inapplicable — visible but
+marked with data-inapplicable and disabled. The Advanced Assumptions and
+training rows use this instead of hiding so the grid keeps a stable shape.
+@param name - the control's name attribute
+@returns true when the enclosing row is marked inapplicable
+*/
+function isRowInapplicable(name: string): boolean {
+  let row = field(name).parentElement;
+  while (row instanceof HTMLElement && row.tagName !== "P") {
+    row = row.parentElement;
+  }
+  return row instanceof HTMLElement && row.dataset.inapplicable !== undefined;
+}
+
+/**
  Read the rendered headline stat chips as label/value pairs.
 @returns one entry per rendered chip, in DOM order
 */
@@ -394,7 +409,7 @@ describe("static SEO metadata", () => {
     );
 
     expect(title?.textContent).toBe(
-      "AI Deployment Calculator | VRAM & GPU Memory Estimator",
+      "VRAM Calculator: LLM Inference & LoRA / QLoRA Fine-Tuning",
     );
     expect(metaContent(head, "name", "google-site-verification")).toBe(
       "GUhbPyFhhq-ntorAXKLG9Ty_M_FZwZXcuBoU7SWPhYI",
@@ -417,10 +432,10 @@ describe("static SEO metadata", () => {
       "AI Deployment Calculator",
     );
     expect(metaContent(head, "property", "og:title")).toBe(
-      "AI Deployment Calculator | VRAM & GPU Memory Estimator",
+      "VRAM Calculator: LLM Inference & LoRA / QLoRA Fine-Tuning",
     );
     expect(metaContent(head, "name", "twitter:title")).toBe(
-      "AI Deployment Calculator | VRAM & GPU Memory Estimator",
+      "VRAM Calculator: LLM Inference & LoRA / QLoRA Fine-Tuning",
     );
     expect(metaContent(head, "property", "og:image")).toBe(
       "https://vram.rxdt.dev/og-image.png",
@@ -1578,7 +1593,7 @@ describe("adaptive controls", () => {
     expect(field("context-tokens").disabled).toBe(true);
     expect(isRowHidden("image-width")).toBe(false);
     expect(field("image-width").disabled).toBe(false);
-    expect(isRowHidden("moe-enabled")).toBe(true);
+    expect(isRowInapplicable("moe-enabled")).toBe(true);
     expect(field("moe-enabled").disabled).toBe(true);
   });
 
@@ -1596,15 +1611,15 @@ describe("adaptive controls", () => {
 
     fireChange("execution-mode", "Full training");
     expect(dataSlot("form-actions").textContent).toContain("Reset");
-    expect(isRowHidden("kv-cache-precision")).toBe(true);
+    expect(isRowInapplicable("kv-cache-precision")).toBe(true);
     expect(dataSlot("workload-label").textContent.trim()).toBe(
       "Micro Batch Size",
     );
     expect(submitCount).toBe(0);
   });
 
-  test("exposes the MoE control for exactly the MoE-applicable families", () => {
-    const moeVisibleByFamily: readonly (readonly [string, boolean])[] = [
+  test("enables the MoE control for exactly the MoE-applicable families", () => {
+    const moeApplicableByFamily: readonly (readonly [string, boolean])[] = [
       ["text_generation", true],
       ["text_encoder", true],
       ["encoder_decoder", true],
@@ -1618,28 +1633,28 @@ describe("adaptive controls", () => {
     ];
     loadDom();
     mountCalculator(document);
-    for (const [family, isVisible] of moeVisibleByFamily) {
+    for (const [family, isApplicable] of moeApplicableByFamily) {
       fireChange("workload-family", family);
-      expect(isRowHidden("moe-enabled")).toBe(!isVisible);
+      expect(isRowInapplicable("moe-enabled")).toBe(!isApplicable);
     }
   });
 
-  test("reveals active parameters only when MoE is checked", () => {
+  test("enables active parameters only when MoE is checked", () => {
     loadDom();
     mountCalculator(document);
-    expect(isRowHidden("moe-enabled")).toBe(false);
-    expect(isRowHidden("active-params")).toBe(true);
+    expect(isRowInapplicable("moe-enabled")).toBe(false);
+    expect(isRowInapplicable("active-params")).toBe(true);
     expect(field("active-params").disabled).toBe(true);
     const moe = field("moe-enabled");
     if (moe instanceof HTMLInputElement) {
       moe.checked = true;
     }
     moe.dispatchEvent(new Event("change", { bubbles: true }));
-    expect(isRowHidden("active-params")).toBe(false);
+    expect(isRowInapplicable("active-params")).toBe(false);
     expect(field("active-params").disabled).toBe(false);
   });
 
-  test("ignores a checked hidden MoE box after switching workload family", () => {
+  test("ignores a checked greyed MoE box after switching workload family", () => {
     loadDom();
     mountCalculator(document);
     fireChange("workload-family", "vision");
@@ -1655,7 +1670,7 @@ describe("adaptive controls", () => {
     moe.dispatchEvent(new Event("change", { bubbles: true }));
 
     fireChange("workload-family", "vision");
-    expect(isRowHidden("moe-enabled")).toBe(true);
+    expect(isRowInapplicable("moe-enabled")).toBe(true);
     expect(out("total")).toBe(visionTotal);
     expect(out("speed")).toBe(visionSpeed);
     expect(outSlot("warnings").textContent).not.toContain(
@@ -1673,16 +1688,16 @@ describe("adaptive controls", () => {
     moe.checked = true;
     moe.dispatchEvent(new Event("change", { bubbles: true }));
     expect(moe.checked).toBe(true);
-    expect(isRowHidden("active-params")).toBe(false);
+    expect(isRowInapplicable("active-params")).toBe(false);
 
     fireChange("workload-family", "vision");
     expect(moe.checked).toBe(false);
-    expect(isRowHidden("moe-enabled")).toBe(true);
+    expect(isRowInapplicable("moe-enabled")).toBe(true);
 
     fireChange("workload-family", "text_generation");
-    expect(isRowHidden("moe-enabled")).toBe(false);
+    expect(isRowInapplicable("moe-enabled")).toBe(false);
     expect(moe.checked).toBe(false);
-    expect(isRowHidden("active-params")).toBe(true);
+    expect(isRowInapplicable("active-params")).toBe(true);
     expect(outSlot("warnings").textContent).not.toContain(
       "MoE active parameters",
     );
@@ -1697,39 +1712,39 @@ describe("adaptive controls", () => {
     expect(label.textContent.trim()).toBe("Micro Batch Size");
   });
 
-  test("shows KV precision only for decoder KV workloads", () => {
+  test("enables KV precision only for decoder KV workloads", () => {
     loadDom();
     mountCalculator(document);
-    expect(isRowHidden("kv-cache-precision")).toBe(false);
+    expect(isRowInapplicable("kv-cache-precision")).toBe(false);
 
     fireChange("execution-mode", "Full training");
-    expect(isRowHidden("kv-cache-precision")).toBe(true);
+    expect(isRowInapplicable("kv-cache-precision")).toBe(true);
 
     fireChange("execution-mode", "Inference");
-    expect(isRowHidden("kv-cache-precision")).toBe(false);
+    expect(isRowInapplicable("kv-cache-precision")).toBe(false);
 
     fireChange("workload-family", "text_encoder");
-    expect(isRowHidden("kv-cache-precision")).toBe(true);
+    expect(isRowInapplicable("kv-cache-precision")).toBe(true);
 
     fireChange("workload-family", "encoder_decoder");
-    expect(isRowHidden("kv-cache-precision")).toBe(false);
+    expect(isRowInapplicable("kv-cache-precision")).toBe(false);
 
     fireChange("workload-family", "vision");
-    expect(isRowHidden("kv-cache-precision")).toBe(true);
+    expect(isRowInapplicable("kv-cache-precision")).toBe(true);
 
     fireChange("workload-family", "vision_language");
-    expect(isRowHidden("kv-cache-precision")).toBe(false);
+    expect(isRowInapplicable("kv-cache-precision")).toBe(false);
   });
 
-  test("hides training-only inputs during Inference and restores them for training", () => {
+  test("greys training-only inputs during Inference and enables them for training", () => {
     loadDom();
     mountCalculator(document);
     // Inference never reads gradient checkpointing or the optimizer, so both
-    // rows stay hidden with their controls disabled instead of implying an
+    // rows stay greyed with their controls disabled instead of implying an
     // effect on the estimate.
-    expect(isRowHidden("gradient-checkpointing")).toBe(true);
+    expect(isRowInapplicable("gradient-checkpointing")).toBe(true);
     expect(field("gradient-checkpointing").disabled).toBe(true);
-    expect(isRowHidden("optimizer")).toBe(true);
+    expect(isRowInapplicable("optimizer")).toBe(true);
     expect(field("optimizer").disabled).toBe(true);
 
     for (const mode of [
@@ -1738,14 +1753,14 @@ describe("adaptive controls", () => {
       "Full training",
     ]) {
       fireChange("execution-mode", mode);
-      expect(isRowHidden("gradient-checkpointing")).toBe(false);
+      expect(isRowInapplicable("gradient-checkpointing")).toBe(false);
       expect(field("gradient-checkpointing").disabled).toBe(false);
-      expect(isRowHidden("optimizer")).toBe(false);
+      expect(isRowInapplicable("optimizer")).toBe(false);
       expect(field("optimizer").disabled).toBe(false);
     }
 
-    // The recommended default survives the round trip: the box reappears
-    // checked, matching common training recipes.
+    // The recommended default survives the round trip: the box stays checked,
+    // matching common training recipes.
     const gradient = field("gradient-checkpointing");
     if (!(gradient instanceof HTMLInputElement)) {
       throw new TypeError("Gradient checkpointing must be a checkbox");
@@ -1753,8 +1768,8 @@ describe("adaptive controls", () => {
     expect(gradient.checked).toBe(true);
 
     fireChange("execution-mode", "Inference");
-    expect(isRowHidden("gradient-checkpointing")).toBe(true);
-    expect(isRowHidden("optimizer")).toBe(true);
+    expect(isRowInapplicable("gradient-checkpointing")).toBe(true);
+    expect(isRowInapplicable("optimizer")).toBe(true);
   });
 
   test("unchecking gradient checkpointing changes training estimates", () => {
@@ -2022,7 +2037,7 @@ describe("model presets", () => {
     expect(moe).toHaveProperty("checked", true);
     expect(field("total-params").value).toBe("46.7");
     expect(field("active-params").value).toBe("12.9");
-    expect(isRowHidden("active-params")).toBe(false);
+    expect(isRowInapplicable("active-params")).toBe(false);
     expect(dataSlot("status-model").textContent).toBe("46.7B MoE");
     expect(out("total")).toBe("109.0 GB");
   });

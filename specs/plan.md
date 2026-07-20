@@ -149,12 +149,10 @@ script-src 'self'; style-src 'self'; img-src 'self' data:; media-src
   physical invariants. Incorrect-source failures stay red.
 - **P3 — UX findings from the 2026-07-16 naive-user verification pass**
   (two independent agent testers; details in `docs/PROJECT_STATUS.md`):
-  QLoRA silently flips Runtime Profile and doesn't lock 4-bit once entered;
-  GPU Resident Fraction is a dead control unless Known Model File Size is
-  set (no hint); Active Parameters accepts values above total params with no
-  warning; tier table has label gaps (25–31, 49–63, 97–140 GB); Headroom
-  reads "0%" at overload instead of signaling negative. All non-blocking;
-  triage before building.
+  Active Parameters accepts values above total params with no warning; tier
+  table has label gaps (25–31, 49–63, 97–140 GB); Headroom reads "0%" at
+  overload instead of signaling negative. All non-blocking; triage before
+  building.
 
 Rejected: animated inference simulations, live price feeds, benchmark scores,
 accounts, iframe widget, raw architecture-field forms, exl2 tiers.

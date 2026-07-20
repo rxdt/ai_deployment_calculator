@@ -21,6 +21,9 @@ Short, current handoff. Deleted lines are the point — keep only what's useful 
 - GPU Resident Fraction is now visibly disabled until Known Model File Size is
   provided; changing it then changes the estimate, and clearing the file
   disables it again. Commit: `de92d84`.
+- QLoRA now pins only 4-bit precision and AdamW; Runtime Profile remains
+  selectable. Known file size and resident fraction use accessible inline
+  tooltips. Commit: `b268a67`.
 
 ## Current Local Sentinels
 

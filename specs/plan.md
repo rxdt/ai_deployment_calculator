@@ -1,3 +1,5 @@
+codex is working on the preset click/reset regression in this spec
+
 # AI Deployment VRAM Calculator Plan
 
 ## Goal

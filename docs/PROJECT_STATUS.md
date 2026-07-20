@@ -9,6 +9,13 @@ Short, current handoff. Deleted lines are the point — keep only what's useful 
   no-agent-push note. The release commit contains:
   - **Security:** pnpm `overrides` restored (tmp, uuid, fast-json-patch, @opentelemetry/core — they had been dropped in `10ba12a`, `@asyncapi/specs` pinned 6.11.1 against the Miasma RAT attack (issue #5 — repo verified NOT compromised, safe version was always locked); dependency-review runs on push AND PR; a standalone semgrep CI job plus `pip install semgrep` in checks so the gate's sast check.
 
+## Latest change (2026-07-20)
+
+- Advanced assumptions are expanded by default; every advanced field remains
+  visible and only inapplicable controls are greyed and disabled. The resident
+  fraction defaults to `1.0`, KV precision no longer stretches vertically, and
+  QLoRA selects AdamW automatically. Commit: `01d466b`.
+
 ## Current Local Sentinels
 
 - Default 7B fp16 inference: 18.8 GB total, 22.2 GB minimum raw.
@@ -29,6 +36,9 @@ Short, current handoff. Deleted lines are the point — keep only what's useful 
 
 - apxml Part A primary is blocked in headless Playwright by Cloudflare
   Turnstile; needs an owner/manual headed pass if exact ApX rows are required.
+- Escalated `pnpm gate` cleared static checks, audit, build, and coverage, but
+  the Playwright stage stalled without output and was stopped after several
+  minutes; the sandboxed run also lacked local bind, network trust, and Chrome.
 
 ## Known Issues
 

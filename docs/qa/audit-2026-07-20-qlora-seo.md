@@ -57,17 +57,45 @@ overhead 4.00 · buffer 3.68 → 18.5 GB. The activation term is the swing facto
 ## 2. Domain migration + Search Console (NOT a repo change — do in GSC)
 
 The move to `vram.rxdt.dev` is clean in-repo: canonical, `og:url`, sitemap, and robots
-all point to the new host, and the old Vercel URL 308-redirects. **But Search Console is
-per-exact-URL**, so the verified `aideploymentcalculator.vercel.app` property does **not**
-cover the new domain. Until this is done, the live domain is effectively unregistered
-with Google:
+all point to the new host, and the old Vercel URL 308-redirects.
 
-1. Add **`https://vram.rxdt.dev/`** as a new **URL-prefix** property in Search Console.
-2. Verify it — needs its own token. The current `google-site-verification` meta in
-   `frontend/index.html` was issued for the Vercel property; the new property will emit a
-   new token. (Owner can hand that token over to add the meta tag, or use the HTML-tag
-   method.)
-3. **Sitemaps** → submit `sitemap.xml`. **URL Inspection** → Request Indexing.
+Whether a new property is needed depends on how `rxdt.dev` is registered in GSC:
+
+- **Domain property** (`rxdt.dev`, DNS-verified) → **already covers `vram.rxdt.dev`**. No
+  new property and no verification meta tag needed. (The `google-site-verification` meta
+  in `frontend/index.html` was for the old Vercel property and is now irrelevant.)
+- **URL-prefix property** (`https://rxdt.dev/`) → does **not** cover subdomains; add
+  `https://vram.rxdt.dev/` as its own URL-prefix property and verify it.
+
+Discovery is separate from coverage: `rxdt.dev/sitemap.xml` lists only apex pages
+(`/`, `calculator-writeup.html`, `conference.html`, `engineering-the-loop.html`) — **no
+`vram.rxdt.dev` URLs** — so it does nothing for the calculator. Regardless of property
+type, submit **`https://vram.rxdt.dev/sitemap.xml`** (the one that lists the calculator
+pages).
+
+Net remaining GSC actions:
+1. If `rxdt.dev` is URL-prefix: add + verify `https://vram.rxdt.dev/`. If Domain: skip.
+2. **Sitemaps** → submit `https://vram.rxdt.dev/sitemap.xml`.
+3. **URL Inspection** → `https://vram.rxdt.dev/` → Request Indexing.
+
+### Duplicate content: `calculator-writeup.html`
+The writeup is served on **both** `rxdt.dev/calculator-writeup.html` and
+`vram.rxdt.dev/calculator-writeup.html`. Two hosts, same content = split ranking. Pick one
+canonical home and either (a) add `<link rel="canonical">` on the other pointing to it, or
+(b) publish it on only one host.
+
+---
+
+## 2b. The portfolio (`rxdt.dev`) — add a link to the calculator (NOT this repo)
+
+`rxdt.dev` does not link to `vram.rxdt.dev`. An inbound link from the indexed portfolio is
+the single highest-value on-site lever for the calculator's discoverability. On `rxdt.dev`
+(separate repo from this one), add a project/nav link with **keyword-rich anchor text**:
+
+> VRAM Calculator — GPU memory for LLM inference, LoRA & QLoRA fine-tuning → `https://vram.rxdt.dev/`
+
+Optionally list the `vram.rxdt.dev` URLs in `rxdt.dev/sitemap.xml` too (allowed under a
+Domain property) so both are discovered together.
 
 ---
 
@@ -102,6 +130,8 @@ skorppio.
 | Default context 2048 (QLoRA calibration) | repo (`state.ts` + tests) | reconcile with local fix, then apply |
 | Optional: QLoRA optimizer default paged-8bit | repo | optional |
 | Tooltip: QLoRA≈inference + conservative buffer | repo (content) | optional |
-| Register `vram.rxdt.dev` in Search Console | GSC (not repo) | required |
-| Submit sitemap + request indexing (new domain) | GSC (not repo) | required |
+| Register `vram.rxdt.dev` in GSC | GSC (not repo) | only if `rxdt.dev` is URL-prefix, not Domain |
+| Submit `vram.rxdt.dev/sitemap.xml` + request indexing | GSC (not repo) | required |
+| Canonicalize duplicate `calculator-writeup.html` | repo (this) OR `rxdt.dev` | required |
+| Add keyword-rich calculator link on `rxdt.dev` | `rxdt.dev` repo (not this) | recommended (top lever) |
 | Long-tail fine-tuning SEO sub-pages/keywords | repo (content) + backlinks | recommended |

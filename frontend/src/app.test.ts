@@ -1858,6 +1858,26 @@ describe("adaptive controls", () => {
 });
 
 describe("advanced numeric input caps", () => {
+  test("activates resident fraction only when a known file size is set", () => {
+    loadDom();
+    mountCalculator(document);
+
+    expect(isRowInapplicable("gpu-resident-fraction")).toBe(true);
+    expect(field("gpu-resident-fraction").disabled).toBe(true);
+
+    fireInput("known-model-file-size-gb", "52");
+    expect(isRowInapplicable("gpu-resident-fraction")).toBe(false);
+    expect(field("gpu-resident-fraction").disabled).toBe(false);
+    const fullResidentTotal = out("total");
+
+    fireInput("gpu-resident-fraction", "0.25");
+    expect(out("total")).not.toBe(fullResidentTotal);
+
+    fireInput("known-model-file-size-gb", "");
+    expect(isRowInapplicable("gpu-resident-fraction")).toBe(true);
+    expect(field("gpu-resident-fraction").disabled).toBe(true);
+  });
+
   test("clamps advanced ratio and percent inputs to their real ranges", () => {
     loadDom();
     mountCalculator(document);

@@ -331,6 +331,12 @@ export class CalculatorApp {
     // contain "LoRA"); in Inference and Full training it has no effect, so grey
     // it rather than imply a setting that does nothing.
     this.disableSlots("lora", !state.executionMode.includes("LoRA"));
+    // Resident fraction scales the known on-disk file only; without that
+    // source value the parameter-based weight estimate is unchanged.
+    this.disableSlots(
+      "resident-fraction",
+      Number(state.knownModelFileSizeGb) <= 0,
+    );
     // Gradient Checkpointing and the optimizer only size training state, so
     // these training-only inputs must not imply an effect on inference
     // estimates; grey them whenever the mode is plain Inference.

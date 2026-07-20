@@ -198,7 +198,8 @@ export function dataSlot(root: ParentNode, name: string): HTMLElement | null {
 }
 
 /** A togglable field group keyed by its data-* marker attribute. */
-export type FieldGroup = "active" | "lora" | "moe" | "training";
+export type FieldGroup =
+  "active" | "lora" | "moe" | "resident-fraction" | "training";
 
 /**
 Nodes for one togglable field group. Each branch queries with a literal
@@ -220,6 +221,9 @@ export function fieldGroupNodes(
   }
   if (kind === "lora") {
     return [...root.querySelectorAll<HTMLElement>("[data-lora]")];
+  }
+  if (kind === "resident-fraction") {
+    return [...root.querySelectorAll<HTMLElement>("[data-resident-fraction]")];
   }
   return [...root.querySelectorAll<HTMLElement>("[data-training]")];
 }

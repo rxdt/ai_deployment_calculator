@@ -1,3 +1,5 @@
+codex is working on the advanced-assumptions UI and QLoRA optimizer defaults in this spec
+
 # AI Deployment VRAM Calculator Plan
 
 ## Goal

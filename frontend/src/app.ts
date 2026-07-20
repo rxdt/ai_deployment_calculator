@@ -297,6 +297,7 @@ export class CalculatorApp {
   private syncControls(state: Readonly<FormState>): void {
     this.setControlValue("precision", state.precision);
     this.setControlValue("runtime-profile", state.runtimeProfile);
+    this.setControlValue("optimizer", state.optimizer);
     // QLoRA pins 4-bit + Local/Edge; lock both selects and show why rather than
     // letting them silently snap back under the user.
     const isQlora = state.executionMode === "QLoRA fine-tuning";

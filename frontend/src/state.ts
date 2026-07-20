@@ -74,7 +74,7 @@ const DEFAULT_STATE: FormState = {
   moeEnabled: false,
   activeParams: "1.3",
   knownModelFileSizeGb: "",
-  gpuResidentFraction: "1",
+  gpuResidentFraction: "1.0",
   kvCachePrecision: "16-bit",
   loraTrainablePercent: "0.5",
   optimizer: "AdamW",
@@ -153,7 +153,7 @@ function schemaValue<T extends z.ZodType>(
 }
 
 /**
-Apply the execution mode's hard constraints (QLoRA pins 4-bit + Local/Edge).
+Apply the execution mode's hard constraints (QLoRA pins 4-bit, Local/Edge, and AdamW).
 @param state - normalized form state
 @returns the state with mode constraints enforced
 */
@@ -163,6 +163,7 @@ function withModeConstraints(state: FormState): FormState {
       ...state,
       precision: "4-bit",
       runtimeProfile: "Local / Edge",
+      optimizer: "AdamW",
     };
   }
   // 4-bit is QLoRA's NF4 base and cannot be trained directly, so Full training

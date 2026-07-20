@@ -17,7 +17,7 @@ const CONTRACTED_LABELS = new Map([
   ["execution-mode", "Execution Mode"],
   ["runtime-profile", "Runtime Profile"],
   ["known-model-file-size-gb", "Known Model File Size (GB)"],
-  ["gpu-resident-fraction", "GPU Resident Share [0, 1]"],
+  ["gpu-resident-fraction", "GPU Resident Fraction"],
 ]);
 
 const PUBLIC_WORKLOAD_NAMES = [
@@ -409,7 +409,7 @@ describe("static SEO metadata", () => {
     );
 
     expect(title?.textContent).toBe(
-      "VRAM Calculator: LLM Inference & LoRA / QLoRA Fine-Tuning",
+      "AI Deployment Calculator | VRAM & GPU Memory Estimator",
     );
     expect(metaContent(head, "name", "google-site-verification")).toBe(
       "GUhbPyFhhq-ntorAXKLG9Ty_M_FZwZXcuBoU7SWPhYI",
@@ -432,10 +432,10 @@ describe("static SEO metadata", () => {
       "AI Deployment Calculator",
     );
     expect(metaContent(head, "property", "og:title")).toBe(
-      "VRAM Calculator: LLM Inference & LoRA / QLoRA Fine-Tuning",
+      "AI Deployment Calculator | VRAM & GPU Memory Estimator",
     );
     expect(metaContent(head, "name", "twitter:title")).toBe(
-      "VRAM Calculator: LLM Inference & LoRA / QLoRA Fine-Tuning",
+      "AI Deployment Calculator | VRAM & GPU Memory Estimator",
     );
     expect(metaContent(head, "property", "og:image")).toBe(
       "https://vram.rxdt.dev/og-image.png",
@@ -831,7 +831,7 @@ describe("optimizer choices", () => {
   test("offers the expanded optimizer choices with stable persisted values", () => {
     loadDom();
     mountCalculator(document);
-    // The optimizer is a training-only control hidden during Inference; reveal
+    // The optimizer is a training-only control greyed during Inference; enable
     // it before reading the choices it offers.
     fireChange("execution-mode", "Full training");
     const select = field("optimizer");
@@ -854,6 +854,18 @@ describe("optimizer choices", () => {
       "Adafactor",
       "SGD-like",
     ]);
+  });
+
+  test("selects AdamW when QLoRA is selected", () => {
+    loadDom();
+    mountCalculator(document);
+    fireChange("execution-mode", "Full training");
+    fireChange("optimizer", "Adafactor");
+    expect(field("optimizer").value).toBe("Adafactor");
+
+    fireChange("execution-mode", "QLoRA fine-tuning");
+
+    expect(field("optimizer").value).toBe("AdamW");
   });
 });
 
@@ -980,6 +992,30 @@ describe("mounted calculator", () => {
     for (const name of rareControlNames) {
       expect(advanced.contains(field(name))).toBe(true);
     }
+  });
+
+  test("keeps every advanced field visible and expands the assumptions panel", () => {
+    loadDom();
+    mountCalculator(document);
+    const advanced = dataSlot("advanced-assumptions");
+    if (!(advanced instanceof HTMLDetailsElement)) {
+      throw new TypeError("Advanced assumptions must be a details element");
+    }
+    expect(advanced.open).toBe(true);
+    for (const name of [
+      "moe-enabled",
+      "memory-sharding-enabled",
+      "active-params",
+      "kv-cache-precision",
+      "known-model-file-size-gb",
+      "gpu-resident-fraction",
+      "lora-trainable-percent",
+      "optimizer",
+      "gradient-checkpointing",
+    ]) {
+      expect(isRowHidden(name)).toBe(false);
+    }
+    expect(field("gpu-resident-fraction").value).toBe("1.0");
   });
 
   test("renders the output disclaimer below the estimate", () => {

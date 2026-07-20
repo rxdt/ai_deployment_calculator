@@ -582,6 +582,8 @@ summary,
   min-width: 0;
   flex: 0 1 var(--layout-half);
   display: grid;
+  align-self: flex-start;
+  align-content: flex-start;
   gap: var(--space-xs);
   margin: 0;
   justify-items: center;

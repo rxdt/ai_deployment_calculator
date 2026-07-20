@@ -25,6 +25,7 @@ describe("defaultState", () => {
 
   test("keeps 8k inference context and uses 2k for training defaults", () => {
     expect(defaultState().contextTokens).toBe("8000");
+    expect(defaultState().gpuResidentFraction).toBe("1.0");
     expect(defaultState().optimizer).toBe("AdamW");
     expect(defaultState("QLoRA fine-tuning").optimizer).toBe("AdamW");
     for (const executionMode of [

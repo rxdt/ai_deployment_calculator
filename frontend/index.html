@@ -473,7 +473,7 @@
               </p>
             </fieldset>
 
-            <details class="advanced" data-slot="advanced-assumptions">
+            <details class="advanced" data-slot="advanced-assumptions" open>
               <summary data-slot="advanced-assumptions-label">
                 Advanced assumptions
               </summary>
@@ -511,7 +511,7 @@
                     <span>Memory Sharding</span>
                   </label>
                 </p>
-                <p class="field field--check" data-training hidden>
+                <p class="field field--check" data-training>
                   <label>
                     <input
                       id="gradient-checkpointing"
@@ -527,7 +527,7 @@
                     <span>Gradient Checkpointing</span>
                   </label>
                 </p>
-                <p class="field" data-active hidden>
+                <p class="field" data-active>
                   <label for="active-params">Active Parameters</label>
                   <input
                     id="active-params"
@@ -537,11 +537,7 @@
                     value="1.3"
                   />
                 </p>
-                <p
-                  class="field"
-                  data-families="text_generation encoder_decoder vision_language"
-                  data-slot="kv-cache-row"
-                >
+                <p class="field" data-slot="kv-cache-row">
                   <label for="kv-cache-precision">KV Cache Precision</label>
                   <select id="kv-cache-precision" name="kv-cache-precision">
                     <option value="8-bit / FP8">8-bit / FP8</option>
@@ -568,7 +564,7 @@
                 </p>
                 <p class="field">
                   <label for="gpu-resident-fraction"
-                    >GPU Resident Fraction (0–1)</label
+                    >GPU Resident Fraction</label
                   >
                   <input
                     id="gpu-resident-fraction"
@@ -576,7 +572,7 @@
                     type="text"
                     inputmode="decimal"
                     data-number-max="1"
-                    value="1"
+                    value="1.0"
                     aria-describedby="gpu-resident-fraction-note"
                   />
                   <span class="field-note" id="gpu-resident-fraction-note"
@@ -584,7 +580,7 @@
                     VRAM. Only applies when Known Model File Size is set.</span
                   >
                 </p>
-                <p class="field" data-lora hidden>
+                <p class="field" data-lora>
                   <label for="lora-trainable-percent">LoRA Trainable %</label>
                   <input
                     id="lora-trainable-percent"
@@ -595,7 +591,7 @@
                     value="0.5"
                   />
                 </p>
-                <p class="field" data-training hidden>
+                <p class="field" data-training>
                   <label for="optimizer">Training Optimizer Category</label>
                   <select id="optimizer" name="optimizer">
                     <option value="AdamW">AdamW</option>

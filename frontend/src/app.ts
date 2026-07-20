@@ -131,7 +131,10 @@ export class CalculatorApp {
       if (preset === undefined) {
         throw new Error(`Unknown preset chip: ${String(id)}`);
       }
-      chip.addEventListener("click", () => {
+      chip.addEventListener("click", (event) => {
+        // Keep a preset click from falling through to the form's reset submit
+        // handler if markup or browser defaults treat the chip as a submitter.
+        event.preventDefault();
         this.applyValues(defaultState(), preset.overrides);
       });
     }

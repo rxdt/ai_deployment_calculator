@@ -2109,6 +2109,40 @@ describe("model presets", () => {
     expect(out("total")).toBe("23.2 GB");
   });
 
+  test("keeps a preset click from falling through to form reset", () => {
+    loadDom();
+    mountCalculator(document);
+    const [, chip] = presetChips();
+    if (chip === undefined) {
+      throw new TypeError("Missing Llama 70B preset chip");
+    }
+    chip.removeAttribute("type");
+
+    chip.click();
+
+    expect(field("total-params").value).toBe("70");
+    expect(out("total")).toBe("161.1 GB");
+  });
+
+  test("renders a distinct estimate for each preset when clicked in sequence", () => {
+    loadDom();
+    mountCalculator(document);
+    const estimates: string[] = [];
+    for (const preset of MODEL_PRESETS) {
+      clickPreset(preset.label);
+      estimates.push(out("total"));
+    }
+
+    expect(estimates).toEqual([
+      "21.0 GB",
+      "161.1 GB",
+      "109.0 GB",
+      "23.2 GB",
+      "12.1 GB",
+      "1.9 GB",
+    ]);
+  });
+
   test("loads an image-diffusion preset that leaves the text-generation family", () => {
     loadDom();
     mountCalculator(document);

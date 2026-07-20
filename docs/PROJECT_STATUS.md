@@ -15,6 +15,9 @@ Short, current handoff. Deleted lines are the point — keep only what's useful 
   visible and only inapplicable controls are greyed and disabled. The resident
   fraction defaults to `1.0`, KV precision no longer stretches vertically, and
   QLoRA selects AdamW automatically. Commit: `01d466b`.
+- Preset clicks cancel the form submit default before applying model overrides,
+  preventing the reset handler from replacing every preset with the seed state.
+  Commit: `e3f899c`.
 
 ## Current Local Sentinels
 

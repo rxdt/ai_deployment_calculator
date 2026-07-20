@@ -18,6 +18,9 @@ Short, current handoff. Deleted lines are the point — keep only what's useful 
 - Preset clicks cancel the form submit default before applying model overrides,
   preventing the reset handler from replacing every preset with the seed state.
   Commit: `e3f899c`.
+- GPU Resident Fraction is now visibly disabled until Known Model File Size is
+  provided; changing it then changes the estimate, and clearing the file
+  disables it again. Commit: `de92d84`.
 
 ## Current Local Sentinels
 

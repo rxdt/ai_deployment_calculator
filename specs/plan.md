@@ -1,5 +1,3 @@
-codex is working on the GPU resident fraction activation fix in this spec
-
 # AI Deployment VRAM Calculator Plan
 
 ## Goal

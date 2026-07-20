@@ -235,9 +235,7 @@ test("renders the default 7B estimate consistently across the full report", asyn
   await expect(page.locator('[data-out="fit-headroom"]')).toHaveText(
     "1.6 GB usable margin",
   );
-  await expect(page.locator('[data-out="speed"]')).toHaveText(
-    "66.9 tokens/sec",
-  );
+  await expect(page.locator('[data-out="speed"]')).toHaveText("67 tokens/sec");
 
   await page.getByText("Values Used In Calculations").click();
   await expectReportRows(page, "calculation-rows", [

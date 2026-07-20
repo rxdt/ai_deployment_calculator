@@ -84,179 +84,123 @@ export const FORBIDDEN_PATTERNS = [
   "lighthouse:skip",
 ] as const;
 
-// Harness-owned tools are invoked by BARE NAME. The gate runs checks with harness/node_modules/
-// .bin prepended to PATH (see checkEnvironment in gate.ts), so `eslint`/`prettier`/… resolve
-// wherever pnpm links them — no hard-coded path, robust across install layouts.
-const tool = (name: string): string => name;
-// Fast checks every committer pays. Each check names its harness-owned config explicitly: the
-// configs live in harness/ (protected as FORBIDDEN_FILES) and are NOT ancestors of the linted
-// files, so the tools' own cosmiconfig walk-up would never find them — the --config flag is what
-// makes the protected config actually govern the check.
-export const COMMIT_CHECKS: Record<string, string[]> = {
-  format: [
-    tool("prettier"),
-    // Scope to the two source packages — app code and harness tooling — so the
-    // glob never walks node_modules (~19k dirs) and hangs past the preflight
-    // timeout, while still formatting harness/. The --ignore-path is defense in
-    // depth (node_modules, dist, scratchpad…); the rooted targets bound the walk.
-    "frontend/",
-    "harness/",
-    "--check",
-    "--ignore-path",
-    "harness/.prettierignore",
-    "--cache",
-    "--cache-location",
-    ".cache_prettier",
-  ],
-  eslint: [
-    tool("eslint"),
-    ".",
-    "--config",
-    "harness/eslint.config.js",
-    "--cache",
-    "--cache-location",
-    ".",
-    "--max-warnings=0",
-  ],
-  style: [
-    tool("stylelint"),
-    // Scope to frontend so the glob never descends into node_modules (~19k dirs) and
-    // hangs past the preflight timeout. stylelint's ignore lists (ignoreFiles /
-    // --ignore-pattern / --ignore-path) filter AFTER glob expansion, so they cannot
-    // prevent the walk — only a frontend-rooted glob can. All project CSS lives under
-    // frontend/. The --ignore-path is defense in depth (node_modules, dist, scratchpad…).
-    "frontend/**/*.css",
-    "--config",
-    "harness/stylelint.config.js",
-    "--ignore-path",
-    "harness/.stylelintignore",
-    "--max-warnings=0",
-    "--allow-empty-input",
-  ],
-  html: [
-    tool("html-validate"),
-    "--config",
-    "harness/.htmlvalidate.json",
-    "**/*.html",
-  ],
-};
+// SINGLE SOURCE OF TRUTH. Every gate check's command lives ONLY in harness/package.json scripts
+// (top-level, visible, one place). Here we read that file and derive each check's argv, so the gate
+// and the human `pnpm run <check>` cannot drift — a gate.test.ts test re-derives from disk and fails
+// on any mismatch. The scripts prefix `cd .. &&` to run from the repo root (where the gate spawns);
+// we strip that prefix and tokenize (respecting double-quoted globs). Tools resolve by BARE NAME:
+// the gate prepends harness/node_modules/.bin to PATH (see checkEnvironment in gate.ts). Each script
+// names its harness-owned config explicitly: the configs live in harness/ (FORBIDDEN) and are NOT
+// ancestors of the linted files, so a tool's cosmiconfig walk-up would never find them — the
+// --config flag in the script is what makes the protected config govern the check.
+import { readFileSync } from "node:fs";
 
-// The full bar: app, harness tooling, dependency/security, and browser checks.
-//
-// FOLLOW-UP (size budget): a per-package `size` check (size-limit) belongs here. The previous size
-// subsystem was removed during the library/template redesign; without it an agent can sneak
-// new/oversized files into a bundle without tripping a budget. Re-adding it means a `size` entry
-// here plus its tests (removed from gate.test.ts — recover the shape from Git history at a721b9a).
-export const FULL_CHECKS: Record<string, string[]> = {
-  ...COMMIT_CHECKS,
-  // The forbidden app tsconfig governs the typecheck (browser types, strict flags); pinned
-  // with -p so an agent can't repoint it at a weaker project tsconfig. It lives in harness/
-  // so tsc and typescript-eslint resolve `vite/client` from harness/node_modules (Vite is not
-  // installed at the repo root). dependency-cruiser cannot use it directly — it resolves the
-  // tsconfig include from its repo-root cwd, so a harness/-relative ../frontend include trips
-  // TS18003 — so cruise gets its own root-level tsconfig.cruise.json (extends this) instead.
-  typecheck: [
-    tool("tsc"),
-    "-p",
-    "harness/tsconfig.app.json",
-    "--noEmit",
-    "--incremental",
-    "--tsBuildInfoFile",
-    ".cache_tsbuildinfo_app",
-  ],
-  harnessTypes: [
-    tool("tsc"),
-    "-p",
-    "harness/tsconfig.harness.json",
-    "--noEmit",
-    "--incremental",
-    "--tsBuildInfoFile",
-    ".cache_tsbuildinfo_harness",
-  ],
-  schema: [
-    tool("ajv"),
-    "compile",
-    "-s",
-    "frontend/schemas/**/*.schema.json",
-    "--spec=draft2020",
-    "--strict=true",
-    "--all-errors",
-    "-c",
-    "ajv-formats",
-    "-c",
-    "ajv-keywords",
-  ],
-  cruise: [
-    tool("depcruise"),
-    "frontend/src",
-    "--config",
-    "harness/.dependency-cruiser.cjs",
-    "--output-type",
-    "err",
-  ],
-  deadcode: [tool("knip"), "--config", "harness/knip.json"],
-  // Spelling is advisory: --no-exit-code makes cspell print issues but always exit 0, so a typo
-  // (or a domain word not yet in the allowlist) warns loudly without ever failing the gate.
-  spelling: [
-    tool("cspell"),
-    ".",
-    "--config",
-    "harness/cspell.json",
-    "--no-progress",
-    "--no-summary",
-    "--no-exit-code",
-  ],
-  workflow: [
-    tool("spectral"),
-    "lint",
-    ".github/workflows/ci.yml",
-    "--ruleset",
-    "harness/.spectral.yml",
-    "--fail-severity=warn",
-  ],
-  sast: [
-    "semgrep",
-    "scan",
-    "--config=p/typescript",
-    "--config=p/javascript",
-    "--config=p/security-audit",
-    "--error",
-    "--metrics=off",
-  ],
-  secrets: [
-    tool("secretlint"),
-    "**/*",
-    "--secretlintrc",
-    "harness/.secretlintrc.json",
-  ],
-  // pnpm audit reads the pnpm-lock.yaml; --dir targets the frontend package. Covers the same
-  // dependency-vulnerability surface npm audit did before the pnpm migration.
-  audit: ["pnpm", "--dir", "frontend", "audit", "--audit-level", "high"],
-  // No `lockfile` (lockfile-lint) check: lockfile-lint has no pnpm-lock parser (npm/yarn only),
-  // and pnpm already blocks the injection vector it guarded — pnpm refuses to install packages in
-  // pnpm-lock.yaml that are absent from package.json, and the lock does not carry alternative HTTP
-  // tarball sources for registry packages. No `npmSignatures`: `pnpm audit signatures` needs an
-  // installed-package context the gate can't give cleanly; osv + pnpm audit cover dependency risk.
-  // No `versions` (syncpack) check: this is a TEMPLATE — packages intentionally track `latest`, so
-  // enforcing cross-package version consistency fights the intent. Downstream repos may re-add it.
-  // Disabled: this is a template — deps track `latest`, so transitive-dep CVEs
-  // are noise here. Downstream repos that pin versions should re-enable.
-  // osv: [
-  //   "osv-scanner",
-  //   "scan",
-  //   "source",
-  //   "--lockfile=frontend/pnpm-lock.yaml",
-  //   "--lockfile=harness/pnpm-lock.yaml",
-  // ],
-  build: ["pnpm", "--dir", "frontend", "run", "build"],
-  coverage: [
-    tool("vitest"),
-    "run",
-    "--config",
-    "harness/vitest.config.js",
-    "--cache",
-    "--coverage",
-  ],
-  e2e: [tool("playwright"), "test", "--config", "harness/playwright.config.js"],
-  lighthouse: [tool("lhci"), "autorun", "--config", "harness/lighthouserc.cjs"],
-};
+const packageJsonUrl = new URL("package.json", import.meta.url);
+
+// Narrow a parsed package.json (unknown) to its scripts map without an unsafe assertion, keeping
+// only string-valued entries (the only kind a script can be). Exported and pure so its malformed
+// -input branches are unit-testable (the module-load caller below always passes valid JSON).
+/**
+@param parsed
+*/
+export function scriptsMap(parsed: unknown): Map<string, string> {
+  if (typeof parsed !== "object" || parsed === null || !("scripts" in parsed)) {
+    throw new TypeError("harness/package.json has no scripts object");
+  }
+  const { scripts } = parsed;
+  if (typeof scripts !== "object" || scripts === null) {
+    throw new TypeError("harness/package.json scripts is not an object");
+  }
+  const map = new Map<string, string>();
+  for (const [name, value] of Object.entries(scripts)) {
+    if (typeof value === "string") {
+      map.set(name, value);
+    }
+  }
+  return map;
+}
+
+const harnessScripts = scriptsMap(
+  JSON.parse(readFileSync(packageJsonUrl, "utf8")),
+);
+
+// Tokenize a single shell command into argv, keeping `"quoted globs"` intact and unquoting them.
+// Exported and pure so its empty-command branch is unit-testable. An empty string yields [].
+/**
+@param command
+*/
+export function tokenizeCommand(command: string): string[] {
+  return (command.match(/"[^"]*"|\S+/g) ?? []).map((token) =>
+    token.replaceAll(/^"|"$/g, ""),
+  );
+}
+
+// Parse one package.json script into the argv the gate spawns: drop the leading `cd .. &&`
+// root-return prefix, reject any remaining shell operator (a check must be ONE command, not a
+// chained alias like `lint`), then tokenize.
+/**
+@param name
+*/
+export function checkCommand(name: string): string[] {
+  const raw = harnessScripts.get(name);
+  if (raw === undefined) {
+    throw new Error(`no harness script named "${name}"`);
+  }
+  const command = raw.replace(/^\s*cd\s+\.\.\s+&&\s*/, "");
+  if (/(?:^|\s)(?:&&|\|\||;|\|)(?:\s|$)/.test(command)) {
+    throw new Error(
+      `harness script "${name}" chains commands; a check must be one command`,
+    );
+  }
+  return tokenizeCommand(command);
+}
+
+// Build a check record by deriving each named check's command from its harness script.
+/**
+@param names
+*/
+function checksFrom(names: readonly string[]): Record<string, string[]> {
+  return Object.fromEntries(names.map((name) => [name, checkCommand(name)]));
+}
+
+// Fast checks every committer pays; each is the identically-named harness/package.json script.
+export const COMMIT_CHECK_NAMES = [
+  "format",
+  "eslint",
+  "style",
+  "html",
+] as const;
+
+// The full bar: the commit checks plus app types, harness types, schema, dependency/security, and
+// browser checks. Order is the run order. Notable checks (rationale lives with their scripts):
+//   typecheck    — app tsconfig (browser types, strict); pinned with -p so it can't be repointed.
+//   harnessTypes — harness/*.ts incl. tests; separate tsconfig so vite/client resolves.
+//   cruise       — targets frontend/src; uses harness/.dependency-cruiser.cjs.
+//   spelling     — advisory: --no-exit-code prints typos but never fails the gate.
+//   sast/audit   — semgrep/pnpm-audit; a missing tool now FAILS the gate (no silent skip).
+// FOLLOW-UP (size budget): a per-package `size` check (size-limit) belongs here; the old size
+// subsystem was removed in the library/template redesign. Re-adding it means a "size" name here,
+// its script, and its tests (recover the shape from Git history at a721b9a).
+export const FULL_CHECK_NAMES = [
+  ...COMMIT_CHECK_NAMES,
+  "typecheck",
+  "harnessTypes",
+  "schema",
+  "cruise",
+  "deadcode",
+  "spelling",
+  "workflow",
+  "sast",
+  "secrets",
+  "audit",
+  "build",
+  "coverage",
+  "e2e",
+  "lighthouse",
+] as const;
+
+// Commands the gate spawns, each derived from its harness script — the one source of truth.
+export const COMMIT_CHECKS: Record<string, string[]> =
+  checksFrom(COMMIT_CHECK_NAMES);
+export const FULL_CHECKS: Record<string, string[]> =
+  checksFrom(FULL_CHECK_NAMES);

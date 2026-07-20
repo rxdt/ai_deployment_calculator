@@ -1,209 +1,182 @@
+import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { defineConfig, type Plugin } from "vite";
+import {
+  defineConfig,
+  transformWithEsbuild,
+  type HtmlTagDescriptor,
+  type Plugin,
+} from "vite";
 
 const frontendRoot = fileURLToPath(new URL("../frontend", import.meta.url));
 
-interface BundleAsset {
-  readonly type: "asset";
-  readonly fileName: string;
-  source: string | Uint8Array;
-}
+// The Content-Security-Policy the site must ship. It is PINNED here, in a
+// harness-owned (FORBIDDEN) file, so a loop agent editing frontend/ cannot
+// weaken or remove it. Vercel could set an HTTP header, but the policy is
+// delivered via <meta http-equiv> so it travels with the built HTML regardless
+// of host (OWASP-sanctioned fallback). Pure 'self' with no hashes/nonces: every
+// executable script/style must be an external same-origin file. `harness/
+// csp.test.ts` asserts this exact string is present on every built page AND that
+// no page carries inline JS/CSS — the tamper-resistant gate. JSON-LD
+// (application/ld+json) is data, not script, so `script-src 'self'` does not
+// block it.
+export const CSP_POLICY =
+  "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; media-src 'self'";
 
-interface BundleChunk {
-  readonly type: "chunk";
-  readonly fileName: string;
-  readonly code: string;
-}
-
-type BundleItem = BundleAsset | BundleChunk;
-type BuildBundle = Record<string, BundleItem>;
-type TextAsset = BundleAsset & { source: string };
-
+// Injects the pinned CSP as a <meta> tag at the very top of <head> on every
+// built page. Vite's transformIndexHtml fires once per HTML entry, so all build
+// inputs get the policy. `head-prepend` places the meta before any
+// resource-referencing tag, as CSP requires.
 /**
-Returns true for text assets that can be inlined into HTML.
-@param item - generated bundle item
-@param extension - file extension to match
+Creates the CSP-meta injection plugin.
 */
-function isTextAsset(item: BundleItem, extension: string): item is TextAsset {
-  return (
-    item.type === "asset" &&
-    item.fileName.endsWith(extension) &&
-    typeof item.source === "string"
-  );
-}
-
-/**
-Returns true for generated JavaScript chunks.
-@param item - generated bundle item
-*/
-function isScriptChunk(item: BundleItem): item is BundleChunk {
-  return item.type === "chunk" && item.fileName.endsWith(".js");
-}
-
-/**
-Returns text assets with the requested extension.
-@param bundle - generated bundle map
-@param extension - file extension to match
-*/
-function textAssets(
-  bundle: BuildBundle,
-  extension: string,
-): [string, TextAsset][] {
-  return Object.entries(bundle).filter((entry): entry is [string, TextAsset] =>
-    isTextAsset(entry[1], extension),
-  );
-}
-
-/**
-Returns generated JavaScript chunks.
-@param bundle - generated bundle map
-*/
-function scriptChunks(bundle: BuildBundle): [string, BundleChunk][] {
-  return Object.entries(bundle).filter(
-    (entry): entry is [string, BundleChunk] => isScriptChunk(entry[1]),
-  );
-}
-
-/**
-Escapes a stylesheet before placing it in an inline `<style>` tag.
-@param value - stylesheet source
-*/
-function escapeStyleContent(value: string): string {
-  return value.replaceAll("</style", String.raw`<\/style`);
-}
-
-/**
-Escapes JavaScript before placing it in an inline module script.
-@param value - JavaScript source
-*/
-function escapeScriptContent(value: string): string {
-  return value.replaceAll("</script", String.raw`<\/script`);
-}
-
-/**
-Replaces every literal occurrence without interpreting `$` replacement tokens.
-@param source - source text to edit
-@param search - literal text to replace
-@param replacement - literal replacement text
-*/
-function replaceLiteral(
-  source: string,
-  search: string,
-  replacement: string,
-): string {
-  return source.split(search).join(replacement);
-}
-
-/**
-Returns the stylesheet tags Vite may emit for a generated CSS asset.
-@param fileName - generated CSS file name
-*/
-function stylesheetTags(fileName: string): string[] {
-  const href = `/${fileName}`;
-  return [
-    `<link rel="stylesheet" crossorigin href="${href}">`,
-    `<link rel="stylesheet" href="${href}">`,
-  ];
-}
-
-/**
-Returns the script tags Vite may emit for a generated JavaScript chunk.
-@param fileName - generated JavaScript file name
-*/
-function scriptTags(fileName: string): string[] {
-  const source = `/${fileName}`;
-  return [
-    `<script type="module" crossorigin src="${source}"></script>`,
-    `<script type="module" src="${source}"></script>`,
-  ];
-}
-
-/**
-Inlines generated stylesheets into HTML source.
-@param source - HTML source
-@param stylesheets - generated CSS assets
-*/
-function inlineStylesheets(
-  source: string,
-  stylesheets: readonly [string, TextAsset][],
-): string {
-  let next = source;
-  for (const [fileName, stylesheet] of stylesheets) {
-    const style = `<style>${escapeStyleContent(stylesheet.source)}</style>`;
-    for (const tag of stylesheetTags(fileName)) {
-      next = replaceLiteral(next, tag, style);
-    }
-  }
-  return next;
-}
-
-/**
-Inlines generated JavaScript chunks into HTML source.
-@param source - HTML source
-@param scripts - generated JavaScript chunks
-*/
-function inlineScripts(
-  source: string,
-  scripts: readonly [string, BundleChunk][],
-): string {
-  let next = source;
-  for (const [fileName, script] of scripts) {
-    const moduleScript = `<script type="module">${escapeScriptContent(
-      script.code,
-    )}</script>`;
-    for (const tag of scriptTags(fileName)) {
-      next = replaceLiteral(next, tag, moduleScript);
-    }
-  }
-  return next;
-}
-
-/**
-Inlines generated CSS and JavaScript references into HTML assets. Inlining
-removes the external stylesheet/script requests that Lighthouse flags as
-render-blocking and as a network-dependency chain.
-@param bundle - generated bundle map
-*/
-function inlineHtmlReferences(bundle: BuildBundle): void {
-  const stylesheets = textAssets(bundle, ".css");
-  const scripts = scriptChunks(bundle);
-  for (const [, html] of textAssets(bundle, ".html")) {
-    html.source = inlineScripts(
-      inlineStylesheets(html.source, stylesheets),
-      scripts,
-    );
-  }
-}
-
-/**
-Creates the production-only asset inlining plugin.
-*/
-function inlineBuildAssets(): Plugin {
+export function cspMeta(): Plugin {
   return {
-    name: "inline-build-assets",
+    name: "csp-meta",
+    // Build-only: in dev, Vite injects CSS through inline <style> tags for HMR,
+    // which `style-src 'self'` would block, blanking every computed style. The
+    // pinned CSP only needs to travel with the *built* HTML, so scope it there.
     apply: "build",
-    enforce: "post",
-    generateBundle(outputOptions, outputBundle): void {
-      // Inlining only applies to the standard ES-module build the app ships.
-      if (outputOptions.format !== "es") {
-        return;
-      }
-      inlineHtmlReferences(outputBundle);
+    transformIndexHtml: (): HtmlTagDescriptor[] => [
+      {
+        tag: "meta",
+        attrs: {
+          "http-equiv": "Content-Security-Policy",
+          content: CSP_POLICY,
+        },
+        injectTo: "head-prepend",
+      },
+    ],
+  };
+}
+
+// Injects a matching `<link rel="preload" as="style">` immediately before every
+// `<link rel="stylesheet" href="/styles/...">` so the browser starts fetching the
+// CSS at parse time in parallel with the module script, keeping the stylesheet out
+// of the HTML -> JS -> CSS request chain that Lighthouse's network-dependency
+// insight flags. Runs post so it sees the final built HTML.
+/**
+Creates the stylesheet-preload injection plugin.
+*/
+export function stylePreload(): Plugin {
+  const stylesheet =
+    /<link rel="stylesheet" href="(\/styles\/[\w-]+\.css)"\s*\/?>/g;
+  return {
+    name: "style-preload",
+    transformIndexHtml: {
+      order: "post",
+      handler: (html: string): string =>
+        html.replaceAll(
+          stylesheet,
+          (link, href: string) =>
+            `<link rel="preload" as="style" href="${href}">${link}`,
+        ),
+    },
+  };
+}
+
+// Rewrites the emitted entry `<script type="module" crossorigin>` to a classic
+// `<script defer>`. The IIFE bundle needs no module semantics, and a deferred
+// classic script is low-priority, so it drops off the document's critical
+// request chain (Lighthouse's network-dependency insight flags an ES-module
+// entry as a document dependency). Runs post to see the final built tag.
+/**
+Creates the classic-defer entry-script plugin.
+*/
+export function classicDeferEntry(): Plugin {
+  const moduleAttributes = /<script type="module" crossorigin src=/g;
+  return {
+    name: "classic-defer-entry",
+    transformIndexHtml: {
+      order: "post",
+      handler: (html: string): string =>
+        html.replaceAll(moduleAttributes, "<script defer src="),
+    },
+  };
+}
+
+// 404.html carries no JS, so it can't be a rollup input alongside the IIFE
+// single-JS-entry index. It's emitted here with the same head injections the
+// other pages get: the pinned CSP meta and the stylesheet preload.
+/**
+Creates the 404-page emit plugin.
+*/
+export function emit404(): Plugin {
+  const source = path.join(frontendRoot, "404.html");
+  const cspTag = `<meta http-equiv="Content-Security-Policy" content="${CSP_POLICY}">`;
+  const stylesheet =
+    /<link rel="stylesheet" href="(\/styles\/[\w-]+\.css)"\s*\/?>/g;
+  let outDirectory = "";
+  return {
+    name: "emit-404",
+    apply: "build",
+    configResolved(config): void {
+      outDirectory = path.resolve(config.root, config.build.outDir);
+    },
+    async closeBundle(): Promise<void> {
+      const html = await readFile(source, "utf8");
+      const withCsp = html.replaceAll(
+        "<head>",
+        (head: string): string => `${head}${cspTag}`,
+      );
+      const withPreload = withCsp.replaceAll(
+        stylesheet,
+        (link: string, href: string): string =>
+          `<link rel="preload" as="style" href="${href}">${link}`,
+      );
+      await writeFile(path.join(outDirectory, "404.html"), withPreload);
+    },
+  };
+}
+
+// public/ assets are copied verbatim and skip Vite's minifier, so this build-only
+// plugin minifies the emitted stylesheet in place; otherwise the unminified-css
+// audit flags the savings.
+/**
+Creates the public-stylesheet minification plugin.
+*/
+export function minifyPublicCss(): Plugin {
+  let cssFile = "";
+  return {
+    name: "minify-public-css",
+    apply: "build",
+    configResolved(config): void {
+      cssFile = path.join(
+        path.resolve(config.root, config.build.outDir),
+        "styles",
+        "styles.css",
+      );
+    },
+    async closeBundle(): Promise<void> {
+      const source = await readFile(cssFile, "utf8");
+      const { code } = await transformWithEsbuild(source, cssFile, {
+        loader: "css",
+        minify: true,
+      });
+      await writeFile(cssFile, code);
     },
   };
 }
 
 export default defineConfig({
   root: frontendRoot,
-  plugins: [inlineBuildAssets()],
+  plugins: [
+    cspMeta(),
+    stylePreload(),
+    classicDeferEntry(),
+    emit404(),
+    minifyPublicCss(),
+  ],
   build: {
     rollupOptions: {
-      // 404.html is a build input (not a public/ copy) so Vite resolves its
-      // stylesheet link and the inline plugin ships it styled.
+      // index is the sole rollup input so its single JS entry can output as a
+      // classic IIFE (loaded as a low-priority defer script, see
+      // classicDeferEntry). 404.html has no JS and is emitted by emit404().
       input: {
         index: path.join(frontendRoot, "index.html"),
-        notFound: path.join(frontendRoot, "404.html"),
+      },
+      output: {
+        format: "iife",
       },
     },
   },

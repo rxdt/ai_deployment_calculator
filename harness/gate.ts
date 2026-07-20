@@ -18,12 +18,17 @@ import { preferencesViolations } from "./preferences.js";
 
 // Re-export the static data so consumers import everything gate-related from ./gate.js.
 export {
+  checkCommand,
+  COMMIT_CHECK_NAMES,
   COMMIT_CHECKS,
   FORBIDDEN_BASENAMES,
   FORBIDDEN_DIRS,
   FORBIDDEN_FILES,
   FORBIDDEN_PATTERNS,
+  FULL_CHECK_NAMES,
   FULL_CHECKS,
+  scriptsMap,
+  tokenizeCommand,
 } from "./gate-data.js";
 
 // Preflight fast checks must fail fast if they hang; the full gate has no timeout because its

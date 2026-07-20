@@ -65,6 +65,7 @@
       type="font/woff2"
       crossorigin
     />
+    <link rel="stylesheet" href="/styles/styles.css" />
     <title>AI Deployment Calculator | VRAM &amp; GPU Memory Estimator</title>
     <script type="application/ld+json">
       {
@@ -116,7 +117,10 @@
           </span>
         </div>
         <nav class="topnav">
-          <a href="/calculator-writeup" data-slot="about-link">
+          <a
+            href="https://rxdt.dev/calculator-writeup.html"
+            data-slot="about-link"
+          >
             <span class="topnav-label">About</span>
           </a>
           <a
@@ -155,8 +159,6 @@
                 </p>
               </div>
 
-              <!-- The label sits outside the chip group: the app wires every
-                   child of [data-slot="presets"] as a preset button. -->
               <div class="presets-row">
                 <span class="presets-label">Presets</span>
                 <div
@@ -268,6 +270,10 @@
                     <option value="IQ1_S">IQ1_S</option>
                   </optgroup>
                 </select>
+                <span class="field-note" data-slot="precision-lock" hidden
+                  >Locked to 4-bit by QLoRA fine-tuning. Switch Execution Mode
+                  to change.</span
+                >
               </p>
             </fieldset>
 
@@ -292,6 +298,10 @@
                     Server / Cloud
                   </option>
                 </select>
+                <span class="field-note" data-slot="runtime-lock" hidden
+                  >Locked to Local / Edge by QLoRA fine-tuning. Switch Execution
+                  Mode to change.</span
+                >
               </p>
 
               <p class="field" data-families="text_generation">
@@ -541,18 +551,24 @@
                 </p>
                 <p class="field">
                   <label for="known-model-file-size-gb"
-                    >Known Model File Size</label
+                    >Known Model File Size (GB)</label
                   >
                   <input
                     id="known-model-file-size-gb"
                     name="known-model-file-size-gb"
                     type="text"
                     inputmode="decimal"
+                    placeholder="e.g. 4.1"
+                    aria-describedby="known-model-file-size-gb-note"
                   />
+                  <span class="field-note" id="known-model-file-size-gb-note"
+                    >On-disk weight size in GB. Overrides the parameter-based
+                    weight estimate when set.</span
+                  >
                 </p>
                 <p class="field">
                   <label for="gpu-resident-fraction"
-                    >GPU Resident Fraction</label
+                    >GPU Resident Fraction (0–1)</label
                   >
                   <input
                     id="gpu-resident-fraction"
@@ -561,7 +577,12 @@
                     inputmode="decimal"
                     data-number-max="1"
                     value="1"
+                    aria-describedby="gpu-resident-fraction-note"
                   />
+                  <span class="field-note" id="gpu-resident-fraction-note"
+                    >Fraction (0–1, not a percentage) of the known file kept in
+                    VRAM. Only applies when Known Model File Size is set.</span
+                  >
                 </p>
                 <p class="field" data-lora hidden>
                   <label for="lora-trainable-percent">LoRA Trainable %</label>
@@ -591,9 +612,6 @@
           </div>
 
           <div class="actions" data-slot="form-actions">
-            <!-- Reset stays the form's submit control (WCAG H32 requires one);
-                 a keydown guard keeps Enter-in-a-field recomputing instead of
-                 triggering it, so typing Enter never wipes the form. -->
             <button type="submit" data-action="reset">Reset</button>
           </div>
         </form>
@@ -657,12 +675,8 @@
             </div>
           </div>
 
-          <!-- Tier 1.5: the answer's biggest levers as at-a-glance stat chips -->
           <ul class="stats" data-out="stat-chips" aria-busy="true"></ul>
 
-          <!-- Actionable multi-GPU guidance: shown only when no single card
-               holds the workload, so the answer names the parallelism
-               strategies needed to shard it across cards. -->
           <aside
             class="callout"
             data-slot="parallelism"

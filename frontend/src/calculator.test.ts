@@ -449,7 +449,7 @@ describe("training estimates", () => {
     expect(breakdown.runtimeOverheadGb).toBe(1.5);
     expect(breakdown.requiredGb).toBeCloseTo(59.7, 9);
     expect(speedEstimate(spec, weightsGb(spec), SPEED_TIER)).not.toBe(
-      "0.0 tokens/second",
+      "0 tokens/second",
     );
   });
 
@@ -703,7 +703,7 @@ describe("training estimates", () => {
 
     expect(memoryBreakdown(spec).requiredGb).toBe(0);
     expect(speedEstimate(spec, weightsGb(spec), SPEED_TIER)).toBe(
-      "0.0 tokens/second",
+      "0 tokens/second",
     );
   });
 
@@ -727,7 +727,7 @@ describe("training estimates", () => {
     expect(breakdown.runtimeOverheadGb).toBe(0);
     expect(breakdown.requiredGb).toBe(0);
     expect(speedEstimate(spec, weightsGb(spec), SPEED_TIER)).toBe(
-      "0.0 tokens/second",
+      "0 tokens/second",
     );
   });
 

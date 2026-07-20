@@ -16,7 +16,8 @@ const CONTRACTED_LABELS = new Map([
   ["precision", "Precision"],
   ["execution-mode", "Execution Mode"],
   ["runtime-profile", "Runtime Profile"],
-  ["known-model-file-size-gb", "Known Model File Size"],
+  ["known-model-file-size-gb", "Known Model File Size (GB)"],
+  ["gpu-resident-fraction", "GPU Resident Fraction (0–1)"],
 ]);
 
 const PUBLIC_WORKLOAD_NAMES = [
@@ -616,6 +617,17 @@ describe("CalculatorApp construction", () => {
     );
   });
 
+  test("throws when the QLoRA runtime select is missing", () => {
+    loadDom();
+    const runtime = field("runtime-profile");
+    const replacement = document.createElement("input");
+    replacement.name = "runtime-profile";
+    runtime.replaceWith(replacement);
+    expect(() => mountCalculator(document)).toThrow(
+      "Missing select control: runtime-profile",
+    );
+  });
+
   test("keeps rendering when the KV precision select is missing from its row", () => {
     loadDom();
     field("kv-cache-precision").remove();
@@ -1147,7 +1159,7 @@ describe("mounted calculator", () => {
     expect(out("total")).not.toBe("19.0 GB");
   });
 
-  test("reflects QLoRA forced precision and runtime in the form controls", () => {
+  test("QLoRA forces and locks precision and runtime with a visible note", () => {
     loadDom();
     mountCalculator(document);
 
@@ -1155,11 +1167,12 @@ describe("mounted calculator", () => {
 
     expect(field("precision").value).toBe("4-bit");
     expect(field("runtime-profile").value).toBe("Local / Edge");
-
-    fireChange("runtime-profile", "Server / Cloud");
-
-    expect(field("precision").value).toBe("4-bit");
-    expect(field("runtime-profile").value).toBe("Local / Edge");
+    // The pinned selects are disabled (not silently re-snapping under the user)
+    // and each explains why with an unhidden lock note.
+    expect(field("precision").disabled).toBe(true);
+    expect(field("runtime-profile").disabled).toBe(true);
+    expect(dataSlot("precision-lock").hidden).toBe(false);
+    expect(dataSlot("runtime-lock").hidden).toBe(false);
   });
 
   test("sanitizes negatives, exponents, and clamps the maximum", () => {
@@ -1518,38 +1531,22 @@ describe("recommended GPU examples", () => {
   });
 });
 
-describe("QLoRA precision switching", () => {
-  test("switching precision away from QLoRA exits to Inference but keeps inputs", () => {
+describe("QLoRA precision locking", () => {
+  test("leaving QLoRA re-enables the selects and hides the lock notes", () => {
     loadDom();
     mountCalculator(document);
 
     fireInput("total-params", "8");
     fireChange("execution-mode", "QLoRA fine-tuning");
-    fireInput("precision", "16-bit");
+    expect(field("precision").disabled).toBe(true);
 
-    expect(field("execution-mode").value).toBe("Inference");
-    expect(field("precision").value).toBe("16-bit");
-    expect(field("runtime-profile").value).toBe("Server / Cloud");
-    // The user's parameter count must survive the mode switch; leaving QLoRA
-    // changes only the mode and precision, never the deployment they entered.
-    expect(field("total-params").value).toBe("8");
-    expect(out("total")).not.toBe("0.0 GB");
-  });
-
-  test("a bare precision change event also exits QLoRA to an inference deployment", () => {
-    loadDom();
-    mountCalculator(document);
-
-    fireInput("total-params", "8");
-    fireChange("execution-mode", "QLoRA fine-tuning");
-    expect(field("precision").value).toBe("4-bit");
-
-    // Some engines emit a change without a preceding input; the change listener
-    // must run the same QLoRA-exit guard rather than leaving a stale base state.
-    fireChange("precision", "16-bit");
-
-    expect(field("execution-mode").value).toBe("Inference");
-    expect(field("precision").value).toBe("16-bit");
+    // Switching mode is the only way out of the pin; the selects must become
+    // editable again and their notes disappear, keeping the deployment intact.
+    fireChange("execution-mode", "Inference");
+    expect(field("precision").disabled).toBe(false);
+    expect(field("runtime-profile").disabled).toBe(false);
+    expect(dataSlot("precision-lock").hidden).toBe(true);
+    expect(dataSlot("runtime-lock").hidden).toBe(true);
     expect(field("total-params").value).toBe("8");
     expect(out("total")).not.toBe("0.0 GB");
   });
@@ -1566,6 +1563,7 @@ describe("QLoRA precision switching", () => {
     // than leak a physically impossible quantization into the estimate.
     fireChange("execution-mode", "Full training");
     expect(field("precision").value).toBe("16-bit");
+    expect(field("precision").disabled).toBe(false);
   });
 });
 
@@ -2039,7 +2037,7 @@ describe("model presets", () => {
     // value: a stale read of the still-disabled control fell back to the
     // 1.3B default and showed a ~10x too-fast speed for one render.
     const speedAfterClick = out("speed");
-    expect(speedAfterClick).toBe("186.0 tokens/sec");
+    expect(speedAfterClick).toBe("186 tokens/sec");
     fireInput("total-params", field("total-params").value);
     expect(out("speed")).toBe(speedAfterClick);
   });

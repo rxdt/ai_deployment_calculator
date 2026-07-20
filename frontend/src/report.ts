@@ -12,7 +12,7 @@ import {
   speedTierFor,
 } from "./hardware";
 import { assumptionRows } from "./report-assumptions";
-import { fitMeter } from "./result-format";
+import { fitMeter, type FitMeter } from "./result-format";
 import type {
   DisplayRow,
   ExecutionMode,
@@ -211,6 +211,23 @@ function calculationRows(
 }
 
 /**
+The Headroom chip's leftover-budget reading. No single card fits (overflow):
+report N/A rather than a literal 0% that reads as "just barely fits". "–" stays
+reserved for no estimate at all.
+@param meter - the computed fit meter, or null when there is no estimate
+@returns the chip's display string
+*/
+function headroomValue(meter: FitMeter | null): string {
+  if (meter === null) {
+    return "–";
+  }
+  if (meter.isOverflow) {
+    return "N/A";
+  }
+  return `${(100 - meter.fillPercent).toString()}%`;
+}
+
+/**
 The four headline stat chips shown under the hero: the answer's biggest levers
 at a glance. Model weights and the dominant working-memory term (KV cache for
 decoders, else activations) are the two largest contributors; the batch chip
@@ -243,7 +260,7 @@ function statChips(
     },
     {
       label: "Headroom",
-      value: meter === null ? "–" : `${(100 - meter.fillPercent).toString()}%`,
+      value: headroomValue(meter),
     },
   ];
 }
@@ -280,6 +297,13 @@ export function buildReport(state: Readonly<FormState>): ReportPayload {
   }
   if (requiresMultiGpu) {
     warnings.push(speedLabel(speedTier));
+  }
+  // A MoE split cannot activate more parameters than the model has; the spec
+  // caps it, so say the entered value was reduced rather than let it look honored.
+  if (spec.activeParamsClamped) {
+    warnings.push(
+      `Active parameters exceed total and were capped at ${spec.totalParamsB.toString()}B. A mixture-of-experts model cannot activate more parameters than it has.`,
+    );
   }
   return {
     totalRequiredMemory: formatGb(required),

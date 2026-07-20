@@ -10,8 +10,11 @@ export default defineConfig({
   // the desktop. 2 keeps the suite fast enough while leaving headroom.
   workers: 2,
   webServer: {
-    command: "npm --prefix ../frontend run dev -- --port 5173",
-    url: "http://127.0.0.1:5173",
+    // Port 5184 (not the Vite default 5173) so a parallel `pnpm gate` from
+    // another loop agent — or the sibling gh_site repo, which uses 5183 — cannot
+    // collide on the e2e dev server. Its preview counterpart uses 4184.
+    command: "npm --prefix ../frontend run dev -- --port 5184",
+    url: "http://127.0.0.1:5184",
     // Always own the dev-server lifecycle so Playwright starts AND stops it; a
     // reused server would linger after the run and leak across gate invocations.
     reuseExistingServer: false,
@@ -19,7 +22,7 @@ export default defineConfig({
     gracefulShutdown: { signal: "SIGTERM", timeout: 5_000 },
   },
   use: {
-    baseURL: "http://127.0.0.1:5173",
+    baseURL: "http://127.0.0.1:5184",
     trace: "on-first-retry",
   },
   projects: [

@@ -32,8 +32,10 @@ const ZERO_SPEED_ESTIMATES: ReadonlyMap<WorkloadFamily, string> = new Map([
   ["tabular", "0 rows/second"],
   ["video_generation", "0.0 clips/minute"],
 ]);
+// Whole tokens/sec only: the estimate is a bandwidth ÷ weight-bytes heuristic,
+// so a tenths digit (66.9) implies a precision the model does not have.
 const TOKEN_SPEED_STYLE: SpeedStyle = {
-  decimals: 1,
+  decimals: 0,
   scale: 1,
   unit: "tokens/second",
 };
@@ -321,7 +323,7 @@ export function speedEstimate(
   recommendedTier: Readonly<HardwareTier>,
 ): string {
   if (currentWeightsGb === 0) {
-    return ZERO_SPEED_ESTIMATES.get(spec.family) ?? "0.0 tokens/second";
+    return ZERO_SPEED_ESTIMATES.get(spec.family) ?? "0 tokens/second";
   }
   const precision = PRECISION_MAP[spec.precision];
   const computeWeightGb =

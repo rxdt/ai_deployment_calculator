@@ -1,5 +1,12 @@
 {
-  "elements": ["html5"],
+  "elements": [
+    "html5",
+    {
+      "style": {
+        "deprecated": "no inline stylesheets; use external CSS"
+      }
+    }
+  ],
   "extends": ["html-validate:recommended", "html-validate:prettier"],
   "rules": {
     "deprecated-rule": "error",

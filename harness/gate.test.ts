@@ -21,11 +21,14 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 
 import {
+  checkCommand as deriveCheckCommand,
+  COMMIT_CHECK_NAMES,
   COMMIT_CHECKS,
   FORBIDDEN_BASENAMES,
   FORBIDDEN_DIRS,
   FORBIDDEN_FILES,
   FORBIDDEN_PATTERNS,
+  FULL_CHECK_NAMES,
   FULL_CHECKS,
   gitSafeEnvironment,
   isForbiddenPath,
@@ -34,6 +37,8 @@ import {
   runGate,
   runGit,
   runPreflight,
+  scriptsMap,
+  tokenizeCommand,
 } from "./gate.js";
 import { addRootScripts } from "./cli.js";
 
@@ -973,7 +978,9 @@ describe("gate constants", () => {
   test("commit checks are a strict fast subset of full checks", () => {
     expect(new Set(Object.keys(COMMIT_CHECKS))).toEqual(COMMIT_POLICY_CHECKS);
     for (const [name, command] of Object.entries(COMMIT_CHECKS)) {
-      expect(checkCommand(FULL_CHECKS, name)).toBe(command);
+      // COMMIT_CHECKS and FULL_CHECKS are derived independently from the same
+      // scripts, so equal checks are distinct array instances: compare by value.
+      expect(checkCommand(FULL_CHECKS, name)).toEqual(command);
     }
     expect(Object.keys(FULL_CHECKS).length).toBeGreaterThan(
       Object.keys(COMMIT_CHECKS).length,
@@ -2310,16 +2317,19 @@ describe("frontend gate shape", () => {
     // Harness npm scripts run via `pnpm run`, which puts the workspace node_modules/.bin on PATH,
     // so tools are invoked by bare name (the pnpm-idiomatic form) — no hard-coded .bin path.
     expect(scripts.eslint).toBe(
-      "cd .. && eslint . --config harness/eslint.config.js --cache --cache-location . --max-warnings=0 --debug",
+      "cd .. && eslint . --config harness/eslint.config.js --cache --cache-location . --max-warnings=0",
     );
     expect(scripts.style).toBe(
-      'cd .. && stylelint "frontend/**/*.css" --config harness/stylelint.config.js --ignore-path harness/.stylelintignore --max-warnings=0 --allow-empty-input --formatter verbose',
+      'cd .. && stylelint "frontend/**/*.css" --config harness/stylelint.config.js --ignore-path harness/.stylelintignore --max-warnings=0 --allow-empty-input',
     );
     expect(scripts.html).toBe(
       'cd .. && html-validate --config harness/.htmlvalidate.json "**/*.html"',
     );
+    // typecheck is now a single command (the app-tsc check) so gate-data can
+    // derive it; the chained harness+project alias moved to `pnpm lint`-style
+    // convenience scripts (typecheck:harness / typecheck:project) kept below.
     expect(scripts.typecheck).toBe(
-      "pnpm typecheck:harness && pnpm typecheck:project",
+      "cd .. && tsc -p harness/tsconfig.app.json --noEmit --incremental --tsBuildInfoFile .cache_tsbuildinfo_app",
     );
     expect(scripts["typecheck:project"]).toBe(
       "cd .. && tsc -p harness/tsconfig.app.json --noEmit",
@@ -2329,6 +2339,67 @@ describe("frontend gate shape", () => {
       "frontend/tsconfig.json",
     );
     expect(scripts["lint:design"]).toBe("cd .. && designmd lint DESIGN.md");
+  });
+
+  // gate-data derives each check's argv from its harness/package.json script (the single source of
+  // truth) rather than hardcoding a copy, so the gate and `pnpm run <check>` cannot drift. These
+  // tests protect that derivation: every check has a parseable single-command script, and the parse
+  // is faithful (root-return prefix stripped, quotes handled, no leftover shell tokens).
+  test.each([...FULL_CHECK_NAMES])(
+    "gate check %s derives faithfully from its harness/package.json script",
+    (name) => {
+      const scripts = readPackageScripts("harness/package.json");
+      const script = scripts[name];
+      expect(
+        script,
+        `no harness script for gate check "${name}"`,
+      ).toBeDefined();
+      const argv = checkCommand(FULL_CHECKS, name);
+      expect(argv).toEqual(deriveCheckCommand(name));
+      expect(argv).not.toContain("cd");
+      expect(argv).not.toContain("&&");
+      expect(argv.every((token) => !token.startsWith('"'))).toBe(true);
+      const body = (script ?? "").replace(/^\s*cd\s+\.\.\s+&&\s*/, "");
+      expect(argv.join(" ")).toBe(body.replaceAll('"', ""));
+    },
+  );
+
+  test("gate check names exactly match the harness check-script set", () => {
+    const scripts = readPackageScripts("harness/package.json");
+    expect(Object.keys(FULL_CHECKS)).toEqual([...FULL_CHECK_NAMES]);
+    expect(Object.keys(COMMIT_CHECKS)).toEqual([...COMMIT_CHECK_NAMES]);
+    for (const name of FULL_CHECK_NAMES) {
+      expect(
+        typeof scripts[name],
+        `no harness script for gate check "${name}"`,
+      ).toBe("string");
+    }
+  });
+
+  test("a shell-chained or missing check script is rejected at derivation", () => {
+    // `lint` chains `pnpm eslint && pnpm style && pnpm html`; a check must be one command.
+    expect(() => deriveCheckCommand("lint")).toThrow(/chains commands/u);
+    expect(() => deriveCheckCommand("does-not-exist")).toThrow(
+      /no harness script/u,
+    );
+  });
+
+  test("scriptsMap narrows a valid package.json and rejects malformed shapes", () => {
+    const map = scriptsMap({ scripts: { a: "x", b: 1, c: "y" } });
+    expect(Object.fromEntries(map)).toEqual({ a: "x", c: "y" });
+    expect(() => scriptsMap(null)).toThrow(/no scripts object/u);
+    expect(() => scriptsMap({})).toThrow(/no scripts object/u);
+    expect(() => scriptsMap({ scripts: "nope" })).toThrow(/not an object/u);
+    expect(() => scriptsMap({ scripts: null })).toThrow(/not an object/u);
+  });
+
+  test("tokenizeCommand splits args, unquotes globs, and handles an empty command", () => {
+    expect(tokenizeCommand('tool "a/**/*.css" --flag')).toEqual([
+      "tool",
+      "a/**/*.css",
+      "--flag",
+    ]);
+    expect(tokenizeCommand("")).toEqual([]);
   });
 
   test("harness app tsconfig owns the frontend TypeScript include set and strict flags", () => {

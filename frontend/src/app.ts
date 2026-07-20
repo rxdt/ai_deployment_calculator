@@ -72,16 +72,14 @@ export class CalculatorApp {
     const urlState = normalizedState(new URLSearchParams(location.search));
     this.applyValues(urlState, {}, false);
     this.form.addEventListener("beforeinput", guardNumericInsertion);
-    const recompute = (event: Event): void => {
-      if (!this.exitQloRAOnPrecisionChange(event)) {
-        this.update(true);
-      }
+    const recompute = (): void => {
+      this.update(true);
     };
     this.form.addEventListener("input", (event) => {
       if (event.target instanceof HTMLInputElement) {
         sanitizeNumberInput(event.target);
       }
-      recompute(event);
+      recompute();
     });
     this.form.addEventListener("change", recompute);
     // Enter in a field would implicitly "click" the Reset submit button and
@@ -153,31 +151,6 @@ export class CalculatorApp {
     this.update(shouldWriteUrl);
   }
 
-  private exitQloRAOnPrecisionChange(event: Event): boolean {
-    const { target } = event;
-    const executionMode = this.form.elements.namedItem("execution-mode");
-    if (
-      !(target instanceof HTMLSelectElement) ||
-      !(executionMode instanceof HTMLSelectElement) ||
-      target.name !== "precision" ||
-      target.value === "4-bit" ||
-      executionMode.value !== "QLoRA fine-tuning"
-    ) {
-      return false;
-    }
-    // Leaving QLoRA (which pins 4-bit + Local/Edge) by picking another precision
-    // must preserve the user's deployment; only the mode, precision, and the
-    // QLoRA-forced runtime lift; the params, context, and toggles they entered
-    // are kept intact.
-    const current = normalizedState(searchFromForm(this.form));
-    this.applyValues(current, {
-      executionMode: "Inference",
-      precision: target.value,
-      runtimeProfile: "Server / Cloud",
-    });
-    return true;
-  }
-
   private slot(name: string): HTMLElement {
     for (const node of this.root.querySelectorAll<HTMLElement>("[data-out]")) {
       if (node.dataset.out === name) {
@@ -237,6 +210,19 @@ export class CalculatorApp {
       throw new TypeError(`Missing form control: ${name}`);
     }
     element.value = value;
+  }
+
+  // Disable a select and reveal its "locked by …" note, or re-enable and hide
+  // it. A disabled select is skipped by searchFromForm, so withModeConstraints
+  // re-derives the pinned value on the next read — the lock needs no separate
+  // value-forcing branch.
+  private lockControl(name: string, noteSlot: string, isLocked: boolean): void {
+    const element = this.form.elements.namedItem(name);
+    if (!(element instanceof HTMLSelectElement)) {
+      throw new TypeError(`Missing select control: ${name}`);
+    }
+    element.disabled = isLocked;
+    dataSlot(this.root, noteSlot)?.toggleAttribute("hidden", !isLocked);
   }
 
   private setCheckboxChecked(name: string, isChecked: boolean): void {
@@ -309,6 +295,11 @@ export class CalculatorApp {
   private syncControls(state: Readonly<FormState>): void {
     this.setControlValue("precision", state.precision);
     this.setControlValue("runtime-profile", state.runtimeProfile);
+    // QLoRA pins 4-bit + Local/Edge; lock both selects and show why rather than
+    // letting them silently snap back under the user.
+    const isQlora = state.executionMode === "QLoRA fine-tuning";
+    this.lockControl("precision", "precision-lock", isQlora);
+    this.lockControl("runtime-profile", "runtime-lock", isQlora);
 
     const family = state.workloadFamily;
     for (const node of this.root.querySelectorAll<HTMLElement>(

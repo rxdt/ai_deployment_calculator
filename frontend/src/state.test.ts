@@ -187,6 +187,16 @@ describe("normalizedState", () => {
     expect(state.runtimeProfile).toBe("Local / Edge");
   });
 
+  test("training modes lift an invalid 4-bit precision", () => {
+    const state = normalizedState(
+      parameters({
+        executionMode: "Full training",
+        precision: "4-bit",
+      }),
+    );
+    expect(state.precision).toBe("16-bit");
+  });
+
   test("ignores legacy training query flags", () => {
     const state = normalizedState(
       new URLSearchParams("trained=on&use_adapter=on"),

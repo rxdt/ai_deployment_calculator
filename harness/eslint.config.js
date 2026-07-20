@@ -1,5 +1,6 @@
 import js from "@eslint/js"; // ESLint recommended rules
 import json from "@eslint/json"; // JSON/JSONC/JSON5 language plugin
+import html from "@html-eslint/eslint-plugin"; // HTML linting: inline style/script bans
 import globals from "globals"; // Browser/node globals
 import security from "eslint-plugin-security"; // Basic security checks
 import tseslint from "typescript-eslint"; // TypeScript ESLint flat-config package
@@ -355,6 +356,13 @@ export default defineConfig([
     files: configTypeScriptFiles,
     rules: {
       "no-console": "off",
+    },
+  },
+  {
+    files: ["**/*.html"],
+    ...html.configs["flat/recommended"],
+    rules: {
+      "@html-eslint/no-inline-styles": "error", //  bans style="" and <style>
     },
   },
   // JSON family files, linted via `pnpm json:lint`.

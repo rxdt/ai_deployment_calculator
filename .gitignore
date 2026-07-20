@@ -9,6 +9,7 @@ dist/
 **/node_modules/
 **test-results/
 **/.lighthouseci/
+*.report.html
 **/.playwright-*
 scratchpad/
 .npmrc

@@ -308,8 +308,13 @@ a:hover {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-md);
-  padding: 0 var(--space-md);
+
+  /* Wrap rather than overflow: on a viewport too narrow to hold brand + status
+     + chips on one line, the flex-grow status strip drops to a second row while
+     the brand and nav chips stay put. No fixed width, no horizontal scroll. */
+  flex-wrap: wrap;
+  gap: var(--space-xs) var(--space-md);
+  padding: var(--space-2xs) var(--space-md);
   border-bottom: var(--layout-border) solid var(--color-border);
   background: var(--color-topbar);
   backdrop-filter: blur(var(--space-md));
@@ -586,6 +591,19 @@ summary,
 .field > input,
 .field > select {
   text-align: center;
+}
+
+/* Inline helper text under a field: units, ranges, and the QLoRA lock reason.
+   Muted and small so it reads as a hint, not a value; capped and centered to
+   match the control column above it. */
+.field-note {
+  max-width: var(--layout-intro-max);
+  color: var(--color-muted);
+  font-size: var(--font-nav);
+  line-height: var(--font-line-body);
+  text-align: center;
+  text-transform: none;
+  letter-spacing: normal;
 }
 
 .field--wide {
@@ -1423,8 +1441,17 @@ code {
 /* When a preset is active the header MODEL word links to the model's page:
    underline only, keeping the muted label color instead of the global cyan
    link look (this rule follows the global a:hover, so at equal specificity
-   it also wins the hover state). The anchor exists only while linked. */
+   it also wins the hover state). The anchor exists only while linked.
+   Inline text is only ~13px tall, which fails the WCAG 2.2 24px target-size
+   rule on touch viewports, so the anchor is a 24px-tall inline-flex box
+   (centered so the baseline HUD row is visually unchanged) with enough inline
+   padding that its hit area clears the adjacent value chip. */
 .status-item a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--layout-control-size);
+  padding-inline: var(--space-2xs);
+  margin-inline: calc(var(--space-2xs) * -1);
   color: inherit;
   text-decoration: underline;
   text-underline-offset: var(--space-2xs);
@@ -1432,7 +1459,21 @@ code {
 
 /* The brand wordmark links to the canonical production URL but keeps its
    product-name look: foreground text (the marker's green comes from
-   .brand-mark), no underline, in both rest and hover states. */
+   .brand-mark), no underline, in both rest and hover states. "~VRAM-calculator"
+   is one wordmark: white-space:nowrap keeps it on a single line so the global
+   overflow-wrap:anywhere never splits it into "calculat/or" on narrow phones —
+   it keeps its full width while the nav chips wrap or the status strip yields. */
+.brand {
+  /* A 24px-tall inline-flex box so the wordmark link satisfies the WCAG 2.2
+     target-size rule on touch viewports; centered so its baseline in the topbar
+     row is visually unchanged. */
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--layout-control-size);
+  white-space: nowrap;
+  overflow-wrap: normal;
+}
+
 .brand,
 .brand:hover {
   color: inherit;
@@ -1520,6 +1561,15 @@ code {
     padding-inline: var(--space-sm);
     min-width: var(--layout-control-size);
     justify-content: center;
+  }
+
+  /* Label-less, the GitHub chip is icon-only; make it a square icon button
+     with a tight radius and no side padding so the 16px mark fills it rather
+     than floating in a near-empty rounded pill. */
+  [data-slot="github-link"] {
+    inline-size: var(--layout-control-size);
+    padding-inline: 0;
+    border-radius: var(--radius-md);
   }
 
   [data-slot="about-link"] .topnav-label {

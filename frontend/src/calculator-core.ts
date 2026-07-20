@@ -73,6 +73,8 @@ export interface CalculationSpec {
   readonly totalParamsB: number;
   readonly residentParamsB: number;
   readonly activeParamsB: number;
+  // True when the entered active count exceeded total and was capped to it.
+  readonly activeParamsClamped: boolean;
   readonly precision: Precision;
   readonly executionMode: ExecutionMode;
   readonly runtimeProfile: RuntimeProfile;
@@ -317,17 +319,15 @@ function optimizerBytes(name: FormState["optimizer"]): number {
 */
 export function specFromState(state: Readonly<FormState>): CalculationSpec {
   const total = totalParametersB(state);
-  const knownFile = state.knownModelFileSizeGb.trim()
-    ? positive(state.knownModelFileSizeGb, 0) || null
-    : null;
   const isMoeEnabled = hasMoeControl(state.workloadFamily) && state.moeEnabled;
+  // Entered active count, before the "cannot exceed total" cap below.
+  const wantActive = isMoeEnabled ? positive(state.activeParams, total) : total;
   return {
     family: state.workloadFamily,
     totalParamsB: total,
     residentParamsB: total,
-    activeParamsB: isMoeEnabled
-      ? Math.min(positive(state.activeParams, total), total)
-      : total,
+    activeParamsB: Math.min(wantActive, total),
+    activeParamsClamped: wantActive > total,
     precision: state.precision,
     executionMode: state.executionMode,
     runtimeProfile: state.runtimeProfile,
@@ -336,7 +336,9 @@ export function specFromState(state: Readonly<FormState>): CalculationSpec {
     kvBytes: KV_BYTES[state.kvCachePrecision],
     architecture: architectureFor(total),
     visionArchitecture: null,
-    knownModelFileSizeGb: knownFile,
+    knownModelFileSizeGb: state.knownModelFileSizeGb.trim()
+      ? positive(state.knownModelFileSizeGb, 0) || null
+      : null,
     gpuResidentFraction: fraction(state.gpuResidentFraction, 1),
     loraTrainablePercent: Math.min(
       nonNegative(state.loraTrainablePercent, 0.5),

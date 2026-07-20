@@ -101,13 +101,33 @@ describe("buildReport", () => {
       "96 GB Apple Silicon class, e.g. Mac Studio M3 Ultra 96 GB / NVIDIA RTX PRO 6000 Blackwell",
     );
     // MoE compute weight = active 12B * 0.5 * 1.15 = 6.9 GB; 96 GB class
-    // bandwidth 819 / 6.9 = 118.7.
-    expect(report.speed).toBe("118.7 tokens/second");
+    // bandwidth 819 / 6.9 = 118.7, shown as whole tokens/sec.
+    expect(report.speed).toBe("119 tokens/second");
     expect(report.calculationRows).toEqual(
       expect.arrayContaining([
         { label: "Working memory subtotal", value: "44.9 GB" },
         { label: "Total required", value: "80.8 GB" },
       ]),
+    );
+  });
+
+  test("warns when active parameters exceed total and are capped", () => {
+    const report = buildReport(
+      state({ totalParams: "7", moeEnabled: true, activeParams: "100" }),
+    );
+
+    expect(report.warnings).toContain(
+      "Active parameters exceed total and were capped at 7B. A mixture-of-experts model cannot activate more parameters than it has.",
+    );
+  });
+
+  test("does not warn when active parameters fit within total", () => {
+    const report = buildReport(
+      state({ totalParams: "47", moeEnabled: true, activeParams: "12" }),
+    );
+
+    expect(report.warnings.join(" ")).not.toContain(
+      "Active parameters exceed total",
     );
   });
 

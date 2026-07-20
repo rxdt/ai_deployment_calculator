@@ -63,6 +63,14 @@ pnpm build
 pnpm preview
 ```
 
+> **Profiling note:** Always run Lighthouse against the production preview
+> (`pnpm build && pnpm preview`, served on `127.0.0.1:4183`), never the dev
+> server (`pnpm dev`, `127.0.0.1:5174`). The dev server serves raw unbundled
+> modules over an HMR WebSocket, so a report taken there shows unminified JS,
+> unused `zod`, no-bf-cache, and a large CLS from the serialized module
+> waterfall — all dev-only artifacts, none of which exist in the deployed
+> build. `harness/lighthouserc.cjs` already targets `preview` for this reason.
+
 ## Development Checks
 
 ```sh

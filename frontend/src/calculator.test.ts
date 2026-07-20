@@ -298,6 +298,13 @@ describe("corrected text-generation totals", () => {
 });
 
 describe("training estimates", () => {
+  test("7B QLoRA training default uses a 2k context", () => {
+    const qloraState = defaultState("QLoRA fine-tuning");
+    const { requiredGb } = memoryBreakdown(specFromState(qloraState));
+    expect(requiredGb).toBeGreaterThan(12.5);
+    expect(requiredGb).toBeLessThan(12.7);
+  });
+
   test.each<[string, Partial<FormState>, number]>([
     [
       "8B QLoRA with 2% trainable adapters",

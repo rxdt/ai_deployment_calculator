@@ -22,6 +22,19 @@ describe("defaultState", () => {
     expect(state.workloadFamily).toBe("text_generation");
     expect(state.moeEnabled).toBe(false);
   });
+
+  test("keeps 8k inference context and uses 2k for training defaults", () => {
+    expect(defaultState().contextTokens).toBe("8000");
+    expect(defaultState().optimizer).toBe("AdamW");
+    expect(defaultState("QLoRA fine-tuning").optimizer).toBe("AdamW");
+    for (const executionMode of [
+      "LoRA fine-tuning",
+      "QLoRA fine-tuning",
+      "Full training",
+    ] as const) {
+      expect(defaultState(executionMode).contextTokens).toBe("2048");
+    }
+  });
 });
 
 describe("normalizedState", () => {
@@ -185,6 +198,14 @@ describe("normalizedState", () => {
     );
     expect(state.precision).toBe("4-bit");
     expect(state.runtimeProfile).toBe("Local / Edge");
+  });
+
+  test("uses the training context default for a QLoRA deep link", () => {
+    const state = normalizedState(
+      parameters({ executionMode: "QLoRA fine-tuning" }),
+    );
+    expect(state.contextTokens).toBe("2048");
+    expect(state.optimizer).toBe("AdamW");
   });
 
   test("training modes lift an invalid 4-bit precision", () => {

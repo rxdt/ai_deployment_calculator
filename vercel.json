@@ -1,5 +1,12 @@
 {
   "buildCommand": "pnpm build",
   "outputDirectory": "frontend/dist",
-  "cleanUrls": true
+  "cleanUrls": true,
+  "redirects": [
+    {
+      "source": "/calculator-writeup.html",
+      "destination": "https://rxdt.dev/calculator-writeup.html",
+      "permanent": true
+    }
+  ]
 }

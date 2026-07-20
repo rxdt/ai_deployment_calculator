@@ -153,11 +153,45 @@ function schemaValue<T extends z.ZodType>(
 }
 
 /**
+Apply the execution mode's hard constraints (QLoRA pins 4-bit + Local/Edge).
+@param state - normalized form state
+@returns the state with mode constraints enforced
+*/
+function withModeConstraints(state: FormState): FormState {
+  if (state.executionMode === "QLoRA fine-tuning") {
+    return {
+      ...state,
+      precision: "4-bit",
+      runtimeProfile: "Local / Edge",
+    };
+  }
+  // 4-bit is QLoRA's NF4 base and cannot be trained directly, so Full training
+  // and LoRA on 4-bit weights are physically impossible. If the 4-bit pin leaks
+  // out of QLoRA into a training mode, restore a real training precision so the
+  // estimate is not computed on an invalid quantization.
+  const isTrainingMode =
+    state.executionMode === "Full training" ||
+    state.executionMode === "LoRA fine-tuning";
+  if (isTrainingMode && state.precision === "4-bit") {
+    return { ...state, precision: "16-bit" };
+  }
+  return state;
+}
+
+/**
  The seed deployment shown before the user changes any input.
+@param executionMode - mode whose training defaults should be seeded
 @returns a copy of the default form state
 */
-export function defaultState(): FormState {
-  return { ...DEFAULT_STATE };
+export function defaultState(
+  executionMode: FormState["executionMode"] = "Inference",
+): FormState {
+  return withModeConstraints({
+    ...DEFAULT_STATE,
+    executionMode,
+    contextTokens:
+      executionMode === "Inference" ? DEFAULT_STATE.contextTokens : "2048",
+  });
 }
 
 /**
@@ -238,37 +272,16 @@ function normalizedAdvancedState(
 }
 
 /**
-Apply the execution mode's hard constraints (QLoRA pins 4-bit + Local/Edge).
-@param state - normalized form state
-@returns the state with mode constraints enforced
-*/
-function withModeConstraints(state: FormState): FormState {
-  if (state.executionMode === "QLoRA fine-tuning") {
-    return {
-      ...state,
-      precision: "4-bit",
-      runtimeProfile: "Local / Edge",
-    };
-  }
-  // 4-bit is QLoRA's NF4 base and cannot be trained directly, so Full training
-  // and LoRA on 4-bit weights are physically impossible. If the 4-bit pin leaks
-  // out of QLoRA into a training mode, restore a real training precision so the
-  // estimate is not computed on an invalid quantization.
-  const isTrainingMode =
-    state.executionMode === "Full training" ||
-    state.executionMode === "LoRA fine-tuning";
-  if (isTrainingMode && state.precision === "4-bit") {
-    return { ...state, precision: "16-bit" };
-  }
-  return state;
-}
-
-/**
  
 @param search
 */
 export function normalizedState(search: URLSearchParams): FormState {
-  const defaults = defaultState();
+  const executionMode = schemaValue(
+    executionSchema,
+    last(search, "executionMode"),
+    DEFAULT_STATE.executionMode,
+  );
+  const defaults = defaultState(executionMode);
   if (search.size === 0) {
     return defaults;
   }

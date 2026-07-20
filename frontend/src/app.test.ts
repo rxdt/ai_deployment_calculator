@@ -2194,3 +2194,27 @@ describe("main entrypoint", () => {
     expect(out("total")).toBe("18.8 GB");
   });
 });
+
+describe("parse-time layout stability", () => {
+  // The above-the-fold hero values are the only result slots painted before
+  // the tier-2 detail is expanded, so they must ship real placeholder text in
+  // the static HTML. If they were empty, hydration would grow the hero from
+  // zero-height to filled and shift the page — the CLS a slow script delivery
+  // (e.g. the Vite dev-server module waterfall) makes visible. render() then
+  // only swaps like-for-like text, so first paint and hydrated paint agree.
+  test.each(["total", "gpu-class", "gpu-examples"])(
+    "hero slot %s is non-empty in the static HTML, before any script runs",
+    (slot) => {
+      const parsed = new DOMParser().parseFromString(indexHtml, "text/html");
+      const node = [...parsed.querySelectorAll("[data-out]")].find(
+        (candidate): candidate is HTMLElement =>
+          candidate instanceof HTMLElement && candidate.dataset.out === slot,
+      );
+
+      if (node === undefined) {
+        throw new TypeError(`missing hero slot [data-out="${slot}"]`);
+      }
+      expect(node.textContent.trim()).not.toBe("");
+    },
+  );
+});

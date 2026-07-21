@@ -152,7 +152,7 @@ test("renders the default deployment computed locally", async ({ page }) => {
 
   await expect(
     page.getByRole("heading", {
-      name: "VRAM Calculator for Inference & Fine-Tuning",
+      name: "AI Deployment Calculator",
     }),
   ).toBeVisible();
   await expect(page.locator('[data-out="total"]')).toHaveText("18.8 GB");
@@ -376,9 +376,15 @@ test("keyboard-only walkthrough reaches and activates core controls", async ({
   await page.goto("/");
 
   const advanced = page.getByText("Advanced assumptions", { exact: true });
+  const knownFileSize = page.getByRole("textbox", {
+    name: "Known Model File Size (GB)",
+    exact: true,
+  });
   await advanced.focus();
   await page.keyboard.press("Enter");
-  await expect(page.getByLabel("Known Model File Size")).toBeVisible();
+  await expect(knownFileSize).toBeHidden();
+  await page.keyboard.press("Enter");
+  await expect(knownFileSize).toBeVisible();
 
   const moe = page.getByLabel("MoE Model", { exact: true });
   await moe.focus();
@@ -542,7 +548,6 @@ test("swaps adaptive inputs and greys MoE per workload family", async ({
 }) => {
   await page.goto("/");
 
-  await page.getByText("Advanced assumptions").click();
   // Family-specific inputs still hide, but the Advanced/training fields stay in
   // place and only enable or disable, so the grid keeps a stable shape.
   await expect(page.locator("#context-tokens")).toBeVisible();
@@ -579,8 +584,6 @@ test("enables active parameters only when MoE is checked", async ({ page }) => {
 
   // MoE and its dependent Active Parameters field live in the advanced panel.
   // Active Parameters stays visible but greyed until MoE is checked.
-  await page.getByText("Advanced assumptions", { exact: true }).click();
-
   await expect(page.locator("#active-params")).toBeVisible();
   await expect(page.locator("#active-params")).toBeDisabled();
   await page.locator("#moe-enabled").check();

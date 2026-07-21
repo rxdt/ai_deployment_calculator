@@ -1,10 +1,9 @@
 <div align="center">
 <img src=".banner.svg" alt="Blue infinity loop" width="360">
 
-<h1>L∞pGate</h1>
-<p><em>frontend edition</em></p>
+<h1>VRAM GPU TPU Calculator for AI Model Deployments</h1>
 
-#### Originally built to demo [L∞pGate for frontend](https://github.com/rxdt/loopgate_js)
+#### Built with [L∞pGate for frontend](https://github.com/rxdt/loopgate_js) <p><em>frontend edition</em></p>
 
 # [AI Deployment Calculator](https://vram.rxdt.dev/)
 
@@ -18,9 +17,8 @@ assumptions behind every estimate are shown in the UI, and recommendations are
 measured against _usable_ VRAM (advertised capacity minus the driver/CUDA
 reserve), **not** the sticker number.
 
-_[Based on the (more mature) Python ralph agent harness](https://github.com/rxdt/loopgate_harness)_
-
 ![VRAM Deployment Calculator screenshot](.calc.png)
+_[Based on the (more mature) Python ralph agent harness](https://github.com/rxdt/loopgate_harness)_
 
 </div>
 

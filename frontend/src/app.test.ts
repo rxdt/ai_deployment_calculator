@@ -17,7 +17,7 @@ const CONTRACTED_LABELS = new Map([
   ["execution-mode", "Execution Mode"],
   ["runtime-profile", "Runtime Profile"],
   ["known-model-file-size-gb", "Known Model File Size (GB)"],
-  ["gpu-resident-fraction", "GPU Resident Fraction"],
+  ["gpu-resident-fraction", "GPU Resident Fraction (0-1)"],
 ]);
 
 const PUBLIC_WORKLOAD_NAMES = [
@@ -688,6 +688,20 @@ describe("naming contract", () => {
     }
     expect(totalParameters.type).toBe("text");
     expect(totalParameters.inputMode).toBe("decimal");
+  });
+
+  test("labels the file-size and resident-fraction inputs precisely", () => {
+    loadDom();
+    mountCalculator(document);
+
+    expect(labelTextFor("known-model-file-size-gb")).toBe(
+      "Known Model File Size (GB)",
+    );
+    expect(labelTextFor("gpu-resident-fraction")).toBe(
+      "GPU Resident Fraction (0-1)",
+    );
+    expect(field("known-model-file-size-gb").value).toBe("");
+    expect(field("gpu-resident-fraction").value).toBe("1.0");
   });
 });
 

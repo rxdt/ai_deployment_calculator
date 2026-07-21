@@ -81,3 +81,15 @@ plan.md corrections. Red is valid; don't weaken red tests to clean up. One
 dated report per run under `docs/qa/` with table, triage, corrections, and
 verdict. Cadence: after formula changes, before distribution pushes, or when no
 feature item is actionable.
+
+## Follow-up TODOs
+
+- Add a parameterized smoke matrix for `text_generation`, `vision_language`,
+  `image_diffusion`, `video_generation`, `audio`, `tabular`, and `custom`.
+- Add perturbation checks for model size, hidden size, layers, image resolution,
+  patch size, MoE controls, workload/batch size, and context; assert the expected
+  direction of total-memory changes. Map “experts” to `moeEnabled` and
+  `activeParams` until the product exposes an explicit expert-count field.
+- Strengthen every smoke case with exact result-shape checks,
+  finite/non-negative numeric checks, invalid-input responses, and cleanup on
+  failure.

@@ -1735,6 +1735,22 @@ describe("adaptive controls", () => {
     for (const [family, isApplicable] of moeApplicableByFamily) {
       fireChange("workload-family", family);
       expect(isRowInapplicable("moe-enabled")).toBe(!isApplicable);
+      expect(field("moe-enabled").disabled).toBe(!isApplicable);
+    }
+  });
+
+  test("keeps memory sharding available for every execution mode", () => {
+    loadDom();
+    mountCalculator(document);
+
+    for (const mode of [
+      "Inference",
+      "LoRA fine-tuning",
+      "QLoRA fine-tuning",
+      "Full training",
+    ]) {
+      fireChange("execution-mode", mode);
+      expect(field("memory-sharding-enabled").disabled).toBe(false);
     }
   });
 
@@ -1811,28 +1827,88 @@ describe("adaptive controls", () => {
     expect(label.textContent.trim()).toBe("Micro Batch Size");
   });
 
-  test("enables KV precision only for decoder KV workloads", () => {
+  test("enables KV precision only for inference decoder workloads", () => {
+    const cases: readonly (readonly [string, string, boolean])[] = [
+      ["Inference", "text_generation", true],
+      ["Inference", "encoder_decoder", true],
+      ["Inference", "vision_language", true],
+      ["Inference", "text_encoder", false],
+      ["Inference", "vision", false],
+      ["Inference", "image_diffusion", false],
+      ["Inference", "video_generation", false],
+      ["Inference", "audio", false],
+      ["Inference", "tabular", false],
+      ["Inference", "custom", false],
+      ["LoRA fine-tuning", "text_generation", false],
+      ["QLoRA fine-tuning", "vision_language", false],
+      ["Full training", "encoder_decoder", false],
+    ];
+
     loadDom();
     mountCalculator(document);
-    expect(isRowInapplicable("kv-cache-precision")).toBe(false);
+    for (const [mode, family, isApplicable] of cases) {
+      fireChange("execution-mode", mode);
+      fireChange("workload-family", family);
+      expect(isRowInapplicable("kv-cache-precision")).toBe(!isApplicable);
+      expect(field("kv-cache-precision").disabled).toBe(!isApplicable);
+    }
+  });
 
-    fireChange("execution-mode", "Full training");
-    expect(isRowInapplicable("kv-cache-precision")).toBe(true);
+  test.each<readonly [string, string]>([
+    ["text decoder", "text_generation"],
+    ["seq2seq decoder", "encoder_decoder"],
+    // Whisper-style speech encoder-decoder workloads use the seq2seq family.
+    ["speech encoder-decoder", "encoder_decoder"],
+    ["vision-language decoder", "vision_language"],
+  ])("enables KV precision for %s inference", (scenario, family) => {
+    loadDom();
+    mountCalculator(document);
 
-    fireChange("execution-mode", "Inference");
-    expect(isRowInapplicable("kv-cache-precision")).toBe(false);
+    fireChange("workload-family", family);
 
-    fireChange("workload-family", "text_encoder");
-    expect(isRowInapplicable("kv-cache-precision")).toBe(true);
+    expect(field("kv-cache-precision").disabled, scenario).toBe(false);
+    expect(isRowInapplicable("kv-cache-precision"), scenario).toBe(false);
+  });
 
-    fireChange("workload-family", "encoder_decoder");
-    expect(isRowInapplicable("kv-cache-precision")).toBe(false);
+  test.each<readonly [string, string]>([
+    ["encoder-only", "text_encoder"],
+    ["vision encoder", "vision"],
+    ["image diffusion", "image_diffusion"],
+    ["video diffusion", "video_generation"],
+  ])("disables KV precision for %s inference", (scenario, family) => {
+    loadDom();
+    mountCalculator(document);
 
-    fireChange("workload-family", "vision");
-    expect(isRowInapplicable("kv-cache-precision")).toBe(true);
+    fireChange("workload-family", family);
 
-    fireChange("workload-family", "vision_language");
-    expect(isRowInapplicable("kv-cache-precision")).toBe(false);
+    expect(field("kv-cache-precision").disabled, scenario).toBe(true);
+    expect(isRowInapplicable("kv-cache-precision"), scenario).toBe(true);
+  });
+
+  test("disables KV precision for standard training estimates", () => {
+    loadDom();
+    mountCalculator(document);
+
+    for (const mode of [
+      "LoRA fine-tuning",
+      "QLoRA fine-tuning",
+      "Full training",
+    ]) {
+      fireChange("execution-mode", mode);
+      expect(field("kv-cache-precision").disabled).toBe(true);
+      expect(isRowInapplicable("kv-cache-precision")).toBe(true);
+    }
+  });
+
+  test("does not reuse KV precision for standard training instead of a prefix-tuning control", () => {
+    loadDom();
+    mountCalculator(document);
+
+    // Prefix tuning trains KV-like prefixes and needs its own virtual-token and
+    // prefix-dtype assumptions; this app's standard training modes are not that
+    // specialized method.
+    fireChange("execution-mode", "LoRA fine-tuning");
+    expect(field("kv-cache-precision").disabled).toBe(true);
   });
 
   test("greys training-only inputs during Inference and enables them for training", () => {
@@ -1869,6 +1945,22 @@ describe("adaptive controls", () => {
     fireChange("execution-mode", "Inference");
     expect(isRowInapplicable("gradient-checkpointing")).toBe(true);
     expect(isRowInapplicable("optimizer")).toBe(true);
+  });
+
+  test("enables LoRA trainable percentage only for adapter fine-tuning", () => {
+    loadDom();
+    mountCalculator(document);
+
+    for (const mode of ["Inference", "Full training"]) {
+      fireChange("execution-mode", mode);
+      expect(isRowInapplicable("lora-trainable-percent")).toBe(true);
+      expect(field("lora-trainable-percent").disabled).toBe(true);
+    }
+    for (const mode of ["LoRA fine-tuning", "QLoRA fine-tuning"]) {
+      fireChange("execution-mode", mode);
+      expect(isRowInapplicable("lora-trainable-percent")).toBe(false);
+      expect(field("lora-trainable-percent").disabled).toBe(false);
+    }
   });
 
   test("unchecking gradient checkpointing changes training estimates", () => {
@@ -1939,6 +2031,70 @@ describe("advanced numeric input caps", () => {
     fireInput("known-model-file-size-gb", "");
     expect(isRowInapplicable("gpu-resident-fraction")).toBe(true);
     expect(field("gpu-resident-fraction").disabled).toBe(true);
+  });
+
+  test.each<readonly [string, string]>([
+    ["inference", "Inference"],
+    ["LoRA", "LoRA fine-tuning"],
+    ["QLoRA", "QLoRA fine-tuning"],
+  ])(
+    "enables resident fraction for %s with a known model file",
+    (scenario, mode) => {
+      loadDom();
+      mountCalculator(document);
+
+      fireInput("known-model-file-size-gb", "52");
+      fireChange("execution-mode", mode);
+
+      expect(isRowInapplicable("gpu-resident-fraction"), scenario).toBe(false);
+      expect(field("gpu-resident-fraction").disabled, scenario).toBe(false);
+    },
+  );
+
+  test("disables resident fraction for full training even with a known model file", () => {
+    loadDom();
+    mountCalculator(document);
+
+    fireInput("known-model-file-size-gb", "52");
+    fireChange("execution-mode", "Full training");
+
+    expect(isRowInapplicable("gpu-resident-fraction")).toBe(true);
+    expect(field("gpu-resident-fraction").disabled).toBe(true);
+  });
+
+  test.each(["", "0", "-1"])(
+    "disables resident fraction for a non-positive known file size (%s)",
+    (value) => {
+      loadDom();
+      mountCalculator(document);
+
+      fireInput("known-model-file-size-gb", value);
+
+      expect(isRowInapplicable("gpu-resident-fraction")).toBe(true);
+      expect(field("gpu-resident-fraction").disabled).toBe(true);
+    },
+  );
+
+  test("keeps resident fraction disabled without a positive file or during full training", () => {
+    loadDom();
+    mountCalculator(document);
+
+    for (const value of ["", "0", "-1"]) {
+      fireInput("known-model-file-size-gb", value);
+      expect(isRowInapplicable("gpu-resident-fraction")).toBe(true);
+      expect(field("gpu-resident-fraction").disabled).toBe(true);
+    }
+
+    fireInput("known-model-file-size-gb", "52");
+    fireChange("execution-mode", "Full training");
+    expect(isRowInapplicable("gpu-resident-fraction")).toBe(true);
+    expect(field("gpu-resident-fraction").disabled).toBe(true);
+
+    for (const mode of ["Inference", "LoRA fine-tuning", "QLoRA fine-tuning"]) {
+      fireChange("execution-mode", mode);
+      expect(isRowInapplicable("gpu-resident-fraction")).toBe(false);
+      expect(field("gpu-resident-fraction").disabled).toBe(false);
+    }
   });
 
   test("clamps advanced ratio and percent inputs to their real ranges", () => {

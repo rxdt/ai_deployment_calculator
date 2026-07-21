@@ -331,10 +331,15 @@ export class CalculatorApp {
     // it rather than imply a setting that does nothing.
     this.disableSlots("lora", !state.executionMode.includes("LoRA"));
     // Resident fraction scales the known on-disk file only; without that
-    // source value the parameter-based weight estimate is unchanged.
+    // source value the parameter-based weight estimate is unchanged. Full
+    // training ignores file-backed residency because it sizes all parameters,
+    // gradients, and optimizer state.
+    const knownModelFileSizeGb = Number(state.knownModelFileSizeGb);
     this.disableSlots(
       "resident-fraction",
-      Number(state.knownModelFileSizeGb) <= 0,
+      state.executionMode === "Full training" ||
+        !Number.isFinite(knownModelFileSizeGb) ||
+        knownModelFileSizeGb <= 0,
     );
     // Gradient Checkpointing and the optimizer only size training state, so
     // these training-only inputs must not imply an effect on inference

@@ -488,6 +488,100 @@ describe("training estimates", () => {
     expect(weightsGb(negative)).toBe(52);
   });
 
+  test("GPU resident fraction does not change full-training weights", () => {
+    const fullTraining = specFromState(
+      state({
+        executionMode: "Full training",
+        knownModelFileSizeGb: "52",
+        gpuResidentFraction: "0.25",
+      }),
+    );
+
+    expect(weightsGb(fullTraining)).toBe(14);
+  });
+
+  test("GPU resident fraction changes known-file weights but not KV memory", () => {
+    const fullyResident = memoryBreakdown(
+      specFromState(
+        state({ knownModelFileSizeGb: "52", gpuResidentFraction: "1.0" }),
+      ),
+    );
+    const quarterResident = memoryBreakdown(
+      specFromState(
+        state({ knownModelFileSizeGb: "52", gpuResidentFraction: "0.25" }),
+      ),
+    );
+
+    expect(fullyResident.weightsGb).toBe(52);
+    expect(quarterResident.weightsGb).toBe(13);
+    expect(quarterResident.kvCacheGb).toBe(fullyResident.kvCacheGb);
+  });
+
+  test.each<readonly [string, number]>([
+    ["full residency", 1],
+    ["half residency", 0.5],
+    ["quarter residency", 0.25],
+  ])("scales a known file linearly for %s", (scenario, fraction) => {
+    const spec = specFromState(
+      state({
+        knownModelFileSizeGb: "100",
+        gpuResidentFraction: fraction.toString(),
+      }),
+    );
+
+    expect(weightsGb(spec), scenario).toBe(100 * fraction);
+  });
+
+  test("memory sharding changes placement assumptions, not raw equation components", () => {
+    const unsharded = memoryBreakdown(
+      specFromState(state({ totalParams: "62", memoryShardingEnabled: false })),
+    );
+    const sharded = memoryBreakdown(
+      specFromState(state({ totalParams: "62", memoryShardingEnabled: true })),
+    );
+
+    expect(sharded).toEqual(unsharded);
+  });
+
+  test("gradient checkpointing changes training activations but not weights or state", () => {
+    const checkpointed = memoryBreakdown(
+      specFromState(
+        state({
+          executionMode: "Full training",
+          gradientCheckpointing: true,
+        }),
+      ),
+    );
+    const uncheckpointed = memoryBreakdown(
+      specFromState(
+        state({
+          executionMode: "Full training",
+          gradientCheckpointing: false,
+        }),
+      ),
+    );
+
+    expect(uncheckpointed.weightsGb).toBe(checkpointed.weightsGb);
+    expect(uncheckpointed.trainingStateGb).toBe(checkpointed.trainingStateGb);
+    expect(
+      uncheckpointed.inputActivationGb / checkpointed.inputActivationGb,
+    ).toBeCloseTo(8 / 3, 9);
+  });
+
+  test("optimizer selection does not affect inference memory", () => {
+    const adam = memoryBreakdown(
+      specFromState(state({ executionMode: "Inference", optimizer: "AdamW" })),
+    );
+    const sgd = memoryBreakdown(
+      specFromState(
+        state({ executionMode: "Inference", optimizer: "SGD-like" }),
+      ),
+    );
+
+    expect(sgd.trainingStateGb).toBe(0);
+    expect(sgd.requiredGb).toBe(adam.requiredGb);
+  });
+
   /**
   Direct callers can bypass URL and form caps. The calculation source of truth
   should still prevent adapter state from exceeding the whole model.
@@ -832,6 +926,175 @@ describe("workload-family working memory", () => {
       const spec = specFromState(state({ workloadFamily: family }));
       expect(inferenceWorkingMemoryGb(spec, weightsGb(spec)).kvCacheGb).toBe(0);
     }
+  });
+
+  test.each<readonly [string, Partial<FormState>]>([
+    [
+      "text decoder",
+      { workloadFamily: "text_generation", contextTokens: "8000" },
+    ],
+    [
+      "seq2seq decoder",
+      { workloadFamily: "encoder_decoder", outputTokens: "512" },
+    ],
+    [
+      "vision-language decoder",
+      { workloadFamily: "vision_language", textContextTokens: "4000" },
+    ],
+    // Whisper-style speech encoder-decoder models use the seq2seq decoder
+    // cache path, even though their input modality is audio.
+    [
+      "speech encoder-decoder",
+      { workloadFamily: "encoder_decoder", outputTokens: "128" },
+    ],
+  ])("KV precision changes the %s cache component", (scenario, overrides) => {
+    const fp8 = specFromState(
+      state({ ...overrides, kvCachePrecision: "8-bit / FP8" }),
+    );
+    const fp32 = specFromState(
+      state({ ...overrides, kvCachePrecision: "32-bit" }),
+    );
+
+    expect(
+      inferenceWorkingMemoryGb(fp8, weightsGb(fp8)).kvCacheGb,
+      scenario,
+    ).toBeGreaterThan(0);
+    expect(
+      inferenceWorkingMemoryGb(fp32, weightsGb(fp32)).kvCacheGb,
+    ).toBeGreaterThan(inferenceWorkingMemoryGb(fp8, weightsGb(fp8)).kvCacheGb);
+  });
+
+  test.each<WorkloadFamily>([...NO_KV_FAMILIES])(
+    "KV precision does not change the %s inference estimate",
+    (family) => {
+      const fp8 = memoryBreakdown(
+        specFromState(
+          state({ workloadFamily: family, kvCachePrecision: "8-bit / FP8" }),
+        ),
+      );
+      const fp32 = memoryBreakdown(
+        specFromState(
+          state({ workloadFamily: family, kvCachePrecision: "32-bit" }),
+        ),
+      );
+
+      expect(fp8.kvCacheGb).toBe(0);
+      expect(fp32.kvCacheGb).toBe(0);
+      expect(fp32.requiredGb).toBe(fp8.requiredGb);
+    },
+  );
+
+  test.each<readonly [string, FormState["executionMode"]]>([
+    ["LoRA", "LoRA fine-tuning"],
+    ["QLoRA", "QLoRA fine-tuning"],
+    ["full", "Full training"],
+  ])(
+    "standard %s training does not use KV cache precision",
+    (scenario, mode) => {
+      const fp8 = memoryBreakdown(
+        specFromState(
+          state({
+            executionMode: mode,
+            workloadFamily: "text_generation",
+            kvCachePrecision: "8-bit / FP8",
+          }),
+        ),
+      );
+      const fp32 = memoryBreakdown(
+        specFromState(
+          state({
+            executionMode: mode,
+            workloadFamily: "text_generation",
+            kvCachePrecision: "32-bit",
+          }),
+        ),
+      );
+
+      expect(fp8.kvCacheGb, scenario).toBe(0);
+      expect(fp32.kvCacheGb, scenario).toBe(0);
+      expect(fp32.requiredGb, scenario).toBe(fp8.requiredGb);
+    },
+  );
+
+  test("KV precision golden case scales the 7B decoder cache 1:2:4", () => {
+    const cacheByPrecision = (["8-bit / FP8", "16-bit", "32-bit"] as const).map(
+      (kvCachePrecision) => {
+        const spec = specFromState(state({ kvCachePrecision }));
+        return inferenceWorkingMemoryGb(spec, weightsGb(spec)).kvCacheGb;
+      },
+    );
+
+    expect(cacheByPrecision).toEqual([0.524288, 1.048576, 2.097152]);
+  });
+
+  test("Qwen3-style long-context oracle isolates the KV cache component", () => {
+    const base = specFromState(
+      state({
+        totalParams: "235",
+        workloadFamily: "text_generation",
+        contextTokens: "73472",
+        kvCachePrecision: "16-bit",
+      }),
+    );
+    const qwenArchitecture: CalculationSpec = {
+      ...base,
+      architecture: {
+        ...base.architecture,
+        layers: 94,
+        kvHeads: 4,
+        headDim: 128,
+      },
+    };
+
+    // The supplied 102361 MiB oracle is a full GGUF/GPU-layer estimate. This
+    // test pins only the independently checkable KV term; this app does not
+    // model GGUF tensor placement or GPU-layer offload.
+    expect(
+      inferenceWorkingMemoryGb(qwenArchitecture, weightsGb(qwenArchitecture))
+        .kvCacheGb,
+    ).toBeCloseTo(14.144241664, 9);
+  });
+
+  test("BERT-scale component oracle keeps fp16 weights separate from Adam state", () => {
+    const inference = specFromState(
+      state({ totalParams: "0.109", precision: "16-bit" }),
+    );
+    const training = specFromState(
+      state({
+        totalParams: "0.109",
+        precision: "16-bit",
+        executionMode: "Full training",
+        optimizer: "AdamW",
+      }),
+    );
+
+    // Accelerate reports model-loading and Adam peak figures separately. Keep
+    // this as a component oracle rather than comparing unlike total estimates.
+    expect(weightsGb(inference)).toBeCloseTo(0.218, 9);
+    expect(trainingStateGb(training)).toBeCloseTo(1.526, 9);
+    expect(trainingStateGb(training)).toBeGreaterThan(weightsGb(inference));
+  });
+
+  test("Gemma-sized precision sweep keeps FP16 above INT8 above INT4", () => {
+    const requiredByPrecision = (["16-bit", "8-bit", "4-bit"] as const).map(
+      (precision) =>
+        memoryBreakdown(
+          specFromState(
+            state({
+              totalParams: "26.5",
+              workloadFamily: "vision_language",
+              contextTokens: "4096",
+              textContextTokens: "4000",
+              precision,
+            }),
+          ),
+        ).requiredGb,
+    );
+
+    expect(requiredByPrecision).toStrictEqual(
+      [...requiredByPrecision].sort((left, right) => right - left),
+    );
+    expect(new Set(requiredByPrecision).size).toBe(3);
   });
 
   test.each<WorkloadFamily>([

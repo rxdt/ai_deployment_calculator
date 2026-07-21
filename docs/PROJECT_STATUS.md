@@ -11,8 +11,8 @@ Short, current handoff. Deleted lines are the point — keep only what's useful 
 
 ## Latest change (2026-07-21)
 
-- Advanced assumptions are expanded by default; every advanced field remains
-  visible and only inapplicable controls are greyed and disabled. The resident
+- Advanced assumptions start collapsed; every advanced field remains visible
+  after opening and only inapplicable controls are greyed and disabled. The resident
   fraction defaults to `1.0`, KV precision no longer stretches vertically, and
   QLoRA selects AdamW automatically. Commit: `01d466b`.
 - Preset clicks cancel the form submit default before applying model overrides,
@@ -25,7 +25,7 @@ Short, current handoff. Deleted lines are the point — keep only what's useful 
   selectable. Known file size and resident fraction use accessible inline
   tooltips. Commit: `b268a67`.
 - Coverage is 100% across statements, branches, functions, and lines. Browser
-  contracts follow the expanded assumptions panel and current app title; the
+  contracts follow the collapsed assumptions panel and current app title; the
   full gate passes when Lighthouse receives the installed Chrome path.
   Commits: `a4dd4d8`, `c02f285`, `c63aed6`.
 

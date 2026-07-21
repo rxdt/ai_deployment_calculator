@@ -195,15 +195,13 @@ test("advanced assumptions opens, toggles MoE, and closes by keyboard", async ({
 }) => {
   await page.goto("/");
   const moe = page.getByLabel("MoE Model", { exact: true });
-  await expect(moe).toBeVisible();
+  await expect(moe).toBeHidden();
 
   await tabUntil(
     page,
     (stop) => stop.slot === "advanced-assumptions-label",
     "the Advanced assumptions summary",
   );
-  await page.keyboard.press("Enter");
-  await expect(moe).toBeHidden();
   await page.keyboard.press("Enter");
   await expect(moe).toBeVisible();
 

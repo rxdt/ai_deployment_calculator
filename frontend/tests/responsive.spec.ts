@@ -114,9 +114,9 @@ for (const path of pages) {
     for (const name of primaryControls) {
       await expect(page.getByLabel(name, { exact: true })).toBeVisible();
     }
-    // Advanced assumptions are expanded by default, so all fields remain
-    // visible while inapplicable controls are disabled.
-    await expect(page.getByLabel("MoE Model", { exact: true })).toBeVisible();
+    // Advanced assumptions start collapsed; optional fields appear after the
+    // disclosure is opened.
+    await expect(page.getByLabel("MoE Model", { exact: true })).toBeHidden();
     await expect(page.getByRole("button", { name: "Reset" })).toBeVisible();
     await expect(page.getByText("Batch Size", { exact: true })).toHaveCount(0);
   });
@@ -134,8 +134,9 @@ for (const path of pages) {
         "24px",
       );
     }
-    // The MoE checkbox remains visible in the expanded advanced panel; confirm
-    // its hit target holds the 24px AA minimum.
+    // The MoE checkbox lives in the advanced panel; open it, then confirm its
+    // hit target holds the 24px AA minimum.
+    await page.getByText("Advanced assumptions", { exact: true }).click();
     await expect(page.getByLabel("MoE Model", { exact: true })).toHaveCSS(
       "min-width",
       "24px",
@@ -257,6 +258,7 @@ for (const viewport of onePageViewports) {
   }) => {
     await page.setViewportSize(viewport);
     await page.goto("/");
+    await page.getByText("Advanced assumptions", { exact: true }).click();
 
     // Inline expand-down grows the page in normal flow (the accepted accordion
     // pattern), so the panel's controls stay reachable by scrolling rather than
@@ -298,6 +300,7 @@ for (const viewport of onePageViewports) {
     await gpuClass.scrollIntoViewIfNeeded();
     await expect(gpuClass).toBeInViewport();
 
+    await page.getByText("Advanced assumptions", { exact: true }).click();
     const knownFileSize = page.getByRole("textbox", {
       name: "Known Model File Size (GB)",
       exact: true,
@@ -317,6 +320,7 @@ for (const viewport of onePageViewports) {
     await expectNoHorizontalDocumentOverflow(page);
     await page.locator("#workload-family").selectOption("text_encoder");
     await expectNoHorizontalDocumentOverflow(page);
+    await page.getByText("Advanced assumptions", { exact: true }).click();
     await expectNoHorizontalDocumentOverflow(page);
   });
 }
@@ -665,6 +669,7 @@ test("expanded advanced assumptions stay inside the input pane", async ({
   await page.setViewportSize({ height: 720, width: 1280 });
   await page.goto("/");
   await page.getByText("Why this recommendation", { exact: true }).click();
+  await page.getByText("Advanced assumptions", { exact: true }).click();
 
   const advancedBox = requireBox(
     await page.locator(".advanced[open] .group").boundingBox(),
@@ -730,7 +735,7 @@ test("checkboxes render selected checks and empty unchecked indicators", async (
 }) => {
   await page.goto("/");
 
-  // Advanced fields remain visible while inapplicable controls are disabled.
+  await page.getByText("Advanced assumptions", { exact: true }).click();
 
   const moeState = page.locator(
     'label:has(#moe-enabled) [data-slot="checkbox-indicator"]',

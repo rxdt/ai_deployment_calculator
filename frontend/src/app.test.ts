@@ -1019,14 +1019,25 @@ describe("mounted calculator", () => {
     }
   });
 
-  test("keeps every advanced field visible and expands the assumptions panel", () => {
+  test("starts every accordion collapsed on page load", () => {
+    loadDom();
+    mountCalculator(document);
+
+    const accordions = [...document.querySelectorAll("details")];
+    expect(accordions.length).toBeGreaterThan(0);
+    for (const accordion of accordions) {
+      expect(accordion.open).toBe(false);
+    }
+  });
+
+  test("keeps every advanced field visible in the collapsed assumptions panel", () => {
     loadDom();
     mountCalculator(document);
     const advanced = dataSlot("advanced-assumptions");
     if (!(advanced instanceof HTMLDetailsElement)) {
       throw new TypeError("Advanced assumptions must be a details element");
     }
-    expect(advanced.open).toBe(true);
+    expect(advanced.open).toBe(false);
     for (const name of [
       "moe-enabled",
       "memory-sharding-enabled",

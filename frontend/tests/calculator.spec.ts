@@ -381,7 +381,6 @@ test("keyboard-only walkthrough reaches and activates core controls", async ({
     exact: true,
   });
   await advanced.focus();
-  await page.keyboard.press("Enter");
   await expect(knownFileSize).toBeHidden();
   await page.keyboard.press("Enter");
   await expect(knownFileSize).toBeVisible();
@@ -547,6 +546,7 @@ test("swaps adaptive inputs and greys MoE per workload family", async ({
   page,
 }) => {
   await page.goto("/");
+  await page.getByText("Advanced assumptions", { exact: true }).click();
 
   // Family-specific inputs still hide, but the Advanced/training fields stay in
   // place and only enable or disable, so the grid keeps a stable shape.
@@ -581,6 +581,7 @@ test("switches the workload size label and never shows generic Batch Size", asyn
 
 test("enables active parameters only when MoE is checked", async ({ page }) => {
   await page.goto("/");
+  await page.getByText("Advanced assumptions", { exact: true }).click();
 
   // MoE and its dependent Active Parameters field live in the advanced panel.
   // Active Parameters stays visible but greyed until MoE is checked.

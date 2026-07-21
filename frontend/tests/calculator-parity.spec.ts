@@ -158,6 +158,7 @@ async function applyControls(
   page: Page,
   controls: BrowserCalculationCase["controls"],
 ): Promise<void> {
+  await page.getByText("Advanced assumptions").click();
   for (const [selector, value, action] of controls) {
     const control = page.locator(selector);
     if (action === "fill") {

@@ -641,6 +641,19 @@ describe("CalculatorApp construction", () => {
     );
   });
 
+  test("throws when the QLoRA precision control is not a select", () => {
+    loadDom();
+    const precision = field("precision");
+    const replacement = document.createElement("input");
+    replacement.id = "precision";
+    replacement.name = "precision";
+    precision.replaceWith(replacement);
+
+    expect(() => mountCalculator(document)).toThrow(
+      "Missing select control: precision",
+    );
+  });
+
   test("keeps rendering when the KV precision select is missing from its row", () => {
     loadDom();
     field("kv-cache-precision").remove();

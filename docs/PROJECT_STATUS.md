@@ -9,7 +9,7 @@ Short, current handoff. Deleted lines are the point — keep only what's useful 
   no-agent-push note. The release commit contains:
   - **Security:** pnpm `overrides` restored (tmp, uuid, fast-json-patch, @opentelemetry/core — they had been dropped in `10ba12a`, `@asyncapi/specs` pinned 6.11.1 against the Miasma RAT attack (issue #5 — repo verified NOT compromised, safe version was always locked); dependency-review runs on push AND PR; a standalone semgrep CI job plus `pip install semgrep` in checks so the gate's sast check.
 
-## Latest change (2026-07-20)
+## Latest change (2026-07-21)
 
 - Advanced assumptions are expanded by default; every advanced field remains
   visible and only inapplicable controls are greyed and disabled. The resident
@@ -24,6 +24,10 @@ Short, current handoff. Deleted lines are the point — keep only what's useful 
 - QLoRA now pins only 4-bit precision and AdamW; Runtime Profile remains
   selectable. Known file size and resident fraction use accessible inline
   tooltips. Commit: `b268a67`.
+- Coverage is 100% across statements, branches, functions, and lines. Browser
+  contracts follow the expanded assumptions panel and current app title; the
+  full gate passes when Lighthouse receives the installed Chrome path.
+  Commits: `a4dd4d8`, `c02f285`, `c63aed6`.
 
 ## Current Local Sentinels
 

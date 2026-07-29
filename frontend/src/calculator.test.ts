@@ -1,8 +1,8 @@
 import { describe, expect, test } from "vitest";
+import { architectureFor } from "./architecture";
 import type { CalculationSpec } from "./calculator-core";
 import {
   PRECISION_MAP,
-  architectureFor,
   roundUpTo,
   roundTo,
   runtimeAssumptions,
@@ -137,6 +137,8 @@ describe("parameter conversion and precision maps", () => {
     // nominal-vs-real overhead multiplier applies (weightOverhead 1).
     expect(PRECISION_MAP).toEqual({
       "4-bit": { weightBytes: 0.5, weightOverhead: 1.15 },
+      MXFP4: { weightBytes: 4.25 / 8, weightOverhead: 1.18 },
+      MXFP8: { weightBytes: 8.25 / 8, weightOverhead: 1 },
       "5-bit GGUF": { weightBytes: 0.625, weightOverhead: 1.12 },
       "6-bit GGUF": { weightBytes: 0.75, weightOverhead: 1.1 },
       "8-bit": { weightBytes: 1, weightOverhead: 1.05 },
@@ -1380,5 +1382,174 @@ describe("architecture, runtime, accuracy, and speed helpers", () => {
     expect(roundUpTo(20.4, 1).toFixed(1)).toBe("20.4");
     expect(roundUpTo(20.4001, 1).toFixed(1)).toBe("20.5");
     expect(roundUpTo(20.45, 1).toFixed(1)).toBe("20.5");
+  });
+});
+
+/**
+Decoder KV cache (GB) for a text-generation config with the given overrides.
+@param overrides Text-generation form overrides.
+@returns the KV cache figure in GB
+*/
+function kvCacheGb(overrides: Partial<FormState>): number {
+  const spec = specFromState(
+    state({ workloadFamily: "text_generation", ...overrides }),
+  );
+  return inferenceWorkingMemoryGb(spec, weightsGb(spec)).kvCacheGb;
+}
+
+// A Kimi-K3-shaped decoder: exact architecture with a hybrid MLA/KDA split.
+const KIMI_SHAPE: Partial<FormState> = {
+  totalParams: "2800",
+  layers: "93",
+  hiddenSize: "7168",
+  attentionHeads: "96",
+  headDim: "128",
+  mlaLayers: "24",
+  kdaLayers: "69",
+  kvLoraRank: "512",
+  ropeHeadDim: "64",
+  contextTokens: "1000",
+};
+
+describe("exact architecture overrides", () => {
+  test("a positive override replaces the parameter-count bucket field-by-field", () => {
+    const arch = specFromState(
+      state({
+        layers: "93",
+        hiddenSize: "7168",
+        attentionHeads: "96",
+        kvHeads: "8",
+        headDim: "128",
+      }),
+    ).architecture;
+    expect(arch).toEqual({
+      layers: 93,
+      hidden: 7168,
+      attentionHeads: 96,
+      kvHeads: 8,
+      headDim: 128,
+    });
+  });
+
+  test("a blank override keeps the parameter-count bucket", () => {
+    // The default 7B model resolves through the <=10B bucket (32 layers).
+    expect(specFromState(state()).architecture).toEqual(architectureFor(7));
+  });
+
+  test("a non-positive override is ignored in favor of the bucket", () => {
+    const arch = specFromState(
+      state({ layers: "0", headDim: "-4" }),
+    ).architecture;
+    expect(arch.layers).toBe(architectureFor(7).layers);
+    expect(arch.headDim).toBe(architectureFor(7).headDim);
+  });
+
+  test("more layers can only raise a standard KV cache", () => {
+    const base = kvCacheGb({ attentionType: "standard", layers: "40" });
+    const deeper = kvCacheGb({ attentionType: "standard", layers: "80" });
+    expect(deeper).toBeCloseTo(base * 2, 6);
+  });
+});
+
+describe("hybrid attention memory model", () => {
+  test("MLA caches only the compressed latent plus RoPE tail per layer", () => {
+    // 93 layers x (512 latent + 64 rope) x 1000 tokens x 2 bytes.
+    expect(kvCacheGb({ ...KIMI_SHAPE, attentionType: "mla" })).toBeCloseTo(
+      (93 * (512 + 64) * 1000 * 2) / 1_000_000_000,
+      9,
+    );
+  });
+
+  test("KDA holds a fixed recurrent state and no per-token cache", () => {
+    // 93 layers x heads(96) x headDim(128) x (headDim + conv kernel 4) x 2 bytes.
+    expect(kvCacheGb({ ...KIMI_SHAPE, attentionType: "kda" })).toBeCloseTo(
+      (93 * 96 * 128 * (128 + 4) * 2) / 1_000_000_000,
+      9,
+    );
+  });
+
+  test("a KDA cache does not grow with context length", () => {
+    const short = kvCacheGb({ ...KIMI_SHAPE, attentionType: "kda" });
+    const long = kvCacheGb({
+      ...KIMI_SHAPE,
+      attentionType: "kda",
+      contextTokens: "1000000",
+    });
+    expect(long).toBe(short);
+  });
+
+  test("a hybrid split sums MLA per-token latents and KDA fixed state", () => {
+    const mlaPart = 24 * (512 + 64) * 1000;
+    const kdaPart = 69 * 96 * 128 * (128 + 4);
+    expect(
+      kvCacheGb({ ...KIMI_SHAPE, attentionType: "hybrid-kda-mla" }),
+    ).toBeCloseTo(((mlaPart + kdaPart) * 2) / 1_000_000_000, 9);
+  });
+
+  test("a hybrid remainder keeps a conventional per-token cache for unassigned layers", () => {
+    // 93 layers, 24 MLA + 9 KDA leaves 60 standard layers (kvHeads 8, headDim 128).
+    const mlaPart = 24 * (512 + 64) * 1000;
+    const stdPart = 60 * 2 * 8 * 128 * 1000;
+    const kdaPart = 9 * 96 * 128 * (128 + 4);
+    expect(
+      kvCacheGb({
+        ...KIMI_SHAPE,
+        kvHeads: "8",
+        kdaLayers: "9",
+        attentionType: "hybrid-kda-mla",
+      }),
+    ).toBeCloseTo(((mlaPart + stdPart + kdaPart) * 2) / 1_000_000_000, 9);
+  });
+
+  test("hybrid and MLA caches stay below a conventional cache at long context", () => {
+    const shape = { ...KIMI_SHAPE, kvHeads: "8", contextTokens: "1000000" };
+    const standard = kvCacheGb({ ...shape, attentionType: "standard" });
+    expect(kvCacheGb({ ...shape, attentionType: "mla" })).toBeLessThan(
+      standard,
+    );
+    expect(
+      kvCacheGb({ ...shape, attentionType: "hybrid-kda-mla" }),
+    ).toBeLessThan(standard);
+  });
+
+  test("per-type layer counts clamp to the model depth", () => {
+    const { attention } = specFromState(
+      state({ layers: "93", mlaLayers: "200", kdaLayers: "500" }),
+    );
+    expect(attention.mlaLayers).toBe(93);
+    expect(attention.kdaLayers).toBe(93);
+  });
+
+  test("blank MLA latent widths fall back to DeepSeek-scale defaults", () => {
+    const { attention } = specFromState(state({ attentionType: "mla" }));
+    expect(attention.kvLoraRank).toBe(512);
+    expect(attention.ropeHeadDim).toBe(64);
+  });
+});
+
+describe("microscaling weight precisions", () => {
+  test("MXFP4 sizes weights above a flat 4-bit tier via the unquantized uplift", () => {
+    expect(
+      weightsGb(
+        specFromState(state({ totalParams: "100", precision: "MXFP4" })),
+      ),
+    ).toBeCloseTo(100 * (4.25 / 8) * 1.18, 6);
+    expect(
+      weightsGb(
+        specFromState(state({ totalParams: "100", precision: "4-bit" })),
+      ),
+    ).toBeLessThan(
+      weightsGb(
+        specFromState(state({ totalParams: "100", precision: "MXFP4" })),
+      ),
+    );
+  });
+
+  test("MXFP8 sizes weights at 8.25 bits per parameter", () => {
+    expect(
+      weightsGb(
+        specFromState(state({ totalParams: "100", precision: "MXFP8" })),
+      ),
+    ).toBeCloseTo(100 * (8.25 / 8), 6);
   });
 });

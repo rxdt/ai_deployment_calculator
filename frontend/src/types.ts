@@ -12,6 +12,8 @@ export type WorkloadFamily =
 
 export type Precision =
   | "4-bit"
+  | "MXFP4"
+  | "MXFP8"
   | "5-bit GGUF"
   | "6-bit GGUF"
   | "8-bit"
@@ -35,6 +37,13 @@ export type ExecutionMode =
 export type RuntimeProfile = "Local / Edge" | "Server / Cloud";
 
 export type ParameterUnit = "B" | "M";
+
+// Attention memory model. "standard" is conventional (grouped-query) KV; "mla"
+// is DeepSeek-style multi-head latent attention (a compressed KV latent + RoPE
+// tail cached per token); "kda" is Kimi Delta Attention, a linear/recurrent
+// layer with a fixed state instead of a growing per-token cache; "hybrid-kda-mla"
+// interleaves MLA and KDA layers as Kimi K3 does (24 gated MLA + 69 KDA).
+export type AttentionType = "standard" | "mla" | "kda" | "hybrid-kda-mla";
 
 type Optimizer =
   "AdamW" | "8-bit Adam" | "Paged 8-bit AdamW" | "Adafactor" | "SGD-like";
@@ -65,6 +74,20 @@ export interface FormState {
   readonly inputSizeMultiplier: string;
   readonly moeEnabled: boolean;
   readonly activeParams: string;
+  // Attention memory model plus optional exact-architecture overrides. Every
+  // override is a numeric string that falls back to the parameter-count bucket
+  // when blank, so a model's real shape (Kimi K3's 93 layers, 96 heads, hybrid
+  // MLA/KDA split) can drive the cache math instead of a generic estimate.
+  readonly attentionType: AttentionType;
+  readonly layers: string;
+  readonly hiddenSize: string;
+  readonly attentionHeads: string;
+  readonly kvHeads: string;
+  readonly headDim: string;
+  readonly mlaLayers: string;
+  readonly kdaLayers: string;
+  readonly kvLoraRank: string;
+  readonly ropeHeadDim: string;
   readonly knownModelFileSizeGb: string;
   readonly gpuResidentFraction: string;
   readonly kvCachePrecision: KvPrecision;

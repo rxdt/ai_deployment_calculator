@@ -1,3 +1,8 @@
+import {
+  architectureFor,
+  type AttentionMemory,
+  type TransformerArchitecture,
+} from "./architecture";
 import type {
   ExecutionMode,
   FormState,
@@ -17,6 +22,14 @@ export const PRECISION_MAP: Record<
   { readonly weightBytes: number; readonly weightOverhead: number }
 > = {
   "4-bit": { weightBytes: 0.5, weightOverhead: 1.15 },
+  // OCP microscaling formats. MXFP4 stores 4-bit (E2M1) elements plus one 8-bit
+  // block scale per 32-element block => 4.25 bpw for the quantized tensors. Real
+  // MXFP4 checkpoints keep attention, shared experts, embeddings, and the LM head
+  // at higher precision, so a 1.18 uplift lands the effective rate near ~5 bpw
+  // rather than a flat 4-bit — the reason a plain "4-bit" line undercounts K3.
+  // MXFP8 (E4M3 + 8-bit block scale) is 8.25 bpw with negligible unquantized-module uplift.
+  MXFP4: { weightBytes: 4.25 / 8, weightOverhead: 1.18 },
+  MXFP8: { weightBytes: 8.25 / 8, weightOverhead: 1 },
   "5-bit GGUF": { weightBytes: 0.625, weightOverhead: 1.12 },
   "6-bit GGUF": { weightBytes: 0.75, weightOverhead: 1.1 },
   "8-bit": { weightBytes: 1, weightOverhead: 1.05 },
@@ -55,14 +68,6 @@ export interface RuntimeAssumptions {
   readonly utilization: number;
 }
 
-export interface TransformerArchitecture {
-  readonly layers: number;
-  readonly hidden: number;
-  readonly attentionHeads: number;
-  readonly kvHeads: number;
-  readonly headDim: number;
-}
-
 interface VisionArchitecture {
   readonly layers: number;
   readonly hidden: number;
@@ -82,6 +87,7 @@ export interface CalculationSpec {
   readonly workloadSize: number;
   readonly kvBytes: number;
   readonly architecture: TransformerArchitecture;
+  readonly attention: AttentionMemory;
   readonly visionArchitecture: VisionArchitecture | null;
   readonly knownModelFileSizeGb: number | null;
   readonly gpuResidentFraction: number;
@@ -170,108 +176,51 @@ export function roundUpTo(value: number, digits: number): number {
   return Math.ceil(value * 10 ** digits) / 10 ** digits;
 }
 
-// Transformer shape by parameter count (billions). Ordered ascending by the inclusive upper bound;
-// the last entry (Infinity) is the fallback for the largest models.
-interface ArchitectureBucket {
-  readonly maxB: number;
-  readonly architecture: TransformerArchitecture;
-}
+// Default MLA latent widths (DeepSeek/Kimi scale) used when the form leaves the
+// MLA fields blank but selects an MLA or hybrid attention model.
+const DEFAULT_KV_LORA_RANK = 512;
+const DEFAULT_ROPE_HEAD_DIM = 64;
 
-const ARCHITECTURE_BUCKETS: readonly [
-  ArchitectureBucket,
-  ...ArchitectureBucket[],
-] = [
-  {
-    maxB: 1,
-    architecture: {
-      layers: 16,
-      hidden: 2048,
-      attentionHeads: 32,
-      kvHeads: 8,
-      headDim: 64,
-    },
-  },
-  {
-    maxB: 4,
-    architecture: {
-      layers: 28,
-      hidden: 3072,
-      attentionHeads: 24,
-      kvHeads: 8,
-      headDim: 128,
-    },
-  },
-  {
-    maxB: 10,
-    architecture: {
-      layers: 32,
-      hidden: 4096,
-      attentionHeads: 32,
-      kvHeads: 8,
-      headDim: 128,
-    },
-  },
-  {
-    maxB: 20,
-    architecture: {
-      layers: 40,
-      hidden: 5120,
-      attentionHeads: 40,
-      kvHeads: 8,
-      headDim: 128,
-    },
-  },
-  {
-    maxB: 40,
-    architecture: {
-      layers: 48,
-      hidden: 6144,
-      attentionHeads: 48,
-      kvHeads: 8,
-      headDim: 128,
-    },
-  },
-  {
-    maxB: 80,
-    architecture: {
-      layers: 80,
-      hidden: 8192,
-      attentionHeads: 64,
-      kvHeads: 8,
-      headDim: 128,
-    },
-  },
-  {
-    maxB: 160,
-    architecture: {
-      layers: 96,
-      hidden: 10_240,
-      attentionHeads: 80,
-      kvHeads: 8,
-      headDim: 128,
-    },
-  },
-  {
-    maxB: Infinity,
-    architecture: {
-      layers: 120,
-      hidden: 12_288,
-      attentionHeads: 96,
-      kvHeads: 8,
-      headDim: 128,
-    },
-  },
-];
-
-// The final bucket has maxB: Infinity, so it matches every finite input. Only NaN matches
-// nothing (all comparisons are false); it then falls back to the first (smallest) bucket.
+// Resolve the transformer shape: the parameter-count bucket, with each field
+// overridden when the form supplies a positive exact value (Kimi K3: 93 layers,
+// hidden 7168, 96 heads). A blank or non-positive override keeps the bucket.
 /**
-
+@param state
 @param parametersB
 */
-export function architectureFor(parametersB: number): TransformerArchitecture {
-  const bucket = ARCHITECTURE_BUCKETS.find(({ maxB }) => parametersB <= maxB);
-  return (bucket ?? ARCHITECTURE_BUCKETS[0]).architecture;
+function architectureFrom(
+  state: Readonly<FormState>,
+  parametersB: number,
+): TransformerArchitecture {
+  const base = architectureFor(parametersB);
+  return {
+    layers: positive(state.layers, base.layers),
+    hidden: positive(state.hiddenSize, base.hidden),
+    attentionHeads: positive(state.attentionHeads, base.attentionHeads),
+    kvHeads: positive(state.kvHeads, base.kvHeads),
+    headDim: positive(state.headDim, base.headDim),
+  };
+}
+
+// Resolve the attention memory model. Per-type layer counts are clamped to the
+// stack depth so a stray override cannot cache more layers than the model has.
+/**
+@param state
+@param layers
+*/
+function attentionFrom(
+  state: Readonly<FormState>,
+  layers: number,
+): AttentionMemory {
+  const clampLayers = (value: string): number =>
+    Math.min(nonNegative(value, 0), layers);
+  return {
+    type: state.attentionType,
+    mlaLayers: clampLayers(state.mlaLayers),
+    kdaLayers: clampLayers(state.kdaLayers),
+    kvLoraRank: positive(state.kvLoraRank, DEFAULT_KV_LORA_RANK),
+    ropeHeadDim: positive(state.ropeHeadDim, DEFAULT_ROPE_HEAD_DIM),
+  };
 }
 
 /**
@@ -322,6 +271,7 @@ export function specFromState(state: Readonly<FormState>): CalculationSpec {
   const isMoeEnabled = hasMoeControl(state.workloadFamily) && state.moeEnabled;
   // Entered active count, before the "cannot exceed total" cap below.
   const wantActive = isMoeEnabled ? positive(state.activeParams, total) : total;
+  const architecture = architectureFrom(state, total);
   return {
     family: state.workloadFamily,
     totalParamsB: total,
@@ -334,7 +284,8 @@ export function specFromState(state: Readonly<FormState>): CalculationSpec {
     runtime: runtimeAssumptions(state.executionMode, state.runtimeProfile),
     workloadSize: positive(state.workloadSize, 1),
     kvBytes: KV_BYTES[state.kvCachePrecision],
-    architecture: architectureFor(total),
+    architecture,
+    attention: attentionFrom(state, architecture.layers),
     visionArchitecture: null,
     knownModelFileSizeGb: state.knownModelFileSizeGb.trim()
       ? positive(state.knownModelFileSizeGb, 0) || null

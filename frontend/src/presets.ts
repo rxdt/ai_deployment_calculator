@@ -15,11 +15,12 @@ export interface ModelPreset {
  over `defaultState()`, so unspecified fields (context window, runtime profile,
  ...) keep their defaults.
 
- Parameter counts are the models' published totals. Mixtral is a mixture of
- experts, so it also carries the MoE flag and its active-parameter count, which
- drive a materially different estimate than a dense 47B model. SDXL is an
- image-diffusion model, so it switches the workload family away from
- text-generation and drives the image-generation branch of the estimate.
+ Parameter counts are the models' published totals. Kimi K3 is the mixture-of-
+ experts entry: it carries the MoE flag and active-parameter count plus its exact
+ architecture (93 layers split 24 gated-MLA / 69 KDA, hidden 7168, 96 heads) and
+ MXFP4 weights, so the estimate reflects a hybrid-attention model at 1M context
+ instead of a generic bucket. SDXL is an image-diffusion model, so it switches the
+ workload family away from text-generation and drives the image-generation branch.
 */
 export const MODEL_PRESETS: readonly ModelPreset[] = [
   {
@@ -45,16 +46,27 @@ export const MODEL_PRESETS: readonly ModelPreset[] = [
     },
   },
   {
-    id: "mixtral-8x7b",
-    label: "Mixtral",
-    url: "https://huggingface.co/mistralai/Mixtral-8x7B-v0.1",
+    id: "kimi-k3",
+    label: "Kimi K3",
+    url: "https://huggingface.co/moonshotai",
     overrides: {
       workloadFamily: "text_generation",
-      totalParams: "46.7",
+      totalParams: "2780",
       parameterUnit: "B",
-      precision: "16-bit",
+      precision: "MXFP4",
       moeEnabled: true,
-      activeParams: "12.9",
+      activeParams: "104",
+      contextTokens: "1048576",
+      memoryShardingEnabled: true,
+      attentionType: "hybrid-kda-mla",
+      layers: "93",
+      hiddenSize: "7168",
+      attentionHeads: "96",
+      headDim: "128",
+      mlaLayers: "24",
+      kdaLayers: "69",
+      kvLoraRank: "512",
+      ropeHeadDim: "64",
     },
   },
   {

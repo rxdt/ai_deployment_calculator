@@ -173,12 +173,8 @@
                   <button type="button" class="preset" data-preset="llama-70b">
                     Llama 70B
                   </button>
-                  <button
-                    type="button"
-                    class="preset"
-                    data-preset="mixtral-8x7b"
-                  >
-                    Mixtral
+                  <button type="button" class="preset" data-preset="kimi-k3">
+                    Kimi K3
                   </button>
                   <button type="button" class="preset" data-preset="gemma-9b">
                     Gemma
@@ -257,6 +253,10 @@
                     <option value="4-bit">4-bit</option>
                     <option value="INT3">INT3</option>
                     <option value="INT2">INT2</option>
+                  </optgroup>
+                  <optgroup label="Microscaling (MX)">
+                    <option value="MXFP8">MXFP8</option>
+                    <option value="MXFP4">MXFP4</option>
                   </optgroup>
                   <optgroup label="GGUF (llama.cpp)">
                     <option value="Q8_0">Q8_0</option>
@@ -531,6 +531,105 @@
                     type="text"
                     inputmode="decimal"
                     value="1.3"
+                  />
+                </p>
+                <p class="field">
+                  <label for="attention-type">Attention Type</label>
+                  <select id="attention-type" name="attention-type">
+                    <option value="standard" selected>Standard (GQA)</option>
+                    <option value="mla">MLA (latent)</option>
+                    <option value="kda">KDA (linear)</option>
+                    <option value="hybrid-kda-mla">Hybrid KDA + MLA</option>
+                  </select>
+                </p>
+                <p class="field">
+                  <label for="layers">Layers</label>
+                  <input
+                    id="layers"
+                    name="layers"
+                    type="text"
+                    inputmode="numeric"
+                    placeholder="auto"
+                  />
+                </p>
+                <p class="field">
+                  <label for="hidden-size">Hidden Size</label>
+                  <input
+                    id="hidden-size"
+                    name="hidden-size"
+                    type="text"
+                    inputmode="numeric"
+                    placeholder="auto"
+                  />
+                </p>
+                <p class="field">
+                  <label for="attention-heads">Attention Heads</label>
+                  <input
+                    id="attention-heads"
+                    name="attention-heads"
+                    type="text"
+                    inputmode="numeric"
+                    placeholder="auto"
+                  />
+                </p>
+                <p class="field">
+                  <label for="kv-heads">KV Heads</label>
+                  <input
+                    id="kv-heads"
+                    name="kv-heads"
+                    type="text"
+                    inputmode="numeric"
+                    placeholder="auto"
+                  />
+                </p>
+                <p class="field">
+                  <label for="head-dim">Head Dimension</label>
+                  <input
+                    id="head-dim"
+                    name="head-dim"
+                    type="text"
+                    inputmode="numeric"
+                    placeholder="auto"
+                  />
+                </p>
+                <p class="field">
+                  <label for="mla-layers">MLA Layers</label>
+                  <input
+                    id="mla-layers"
+                    name="mla-layers"
+                    type="text"
+                    inputmode="numeric"
+                    placeholder="0"
+                  />
+                </p>
+                <p class="field">
+                  <label for="kda-layers">KDA Layers</label>
+                  <input
+                    id="kda-layers"
+                    name="kda-layers"
+                    type="text"
+                    inputmode="numeric"
+                    placeholder="0"
+                  />
+                </p>
+                <p class="field">
+                  <label for="kv-lora-rank">KV LoRA Rank</label>
+                  <input
+                    id="kv-lora-rank"
+                    name="kv-lora-rank"
+                    type="text"
+                    inputmode="numeric"
+                    placeholder="512"
+                  />
+                </p>
+                <p class="field">
+                  <label for="rope-head-dim">RoPE Head Dimension</label>
+                  <input
+                    id="rope-head-dim"
+                    name="rope-head-dim"
+                    type="text"
+                    inputmode="numeric"
+                    placeholder="64"
                   />
                 </p>
                 <p class="field" data-slot="kv-cache-row">

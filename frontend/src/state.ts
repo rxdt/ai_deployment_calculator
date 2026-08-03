@@ -16,6 +16,8 @@ const workloadSchema = z.enum([
 ]);
 const precisionSchema = z.enum([
   "4-bit",
+  "MXFP4",
+  "MXFP8",
   "5-bit GGUF",
   "6-bit GGUF",
   "8-bit",
@@ -48,6 +50,7 @@ const optimizerSchema = z.enum([
   "SGD-like",
 ]);
 const resolutionSchema = z.enum(["720p", "1080p"]);
+const attentionSchema = z.enum(["standard", "mla", "kda", "hybrid-kda-mla"]);
 
 const DEFAULT_STATE: FormState = {
   workloadFamily: "text_generation",
@@ -73,6 +76,16 @@ const DEFAULT_STATE: FormState = {
   inputSizeMultiplier: "1",
   moeEnabled: false,
   activeParams: "1.3",
+  attentionType: "standard",
+  layers: "",
+  hiddenSize: "",
+  attentionHeads: "",
+  kvHeads: "",
+  headDim: "",
+  mlaLayers: "",
+  kdaLayers: "",
+  kvLoraRank: "",
+  ropeHeadDim: "",
   knownModelFileSizeGb: "",
   gpuResidentFraction: "1.0",
   kvCachePrecision: "16-bit",
@@ -289,6 +302,11 @@ export function normalizedState(search: URLSearchParams): FormState {
     ...normalizedChoiceState(search, defaults),
     ...normalizedNumericState(search, defaults),
     ...normalizedAdvancedState(search, defaults),
+    attentionType: schemaValue(
+      attentionSchema,
+      last(search, "attentionType"),
+      defaults.attentionType,
+    ),
   });
 }
 

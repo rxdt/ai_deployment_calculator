@@ -8,6 +8,7 @@ import {
   type CalculationSpec,
   type MemoryBreakdown,
 } from "./calculator-core";
+import { decoderKvGb } from "./attention-cache";
 import { fp16DecoderActivationScratchGb } from "./decoder-scratch";
 import { estimateSpeed, type HardwareTier } from "./hardware";
 import type { WorkloadFamily } from "./types";
@@ -61,16 +62,6 @@ type WorkingMemoryBuilder = (
   spec: Readonly<CalculationSpec>,
   weights: number,
 ) => WorkingMemory;
-
-const decoderKvGb = (
-  spec: Readonly<CalculationSpec>,
-  tokens: number,
-): number => {
-  const arch = spec.architecture;
-  const elements =
-    spec.workloadSize * tokens * 2 * arch.layers * arch.kvHeads * arch.headDim;
-  return (elements * spec.kvBytes) / BYTES_PER_GB;
-};
 
 const activationGb = (
   spec: Readonly<CalculationSpec>,

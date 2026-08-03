@@ -25,10 +25,11 @@ const positiveParameterCount = fc
   .map((value) => value.toString());
 
 // Ordered from fewest to most effective weight bytes (weightBytes * weightOverhead):
-// 0.195, 0.25, 0.2575, 0.375, 0.3825, 0.575, 0.60625, 0.7, 0.71125, 0.82375,
-// 0.825, 1.05, 1.0625, 2, 4. Weight memory must not decrease along this order,
-// and every tier must be strictly distinct (the monotonicity test below asserts
-// both), which pins the full real-quant ladder against overlaps.
+// 0.195, 0.25, 0.2575, 0.375, 0.3825, 0.575, 0.60625, 0.626875, 0.7, 0.71125,
+// 0.82375, 0.825, 1.03125, 1.05, 1.0625, 2, 4. Weight memory must not decrease
+// along this order, and every tier must be strictly distinct (the monotonicity
+// test below asserts both), which pins the full real-quant ladder against
+// overlaps. MXFP4 (0.626875) sits just above Q4_K_M; MXFP8 (1.03125) just below 8-bit.
 const PRECISION_BY_ASCENDING_WEIGHT: readonly Precision[] = [
   "IQ1_S",
   "INT2",
@@ -37,10 +38,12 @@ const PRECISION_BY_ASCENDING_WEIGHT: readonly Precision[] = [
   "IQ3_XXS",
   "4-bit",
   "Q4_K_M",
+  "MXFP4",
   "5-bit GGUF",
   "Q5_K_M",
   "Q6_K",
   "6-bit GGUF",
+  "MXFP8",
   "8-bit",
   "Q8_0",
   "16-bit",
@@ -72,6 +75,15 @@ function requiredGb(overrides: Partial<FormState>): number {
 */
 function weightMemoryGb(overrides: Partial<FormState>): number {
   return weightsGb(specFromState({ ...defaultState(), ...overrides }));
+}
+
+/**
+
+@param overrides
+*/
+function kvCacheGb(overrides: Partial<FormState>): number {
+  return memoryBreakdown(specFromState({ ...defaultState(), ...overrides }))
+    .kvCacheGb;
 }
 
 describe("calculator properties", () => {
@@ -285,6 +297,79 @@ describe("calculator properties", () => {
 
         expect(new Set(memories).size).toBe(1);
       }),
+      { numRuns: 100 },
+    );
+  });
+
+  test("an MLA decoder never caches more than a conventional one at the same depth and context", () => {
+    // MLA stores one compressed latent (+ RoPE tail) per layer where a grouped-query
+    // cache stores separate K and V for every KV head, so at the default widths the
+    // latent is strictly the smaller footprint at any depth or context.
+    fc.assert(
+      fc.property(
+        fc.integer({ min: 1, max: 200 }),
+        fc.integer({ min: 256, max: 2_000_000 }),
+        (layers, contextTokens) => {
+          const shape = {
+            workloadFamily: "text_generation" as const,
+            totalParams: "2800",
+            layers: layers.toString(),
+            contextTokens: contextTokens.toString(),
+          };
+          expect(kvCacheGb({ ...shape, attentionType: "mla" })).toBeLessThan(
+            kvCacheGb({ ...shape, attentionType: "standard" }) + 1e-12,
+          );
+        },
+      ),
+      { numRuns: 100 },
+    );
+  });
+
+  test("a KDA decoder's KV cache is invariant to context length", () => {
+    // A linear/recurrent layer keeps a fixed state, so the cache term cannot move
+    // with the number of tokens — the whole point of the KDA branch.
+    fc.assert(
+      fc.property(
+        fc.integer({ min: 256, max: 2_000_000 }),
+        fc.integer({ min: 256, max: 2_000_000 }),
+        (left, right) => {
+          const shape = {
+            workloadFamily: "text_generation" as const,
+            totalParams: "2800",
+            layers: "93",
+            attentionType: "kda" as const,
+          };
+          expect(kvCacheGb({ ...shape, contextTokens: left.toString() })).toBe(
+            kvCacheGb({ ...shape, contextTokens: right.toString() }),
+          );
+        },
+      ),
+      { numRuns: 100 },
+    );
+  });
+
+  test("at long context a hybrid MLA/KDA decoder needs less KV cache than a conventional one", () => {
+    // The recurrent-state overhead is a fixed cost that a conventional per-token
+    // cache overtakes once the sequence is long; at 1M tokens the hybrid split is
+    // strictly cheaper for any layer partition.
+    fc.assert(
+      fc.property(
+        fc.integer({ min: 1, max: 60 }),
+        fc.integer({ min: 1, max: 60 }),
+        (mlaLayers, kdaLayers) => {
+          const shape = {
+            workloadFamily: "text_generation" as const,
+            totalParams: "2800",
+            layers: (mlaLayers + kdaLayers).toString(),
+            mlaLayers: mlaLayers.toString(),
+            kdaLayers: kdaLayers.toString(),
+            contextTokens: "1000000",
+          };
+          expect(
+            kvCacheGb({ ...shape, attentionType: "hybrid-kda-mla" }),
+          ).toBeLessThan(kvCacheGb({ ...shape, attentionType: "standard" }));
+        },
+      ),
       { numRuns: 100 },
     );
   });

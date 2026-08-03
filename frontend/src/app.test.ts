@@ -2306,28 +2306,31 @@ describe("model presets", () => {
     loadDom();
     mountCalculator(document);
 
-    clickPreset("Mixtral");
+    clickPreset("Kimi K3");
 
     const moe = field("moe-enabled");
     expect(moe).toHaveProperty("checked", true);
-    expect(field("total-params").value).toBe("46.7");
-    expect(field("active-params").value).toBe("12.9");
+    expect(field("total-params").value).toBe("2780");
+    expect(field("active-params").value).toBe("104");
+    expect(field("attention-type").value).toBe("hybrid-kda-mla");
+    expect(field("mla-layers").value).toBe("24");
+    expect(field("kda-layers").value).toBe("69");
     expect(isRowInapplicable("active-params")).toBe(false);
-    expect(dataSlot("status-model").textContent).toBe("46.7B MoE");
-    expect(out("total")).toBe("109.0 GB");
+    expect(dataSlot("status-model").textContent).toBe("2780B MoE");
+    expect(out("total")).toBe("2144.3 GB");
   });
 
   test("computes the preset report from freshly revealed controls", () => {
     loadDom();
     mountCalculator(document);
 
-    clickPreset("Mixtral");
+    clickPreset("Kimi K3");
 
     // The first render must already read the just-enabled Active Parameters
     // value: a stale read of the still-disabled control fell back to the
     // 1.3B default and showed a ~10x too-fast speed for one render.
     const speedAfterClick = out("speed");
-    expect(speedAfterClick).toBe("186 tokens/sec");
+    expect(speedAfterClick).toBe("125 tokens/sec");
     fireInput("total-params", field("total-params").value);
     expect(out("speed")).toBe(speedAfterClick);
   });
@@ -2375,7 +2378,7 @@ describe("model presets", () => {
     expect(estimates).toEqual([
       "21.0 GB",
       "161.1 GB",
-      "109.0 GB",
+      "2144.3 GB",
       "23.2 GB",
       "12.1 GB",
       "1.9 GB",
@@ -2428,11 +2431,11 @@ describe("model presets", () => {
     const allOff = MODEL_PRESETS.map(() => "false");
     expect(pressedStates()).toEqual(allOff);
 
-    clickPreset("Mixtral");
+    clickPreset("Kimi K3");
 
     expect(pressedStates()).toEqual(
       MODEL_PRESETS.map((preset) =>
-        preset.label === "Mixtral" ? "true" : "false",
+        preset.label === "Kimi K3" ? "true" : "false",
       ),
     );
   });

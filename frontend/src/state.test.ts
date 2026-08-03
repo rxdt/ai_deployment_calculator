@@ -268,4 +268,62 @@ describe("searchFromState", () => {
     expect(roundTrip.gpuResidentFraction).toBe("0.75");
     expect(roundTrip.loraTrainablePercent).toBe("0.05");
   });
+
+  test("serializes the full Kimi K3 hybrid-attention deployment to the wire schema", () => {
+    const source: FormState = {
+      ...defaultState(),
+      totalParams: "2780",
+      activeParams: "104",
+      moeEnabled: true,
+      precision: "MXFP4",
+      contextTokens: "1048576",
+      memoryShardingEnabled: true,
+      attentionType: "hybrid-kda-mla",
+      layers: "93",
+      hiddenSize: "7168",
+      attentionHeads: "96",
+      headDim: "128",
+      mlaLayers: "24",
+      kdaLayers: "69",
+      kvLoraRank: "512",
+      ropeHeadDim: "64",
+    };
+    const search = searchFromState(source);
+    expect(search.get("attention-type")).toBe("hybrid-kda-mla");
+    expect(search.get("layers")).toBe("93");
+    expect(search.get("hidden-size")).toBe("7168");
+    expect(search.get("attention-heads")).toBe("96");
+    expect(search.get("head-dim")).toBe("128");
+    expect(search.get("kda-layers")).toBe("69");
+    expect(search.get("mla-layers")).toBe("24");
+    expect(search.get("kv-lora-rank")).toBe("512");
+    expect(search.get("rope-head-dim")).toBe("64");
+    expect(search.get("precision")).toBe("MXFP4");
+
+    // The address bar round-trips back to the identical deployment.
+    expect(normalizedState(search)).toEqual(source);
+  });
+
+  test("parses a deep link built from the documented Kimi K3 URL schema", () => {
+    const state = normalizedState(
+      new URLSearchParams(
+        "total-params=2780&active-params=104&moe-enabled=true&layers=93" +
+          "&hidden-size=7168&attention-heads=96&attention-type=hybrid-kda-mla" +
+          "&kda-layers=69&mla-layers=24&kv-lora-rank=512&rope-head-dim=64" +
+          "&head-dim=128&context-tokens=1048576&precision=MXFP4" +
+          "&memory-sharding-enabled=true",
+      ),
+    );
+    expect(state.attentionType).toBe("hybrid-kda-mla");
+    expect(state.precision).toBe("MXFP4");
+    expect(state.kdaLayers).toBe("69");
+    expect(state.mlaLayers).toBe("24");
+    expect(state.memoryShardingEnabled).toBe(true);
+  });
+
+  test("falls back to standard attention on an unknown attention-type", () => {
+    expect(
+      normalizedState(parameters({ attentionType: "flash-9" })).attentionType,
+    ).toBe("standard");
+  });
 });

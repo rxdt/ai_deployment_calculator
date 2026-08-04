@@ -311,10 +311,17 @@ Estimates throughput for a workload on the recommended hardware tier.
 export function speedEstimate(
   spec: Readonly<CalculationSpec>,
   currentWeightsGb: number,
-  recommendedTier: Readonly<HardwareTier>,
+  recommendedTier: Readonly<HardwareTier> | "overflow",
 ): string {
   if (currentWeightsGb === 0) {
     return ZERO_SPEED_ESTIMATES.get(spec.family) ?? "0 tokens/second";
+  }
+  // No modeled pool holds this deployment, so there is no memory bandwidth to
+  // divide by: a number here would describe hardware that cannot run the model.
+  // Real throughput would depend on the interconnect and topology of a
+  // distributed deployment, neither of which this estimate models.
+  if (recommendedTier === "overflow") {
+    return `n/a ${(SPEED_STYLES.get(spec.family) ?? TOKEN_SPEED_STYLE).unit}`;
   }
   const precision = PRECISION_MAP[spec.precision];
   const computeWeightGb =

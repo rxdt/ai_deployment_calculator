@@ -168,22 +168,28 @@ describe("matching required VRAM to a hardware tier", () => {
     expect(hardware(321, { allowSharding: true })).toBe("overflow");
   });
 
-  test("describes overflow distinctly for sharding-off vs beyond-table", () => {
-    expect(describeOverflow(200)).toBe(
-      "No single-accelerator fit. Enable memory sharding to split the model across multiple GPUs, or offload part of it to CPU memory (slower).",
+  test("sizes a distributed pool from the estimate when no tier fits", () => {
+    // Past every modeled pool the ladder has no rung to name, so the guidance
+    // counts 80 GB accelerators instead of dead-ending at "> 320 GB": 321 GB
+    // needs ceil(321 / 80) = 5 of them.
+    expect(describeOverflow(321, null, { allowSharding: true })).toBe(
+      "Beyond any single modeled pool: distributed multi-node, roughly 5x 80 GB GPUs, or heavy offload.",
     );
-    expect(describeOverflow(321)).toBe(
-      "> 320 GB: distributed multi-node, larger GPU pool, or heavy offload",
+  });
+
+  test("asks for sharding first when it is off and nothing fits", () => {
+    // Same dead end, different next step: sharding is the unticked box standing
+    // between this deployment and a plan, so say that rather than the topology.
+    expect(describeOverflow(200, null, { allowSharding: false })).toBe(
+      "No single-accelerator fit, and no modeled pool is large enough. Enable memory sharding to plan a distributed deployment (roughly 3x 80 GB GPUs), or offload part of the model to CPU memory (slower).",
     );
   });
 
   test("names the fitting sharded tier when one is supplied", () => {
-    expect(describeOverflow(200, tier(320))).toBe(
+    // A named tier outranks both distributed messages: the caller passes null
+    // when no sharded tier fits, so a non-null hint always means one does.
+    expect(describeOverflow(200, tier(320), { allowSharding: false })).toBe(
       "No single-accelerator fit. Enable memory sharding to split the model across a 320 GB sharded datacenter class (4x 80 GB GPUs with tensor/model parallelism), the smallest standard pool that covers this estimate. Slower alternative: offload part of the model to CPU memory.",
-    );
-    // Beyond the whole table, no sharded tier helps, so the hint is ignored.
-    expect(describeOverflow(321, tier(320))).toBe(
-      "> 320 GB: distributed multi-node, larger GPU pool, or heavy offload",
     );
   });
 });
@@ -266,8 +272,9 @@ describe("hardwareRecommendation display", () => {
     const recommendation = hardwareRecommendation(400, 0.8, {
       allowSharding: true,
     });
+    // 400 GB at an 80% target needs 500 GB raw: ceil(500 / 80) = 7 GPUs.
     expect(recommendation.recommendedTier).toBe(
-      "> 320 GB: distributed multi-node, larger GPU pool, or heavy offload",
+      "Beyond any single modeled pool: distributed multi-node, roughly 7x 80 GB GPUs, or heavy offload.",
     );
     expect(recommendation.usableVramOnClass).toBe("n/a");
     expect(recommendation.fitHeadroom).toBe("n/a");

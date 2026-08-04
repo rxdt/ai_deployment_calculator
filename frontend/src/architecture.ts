@@ -116,8 +116,9 @@ const ARCHITECTURE_BUCKETS: readonly [
 // The final bucket has maxB: Infinity, so it matches every finite input. Only NaN matches
 // nothing (all comparisons are false); it then falls back to the first (smallest) bucket.
 /**
-
-@param parametersB
+Pick the transformer shape for a model of the given size.
+@param parametersB - total parameter count in billions
+@returns the matching bucket's architecture
 */
 export function architectureFor(parametersB: number): TransformerArchitecture {
   const bucket = ARCHITECTURE_BUCKETS.find(({ maxB }) => parametersB <= maxB);

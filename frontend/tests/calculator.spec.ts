@@ -196,8 +196,10 @@ test("keeps the hardware tier best-fit check visible as estimates change", async
   await expectBestFitTier(page, "192");
 
   await page.getByLabel("Total Model Parameters").fill("400");
+  // Sharding is off by default, so the dead end is the unticked box rather than
+  // the topology: the guidance asks for sharding and sizes the pool it implies.
   await expect(page.locator('[data-out="gpu-class"]')).toContainText(
-    "distributed multi-node",
+    "Enable memory sharding to plan a distributed deployment (roughly 14x 80 GB GPUs)",
   );
   await expectBestFitTier(page, "100000");
 

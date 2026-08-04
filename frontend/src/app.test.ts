@@ -1023,7 +1023,9 @@ describe("mounted calculator", () => {
     loadDom();
     mountCalculator(document);
 
-    const accordions = [...document.querySelectorAll("details")];
+    const accordions = [
+      ...document.querySelectorAll<HTMLDetailsElement>("[data-accordion]"),
+    ];
     expect(accordions.length).toBeGreaterThan(0);
     for (const accordion of accordions) {
       expect(accordion.open).toBe(false);
@@ -1060,16 +1062,12 @@ describe("assumption tooltips", () => {
     loadDom();
     mountCalculator(document);
 
-    const knownTip = document.querySelector<HTMLElement>(
-      "#known-model-file-size-gb-tip",
-    );
-    const residentTip = document.querySelector<HTMLElement>(
-      "#gpu-resident-fraction-tip",
-    );
-    expect(knownTip?.textContent.trim().replaceAll(/\s+/gu, " ")).toBe(
+    const knownTip = dataSlot("known-file-tip");
+    const residentTip = dataSlot("resident-fraction-tip");
+    expect(knownTip.textContent.trim().replaceAll(/\s+/gu, " ")).toBe(
       "On-disk weight size in GB. Overrides the parameter-based weight estimate when set.",
     );
-    expect(residentTip?.textContent.trim().replaceAll(/\s+/gu, " ")).toBe(
+    expect(residentTip.textContent.trim().replaceAll(/\s+/gu, " ")).toBe(
       "Fraction (0–1, not a percentage) of the known file kept in VRAM. Only applies when Known Model File Size is set.",
     );
     expect(
@@ -1078,7 +1076,7 @@ describe("assumption tooltips", () => {
     expect(
       field("gpu-resident-fraction").getAttribute("aria-describedby"),
     ).toBe("gpu-resident-fraction-tip");
-    expect(document.querySelectorAll(".field-tip-btn")).toHaveLength(2);
+    expect(document.querySelectorAll("[data-tip]")).toHaveLength(2);
   });
 });
 
@@ -2317,7 +2315,19 @@ describe("model presets", () => {
     expect(field("kda-layers").value).toBe("69");
     expect(isRowInapplicable("active-params")).toBe(false);
     expect(dataSlot("status-model").textContent).toBe("2780B MoE");
-    expect(out("total")).toBe("2144.3 GB");
+    expect(out("total")).toBe("1928.8 GB");
+  });
+
+  test("compacts a beyond-every-pool estimate to a two-word fit", () => {
+    loadDom();
+    mountCalculator(document);
+
+    // The Kimi K3 preset outgrows the whole tier table, so its recommendation
+    // is a full sentence ("Beyond any single modeled pool: distributed
+    // multi-node, roughly …"). The fixed-width header must not render that.
+    clickPreset("Kimi K3");
+
+    expect(dataSlot("status-fit").textContent).toBe("multi-node");
   });
 
   test("computes the preset report from freshly revealed controls", () => {
@@ -2327,12 +2337,17 @@ describe("model presets", () => {
     clickPreset("Kimi K3");
 
     // The first render must already read the just-enabled Active Parameters
-    // value: a stale read of the still-disabled control fell back to the
-    // 1.3B default and showed a ~10x too-fast speed for one render.
-    const speedAfterClick = out("speed");
-    expect(speedAfterClick).toBe("125 tokens/sec");
+    // value: a stale read of the still-disabled control fell back to the 1.3B
+    // default. K3 now outgrows every modeled pool, so the speed row reads n/a
+    // and can no longer carry this guard; the MoE routing note states the
+    // active count the render actually used, so it catches the same stale read.
+    const assumptionsAfterClick = out("assumptions");
+    expect(assumptionsAfterClick).toContain(
+      "MoE routing: 104B of 2780B parameters active per token.",
+    );
+    expect(out("speed")).toBe("n/a tokens/sec");
     fireInput("total-params", field("total-params").value);
-    expect(out("speed")).toBe(speedAfterClick);
+    expect(out("assumptions")).toBe(assumptionsAfterClick);
   });
 
   test("applies a preset without submitting or navigating the form", () => {
@@ -2378,7 +2393,7 @@ describe("model presets", () => {
     expect(estimates).toEqual([
       "21.0 GB",
       "161.1 GB",
-      "2144.3 GB",
+      "1928.8 GB",
       "23.2 GB",
       "12.1 GB",
       "1.9 GB",

@@ -40,11 +40,12 @@ export function statusFitLabel(report: Readonly<ReportPayload>): string {
   if (hardwareClass.startsWith("No single-accelerator fit")) {
     return "multi-GPU";
   }
-  // The top overflow tier is described as "> 320 GB: distributed multi-node …";
-  // compact it so the fixed-width header never renders the full sentence and
-  // overflows on narrow viewports. Every other class here starts with "<N> GB",
-  // so the capacity is the text up to and including that unit.
-  if (hardwareClass.startsWith(">")) {
+  // Past every modeled pool the class reads "Beyond any single modeled pool:
+  // distributed multi-node, roughly 7x 80 GB GPUs …"; compact it so the
+  // fixed-width header never renders the full sentence and overflows on narrow
+  // viewports. Every other class here starts with "<N> GB", so the capacity is
+  // the text up to and including that unit.
+  if (hardwareClass.startsWith("Beyond")) {
     return "multi-node";
   }
   const [amount = ""] = hardwareClass.split(" GB", 1);

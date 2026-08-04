@@ -7,6 +7,16 @@ const BYTES_PER_GB = 1_000_000_000;
 // per-head conv state holds this many token slots regardless of context length.
 const KDA_CONV_KERNEL = 4;
 
+// A KDA layer keeps three short-convolution states, one each for q, k, and v
+// (Moonshot's modeling_kimi_linear.py holds conv_state_q/k/v per layer).
+const KDA_CONV_STATES = 3;
+
+// The delta-rule recurrent state is kept in float32 by the reference kernels
+// (flash-linear-attention's KDA ops assert an fp32 initial_state), so it does
+// not follow the KV cache's selectable precision the way the per-token cache
+// does.
+const KDA_STATE_BYTES = 4;
+
 // Elements cached per token, summed over every layer that keeps a growing
 // per-token cache. A standard (grouped-query) layer stores separate K and V for
 // each KV head; an MLA layer stores only its compressed KV latent plus the RoPE
@@ -48,7 +58,9 @@ const recurrentStateLayers = (spec: Readonly<CalculationSpec>): number => {
 const recurrentStateElements = (spec: Readonly<CalculationSpec>): number => {
   const arch = spec.architecture;
   const perLayer =
-    arch.attentionHeads * arch.headDim * (arch.headDim + KDA_CONV_KERNEL);
+    arch.attentionHeads *
+    arch.headDim *
+    (arch.headDim + KDA_CONV_KERNEL * KDA_CONV_STATES);
   return recurrentStateLayers(spec) * perLayer;
 };
 
@@ -62,7 +74,9 @@ export function decoderKvGb(
   spec: Readonly<CalculationSpec>,
   tokens: number,
 ): number {
-  const perToken = tokenCachedElements(spec) * spec.workloadSize * tokens;
-  const fixed = recurrentStateElements(spec) * spec.workloadSize;
-  return ((perToken + fixed) * spec.kvBytes) / BYTES_PER_GB;
+  const perTokenBytes =
+    tokenCachedElements(spec) * spec.workloadSize * tokens * spec.kvBytes;
+  const fixedBytes =
+    recurrentStateElements(spec) * spec.workloadSize * KDA_STATE_BYTES;
+  return (perTokenBytes + fixedBytes) / BYTES_PER_GB;
 }

@@ -623,7 +623,6 @@ summary,
    circled i whose plain-English bubble appears on hover and on keyboard focus,
    so mouse, touch (focus fires on tap), and screen-reader users all reach it. */
 .field-tip {
-  position: relative;
   display: inline-flex;
 }
 
@@ -659,7 +658,13 @@ summary,
   left: 50%;
   z-index: var(--z-tooltip);
   width: max-content;
-  max-width: var(--layout-intro-max);
+
+  /* Bounded by the caption row, not the "i" button: centred on a button that
+     small, a 16rem bubble reaches far past both field edges and — being
+     visibility: hidden rather than display: none — widens the document's
+     scrollable area even while invisible. The caption row is the field's full
+     width, so anchoring there keeps the bubble inside the column. */
+  max-width: min(var(--layout-intro-max), 100%);
   padding: var(--space-xs) var(--space-sm);
   transform: translateX(-50%);
   border: var(--layout-border) solid var(--color-border-strong);
@@ -734,6 +739,8 @@ summary,
 }
 
 .field-label {
+  /* Positioning context for .field-tip-bubble — see the note there. */
+  position: relative;
   min-width: 0;
   width: 100%;
   display: inline-flex;
@@ -1602,7 +1609,12 @@ code {
    collide. Give every field the full row so each caption owns its own line. */
 @media (width <= 30em) {
   .field,
-  .field--third {
+  .field--third,
+  /* Advanced fields carry the longest captions in the app ("ROPE HEAD
+     DIMENSION"), and .advanced[open] .field pins them half-width at higher
+     specificity than the bare .field rule above, so they need naming here
+     too — otherwise their nowrap captions overrun the neighbouring column. */
+  .advanced[open] .field {
     flex-basis: 100%;
   }
 

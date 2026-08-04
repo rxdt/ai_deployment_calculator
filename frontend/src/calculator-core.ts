@@ -27,6 +27,9 @@ export const PRECISION_MAP: Record<
   // MXFP4 checkpoints keep attention, shared experts, embeddings, and the LM head
   // at higher precision, so a 1.18 uplift lands the effective rate near ~5 bpw
   // rather than a flat 4-bit — the reason a plain "4-bit" line undercounts K3.
+  // How much stays unquantized varies per checkpoint, so this is an estimate, not
+  // a measurement: Kimi K3's published shards come to 4.49 bpw (a 1.057 uplift),
+  // which is why that preset carries its exact file size instead of this line.
   // MXFP8 (E4M3 + 8-bit block scale) is 8.25 bpw with negligible unquantized-module uplift.
   MXFP4: { weightBytes: 4.25 / 8, weightOverhead: 1.18 },
   MXFP8: { weightBytes: 8.25 / 8, weightOverhead: 1 },
@@ -185,8 +188,10 @@ const DEFAULT_ROPE_HEAD_DIM = 64;
 // overridden when the form supplies a positive exact value (Kimi K3: 93 layers,
 // hidden 7168, 96 heads). A blank or non-positive override keeps the bucket.
 /**
-@param state
-@param parametersB
+Resolve the transformer shape for a model.
+@param state - normalized form state
+@param parametersB - total parameter count in billions
+@returns the bucket shape with the form's exact overrides applied
 */
 function architectureFrom(
   state: Readonly<FormState>,
@@ -202,22 +207,26 @@ function architectureFrom(
   };
 }
 
-// Resolve the attention memory model. Per-type layer counts are clamped to the
-// stack depth so a stray override cannot cache more layers than the model has.
+// Resolve the attention memory model. The two hybrid slices are clamped as a
+// pair, not independently: a stack has `layers` layers to give away, so MLA
+// takes what it asks for (up to the depth) and KDA takes only what is left.
+// Clamping each against the depth alone would accept 93 MLA *and* 93 KDA on a
+// 93-layer model and charge the cache for both.
 /**
-@param state
-@param layers
+Resolve the decoder's attention memory model from the form's controls.
+@param state - normalized form state
+@param layers - the resolved stack depth
+@returns the attention memory model, with mlaLayers + kdaLayers <= layers
 */
 function attentionFrom(
   state: Readonly<FormState>,
   layers: number,
 ): AttentionMemory {
-  const clampLayers = (value: string): number =>
-    Math.min(nonNegative(value, 0), layers);
+  const mlaLayers = Math.min(nonNegative(state.mlaLayers, 0), layers);
   return {
     type: state.attentionType,
-    mlaLayers: clampLayers(state.mlaLayers),
-    kdaLayers: clampLayers(state.kdaLayers),
+    mlaLayers,
+    kdaLayers: Math.min(nonNegative(state.kdaLayers, 0), layers - mlaLayers),
     kvLoraRank: positive(state.kvLoraRank, DEFAULT_KV_LORA_RANK),
     ropeHeadDim: positive(state.ropeHeadDim, DEFAULT_ROPE_HEAD_DIM),
   };

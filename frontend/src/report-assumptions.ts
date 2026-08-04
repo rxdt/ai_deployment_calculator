@@ -66,10 +66,12 @@ export function assumptionRows(
       "Memory sharding assumed across the recommended GPU pool (tensor / model parallelism).",
     );
   }
-  // A methodology note, not a warning: MoE routing is a speed assumption.
+  // A methodology note, not a warning: MoE routing is a speed assumption. Name
+  // both counts so the note itself changes when the toggle does — resident
+  // memory does not move, so the active/total split is the visible difference.
   if (state.moeEnabled && hasMoeControl(state.workloadFamily)) {
     notes.push(
-      "MoE active parameters affect speed, not resident weight memory, unless expert offload or sharding is enabled.",
+      `MoE routing: ${spec.activeParamsB.toString()}B of ${spec.totalParamsB.toString()}B parameters active per token. Active parameters affect speed, not resident weight memory, unless expert offload or sharding is enabled.`,
     );
   }
   if (spec.knownModelFileSizeGb !== null && spec.knownModelFileSizeGb > 0) {

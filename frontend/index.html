@@ -469,11 +469,7 @@
               </p>
             </fieldset>
 
-            <details
-              class="advanced"
-              data-accordion
-              data-slot="advanced-assumptions"
-            >
+            <details class="advanced" data-slot="advanced-assumptions">
               <summary data-slot="advanced-assumptions-label">
                 Advanced assumptions
               </summary>
@@ -653,7 +649,6 @@
                       <button
                         type="button"
                         class="field-tip-btn"
-                        data-tip
                         aria-label="Known Model File Size help"
                       >
                         i
@@ -686,7 +681,6 @@
                       <button
                         type="button"
                         class="field-tip-btn"
-                        data-tip
                         aria-label="GPU Resident Fraction (0-1) help"
                       >
                         i
@@ -825,12 +819,7 @@
                The four disclosures share one bordered surface so they read as
                rows of a single reasoning group, not separate cards. -->
           <div class="panel-group">
-            <details
-              class="panel"
-              name="result-panel"
-              data-accordion
-              data-slot="why-panel"
-            >
+            <details class="panel" name="result-panel" data-slot="why-panel">
               <summary>Why this recommendation</summary>
               <div class="panel-body">
                 <p data-out="why"></p>
@@ -859,7 +848,7 @@
               </div>
             </details>
 
-            <details class="panel" name="result-panel" data-accordion>
+            <details class="panel" name="result-panel" data-slot="accordion">
               <summary>Values Used In Calculations</summary>
               <div class="panel-body">
                 <ul
@@ -870,7 +859,7 @@
               </div>
             </details>
 
-            <details class="panel" name="result-panel" data-accordion>
+            <details class="panel" name="result-panel" data-slot="accordion">
               <summary>Formula used</summary>
               <div class="panel-body">
                 <code data-out="calc-formula"></code>
@@ -878,7 +867,7 @@
               </div>
             </details>
 
-            <details class="panel" name="result-panel" data-accordion>
+            <details class="panel" name="result-panel" data-slot="accordion">
               <summary>Assumptions used</summary>
               <div class="panel-body">
                 <ul
@@ -893,7 +882,6 @@
               class="panel"
               name="result-panel"
               aria-labelledby="vram-guide-title"
-              data-accordion
               data-slot="vram-guide-panel"
             >
               <summary id="vram-guide-title">How VRAM is calculated</summary>
@@ -982,7 +970,7 @@
               <span class="tier-fit-head">Best fit</span>
               <span>Typical use</span>
             </div>
-            <details class="tier" name="hardware-tier" data-accordion>
+            <details class="tier" name="hardware-tier" data-slot="accordion">
               <summary class="tier-summary">
                 <span class="tier-memory">&le; 24</span>
                 <span
@@ -1115,7 +1103,7 @@
                 </ul>
               </div>
             </details>
-            <details class="tier" name="hardware-tier" data-accordion>
+            <details class="tier" name="hardware-tier" data-slot="accordion">
               <summary class="tier-summary">
                 <span class="tier-memory">32&ndash;48</span>
                 <span
@@ -1204,7 +1192,7 @@
                 </ul>
               </div>
             </details>
-            <details class="tier" name="hardware-tier" data-accordion>
+            <details class="tier" name="hardware-tier" data-slot="accordion">
               <summary class="tier-summary">
                 <span class="tier-memory">64&ndash;96</span>
                 <span
@@ -1286,7 +1274,7 @@
                 </ul>
               </div>
             </details>
-            <details class="tier" name="hardware-tier" data-accordion>
+            <details class="tier" name="hardware-tier" data-slot="accordion">
               <summary class="tier-summary">
                 <span class="tier-memory">141&ndash;192</span>
                 <span
@@ -1339,7 +1327,7 @@
                 </ul>
               </div>
             </details>
-            <details class="tier" name="hardware-tier" data-accordion>
+            <details class="tier" name="hardware-tier" data-slot="accordion">
               <summary class="tier-summary">
                 <span class="tier-memory">&gt; 192</span>
                 <span

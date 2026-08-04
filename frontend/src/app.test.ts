@@ -1023,9 +1023,11 @@ describe("mounted calculator", () => {
     loadDom();
     mountCalculator(document);
 
-    const accordions = [
-      ...document.querySelectorAll<HTMLDetailsElement>("[data-accordion]"),
-    ];
+    // Every accordion carries a data-slot, so the allowlisted slot query plus
+    // an element-type filter reaches all of them without a tag selector.
+    const accordions = [...document.querySelectorAll("[data-slot]")].filter(
+      (node) => node instanceof HTMLDetailsElement,
+    );
     expect(accordions.length).toBeGreaterThan(0);
     for (const accordion of accordions) {
       expect(accordion.open).toBe(false);
@@ -1076,7 +1078,12 @@ describe("assumption tooltips", () => {
     expect(
       field("gpu-resident-fraction").getAttribute("aria-describedby"),
     ).toBe("gpu-resident-fraction-tip");
-    expect(document.querySelectorAll("[data-tip]")).toHaveLength(2);
+    const tips = [...document.querySelectorAll("[data-slot]")].filter(
+      (node) =>
+        node instanceof HTMLElement &&
+        (node.dataset.slot ?? "").endsWith("-tip"),
+    );
+    expect(tips).toHaveLength(2);
   });
 });
 

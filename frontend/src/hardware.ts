@@ -58,10 +58,12 @@ export const GPU_LINKS = {
   b200: "https://www.nvidia.com/en-us/data-center/dgx-b200/",
 } as const;
 
-const card = (name: string, link: keyof typeof GPU_LINKS): GpuCard => ({
-  name,
-  url: GPU_LINKS[link],
-});
+const card = (name: string, link: keyof typeof GPU_LINKS): GpuCard => {
+  return {
+    name,
+    url: GPU_LINKS[link],
+  };
+};
 
 const nameOnly = (name: string): GpuCard => ({ name });
 
@@ -70,28 +72,29 @@ const hardwareTier = (
   label: string,
   examples: readonly GpuCard[],
   bandwidthGbps: number,
-): HardwareTier => ({
-  vramGb,
-  label,
-  examples,
-  bandwidthGbps,
-  requiresSharding: false,
-});
+): HardwareTier => {
+  return {
+    vramGb,
+    label,
+    examples,
+    bandwidthGbps,
+    requiresSharding: false,
+  };
+};
 
-const shardedTier = (
-  gpuCount: number,
-  bandwidthGbps: number,
-): HardwareTier => ({
-  vramGb: gpuCount * 80,
-  label: `${(gpuCount * 80).toString()} GB sharded datacenter class`,
-  examples: [
-    {
-      name: `${gpuCount.toString()}x 80 GB GPUs with tensor/model parallelism`,
-    },
-  ],
-  bandwidthGbps,
-  requiresSharding: true,
-});
+const shardedTier = (gpuCount: number, bandwidthGbps: number): HardwareTier => {
+  return {
+    vramGb: gpuCount * 80,
+    label: `${(gpuCount * 80).toString()} GB sharded datacenter class`,
+    examples: [
+      {
+        name: `${gpuCount.toString()}x 80 GB GPUs with tensor/model parallelism`,
+      },
+    ],
+    bandwidthGbps,
+    requiresSharding: true,
+  };
+};
 
 const TOP_TIER = shardedTier(4, 8156);
 
@@ -200,31 +203,19 @@ export const hardware = (
   return eligible.find((tier) => tier.vramGb >= rawVramGb) ?? "overflow";
 };
 
-// Above the largest modeled pool the ladder has no rung to name, so size the
-// deployment from the estimate itself: how many 80 GB accelerators it takes to
-// hold the minimum raw memory. Stopping at "> 320 GB" reads as though 320 GB
-// were the answer, which for a multi-terabyte model it is not.
-const POOL_GPU_GB = 80;
-
-const distributedPool = (rawVramGb: number): string =>
-  `${Math.ceil(rawVramGb / POOL_GPU_GB).toString()}x ${POOL_GPU_GB.toString()} GB GPUs`;
-
 export const describeOverflow = (
   rawVramGb: number,
-  shardedFit: Readonly<HardwareTier> | null,
-  options: Readonly<{ allowSharding: boolean }>,
+  shardedFit: Readonly<HardwareTier> | null = null,
 ): string => {
+  if (rawVramGb > 320) {
+    return "> 320 GB: distributed multi-node, larger GPU pool, or heavy offload";
+  }
   if (shardedFit !== null) {
     // Name the pool AND why it is that size: pools come in fixed steps, so the
     // smallest one covering the estimate can sit well above the raw need.
     return `No single-accelerator fit. Enable memory sharding to split the model across a ${shardedFit.label} (${exampleText(shardedFit.examples)}), the smallest standard pool that covers this estimate. Slower alternative: offload part of the model to CPU memory.`;
   }
-  // Past every modeled pool. Sharding is not optional here, so the two states
-  // differ in what they recommend, not in whether they say anything at all.
-  if (options.allowSharding) {
-    return `Beyond any single modeled pool: distributed multi-node, roughly ${distributedPool(rawVramGb)}, or heavy offload.`;
-  }
-  return `No single-accelerator fit, and no modeled pool is large enough. Enable memory sharding to plan a distributed deployment (roughly ${distributedPool(rawVramGb)}), or offload part of the model to CPU memory (slower).`;
+  return "No single-accelerator fit. Enable memory sharding to split the model across multiple GPUs, or offload part of it to CPU memory (slower).";
 };
 
 export const estimateSpeed = ({
@@ -247,48 +238,9 @@ export const speedLabel = (tier: Readonly<HardwareTier>): string => {
   return "Rough speed estimate from the recommended GPU memory class. Real speed depends on the exact GPU and runtime.";
 };
 
-// Which tier answers "does this need more than one GPU?". An overflow needs at
-// least the largest modeled pool, so it answers yes through TOP_TIER. This is
-// deliberately not used to price throughput: quoting TOP_TIER's bandwidth for a
-// model that does not fit in TOP_TIER states a speed for hardware that cannot
-// run it (see speedEstimate, which reports no number for an overflow).
 export const speedTierFor = (
   tier: Readonly<HardwareTier> | "overflow",
 ): HardwareTier => (tier === "overflow" ? TOP_TIER : tier);
-
-// Both sized outcomes explain the headroom target the same way, so the sentence
-// lives once.
-const sizingMath = (
-  requiredGb: number,
-  minimum: number,
-  usableTarget: string,
-): string =>
-  `Estimated workload memory is ${formatGb(requiredGb)}. With a ${usableTarget} usable memory target, use hardware with at least ${formatGb(minimum)} of accelerator memory so the workload does not consume the entire device.`;
-
-// The overflow arm of hardwareRecommendation: no tier fits, so there is no
-// usable-class or headroom figure to report, only a route to a larger pool.
-const overflowRecommendation = (
-  requiredGb: number,
-  minimum: number,
-  usableTarget: string,
-  options: Readonly<{ allowSharding: boolean }>,
-): HardwareRecommendation => {
-  const shardedFit = hardware(minimum, { allowSharding: true });
-  return {
-    requiredMemory: formatGb(requiredGb),
-    usableVramTarget: usableTarget,
-    usableVramOnClass: "n/a",
-    fitHeadroom: "n/a",
-    minimumRawVram: formatGb(minimum),
-    recommendedTier: describeOverflow(
-      minimum,
-      shardedFit === "overflow" ? null : shardedFit,
-      options,
-    ),
-    exampleCards: [],
-    math: sizingMath(requiredGb, minimum, usableTarget),
-  };
-};
 
 export const hardwareRecommendation = (
   requiredGb: number,
@@ -312,7 +264,20 @@ export const hardwareRecommendation = (
   const minimum = minimumRawVramGb(requiredGb, utilization);
   const tier = hardware(minimum, options);
   if (tier === "overflow") {
-    return overflowRecommendation(requiredGb, minimum, usableTarget, options);
+    const shardedFit = hardware(minimum, { allowSharding: true });
+    return {
+      requiredMemory: formatGb(requiredGb),
+      usableVramTarget: usableTarget,
+      usableVramOnClass: "n/a",
+      fitHeadroom: "n/a",
+      minimumRawVram: formatGb(minimum),
+      recommendedTier: describeOverflow(
+        minimum,
+        shardedFit === "overflow" ? null : shardedFit,
+      ),
+      exampleCards: [],
+      math: `Estimated workload memory is ${formatGb(requiredGb)}. With a ${usableTarget} usable memory target, use hardware with at least ${formatGb(minimum)} of accelerator memory so the workload does not consume the entire device.`,
+    };
   }
   const usableOnClass = tier.vramGb * utilization;
   // The tier is the smallest whose usable share covers the requirement, so the
@@ -327,6 +292,6 @@ export const hardwareRecommendation = (
     minimumRawVram: formatGb(minimum),
     recommendedTier: `${tier.label}, e.g. ${exampleText(tier.examples)}`,
     exampleCards: tier.examples,
-    math: sizingMath(requiredGb, minimum, usableTarget),
+    math: `Estimated workload memory is ${formatGb(requiredGb)}. With a ${usableTarget} usable memory target, use hardware with at least ${formatGb(minimum)} of accelerator memory so the workload does not consume the entire device.`,
   };
 };

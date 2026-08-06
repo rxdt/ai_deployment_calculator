@@ -290,10 +290,12 @@ function isRowInapplicable(name: string): boolean {
 @returns one entry per rendered chip, in DOM order
 */
 function statChipCards(): { label: string; value: string }[] {
-  return [...outSlot("stat-chips").children].map((card) => ({
-    label: card.firstElementChild?.textContent ?? "",
-    value: card.lastElementChild?.textContent ?? "",
-  }));
+  return [...outSlot("stat-chips").children].map((card) => {
+    return {
+      label: card.firstElementChild?.textContent ?? "",
+      value: card.lastElementChild?.textContent ?? "",
+    };
+  });
 }
 
 // The hero picks its example card pseudo-randomly from the render clock; pin
@@ -341,11 +343,12 @@ function allElements(root: Document | Element): Element[] {
 */
 function structuredData(parsed: Document): Record<string, unknown>[] {
   return allElements(parsed.head)
-    .filter(
-      (element): element is HTMLScriptElement =>
+    .filter((element): element is HTMLScriptElement => {
+      return (
         element instanceof HTMLScriptElement &&
-        element.type === "application/ld+json",
-    )
+        element.type === "application/ld+json"
+      );
+    })
     .map((script): unknown => JSON.parse(script.textContent))
     .filter(isRecord);
 }
@@ -362,11 +365,12 @@ function metaContent(
   attribute: "name" | "property",
   value: string,
 ): string | null {
-  const meta = allElements(head).find(
-    (entry): entry is HTMLMetaElement =>
+  const meta = allElements(head).find((entry): entry is HTMLMetaElement => {
+    return (
       entry instanceof HTMLMetaElement &&
-      entry.getAttribute(attribute) === value,
-  );
+      entry.getAttribute(attribute) === value
+    );
+  });
   return meta?.content ?? null;
 }
 
@@ -390,9 +394,12 @@ function canonicalHref(head: HTMLHeadElement): string | null {
 */
 function referenceTable(parsed: Document): HTMLTableElement {
   const table = allElements(parsed.body).find(
-    (entry): entry is HTMLTableElement =>
-      entry instanceof HTMLTableElement &&
-      entry.dataset.slot === "vram-reference-table",
+    (entry): entry is HTMLTableElement => {
+      return (
+        entry instanceof HTMLTableElement &&
+        entry.dataset.slot === "vram-reference-table"
+      );
+    },
   );
   if (table === undefined) {
     throw new TypeError("Missing crawlable VRAM reference table");
@@ -514,14 +521,13 @@ describe("static SEO metadata", () => {
         throw new TypeError("Reference row must name a model size");
       }
       const totalParameters = model.replace("B", "");
-      const expected = REFERENCE_PRECISIONS.map(
-        (precision) =>
-          buildReport({
-            ...defaultState(),
-            totalParams: totalParameters,
-            precision,
-          }).totalRequiredMemory,
-      );
+      const expected = REFERENCE_PRECISIONS.map((precision) => {
+        return buildReport({
+          ...defaultState(),
+          totalParams: totalParameters,
+          precision,
+        }).totalRequiredMemory;
+      });
 
       expect(values).toEqual(expected);
     }
@@ -1064,8 +1070,10 @@ describe("assumption tooltips", () => {
     loadDom();
     mountCalculator(document);
 
-    const knownTip = dataSlot("known-file-tip");
-    const residentTip = dataSlot("resident-fraction-tip");
+    // Each tip bubble carries both an id (for aria-describedby) and a matching
+    // data-slot, so the tests reach it through the allowlisted slot query.
+    const knownTip = dataSlot("known-model-file-size-gb-tip");
+    const residentTip = dataSlot("gpu-resident-fraction-tip");
     expect(knownTip.textContent.trim().replaceAll(/\s+/gu, " ")).toBe(
       "On-disk weight size in GB. Overrides the parameter-based weight estimate when set.",
     );
@@ -1078,12 +1086,15 @@ describe("assumption tooltips", () => {
     expect(
       field("gpu-resident-fraction").getAttribute("aria-describedby"),
     ).toBe("gpu-resident-fraction-tip");
-    const tips = [...document.querySelectorAll("[data-slot]")].filter(
-      (node) =>
-        node instanceof HTMLElement &&
-        (node.dataset.slot ?? "").endsWith("-tip"),
-    );
-    expect(tips).toHaveLength(2);
+    // Naming the tips rather than counting them: the MoE tip is a separate
+    // feature sharing the suffix, so a bare count silently tracks it too.
+    expect(
+      dataSlotNames().filter((name) => name.endsWith("-tip")),
+    ).toStrictEqual([
+      "moe-tip",
+      "known-model-file-size-gb-tip",
+      "gpu-resident-fraction-tip",
+    ]);
   });
 });
 
@@ -2322,19 +2333,7 @@ describe("model presets", () => {
     expect(field("kda-layers").value).toBe("69");
     expect(isRowInapplicable("active-params")).toBe(false);
     expect(dataSlot("status-model").textContent).toBe("2780B MoE");
-    expect(out("total")).toBe("1928.8 GB");
-  });
-
-  test("compacts a beyond-every-pool estimate to a two-word fit", () => {
-    loadDom();
-    mountCalculator(document);
-
-    // The Kimi K3 preset outgrows the whole tier table, so its recommendation
-    // is a full sentence ("Beyond any single modeled pool: distributed
-    // multi-node, roughly …"). The fixed-width header must not render that.
-    clickPreset("Kimi K3");
-
-    expect(dataSlot("status-fit").textContent).toBe("multi-node");
+    expect(out("total")).toBe("2144.3 GB");
   });
 
   test("computes the preset report from freshly revealed controls", () => {
@@ -2344,17 +2343,12 @@ describe("model presets", () => {
     clickPreset("Kimi K3");
 
     // The first render must already read the just-enabled Active Parameters
-    // value: a stale read of the still-disabled control fell back to the 1.3B
-    // default. K3 now outgrows every modeled pool, so the speed row reads n/a
-    // and can no longer carry this guard; the MoE routing note states the
-    // active count the render actually used, so it catches the same stale read.
-    const assumptionsAfterClick = out("assumptions");
-    expect(assumptionsAfterClick).toContain(
-      "MoE routing: 104B of 2780B parameters active per token.",
-    );
-    expect(out("speed")).toBe("n/a tokens/sec");
+    // value: a stale read of the still-disabled control fell back to the
+    // 1.3B default and showed a ~10x too-fast speed for one render.
+    const speedAfterClick = out("speed");
+    expect(speedAfterClick).toBe("125 tokens/sec");
     fireInput("total-params", field("total-params").value);
-    expect(out("assumptions")).toBe(assumptionsAfterClick);
+    expect(out("speed")).toBe(speedAfterClick);
   });
 
   test("applies a preset without submitting or navigating the form", () => {
@@ -2400,7 +2394,7 @@ describe("model presets", () => {
     expect(estimates).toEqual([
       "21.0 GB",
       "161.1 GB",
-      "1928.8 GB",
+      "2144.3 GB",
       "23.2 GB",
       "12.1 GB",
       "1.9 GB",

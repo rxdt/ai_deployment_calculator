@@ -7,7 +7,7 @@ const TAB_CAP = 80;
 const PRESET_IDS = [
   "llama-8b",
   "llama-70b",
-  "kimi-k3",
+  "mixtral-8x7b",
   "gemma-9b",
   "sdxl",
   "onnx-distilbert",

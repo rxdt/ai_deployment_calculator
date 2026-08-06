@@ -176,11 +176,11 @@ Build the sharding-callout strategy links, " · "-separated.
 function parallelismLinkNodes(
   strategies: readonly ParallelismStrategy[],
 ): Node[] {
-  return strategies.flatMap((strategy, index) =>
-    index === 0
+  return strategies.flatMap((strategy, index) => {
+    return index === 0
       ? [parallelismLinkNode(strategy)]
-      : [document.createTextNode(" · "), parallelismLinkNode(strategy)],
-  );
+      : [document.createTextNode(" · "), parallelismLinkNode(strategy)];
+  });
 }
 
 /**
@@ -197,7 +197,9 @@ export function dataSlot(root: ParentNode, name: string): HTMLElement | null {
   return null;
 }
 
-/** A togglable field group keyed by its data-* marker attribute. */
+/**
+A togglable field group keyed by its data-* marker attribute.
+*/
 export type FieldGroup =
   "active" | "lora" | "moe" | "resident-fraction" | "training";
 

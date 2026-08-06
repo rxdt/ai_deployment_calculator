@@ -3,7 +3,6 @@ import { defaultState, normalizedState, searchFromState } from "./state";
 import type { FormState } from "./types";
 
 /**
-
 @param entries
 */
 function parameters(entries: Record<string, string>): URLSearchParams {

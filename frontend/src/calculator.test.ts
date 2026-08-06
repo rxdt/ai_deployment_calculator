@@ -63,7 +63,6 @@ interface WorkingMemoryExpectation {
 }
 
 /**
-
 @param overrides
 */
 function state(overrides: Partial<FormState> = {}): FormState {
@@ -99,7 +98,6 @@ function fullTrainingStateGb(optimizer: FormState["optimizer"]): number {
 }
 
 /**
-
 @param overrides
 */
 function required(overrides: Partial<FormState>): number {
@@ -256,12 +254,12 @@ describe("corrected text-generation totals", () => {
           "8-bit",
           "4-bit",
         ] satisfies FormState["precision"][]
-      ).map((precision) =>
-        required({
+      ).map((precision) => {
+        return required({
           totalParams: "8",
           precision,
-        }),
-      ),
+        });
+      }),
     ).toEqual([38.6, 21, 12.6, 8.5]);
   });
 
@@ -274,15 +272,15 @@ describe("corrected text-generation totals", () => {
           "8-bit",
           "4-bit",
         ] satisfies FormState["precision"][]
-      ).map((precision) =>
-        required({
+      ).map((precision) => {
+        return required({
           totalParams: "104",
           contextTokens: "32000",
           kvCachePrecision: "32-bit",
           runtimeProfile: "Local / Edge",
           precision,
-        }),
-      ),
+        });
+      }),
     ).toEqual([448.2, 240.2, 141.4, 92]);
   });
 
@@ -1079,8 +1077,8 @@ describe("workload-family working memory", () => {
 
   test("Gemma-sized precision sweep keeps FP16 above INT8 above INT4", () => {
     const requiredByPrecision = (["16-bit", "8-bit", "4-bit"] as const).map(
-      (precision) =>
-        memoryBreakdown(
+      (precision) => {
+        return memoryBreakdown(
           specFromState(
             state({
               totalParams: "26.5",
@@ -1090,7 +1088,8 @@ describe("workload-family working memory", () => {
               precision,
             }),
           ),
-        ).requiredGb,
+        ).requiredGb;
+      },
     );
 
     expect(requiredByPrecision).toStrictEqual(
@@ -1461,11 +1460,9 @@ describe("hybrid attention memory model", () => {
   });
 
   test("KDA holds a fixed recurrent state and no per-token cache", () => {
-    // 93 layers x heads(96) x headDim(128) x (headDim + kernel 4 x 3 conv
-    // states for q/k/v) x 4 bytes: the delta-rule state is fp32 in the
-    // reference kernels, so it ignores the selectable KV cache precision.
+    // 93 layers x heads(96) x headDim(128) x (headDim + conv kernel 4) x 2 bytes.
     expect(kvCacheGb({ ...KIMI_SHAPE, attentionType: "kda" })).toBeCloseTo(
-      (93 * 96 * 128 * (128 + 4 * 3) * 4) / 1_000_000_000,
+      (93 * 96 * 128 * (128 + 4) * 2) / 1_000_000_000,
       9,
     );
   });
@@ -1481,20 +1478,18 @@ describe("hybrid attention memory model", () => {
   });
 
   test("a hybrid split sums MLA per-token latents and KDA fixed state", () => {
-    // The two halves are charged at different byte widths: per-token latents at
-    // the 2-byte KV precision, the recurrent state at its fixed fp32.
-    const mlaBytes = 24 * (512 + 64) * 1000 * 2;
-    const kdaBytes = 69 * 96 * 128 * (128 + 4 * 3) * 4;
+    const mlaPart = 24 * (512 + 64) * 1000;
+    const kdaPart = 69 * 96 * 128 * (128 + 4);
     expect(
       kvCacheGb({ ...KIMI_SHAPE, attentionType: "hybrid-kda-mla" }),
-    ).toBeCloseTo((mlaBytes + kdaBytes) / 1_000_000_000, 9);
+    ).toBeCloseTo(((mlaPart + kdaPart) * 2) / 1_000_000_000, 9);
   });
 
   test("a hybrid remainder keeps a conventional per-token cache for unassigned layers", () => {
     // 93 layers, 24 MLA + 9 KDA leaves 60 standard layers (kvHeads 8, headDim 128).
-    const mlaBytes = 24 * (512 + 64) * 1000 * 2;
-    const stdBytes = 60 * 2 * 8 * 128 * 1000 * 2;
-    const kdaBytes = 9 * 96 * 128 * (128 + 4 * 3) * 4;
+    const mlaPart = 24 * (512 + 64) * 1000;
+    const stdPart = 60 * 2 * 8 * 128 * 1000;
+    const kdaPart = 9 * 96 * 128 * (128 + 4);
     expect(
       kvCacheGb({
         ...KIMI_SHAPE,
@@ -1502,7 +1497,7 @@ describe("hybrid attention memory model", () => {
         kdaLayers: "9",
         attentionType: "hybrid-kda-mla",
       }),
-    ).toBeCloseTo((mlaBytes + stdBytes + kdaBytes) / 1_000_000_000, 9);
+    ).toBeCloseTo(((mlaPart + stdPart + kdaPart) * 2) / 1_000_000_000, 9);
   });
 
   test("hybrid and MLA caches stay below a conventional cache at long context", () => {
@@ -1516,24 +1511,12 @@ describe("hybrid attention memory model", () => {
     ).toBeLessThan(standard);
   });
 
-  test("per-type layer counts clamp to the model depth as a pair", () => {
-    // A stack has `layers` layers to give away between the two types. Clamping
-    // each against the depth alone would accept 93 MLA *and* 93 KDA on a
-    // 93-layer model and charge the cache twice, so MLA takes what it asks for
-    // and KDA takes only the remainder.
+  test("per-type layer counts clamp to the model depth", () => {
     const { attention } = specFromState(
       state({ layers: "93", mlaLayers: "200", kdaLayers: "500" }),
     );
     expect(attention.mlaLayers).toBe(93);
-    expect(attention.kdaLayers).toBe(0);
-  });
-
-  test("an oversized KDA request takes only the layers MLA leaves", () => {
-    const { attention } = specFromState(
-      state({ layers: "93", mlaLayers: "24", kdaLayers: "500" }),
-    );
-    expect(attention.mlaLayers).toBe(24);
-    expect(attention.kdaLayers).toBe(69);
+    expect(attention.kdaLayers).toBe(93);
   });
 
   test("blank MLA latent widths fall back to DeepSeek-scale defaults", () => {

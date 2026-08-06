@@ -478,19 +478,39 @@
                   class="field field--check"
                   data-moe-families="text_generation text_encoder encoder_decoder vision_language custom"
                 >
-                  <label>
-                    <input
-                      id="moe-enabled"
-                      name="moe-enabled"
-                      type="checkbox"
-                    />
-                    <span
-                      class="checkbox-state"
-                      data-slot="checkbox-indicator"
-                      aria-hidden="true"
-                    ></span>
-                    <span>MoE Model</span>
-                  </label>
+                  <span class="field-head">
+                    <label>
+                      <input
+                        id="moe-enabled"
+                        name="moe-enabled"
+                        type="checkbox"
+                      />
+                      <span
+                        class="checkbox-state"
+                        data-slot="checkbox-indicator"
+                        aria-hidden="true"
+                      ></span>
+                      <span>MoE Model</span>
+                    </label>
+                    <span class="field-tip">
+                      <button
+                        type="button"
+                        class="field-tip-btn"
+                        aria-describedby="tip-moe"
+                        aria-label="About MoE Model"
+                      >
+                        i
+                      </button>
+                      <span
+                        role="tooltip"
+                        id="tip-moe"
+                        data-slot="moe-tip"
+                        class="field-tip-bubble"
+                        >Only part of the model runs per token, so it is faster,
+                        but all weights still sit in memory.</span
+                      >
+                    </span>
+                  </span>
                 </p>
                 <p class="field field--check">
                   <label>
@@ -656,8 +676,8 @@
                       <span
                         class="field-tip-bubble"
                         role="tooltip"
-                        data-slot="known-file-tip"
                         id="known-model-file-size-gb-tip"
+                        data-slot="known-model-file-size-gb-tip"
                         >On-disk weight size in GB. Overrides the
                         parameter-based weight estimate when set.</span
                       >
@@ -688,8 +708,8 @@
                       <span
                         class="field-tip-bubble"
                         role="tooltip"
-                        data-slot="resident-fraction-tip"
                         id="gpu-resident-fraction-tip"
+                        data-slot="gpu-resident-fraction-tip"
                         >Fraction (0–1, not a percentage) of the known file kept
                         in VRAM. Only applies when Known Model File Size is
                         set.</span
@@ -848,7 +868,7 @@
               </div>
             </details>
 
-            <details class="panel" name="result-panel" data-slot="accordion">
+            <details class="panel" name="result-panel">
               <summary>Values Used In Calculations</summary>
               <div class="panel-body">
                 <ul
@@ -859,7 +879,7 @@
               </div>
             </details>
 
-            <details class="panel" name="result-panel" data-slot="accordion">
+            <details class="panel" name="result-panel">
               <summary>Formula used</summary>
               <div class="panel-body">
                 <code data-out="calc-formula"></code>
@@ -867,7 +887,7 @@
               </div>
             </details>
 
-            <details class="panel" name="result-panel" data-slot="accordion">
+            <details class="panel" name="result-panel">
               <summary>Assumptions used</summary>
               <div class="panel-body">
                 <ul
@@ -970,7 +990,7 @@
               <span class="tier-fit-head">Best fit</span>
               <span>Typical use</span>
             </div>
-            <details class="tier" name="hardware-tier" data-slot="accordion">
+            <details class="tier" name="hardware-tier">
               <summary class="tier-summary">
                 <span class="tier-memory">&le; 24</span>
                 <span
@@ -1103,7 +1123,7 @@
                 </ul>
               </div>
             </details>
-            <details class="tier" name="hardware-tier" data-slot="accordion">
+            <details class="tier" name="hardware-tier">
               <summary class="tier-summary">
                 <span class="tier-memory">32&ndash;48</span>
                 <span
@@ -1192,7 +1212,7 @@
                 </ul>
               </div>
             </details>
-            <details class="tier" name="hardware-tier" data-slot="accordion">
+            <details class="tier" name="hardware-tier">
               <summary class="tier-summary">
                 <span class="tier-memory">64&ndash;96</span>
                 <span
@@ -1274,7 +1294,7 @@
                 </ul>
               </div>
             </details>
-            <details class="tier" name="hardware-tier" data-slot="accordion">
+            <details class="tier" name="hardware-tier">
               <summary class="tier-summary">
                 <span class="tier-memory">141&ndash;192</span>
                 <span
@@ -1327,7 +1347,7 @@
                 </ul>
               </div>
             </details>
-            <details class="tier" name="hardware-tier" data-slot="accordion">
+            <details class="tier" name="hardware-tier">
               <summary class="tier-summary">
                 <span class="tier-memory">&gt; 192</span>
                 <span

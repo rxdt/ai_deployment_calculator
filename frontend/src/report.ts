@@ -75,10 +75,12 @@ interface FormulaTerm {
   readonly omitWhenZero?: true;
 }
 
-const weightsTerm = (name: string): FormulaTerm => ({
-  name,
-  value: (breakdown) => breakdown.weightsGb,
-});
+const weightsTerm = (name: string): FormulaTerm => {
+  return {
+    name,
+    value: (breakdown) => breakdown.weightsGb,
+  };
+};
 const kvCacheTerm: FormulaTerm = {
   name: "KV cache",
   value: (breakdown) => breakdown.kvCacheGb,
@@ -88,10 +90,12 @@ const activationsTerm: FormulaTerm = {
   name: "activations",
   value: (breakdown) => breakdown.inputActivationGb,
 };
-const trainingTerm = (name: string): FormulaTerm => ({
-  name,
-  value: (breakdown) => breakdown.trainingStateGb,
-});
+const trainingTerm = (name: string): FormulaTerm => {
+  return {
+    name,
+    value: (breakdown) => breakdown.trainingStateGb,
+  };
+};
 const overheadTerm: FormulaTerm = {
   name: "runtime overhead",
   value: (breakdown) => breakdown.runtimeOverheadGb,
@@ -295,16 +299,7 @@ export function buildReport(state: Readonly<FormState>): ReportPayload {
       "Beyond typical local hardware: this needs more than 96 GB of advertised VRAM, larger than any common local PCIe card. Local routes are a large unified-memory Mac or sharding across multiple GPUs.",
     );
   }
-  // "In this configuration" is load-bearing: an overflow can mean the estimate
-  // outgrew the whole tier table, or merely that sharding is off and only
-  // sharded pools would fit. Either way no eligible pool has a bandwidth figure
-  // to divide, so the speed row reads n/a — but the recommendation above may
-  // still name a pool, and this must not contradict it.
-  if (tier === "overflow") {
-    warnings.push(
-      "No accelerator pool fits this deployment in the current configuration, so no speed estimate is shown. Throughput would depend on the interconnect and topology of a distributed deployment.",
-    );
-  } else if (requiresMultiGpu) {
+  if (requiresMultiGpu) {
     warnings.push(speedLabel(speedTier));
   }
   // A MoE split cannot activate more parameters than the model has; the spec
@@ -318,7 +313,7 @@ export function buildReport(state: Readonly<FormState>): ReportPayload {
     totalRequiredMemory: formatGb(required),
     recommendedHardware: recommendation,
     minimumRawVramNeeded: recommendation.minimumRawVram,
-    speed: speedEstimate(spec, weights, tier),
+    speed: speedEstimate(spec, weights, speedTier),
     statChips: statChips(state, breakdown, spec.workloadSize, recommendation),
     calculationRows: calculationRows(breakdown, spec.runtime.buffer),
     assumptions: assumptionRows(state, spec),

@@ -61,7 +61,6 @@ const KV_PRECISION_BY_ASCENDING_BYTES: readonly KvPrecision[] = [
 ];
 
 /**
-
 @param overrides
 */
 function requiredGb(overrides: Partial<FormState>): number {
@@ -70,7 +69,6 @@ function requiredGb(overrides: Partial<FormState>): number {
 }
 
 /**
-
 @param overrides
 */
 function weightMemoryGb(overrides: Partial<FormState>): number {
@@ -78,7 +76,6 @@ function weightMemoryGb(overrides: Partial<FormState>): number {
 }
 
 /**
-
 @param overrides
 */
 function kvCacheGb(overrides: Partial<FormState>): number {
@@ -207,13 +204,13 @@ describe("calculator properties", () => {
     // than a higher-bit one for the same model.
     fc.assert(
       fc.property(positiveParameterCount, (totalParameters) => {
-        const memories = PRECISION_BY_ASCENDING_WEIGHT.map((precision) =>
-          weightMemoryGb({
+        const memories = PRECISION_BY_ASCENDING_WEIGHT.map((precision) => {
+          return weightMemoryGb({
             workloadFamily: "text_generation",
             totalParams: totalParameters,
             precision,
-          }),
-        );
+          });
+        });
 
         // Strictly increasing == ascending order with no duplicates. Expressed via
         // whole-array comparison to avoid an unchecked index access
@@ -263,12 +260,13 @@ describe("calculator properties", () => {
     fc.assert(
       fc.property(positiveParameterCount, (totalParameters) => {
         const memories = KV_PRECISION_BY_ASCENDING_BYTES.map(
-          (kvCachePrecision) =>
-            requiredGb({
+          (kvCachePrecision) => {
+            return requiredGb({
               workloadFamily: "text_generation",
               totalParams: totalParameters,
               kvCachePrecision,
-            }),
+            });
+          },
         );
 
         // Non-decreasing == already in ascending order. Whole-array comparison avoids
@@ -287,12 +285,13 @@ describe("calculator properties", () => {
     fc.assert(
       fc.property(positiveParameterCount, (totalParameters) => {
         const memories = KV_PRECISION_BY_ASCENDING_BYTES.map(
-          (kvCachePrecision) =>
-            requiredGb({
+          (kvCachePrecision) => {
+            return requiredGb({
               workloadFamily: "text_encoder",
               totalParams: totalParameters,
               kvCachePrecision,
-            }),
+            });
+          },
         );
 
         expect(new Set(memories).size).toBe(1);

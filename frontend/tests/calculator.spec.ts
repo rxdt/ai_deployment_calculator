@@ -27,20 +27,16 @@ Assert the retired confidence output is absent without targeting unlisted select
 @param page Browser page.
 */
 async function expectNoConfidenceOutput(page: Page): Promise<void> {
-  const outputNames = await page
-    .locator("[data-out]")
-    .evaluateAll((nodes) =>
-      nodes.map((node) =>
-        node instanceof HTMLElement ? node.dataset.out : null,
-      ),
+  const outputNames = await page.locator("[data-out]").evaluateAll((nodes) => {
+    return nodes.map((node) =>
+      node instanceof HTMLElement ? node.dataset.out : null,
     );
-  const slotNames = await page
-    .locator("[data-slot]")
-    .evaluateAll((nodes) =>
-      nodes.map((node) =>
-        node instanceof HTMLElement ? node.dataset.slot : null,
-      ),
+  });
+  const slotNames = await page.locator("[data-slot]").evaluateAll((nodes) => {
+    return nodes.map((node) =>
+      node instanceof HTMLElement ? node.dataset.slot : null,
     );
+  });
 
   expect(outputNames).not.toContain("confidence");
   expect(slotNames).not.toContain("confidence-label");
@@ -196,10 +192,8 @@ test("keeps the hardware tier best-fit check visible as estimates change", async
   await expectBestFitTier(page, "192");
 
   await page.getByLabel("Total Model Parameters").fill("400");
-  // Sharding is off by default, so the dead end is the unticked box rather than
-  // the topology: the guidance asks for sharding and sizes the pool it implies.
   await expect(page.locator('[data-out="gpu-class"]')).toContainText(
-    "Enable memory sharding to plan a distributed deployment (roughly 14x 80 GB GPUs)",
+    "distributed multi-node",
   );
   await expectBestFitTier(page, "100000");
 
@@ -482,8 +476,8 @@ test("marks expandable detail panels with a token chevron, not a button", async 
     borderBottomStyle: string;
     borderBottomWidth: string;
     transform: string;
-  }> =>
-    summary.evaluate((node) => {
+  }> => {
+    return summary.evaluate((node) => {
       const style = getComputedStyle(node, "::after");
       return {
         content: style.content,
@@ -492,6 +486,7 @@ test("marks expandable detail panels with a token chevron, not a button", async 
         transform: style.transform,
       };
     });
+  };
 
   const closed = await readChevron();
   expect(closed.borderBottomStyle).toBe("solid");

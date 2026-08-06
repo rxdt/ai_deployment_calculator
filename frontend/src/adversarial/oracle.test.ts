@@ -232,8 +232,8 @@ describe("adversarial oracle suite", () => {
       "Q4_K_M",
       "IQ2_XXS",
     ];
-    const rows = weightLadder.map((precision) =>
-      memoryBreakdown(
+    const rows = weightLadder.map((precision) => {
+      return memoryBreakdown(
         specFromState(
           state({
             workloadFamily: "text_generation",
@@ -244,8 +244,8 @@ describe("adversarial oracle suite", () => {
             workloadSize: "4",
           }),
         ),
-      ),
-    );
+      );
+    });
 
     // KV and activation are byte-identical across every weight tier.
     expect(new Set(rows.map((row) => row.kvCacheGb)).size).toBe(1);
@@ -308,8 +308,8 @@ describe("adversarial oracle suite", () => {
       const parameters = 8;
       const build = (
         overrides: Partial<FormState>,
-      ): ReturnType<typeof memoryBreakdown> =>
-        memoryBreakdown(
+      ): ReturnType<typeof memoryBreakdown> => {
+        return memoryBreakdown(
           specFromState(
             state({
               workloadFamily: "text_generation",
@@ -321,6 +321,7 @@ describe("adversarial oracle suite", () => {
             }),
           ),
         );
+      };
 
       // Resident weights + full training state equal the published bytes/param
       // anchor EXACTLY — under-counting OOMs the run, over-counting misreports.
@@ -369,8 +370,8 @@ describe("adversarial oracle suite", () => {
           }),
         ),
       );
-      const trainingRows = KV_PRECISIONS.map((kvCachePrecision) =>
-        memoryBreakdown(
+      const trainingRows = KV_PRECISIONS.map((kvCachePrecision) => {
+        return memoryBreakdown(
           specFromState(
             state({
               ...base,
@@ -378,8 +379,8 @@ describe("adversarial oracle suite", () => {
               kvCachePrecision,
             }),
           ),
-        ),
-      );
+        );
+      });
       const [firstTrainingRow] = trainingRows;
       if (firstTrainingRow === undefined) {
         throw new Error("Missing training memory row");

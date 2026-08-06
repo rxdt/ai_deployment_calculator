@@ -25,8 +25,9 @@ const referenceGb = (tokens: number): number => {
 export const fp16DecoderActivationScratchGb = (
   residentParametersB: number,
   tokens: number,
-): number =>
-  Math.max(
+): number => {
+  return Math.max(
     INFERENCE_ACTIVATION_FLOOR_GB,
     referenceGb(tokens) * (residentParametersB / REFERENCE_PARAMS_B),
   );
+};

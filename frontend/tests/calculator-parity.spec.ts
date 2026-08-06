@@ -22,14 +22,14 @@ async function expectReportRowsContaining(
 ): Promise<void> {
   const values = await page
     .locator(`[data-out="${slot}"] li`)
-    .evaluateAll((items) =>
-      items.map((item) => {
+    .evaluateAll((items) => {
+      return items.map((item) => {
         const [labelNode, valueNode] = item.children;
         const label = labelNode?.textContent ?? "";
         const value = valueNode?.textContent ?? "";
         return [label, value] as const;
-      }),
-    );
+      });
+    });
   for (const row of rows) {
     expect(values).toContainEqual(row);
   }
@@ -40,20 +40,16 @@ Assert the retired confidence output is absent without targeting unlisted select
 @param page Browser page.
 */
 async function expectNoConfidenceOutput(page: Page): Promise<void> {
-  const outputNames = await page
-    .locator("[data-out]")
-    .evaluateAll((nodes) =>
-      nodes.map((node) =>
-        node instanceof HTMLElement ? node.dataset.out : null,
-      ),
+  const outputNames = await page.locator("[data-out]").evaluateAll((nodes) => {
+    return nodes.map((node) =>
+      node instanceof HTMLElement ? node.dataset.out : null,
     );
-  const slotNames = await page
-    .locator("[data-slot]")
-    .evaluateAll((nodes) =>
-      nodes.map((node) =>
-        node instanceof HTMLElement ? node.dataset.slot : null,
-      ),
+  });
+  const slotNames = await page.locator("[data-slot]").evaluateAll((nodes) => {
+    return nodes.map((node) =>
+      node instanceof HTMLElement ? node.dataset.slot : null,
     );
+  });
 
   expect(outputNames).not.toContain("confidence");
   expect(slotNames).not.toContain("confidence-label");

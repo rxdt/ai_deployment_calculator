@@ -188,8 +188,6 @@ Build the speed row label from the workload's rendered speed unit.
 */
 export function speedLabel(speed: string): string {
   const formatted = formatSpeed(speed);
-  // Strip the value to leave the unit. An unfittable deployment reports "n/a"
-  // in place of a number, so that reads as a value here too.
-  const unit = formatted.replace(/^(?:[\d.]+|n\/a) /u, "");
+  const unit = formatted.replace(/^[\d.]+ /u, "");
   return `Estimated Speed (${unit.replaceAll("/minute", "/min")})`;
 }

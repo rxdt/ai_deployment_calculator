@@ -48,7 +48,7 @@ export const MODEL_PRESETS: readonly ModelPreset[] = [
   {
     id: "kimi-k3",
     label: "Kimi K3",
-    url: "https://huggingface.co/moonshotai/Kimi-K3",
+    url: "https://huggingface.co/moonshotai",
     overrides: {
       workloadFamily: "text_generation",
       totalParams: "2780",
@@ -58,18 +58,10 @@ export const MODEL_PRESETS: readonly ModelPreset[] = [
       activeParams: "104",
       contextTokens: "1048576",
       memoryShardingEnabled: true,
-      // The released checkpoint's 96 safetensors shards sum to
-      // 1,561,018,243,668 bytes. That is 4.49 effective bits per parameter —
-      // below the 4.25 bpw + 18% the MXFP4 precision line assumes — so the
-      // published size drives the weights instead of the generic estimate.
-      knownModelFileSizeGb: "1561.0",
-      // Every value below is from the model's published config.json.
-      kvCachePrecision: "8-bit / FP8",
       attentionType: "hybrid-kda-mla",
       layers: "93",
       hiddenSize: "7168",
       attentionHeads: "96",
-      kvHeads: "96",
       headDim: "128",
       mlaLayers: "24",
       kdaLayers: "69",

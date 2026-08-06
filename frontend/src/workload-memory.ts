@@ -76,13 +76,14 @@ const activationGb = (
 const encoderActivationGb = (
   spec: Readonly<CalculationSpec>,
   tokens: number,
-): number =>
-  activationGb(
+): number => {
+  return activationGb(
     spec,
     tokens,
     spec.architecture.layers,
     spec.architecture.hidden,
   );
+};
 
 const pixelProxyGb = (
   spec: Readonly<CalculationSpec>,
@@ -119,13 +120,15 @@ const textGenerationMemory: WorkingMemoryBuilder = (spec) => {
   };
 };
 
-const textEncoderMemory: WorkingMemoryBuilder = (spec) => ({
-  kvCacheGb: 0,
-  inputActivationGb: encoderActivationGb(
-    spec,
-    nonNegativeField(spec.state.sequenceTokens, 512),
-  ),
-});
+const textEncoderMemory: WorkingMemoryBuilder = (spec) => {
+  return {
+    kvCacheGb: 0,
+    inputActivationGb: encoderActivationGb(
+      spec,
+      nonNegativeField(spec.state.sequenceTokens, 512),
+    ),
+  };
+};
 
 const encoderDecoderMemory: WorkingMemoryBuilder = (spec) => {
   const input = encoderActivationGb(
@@ -205,14 +208,16 @@ const videoMemory: WorkingMemoryBuilder = (spec, currentWeightsGb) => {
   };
 };
 
-const audioMemory: WorkingMemoryBuilder = (spec) => ({
-  kvCacheGb: 0,
-  inputActivationGb: encoderActivationGb(
-    spec,
-    nonNegativeField(spec.state.audioSeconds, 30) *
-      DEFAULT_AUDIO_TOKENS_PER_SECOND,
-  ),
-});
+const audioMemory: WorkingMemoryBuilder = (spec) => {
+  return {
+    kvCacheGb: 0,
+    inputActivationGb: encoderActivationGb(
+      spec,
+      nonNegativeField(spec.state.audioSeconds, 30) *
+        DEFAULT_AUDIO_TOKENS_PER_SECOND,
+    ),
+  };
+};
 
 const tabularMemory: WorkingMemoryBuilder = (spec) => {
   const tabular =
@@ -223,13 +228,15 @@ const tabularMemory: WorkingMemoryBuilder = (spec) => {
   return { kvCacheGb: 0, inputActivationGb: tabular * 4 };
 };
 
-const customMemory: WorkingMemoryBuilder = (spec, currentWeightsGb) => ({
-  kvCacheGb: 0,
-  inputActivationGb:
-    currentWeightsGb *
-    0.25 *
-    nonNegativeField(spec.state.inputSizeMultiplier, 1),
-});
+const customMemory: WorkingMemoryBuilder = (spec, currentWeightsGb) => {
+  return {
+    kvCacheGb: 0,
+    inputActivationGb:
+      currentWeightsGb *
+      0.25 *
+      nonNegativeField(spec.state.inputSizeMultiplier, 1),
+  };
+};
 
 const formatSpeed = (tokens: number, family: WorkloadFamily): string => {
   const style = SPEED_STYLES.get(family) ?? TOKEN_SPEED_STYLE;
@@ -311,17 +318,10 @@ Estimates throughput for a workload on the recommended hardware tier.
 export function speedEstimate(
   spec: Readonly<CalculationSpec>,
   currentWeightsGb: number,
-  recommendedTier: Readonly<HardwareTier> | "overflow",
+  recommendedTier: Readonly<HardwareTier>,
 ): string {
   if (currentWeightsGb === 0) {
     return ZERO_SPEED_ESTIMATES.get(spec.family) ?? "0 tokens/second";
-  }
-  // No modeled pool holds this deployment, so there is no memory bandwidth to
-  // divide by: a number here would describe hardware that cannot run the model.
-  // Real throughput would depend on the interconnect and topology of a
-  // distributed deployment, neither of which this estimate models.
-  if (recommendedTier === "overflow") {
-    return `n/a ${(SPEED_STYLES.get(spec.family) ?? TOKEN_SPEED_STYLE).unit}`;
   }
   const precision = PRECISION_MAP[spec.precision];
   const computeWeightGb =

@@ -285,7 +285,6 @@ function normalizedAdvancedState(
 }
 
 /**
- 
 @param search
 */
 export function normalizedState(search: URLSearchParams): FormState {
@@ -311,7 +310,6 @@ export function normalizedState(search: URLSearchParams): FormState {
 }
 
 /**
- 
 @param state
 */
 /**

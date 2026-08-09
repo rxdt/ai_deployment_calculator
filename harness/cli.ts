@@ -156,9 +156,12 @@ export const runStatus = (): number => {
 const isObjectRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
-const isStringRecord = (value: unknown): value is Record<string, string> =>
-  isObjectRecord(value) &&
-  Object.values(value).every((entry) => typeof entry === "string");
+const isStringRecord = (value: unknown): value is Record<string, string> => {
+  return (
+    isObjectRecord(value) &&
+    Object.values(value).every((entry) => typeof entry === "string")
+  );
+};
 
 // Merge the harness root scripts into an existing scripts map (mutates + returns it). A `lint`/
 // `test` name the project already defines is kept; the harness command is added under a
@@ -279,18 +282,22 @@ export const runLoop = async (
   return { code, lines: [`harness: ${command.join(" ")} -> ${log}`] };
 };
 
-export const loopDependencies = (): LoopDependencies => ({
-  now: () => Date.now(),
-  cwd: () => repoRoot(process.cwd()),
-  ralphPath: () => path.join(import.meta.dirname, "ralph.sh"),
-  listSequences: (directory) =>
-    (fs.existsSync(directory) ? fs.readdirSync(directory) : [])
-      .filter((name) => name.endsWith(".jsonl"))
-      .map((name) => Number(name.slice(0, name.indexOf(".jsonl"))))
-      .filter((value) => Number.isSafeInteger(value)),
-  ensureDirectory: (directory) => fs.mkdirSync(directory, { recursive: true }),
-  worker: runWorker,
-});
+export const loopDependencies = (): LoopDependencies => {
+  return {
+    now: () => Date.now(),
+    cwd: () => repoRoot(process.cwd()),
+    ralphPath: () => path.join(import.meta.dirname, "ralph.sh"),
+    listSequences: (directory): number[] => {
+      return (fs.existsSync(directory) ? fs.readdirSync(directory) : [])
+        .filter((name) => name.endsWith(".jsonl"))
+        .map((name) => Number(name.slice(0, name.indexOf(".jsonl"))))
+        .filter((value) => Number.isSafeInteger(value));
+    },
+    ensureDirectory: (directory) =>
+      fs.mkdirSync(directory, { recursive: true }),
+    worker: runWorker,
+  };
+};
 
 export const main = async (argv: string[]): Promise<void> => {
   const command = argv[0] ?? "";

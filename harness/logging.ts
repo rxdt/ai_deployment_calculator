@@ -25,6 +25,8 @@ const GIT_LOG_ARGS = [
 type Agent = (typeof AGENTS)[number];
 type LogAgent = Agent | "unknown";
 type Rec = Record<string, unknown>;
+// A table body: rows of pre-stringified cells, ready for `section` to align.
+type Rows = readonly (readonly string[])[];
 
 interface ParsedLog {
   readonly lineCount: number;
@@ -71,13 +73,27 @@ export const formatTokenCount = (value: number | undefined): string => {
   return String(value);
 };
 
-const numberFrom = (source: Rec, keys: readonly string[]): number | undefined =>
-  keys
-    .map((key) => source[key])
-    .find(
-      (value): value is number =>
-        typeof value === "number" && Number.isFinite(value) && value >= 0,
-    );
+/**
+A usable token count: finite and non-negative. Split out of `numberFrom` so the
+predicate stays on one line there -- a wrapped arrow body deadlocks
+`unicorn/consistent-arrow-return-style` against Prettier.
+@param value - Candidate read off a log record.
+@returns True when the value can be summed as a count.
+*/
+function isCount(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0;
+}
+
+/**
+First usable count among `keys`, in order.
+@param source - Record to read.
+@param keys - Key names to try, most specific first.
+@returns The count, or undefined when no key holds one.
+*/
+function numberFrom(source: Rec, keys: readonly string[]): number | undefined {
+  const values = keys.map((key) => source[key]);
+  return values.find((value): value is number => isCount(value));
+}
 
 const usageTotal = (source: Rec): number | undefined => {
   const total = numberFrom(source, TOTAL_KEYS);
@@ -134,15 +150,19 @@ Infer the agent that produced a log from its path (directory, suffix, or prefix)
 export const inferAgent = (relativePath: string): LogAgent => {
   const [first = ""] = relativePath.split(path.sep);
   const file = path.basename(relativePath);
-  return (
-    AGENTS.find(
-      (agent) =>
-        first === agent ||
-        file === `${agent}.jsonl` ||
-        file.endsWith(`-${agent}.jsonl`) ||
-        file.startsWith(`${agent}-`),
-    ) ?? "unknown"
-  );
+  /**
+  @param agent - Candidate agent name.
+  @returns True when the path names that agent.
+  */
+  function isNamed(agent: LogAgent): boolean {
+    return (
+      first === agent ||
+      file === `${agent}.jsonl` ||
+      file.endsWith(`-${agent}.jsonl`) ||
+      file.startsWith(`${agent}-`)
+    );
+  }
+  return AGENTS.find((agent) => isNamed(agent)) ?? "unknown";
 };
 
 const keyedUsage = (
@@ -180,8 +200,8 @@ const addUsage = (
 const iterationTotals = (
   iterations: readonly number[],
   usage: ReadonlyMap<number, ReadonlyMap<string, number>>,
-): readonly number[] =>
-  iterations.flatMap((iteration) => {
+): readonly number[] => {
+  return iterations.flatMap((iteration) => {
     const values = usage.get(iteration);
     const result = values?.get("result");
     const total =
@@ -191,6 +211,7 @@ const iterationTotals = (
         .reduce((sum, [, value]) => sum + value, 0);
     return total > 0 ? [total] : [];
   });
+};
 
 const better = (
   current: [number, string],
@@ -259,14 +280,22 @@ const collect = (root: string, directory: string, logs: LogFile[]): void => {
   }
 };
 
+/**
+Newest first, ties broken by path so the ordering is stable across runs.
+@param left - First log.
+@param right - Second log.
+@returns Negative, zero, or positive per the comparator contract.
+*/
+function newestFirst(left: LogFile, right: LogFile): number {
+  return (
+    right.mtimeMs - left.mtimeMs || left.relative.localeCompare(right.relative)
+  );
+}
+
 const discoverLogFiles = (runsRoot: string): readonly LogFile[] => {
   const logs: LogFile[] = [];
   if (existsSync(runsRoot)) collect(runsRoot, runsRoot, logs);
-  return logs.toSorted(
-    (left, right) =>
-      right.mtimeMs - left.mtimeMs ||
-      left.relative.localeCompare(right.relative),
-  );
+  return logs.toSorted((left, right) => newestFirst(left, right));
 };
 
 const row = (cells: readonly string[], limits: readonly number[]): string =>
@@ -275,39 +304,38 @@ const row = (cells: readonly string[], limits: readonly number[]): string =>
 const section = (
   title: string,
   headers: readonly string[],
-  rows: readonly (readonly string[])[],
+  rows: Rows,
   limits: readonly number[],
-): string =>
-  [
+): string => {
+  return [
     title,
     row(headers, limits),
     ...(rows.length === 0
       ? ["(none)"]
       : rows.map((cells) => row(cells, limits))),
   ].join("\n");
+};
 
-const tokenRows = (logs: readonly LogFile[]): readonly (readonly string[])[] =>
-  AGENTS.map((agent) => {
+const tokenRows = (logs: readonly LogFile[]): Rows => {
+  return AGENTS.map((agent) => {
     const mine = logs.filter((log) => log.agent === agent);
     const usages = mine.flatMap((log) => log.usageByIteration);
     const total = usages.reduce((sum, value) => sum + value, 0);
+    const latest = mine.find((log) => log.usageByIteration.length > 0);
     return [
       agent,
       String(mine.length),
       String(mine.reduce((sum, log) => sum + log.iterationCount, 0)),
-      formatTokenCount(
-        mine
-          .find((log) => log.usageByIteration.length > 0)
-          ?.usageByIteration.at(-1),
-      ),
+      formatTokenCount(latest?.usageByIteration.at(-1)),
       total === 0 ? "n/a" : formatTokenCount(total),
     ];
   });
+};
 
 const firstSentence = (value: string): string =>
   /^.*?[.!?](?:\s|$)/u.exec(value)?.[0].trim() ?? value;
 
-export type ReadCommits = (repo: string) => readonly (readonly string[])[];
+export type ReadCommits = (repo: string) => Rows;
 
 export const commitRows: ReadCommits = (repo) => {
   const result = spawnSync("git", ["-C", repo, ...GIT_LOG_ARGS], {
@@ -335,15 +363,15 @@ export const renderStatus = (
 ): string => {
   const root = path.join(repo, "scratchpad", "runs");
   const logs = discoverLogFiles(root);
-  const recentLogs = logs
-    .slice(0, 10)
-    .map((log) => [
+  const recentLogs = logs.slice(0, 10).map((log) => {
+    return [
       log.agent,
       String(log.lineCount),
       new Date(log.mtimeMs).toISOString().slice(0, 16).replaceAll("T", " "),
       log.relative,
       log.summary,
-    ]);
+    ];
+  });
   return [
     `${String(logs.length)} run log(s) in ${root}`,
     section("Recent logs", LOG_HEAD, recentLogs, [8, 6, 16, 48, 100]),

@@ -17,3 +17,24 @@ overrides:
   # Miasma RAT supply-chain attack (2026-07-14): 6.11.2 / 6.11.2-alpha.1 are
   # malicious credential stealers. Pin the last safe release (issue #5).
   "@asyncapi/specs": "6.11.1"
+  # Dependabot alerts 66-81 (2026-08). Each floor is in-range for the dependent
+  # that asks for it, so these bump versions without forking anyone:
+  #   postcss          <- vite, stylelint           (arbitrary .map read)
+  #   brace-expansion  <- minimatch 3 / 9 / 10      (DoS via unbounded expansion)
+  #   fast-uri         <- ajv                       (host confusion)
+  #   ip-address       <- socks, via lhci/puppeteer (SSRF / trust-boundary bypass)
+  # brace-expansion is scoped and capped per major: minimatch 3 needs ^1, 9 needs
+  # ^2, 10 needs ^5, and an uncapped floor would hand v5 to the v1 callers.
+  postcss: ">=8.5.23 <9"
+  "brace-expansion@1": ">=1.1.18 <2"
+  "brace-expansion@2": ">=2.1.4 <3"
+  "brace-expansion@5": ">=5.0.9 <6"
+  fast-uri: ">=3.1.5 <4"
+  ip-address: ">=10.3.1 <11"
+  # Still-open highs the frontend audit rejects on. Capped per major for the same
+  # reason as brace-expansion — both js-yaml majors are live in the tree:
+  #   js-yaml 3 / 4    <- lhci, cspell, spectral   (prototype pollution)
+  #   nanoid           <- postcss                  (predictable IDs)
+  "js-yaml@3": ">=3.15.1 <4"
+  "js-yaml@4": ">=4.3.1 <5"
+  nanoid: ">=3.3.17 <4"

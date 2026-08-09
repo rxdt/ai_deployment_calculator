@@ -151,8 +151,8 @@ function makeRepo(): string {
 const harnessCli = (
   args: string[],
   options: { cwd: string; env?: NodeJS.ProcessEnv },
-): SpawnSyncReturns<string> =>
-  spawnSync(
+): SpawnSyncReturns<string> => {
+  return spawnSync(
     process.execPath,
     [path.join(repoRoot(process.cwd()), "harness", "harness.mjs"), ...args],
     {
@@ -161,6 +161,7 @@ const harnessCli = (
       ...(options.env !== undefined && { env: options.env }),
     },
   );
+};
 
 // Write an executable stub script into a repo's bin dir and return its path.
 const writeStub = (repo: string, name: string, body: string): string => {

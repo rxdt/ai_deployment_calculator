@@ -37,16 +37,18 @@ export function cspMeta(): Plugin {
     // which `style-src 'self'` would block, blanking every computed style. The
     // pinned CSP only needs to travel with the *built* HTML, so scope it there.
     apply: "build",
-    transformIndexHtml: (): HtmlTagDescriptor[] => [
-      {
-        tag: "meta",
-        attrs: {
-          "http-equiv": "Content-Security-Policy",
-          content: CSP_POLICY,
+    transformIndexHtml: (): HtmlTagDescriptor[] => {
+      return [
+        {
+          tag: "meta",
+          attrs: {
+            "http-equiv": "Content-Security-Policy",
+            content: CSP_POLICY,
+          },
+          injectTo: "head-prepend",
         },
-        injectTo: "head-prepend",
-      },
-    ],
+      ];
+    },
   };
 }
 
@@ -65,12 +67,13 @@ export function stylePreload(): Plugin {
     name: "style-preload",
     transformIndexHtml: {
       order: "post",
-      handler: (html: string): string =>
-        html.replaceAll(
+      handler: (html: string): string => {
+        return html.replaceAll(
           stylesheet,
           (link, href: string) =>
             `<link rel="preload" as="style" href="${href}">${link}`,
-        ),
+        );
+      },
     },
   };
 }

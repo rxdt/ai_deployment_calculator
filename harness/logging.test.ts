@@ -16,14 +16,25 @@ import {
 
 // Stub commit reader so tests never spawn Git. `firstSentence` clips subjects at the
 // first sentence, so the stubbed subjects mirror what real Git output would yield.
-const stubCommits =
-  (...subjects: string[]): ReadCommits =>
-  () =>
-    subjects.map((subject, index) => [
-      `hash${String(index)}`,
-      "2026-07-02",
-      subject,
-    ]);
+// Declared as functions, not arrows: the row literal has to wrap at the print width,
+// and a wrapped arrow body deadlocks `unicorn/consistent-arrow-return-style` against
+// Prettier -- one demands a block, the other collapses it straight back.
+/**
+@param subject - Commit subject to stub.
+@param index - Position, used to keep the fake hashes distinct.
+@returns One `[hash, date, subject]` row shaped like real Git output.
+*/
+function commitRow(subject: string, index: number): readonly string[] {
+  return [`hash${String(index)}`, "2026-07-02", subject];
+}
+
+/**
+@param subjects - Commit subjects, newest first.
+@returns A `ReadCommits` that yields those subjects without touching Git.
+*/
+function stubCommits(...subjects: string[]): ReadCommits {
+  return () => subjects.map((subject, index) => commitRow(subject, index));
+}
 
 const makeRepo = (): string => mkdtempSync(path.join(tmpdir(), "logging-"));
 

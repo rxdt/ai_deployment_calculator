@@ -38,6 +38,7 @@ const ALLOWED_TS_DOM_DATA_SELECTORS = new Set([
   "[data-lora]",
   "[data-moe-families]",
   "[data-out]",
+  "[data-resident-fraction]",
   '[data-out="breakdown"]',
   '[data-out="total"]',
   '[data-out="warnings"]',

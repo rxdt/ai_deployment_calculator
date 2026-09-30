@@ -1,5 +1,7 @@
 # AI Deployment VRAM Calculator Plan
 
+/root is working on calculation-audit correctness fixes for hybrid attention and vision-language memory.
+
 ## Goal
 
 Build a GPU VRAM calculator that is usable for non-technical users and

@@ -213,10 +213,20 @@ function attentionFrom(
 ): AttentionMemory {
   const clampLayers = (value: string): number =>
     Math.min(nonNegative(value, 0), layers);
+  const requestedMlaLayers = clampLayers(state.mlaLayers);
+  const requestedKdaLayers = clampLayers(state.kdaLayers);
+  // Hybrid MLA/KDA layer counts describe one stack. A conflicting split cannot
+  // identify which layers use which mechanism, so price the whole stack as
+  // conventional attention rather than silently underestimating its cache.
+  const hasConflictingHybridLayers =
+    state.attentionType === "hybrid-kda-mla" &&
+    requestedMlaLayers + requestedKdaLayers > layers;
+  const mlaLayers = hasConflictingHybridLayers ? 0 : requestedMlaLayers;
+  const kdaLayers = hasConflictingHybridLayers ? 0 : requestedKdaLayers;
   return {
     type: state.attentionType,
-    mlaLayers: clampLayers(state.mlaLayers),
-    kdaLayers: clampLayers(state.kdaLayers),
+    mlaLayers,
+    kdaLayers,
     kvLoraRank: positive(state.kvLoraRank, DEFAULT_KV_LORA_RANK),
     ropeHeadDim: positive(state.ropeHeadDim, DEFAULT_ROPE_HEAD_DIM),
   };
@@ -342,9 +352,14 @@ export function trainingStateGb(spec: Readonly<CalculationSpec>): number {
     return 0;
   }
   if (spec.executionMode === "Full training") {
-    return spec.totalParamsB * (4 + 2 + spec.optimizerBytes);
+    // Mixed precision keeps fp32 master weights and fp32 gradients in addition
+    // to the fp16/bf16 model weights row. AdamW therefore totals 18 B/param
+    // before activations and runtime buffers.
+    return spec.totalParamsB * (4 + 4 + spec.optimizerBytes);
   }
   const adapterParameters =
     spec.totalParamsB * (spec.loraTrainablePercent / 100);
-  return adapterParameters * (2 + 2 + spec.optimizerBytes);
+  // PEFT promotes trainable adapters to fp32 by default. Size their fp32
+  // weights and gradients conservatively, plus optimizer state.
+  return adapterParameters * (4 + 4 + spec.optimizerBytes);
 }

@@ -28,6 +28,7 @@ describe("canonical hardware table", () => {
     ]);
     expect(tier(32).examples).toEqual([
       { name: "RTX 5090", url: GPU_LINKS.rtx5090 },
+      { name: "RTX 5000 Ada", url: GPU_LINKS.rtx5000Ada },
       { name: "Radeon PRO W7800", url: GPU_LINKS.w7800 },
       { name: "AWS Inferentia2", url: GPU_LINKS.inf2 },
       { name: "Cloud TPU v6e", url: GPU_LINKS.tpuV6e },
@@ -75,6 +76,10 @@ describe("canonical hardware table", () => {
     expect(tier(16).examples).toContainEqual({
       name: "Cloud TPU v5e",
       url: GPU_LINKS.tpuV5e,
+    });
+    expect(tier(16).examples).not.toContainEqual({
+      name: "RTX 5000 Ada",
+      url: GPU_LINKS.rtx5000Ada,
     });
     expect(tier(24).examples).toEqual([
       { name: "RTX 4090", url: GPU_LINKS.rtx4090 },

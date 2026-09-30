@@ -24,11 +24,15 @@ describe("buildReport", () => {
       fitHeadroom: "6.2 GB usable margin",
       minimumRawVram: "24.8 GB",
       recommendedTier:
-        "32 GB high-end consumer class, e.g. RTX 5090 / Radeon PRO W7800 / AWS Inferentia2 / Cloud TPU v6e / Cloud TPU v4",
+        "32 GB high-end consumer class, e.g. RTX 5090 / RTX 5000 Ada / Radeon PRO W7800 / AWS Inferentia2 / Cloud TPU v6e / Cloud TPU v4",
       exampleCards: [
         {
           name: "RTX 5090",
           url: GPU_LINKS.rtx5090,
+        },
+        {
+          name: "RTX 5000 Ada",
+          url: GPU_LINKS.rtx5000Ada,
         },
         {
           name: "Radeon PRO W7800",
@@ -61,7 +65,7 @@ describe("buildReport", () => {
     ]);
   });
 
-  test("rounds memory upward before selecting a hardware boundary tier", () => {
+  test("allows custom inference with a known file size and no parameters", () => {
     const report = buildReport(
       state({
         workloadFamily: "custom",
@@ -78,6 +82,9 @@ describe("buildReport", () => {
     );
     expect(report.recommendedHardware.usableVramOnClass).toBe("27.2 GB");
     expect(report.recommendedHardware.fitHeadroom).toBe("6.7 GB usable margin");
+    expect(report.warnings).not.toContain(
+      "Total Model Parameters is required to size architecture-dependent memory. No hardware fit is reported.",
+    );
   });
 
   test("sizes a 47B MoE high-context high-concurrency server stress case", () => {
@@ -388,7 +395,7 @@ describe("buildReport", () => {
     // Training modes carry training state instead of KV cache and use the
     // 1.25 training buffer.
     const training = buildReport(state({ executionMode: "Full training" }));
-    expect(training.calculationNumbers).toContain("+ 98.0 +");
+    expect(training.calculationNumbers).toContain("+ 112.0 +");
     expect(training.calculationNumbers).toMatch(/ GB × 1\.25$/u);
   });
 
@@ -491,6 +498,42 @@ describe("buildReport", () => {
     ).toLowerCase();
     expect(haystack).not.toMatch(/\$|\/hr\b|per hour|\bcost\b|\bprice\b/u);
   });
+});
+
+describe("incomplete known-file input", () => {
+  test.each([
+    { workloadFamily: "text_generation", executionMode: "Inference" },
+    { workloadFamily: "custom", executionMode: "LoRA fine-tuning" },
+    { workloadFamily: "custom", executionMode: "QLoRA fine-tuning" },
+    { workloadFamily: "custom", executionMode: "Full training" },
+  ] as const)(
+    "refuses a known-file fit without parameters for $workloadFamily $executionMode",
+    ({ workloadFamily, executionMode }) => {
+      const report = buildReport(
+        state({
+          workloadFamily,
+          executionMode,
+          totalParams: "0",
+          knownModelFileSizeGb: "17",
+        }),
+      );
+
+      expect(report.recommendedHardware.recommendedTier).toBe(
+        "No model loaded",
+      );
+      expect(report.recommendedHardware.fitHeadroom).toBe("n/a");
+      expect(report.minimumRawVramNeeded).toBe("0.0 GB");
+      expect(report.statChips[3]).toEqual({ label: "Headroom", value: "–" });
+      expect(report.warnings).toContain(
+        "Total Model Parameters is required to size architecture-dependent memory. No hardware fit is reported.",
+      );
+      expect(report.assumptions).toContainEqual({
+        label:
+          "Model weight memory is taken from the provided known file size, but Total Model Parameters is required to size architecture-dependent memory.",
+        value: "",
+      });
+    },
+  );
 });
 
 describe("headline stat chips", () => {

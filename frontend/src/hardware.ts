@@ -109,7 +109,6 @@ const TIER_EXAMPLES = {
   16: [
     card("RTX 4080", "rtx4080"),
     card("RX 7800 XT", "rx7800Xt"),
-    card("RTX 5000 Ada", "rtx5000Ada"),
     card("Mac mini M4 16 GB", "macMiniSpecs"),
     card("Cloud TPU v5e", "tpuV5e"),
   ],
@@ -123,6 +122,7 @@ const TIER_EXAMPLES = {
   ],
   32: [
     card("RTX 5090", "rtx5090"),
+    card("RTX 5000 Ada", "rtx5000Ada"),
     card("Radeon PRO W7800", "w7800"),
     card("AWS Inferentia2", "inf2"),
     card("Cloud TPU v6e", "tpuV6e"),

@@ -1983,7 +1983,7 @@ describe("adaptive controls", () => {
     loadDom();
     mountCalculator(document);
     fireChange("execution-mode", "Full training");
-    expect(out("total")).toBe("152.9 GB");
+    expect(out("total")).toBe("170.4 GB");
 
     const gradient = field("gradient-checkpointing");
     if (!(gradient instanceof HTMLInputElement)) {
@@ -1992,8 +1992,8 @@ describe("adaptive controls", () => {
     gradient.checked = false;
     gradient.dispatchEvent(new Event("change", { bubbles: true }));
 
-    expect(out("total")).toBe("166.0 GB");
-    expect(out("min-cap")).toBe("207.5 GB");
+    expect(out("total")).toBe("183.5 GB");
+    expect(out("min-cap")).toBe("229.4 GB");
   });
 
   test("offers all KV precision choices and applies 32-bit KV cache estimates", () => {

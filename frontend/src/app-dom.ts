@@ -42,10 +42,7 @@ export function clearUrlState(): void {
 @param element
 */
 function selectEntry(element: HTMLSelectElement): [string, string] | null {
-  if (element.disabled) {
-    return null;
-  }
-  return [element.name, element.value];
+  return element.disabled ? null : [element.name, element.value];
 }
 
 /**
@@ -68,10 +65,7 @@ function controlEntry(element: Element): [string, string] | null {
   if (element instanceof HTMLSelectElement) {
     return selectEntry(element);
   }
-  if (element instanceof HTMLInputElement) {
-    return inputEntry(element);
-  }
-  return null;
+  return element instanceof HTMLInputElement ? inputEntry(element) : null;
 }
 
 /**

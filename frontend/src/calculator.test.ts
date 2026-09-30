@@ -301,8 +301,8 @@ describe("training estimates", () => {
   test("7B QLoRA training default uses a 2k context", () => {
     const qloraState = defaultState("QLoRA fine-tuning");
     const { requiredGb } = memoryBreakdown(specFromState(qloraState));
-    expect(requiredGb).toBeGreaterThan(12.5);
-    expect(requiredGb).toBeLessThan(12.7);
+    expect(requiredGb).toBeGreaterThan(12.7);
+    expect(requiredGb).toBeLessThan(12.9);
   });
 
   test.each<[string, Partial<FormState>, number]>([
@@ -313,12 +313,12 @@ describe("training estimates", () => {
         executionMode: "QLoRA fine-tuning",
         loraTrainablePercent: "2",
       },
-      21.1,
+      21.9,
     ],
     [
       "7B full training includes weights, states, activations, overhead, and buffer",
       { executionMode: "Full training" },
-      152.9,
+      170.4,
     ],
     [
       "tiny FP8 full training uses checkpointed activations without a special case",
@@ -337,7 +337,7 @@ describe("training estimates", () => {
         precision: "4-bit",
         executionMode: "QLoRA fine-tuning",
       },
-      19.3,
+      19.5,
     ],
     [
       "70B default QLoRA scales adapter state and activations",
@@ -346,7 +346,7 @@ describe("training estimates", () => {
         precision: "4-bit",
         executionMode: "QLoRA fine-tuning",
       },
-      99.9,
+      101.7,
     ],
     [
       "3.8B default QLoRA uses the <=4B architecture bucket",
@@ -355,7 +355,7 @@ describe("training estimates", () => {
         precision: "4-bit",
         executionMode: "QLoRA fine-tuning",
       },
-      13.2,
+      13.3,
     ],
     [
       "70B 2% QLoRA replaces legacy trained/use_adapter query flags",
@@ -365,7 +365,7 @@ describe("training estimates", () => {
         executionMode: "QLoRA fine-tuning",
         loraTrainablePercent: "2",
       },
-      115.7,
+      122.7,
     ],
   ])("%s", (scenario, overrides, expected) => {
     expect(required(overrides), scenario).toBe(expected);
@@ -401,7 +401,7 @@ describe("training estimates", () => {
         loraTrainablePercent: "1",
       }),
     );
-    expect(trainingStateGb(lora)).toBeCloseTo(0.42);
+    expect(trainingStateGb(lora)).toBeCloseTo(0.7);
     expect(trainingActivationGb(lora)).toBeGreaterThan(0);
     expect(weightsGb(lora)).toBe(14);
   });
@@ -409,19 +409,19 @@ describe("training estimates", () => {
   test("paged 8-bit AdamW and Adafactor size adapter state by their bytes", () => {
     // Paging only relocates the quantized state, so it sizes like 8-bit Adam
     // (2 bytes); Adafactor's factored state approximates to 1 byte/param.
-    // Adapter parameters: 7B x 1% = 0.07B; state = adapter x (2 + 2 + bytes).
-    expect(loraAdapterStateGb("Paged 8-bit AdamW")).toBeCloseTo(0.42);
-    expect(loraAdapterStateGb("Adafactor")).toBeCloseTo(0.35);
+    // PEFT's default fp32 adapters and gradients add eight bytes per adapter.
+    expect(loraAdapterStateGb("Paged 8-bit AdamW")).toBeCloseTo(0.7);
+    expect(loraAdapterStateGb("Adafactor")).toBeCloseTo(0.63);
   });
 
   test("full-training state scales with each optimizer's bytes per parameter", () => {
-    // Full training: 7B x (4 gradient + 2 master + optimizer bytes).
-    expect(fullTrainingStateGb("Paged 8-bit AdamW")).toBeCloseTo(56);
-    expect(fullTrainingStateGb("Adafactor")).toBeCloseTo(49);
+    // Full training: 7B x (4 fp32 master + 4 fp32 gradient + optimizer bytes).
+    expect(fullTrainingStateGb("Paged 8-bit AdamW")).toBeCloseTo(70);
+    expect(fullTrainingStateGb("Adafactor")).toBeCloseTo(63);
     // Regression: the existing optimizer mappings stay unchanged.
-    expect(fullTrainingStateGb("AdamW")).toBeCloseTo(98);
-    expect(fullTrainingStateGb("8-bit Adam")).toBeCloseTo(56);
-    expect(fullTrainingStateGb("SGD-like")).toBeCloseTo(70);
+    expect(fullTrainingStateGb("AdamW")).toBeCloseTo(112);
+    expect(fullTrainingStateGb("8-bit Adam")).toBeCloseTo(70);
+    expect(fullTrainingStateGb("SGD-like")).toBeCloseTo(84);
   });
 
   test("known model file size overrides QLoRA base weight estimate", () => {
@@ -434,7 +434,7 @@ describe("training estimates", () => {
     );
 
     expect(weightsGb(spec)).toBe(6);
-    expect(memoryBreakdown(spec).requiredGb).toBe(21);
+    expect(memoryBreakdown(spec).requiredGb).toBeCloseTo(21.2, 6);
   });
 
   /**
@@ -846,7 +846,7 @@ describe("training estimates", () => {
     expect(trainingActivationGb(uncheckpointed)).toBeGreaterThan(
       trainingActivationGb(checkpointed),
     );
-    expect(trainingStateGb(uncheckpointed)).toBe(70);
+    expect(trainingStateGb(uncheckpointed)).toBe(84);
   });
 });
 
@@ -1071,7 +1071,7 @@ describe("workload-family working memory", () => {
     // Accelerate reports model-loading and Adam peak figures separately. Keep
     // this as a component oracle rather than comparing unlike total estimates.
     expect(weightsGb(inference)).toBeCloseTo(0.218, 9);
-    expect(trainingStateGb(training)).toBeCloseTo(1.526, 9);
+    expect(trainingStateGb(training)).toBeCloseTo(1.744, 9);
     expect(trainingStateGb(training)).toBeGreaterThan(weightsGb(inference));
   });
 
@@ -1219,7 +1219,7 @@ describe("workload-family working memory", () => {
     expect(memoryBreakdown(spec).requiredGb.toFixed(1)).toBe("18.9");
   });
 
-  test("vision-language pixel fallback keeps image count in KV only", () => {
+  test("vision-language pixel fallback scales activation for every image", () => {
     const base = specFromState(state({ workloadFamily: "vision_language" }));
     const counted = specFromState(
       state({ workloadFamily: "vision_language", imageCount: "3" }),
@@ -1232,9 +1232,12 @@ describe("workload-family working memory", () => {
 
     expect(counted.visionArchitecture).toBeNull();
     expect(countedWorking.kvCacheGb).toBeCloseTo(2.134900736, 9);
-    expect(countedWorking.inputActivationGb).toBeCloseTo(
-      baseWorking.inputActivationGb,
-      9,
+    expect(countedWorking.inputActivationGb).toBeCloseTo(0.701326592, 9);
+    expect(
+      countedWorking.inputActivationGb - baseWorking.inputActivationGb,
+    ).toBeCloseTo(0.134217728, 9);
+    expect(memoryBreakdown(counted).requiredGb).toBeGreaterThan(
+      memoryBreakdown(base).requiredGb,
     );
   });
 
@@ -1511,12 +1514,21 @@ describe("hybrid attention memory model", () => {
     ).toBeLessThan(standard);
   });
 
-  test("per-type layer counts clamp to the model depth", () => {
-    const { attention } = specFromState(
-      state({ layers: "93", mlaLayers: "200", kdaLayers: "500" }),
+  test("conflicting hybrid layer counts fall back to conventional attention", () => {
+    const overflow = {
+      ...KIMI_SHAPE,
+      kvHeads: "8",
+      mlaLayers: "80",
+      kdaLayers: "80",
+      attentionType: "hybrid-kda-mla",
+    } satisfies Partial<FormState>;
+    const { attention } = specFromState(state(overflow));
+
+    expect(attention.mlaLayers).toBe(0);
+    expect(attention.kdaLayers).toBe(0);
+    expect(kvCacheGb(overflow)).toBe(
+      kvCacheGb({ ...overflow, attentionType: "standard" }),
     );
-    expect(attention.mlaLayers).toBe(93);
-    expect(attention.kdaLayers).toBe(93);
   });
 
   test("blank MLA latent widths fall back to DeepSeek-scale defaults", () => {

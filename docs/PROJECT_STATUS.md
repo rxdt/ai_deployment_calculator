@@ -11,6 +11,13 @@ Short, current handoff. Deleted lines are the point — keep only what's useful 
 
 ## Latest change (2026-07-21)
 
+- Dependency refresh (2026-10-06): pnpm 12.9.1 and current Node support are
+  pinned; workspace packages and the lockfile are refreshed. Dependabot paths
+  now resolve to patched releases, including `basic-ftp@6.2.2`.
+- `extract-zip`, `braces`, and `sprintf-js` remain upstream no-fix,
+  development-only tooling exceptions recorded in `pnpm-workspace.yaml`.
+  Frozen install, audit, preflight, and the full gate pass.
+
 - Advanced assumptions start collapsed; every advanced field remains visible
   after opening and only inapplicable controls are greyed and disabled. The resident
   fraction defaults to `1.0`, KV precision no longer stretches vertically, and

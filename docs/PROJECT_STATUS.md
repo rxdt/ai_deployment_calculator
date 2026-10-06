@@ -17,6 +17,8 @@ Short, current handoff. Deleted lines are the point — keep only what's useful 
 - `extract-zip`, `braces`, and `sprintf-js` remain upstream no-fix,
   development-only tooling exceptions recorded in `pnpm-workspace.yaml`.
   Frozen install, audit, preflight, and the full gate pass.
+- Package manifests and the lockfile are protected owner-review paths in this
+  agent session, so those verified edits intentionally remain unstaged.
 
 - Advanced assumptions start collapsed; every advanced field remains visible
   after opening and only inapplicable controls are greyed and disabled. The resident

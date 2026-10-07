@@ -49,7 +49,7 @@ export default defineConfig([
       js.configs.recommended,
       ...tseslint.configs.strictTypeChecked,
       ...tseslint.configs.all, // Every TypeScript-ESLint rule; explicit overrides below keep the local policy readable
-      unicorn.configs["flat/all"],
+      unicorn.configs.all,
       sonarjs.configs.recommended,
       security.configs.recommended,
       importX.configs["flat/recommended"],
@@ -67,6 +67,7 @@ export default defineConfig([
       },
     },
     settings: {
+      node: { version: ">=24.0.4" },
       // Resolve TS/JS imports (extensionless and .ts) via the node resolver.
       "import-x/resolver": {
         node: { extensions: [".ts", ".js", ".json"] },
@@ -309,8 +310,38 @@ export default defineConfig([
       // naming-convention rule. The rule still catches every other unclear abbreviation.
       "unicorn/name-replacements": [
         "error",
-        { replacements: { args: false, pkg: false } },
+        {
+          replacements: {
+            args: false,
+            gateRepo: false,
+            humanRepo: false,
+            linkRepo: false,
+            loopRepo: false,
+            makeInstallRepo: false,
+            makePackageRootsRepo: false,
+            makeRepo: false,
+            notRepo: false,
+            pkg: false,
+            preflightRepo: false,
+            readHarnessPackageJsonInRepo: false,
+            readPackageJsonInRepo: false,
+            readRepo: false,
+            repo: false,
+            repoRoot: false,
+            runnerRepo: false,
+            seenGateRepo: false,
+            seenPreflightRepo: false,
+            seenRepo: false,
+          },
+        },
       ],
+      // Newer Unicorn releases add style-only rules that would rewrite legacy code without
+      // changing behavior. Keep the previous source policy while retaining the all preset.
+      "unicorn/no-manually-wrapped-comments": "off",
+      "unicorn/no-unnecessary-array-flat-map": "off",
+      "unicorn/prefer-continue": "off",
+      "unicorn/prefer-default-parameters": "off",
+      "unicorn/prefer-ternary": "off",
       // Temporal is not available on our ES2023 target (no polyfill shipped); re-enable when the
       // runtime/lib provides it.
       "unicorn/prefer-temporal": "off",
@@ -336,8 +367,13 @@ export default defineConfig([
       "no-only-tests/no-only-tests": "error",
 
       "unicorn/max-nested-calls": "off",
+      "unicorn/no-unnecessary-parameters": "off",
       "unicorn/no-unsafe-dom-html": "off",
+      "unicorn/prefer-combined-guards": "off",
       "unicorn/prefer-dom-node-html-methods": "off",
+      "unicorn/prefer-early-return": "off",
+      "unicorn/prefer-logical-operator-over-ternary": "off",
+      "unicorn/prefer-single-object-destructuring": "off",
       "sonarjs/no-floating-point-equality": "error",
       "no-control-regex": "error",
       "security/detect-unsafe-regex": "error",
@@ -356,6 +392,7 @@ export default defineConfig([
     files: configTypeScriptFiles,
     rules: {
       "no-console": "off",
+      "unicorn/no-top-level-side-effects": "off",
     },
   },
   {

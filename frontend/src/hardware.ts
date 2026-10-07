@@ -58,10 +58,12 @@ export const GPU_LINKS = {
   b200: "https://www.nvidia.com/en-us/data-center/dgx-b200/",
 } as const;
 
-const card = (name: string, link: keyof typeof GPU_LINKS): GpuCard => ({
-  name,
-  url: GPU_LINKS[link],
-});
+const card = (name: string, link: keyof typeof GPU_LINKS): GpuCard => {
+  return {
+    name,
+    url: GPU_LINKS[link],
+  };
+};
 
 const nameOnly = (name: string): GpuCard => ({ name });
 
@@ -70,28 +72,29 @@ const hardwareTier = (
   label: string,
   examples: readonly GpuCard[],
   bandwidthGbps: number,
-): HardwareTier => ({
-  vramGb,
-  label,
-  examples,
-  bandwidthGbps,
-  requiresSharding: false,
-});
+): HardwareTier => {
+  return {
+    vramGb,
+    label,
+    examples,
+    bandwidthGbps,
+    requiresSharding: false,
+  };
+};
 
-const shardedTier = (
-  gpuCount: number,
-  bandwidthGbps: number,
-): HardwareTier => ({
-  vramGb: gpuCount * 80,
-  label: `${(gpuCount * 80).toString()} GB sharded datacenter class`,
-  examples: [
-    {
-      name: `${gpuCount.toString()}x 80 GB GPUs with tensor/model parallelism`,
-    },
-  ],
-  bandwidthGbps,
-  requiresSharding: true,
-});
+const shardedTier = (gpuCount: number, bandwidthGbps: number): HardwareTier => {
+  return {
+    vramGb: gpuCount * 80,
+    label: `${(gpuCount * 80).toString()} GB sharded datacenter class`,
+    examples: [
+      {
+        name: `${gpuCount.toString()}x 80 GB GPUs with tensor/model parallelism`,
+      },
+    ],
+    bandwidthGbps,
+    requiresSharding: true,
+  };
+};
 
 const TOP_TIER = shardedTier(4, 8156);
 
@@ -106,7 +109,6 @@ const TIER_EXAMPLES = {
   16: [
     card("RTX 4080", "rtx4080"),
     card("RX 7800 XT", "rx7800Xt"),
-    card("RTX 5000 Ada", "rtx5000Ada"),
     card("Mac mini M4 16 GB", "macMiniSpecs"),
     card("Cloud TPU v5e", "tpuV5e"),
   ],
@@ -120,6 +122,7 @@ const TIER_EXAMPLES = {
   ],
   32: [
     card("RTX 5090", "rtx5090"),
+    card("RTX 5000 Ada", "rtx5000Ada"),
     card("Radeon PRO W7800", "w7800"),
     card("AWS Inferentia2", "inf2"),
     card("Cloud TPU v6e", "tpuV6e"),

@@ -27,20 +27,16 @@ Assert the retired confidence output is absent without targeting unlisted select
 @param page Browser page.
 */
 async function expectNoConfidenceOutput(page: Page): Promise<void> {
-  const outputNames = await page
-    .locator("[data-out]")
-    .evaluateAll((nodes) =>
-      nodes.map((node) =>
-        node instanceof HTMLElement ? node.dataset.out : null,
-      ),
+  const outputNames = await page.locator("[data-out]").evaluateAll((nodes) => {
+    return nodes.map((node) =>
+      node instanceof HTMLElement ? node.dataset.out : null,
     );
-  const slotNames = await page
-    .locator("[data-slot]")
-    .evaluateAll((nodes) =>
-      nodes.map((node) =>
-        node instanceof HTMLElement ? node.dataset.slot : null,
-      ),
+  });
+  const slotNames = await page.locator("[data-slot]").evaluateAll((nodes) => {
+    return nodes.map((node) =>
+      node instanceof HTMLElement ? node.dataset.slot : null,
     );
+  });
 
   expect(outputNames).not.toContain("confidence");
   expect(slotNames).not.toContain("confidence-label");
@@ -480,8 +476,8 @@ test("marks expandable detail panels with a token chevron, not a button", async 
     borderBottomStyle: string;
     borderBottomWidth: string;
     transform: string;
-  }> =>
-    summary.evaluate((node) => {
+  }> => {
+    return summary.evaluate((node) => {
       const style = getComputedStyle(node, "::after");
       return {
         content: style.content,
@@ -490,6 +486,7 @@ test("marks expandable detail panels with a token chevron, not a button", async 
         transform: style.transform,
       };
     });
+  };
 
   const closed = await readChevron();
   expect(closed.borderBottomStyle).toBe("solid");

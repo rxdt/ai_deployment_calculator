@@ -13,7 +13,8 @@
         "cli.ts",
         "*.config.{js,cjs,mjs,ts}",
         "*.test.ts",
-        "lighthouserc.cjs"
+        "lighthouse-runner.mjs",
+        "workflow-lint.mjs"
       ],
       "project": ["*.ts", "*.{js,cjs,mjs}"]
     }

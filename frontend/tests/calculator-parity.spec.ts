@@ -22,14 +22,14 @@ async function expectReportRowsContaining(
 ): Promise<void> {
   const values = await page
     .locator(`[data-out="${slot}"] li`)
-    .evaluateAll((items) =>
-      items.map((item) => {
+    .evaluateAll((items) => {
+      return items.map((item) => {
         const [labelNode, valueNode] = item.children;
         const label = labelNode?.textContent ?? "";
         const value = valueNode?.textContent ?? "";
         return [label, value] as const;
-      }),
-    );
+      });
+    });
   for (const row of rows) {
     expect(values).toContainEqual(row);
   }
@@ -40,20 +40,16 @@ Assert the retired confidence output is absent without targeting unlisted select
 @param page Browser page.
 */
 async function expectNoConfidenceOutput(page: Page): Promise<void> {
-  const outputNames = await page
-    .locator("[data-out]")
-    .evaluateAll((nodes) =>
-      nodes.map((node) =>
-        node instanceof HTMLElement ? node.dataset.out : null,
-      ),
+  const outputNames = await page.locator("[data-out]").evaluateAll((nodes) => {
+    return nodes.map((node) =>
+      node instanceof HTMLElement ? node.dataset.out : null,
     );
-  const slotNames = await page
-    .locator("[data-slot]")
-    .evaluateAll((nodes) =>
-      nodes.map((node) =>
-        node instanceof HTMLElement ? node.dataset.slot : null,
-      ),
+  });
+  const slotNames = await page.locator("[data-slot]").evaluateAll((nodes) => {
+    return nodes.map((node) =>
+      node instanceof HTMLElement ? node.dataset.slot : null,
     );
+  });
 
   expect(outputNames).not.toContain("confidence");
   expect(slotNames).not.toContain("confidence-label");
@@ -99,31 +95,32 @@ const CANONICAL_BROWSER_CASES = [
       ["#execution-mode", "QLoRA fine-tuning", "select"],
       ["#lora-trainable-percent", "2", "fill"],
     ],
-    total: "21.1 GB",
+    total: "21.9 GB",
     gpuClass: "32 GB hardware tier",
-    minimumRawVram: "26.4 GB",
+    minimumRawVram: "27.4 GB",
     calculationRows: [
       ["Model weights", "4.6 GB"],
       ["Activation memory", "6.3 GB"],
-      ["Training state", "2.0 GB"],
+      ["Training state", "2.6 GB"],
       ["Runtime overhead", "4.0 GB"],
-      ["Safety buffer", "4.3 GB"],
-      ["Total required", "21.1 GB"],
+      ["Safety buffer", "4.4 GB"],
+      ["Total required", "21.9 GB"],
     ],
   },
   {
     name: "7B full training includes training state and activations",
     controls: [["#execution-mode", "Full training", "select"]],
-    total: "152.9 GB",
-    gpuClass: "192 GB hardware tier",
-    minimumRawVram: "191.2 GB",
+    total: "170.4 GB",
+    gpuClass:
+      "No single-accelerator fit. Enable memory sharding to split the model across a 320 GB sharded datacenter class (4x 80 GB GPUs with tensor/model parallelism), the smallest standard pool that covers this estimate. Slower alternative: offload part of the model to CPU memory.",
+    minimumRawVram: "213.0 GB",
     calculationRows: [
       ["Model weights", "14.0 GB"],
       ["Activation memory", "6.3 GB"],
-      ["Training state", "98.0 GB"],
+      ["Training state", "112.0 GB"],
       ["Runtime overhead", "4.0 GB"],
-      ["Safety buffer", "30.6 GB"],
-      ["Total required", "152.9 GB"],
+      ["Safety buffer", "34.1 GB"],
+      ["Total required", "170.4 GB"],
     ],
   },
   {

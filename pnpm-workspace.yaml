@@ -1,19 +1,17 @@
 allowBuilds:
+  '@scarf/scarf': true
   esbuild: true
-  "@scarf/scarf": false
-  unrs-resolver: false
-
+  pnpm: true
+  unrs-resolver: true
 packages:
-  - "frontend"
-  - "harness"
-
-# Force patched versions of vulnerable dev/transitive deps flagged by the audit + osv checks.
-# All are pulled in by tooling (lhci, ajv-cli, telemetry), not shipped to consumers.
+  - frontend
+  - harness
 overrides:
-  tmp: ">=0.2.6"
-  uuid: ">=11.1.1"
+  "brace-expansion@1": ">=1.1.21 <2"
+  "brace-expansion@2": ">=2.1.7 <3"
+  "brace-expansion@3": ">=3.0.9 <4"
+  "brace-expansion@5": ">=5.0.12 <6"
   fast-json-patch: ">=3.1.1"
-  "@opentelemetry/core": ">=2.8.0"
-  # Miasma RAT supply-chain attack (2026-07-14): 6.11.2 / 6.11.2-alpha.1 are
-  # malicious credential stealers. Pin the last safe release (issue #5).
-  "@asyncapi/specs": "6.11.1"
+  fast-uri: ">=3.1.8 <4"
+  "js-yaml@3": ">=3.15.2 <4"
+  "js-yaml@4": ">=4.3.2 <5"

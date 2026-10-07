@@ -89,13 +89,14 @@ const SCRIPT_SCHEME = ["java", "script:"].join("");
 @param element
 */
 function javascriptUrlAttributes(element: HtmlElement): string[] {
-  return URL_ATTRIBUTES.filter(
-    (name) =>
+  return URL_ATTRIBUTES.filter((name) => {
+    return (
       attribute(element, name)
         ?.trim()
         .toLowerCase()
-        .startsWith(SCRIPT_SCHEME) === true,
-  );
+        .startsWith(SCRIPT_SCHEME) === true
+    );
+  });
 }
 
 /**
@@ -171,12 +172,14 @@ describe("built site enforces the CSP end to end", () => {
     pages = readdirSync(outDirectory, { recursive: true })
       .map(String)
       .filter((file) => file.endsWith(".html"))
-      .map((name) => ({
-        name,
-        root: parser.parseHtml(
-          readFileSync(path.join(outDirectory, name), "utf8"),
-        ),
-      }));
+      .map((name) => {
+        return {
+          name,
+          root: parser.parseHtml(
+            readFileSync(path.join(outDirectory, name), "utf8"),
+          ),
+        };
+      });
   }, 60_000);
 
   afterAll(() => {
@@ -218,13 +221,11 @@ describe("built site enforces the CSP end to end", () => {
 
   test("no page contains inline event-handler attributes (on*=)", () => {
     for (const { name, root } of pages) {
-      const offenders = root
-        .querySelectorAll("*")
-        .flatMap((element) =>
-          eventHandlerAttributes(element).map(
-            (key) => `${element.tagName}[${key}]`,
-          ),
+      const offenders = root.querySelectorAll("*").flatMap((element) => {
+        return eventHandlerAttributes(element).map(
+          (key) => `${element.tagName}[${key}]`,
         );
+      });
       expect(
         offenders,
         `${name} has inline event handlers: ${offenders.join(", ")}`,
@@ -234,13 +235,11 @@ describe("built site enforces the CSP end to end", () => {
 
   test("no page contains javascript: URLs", () => {
     for (const { name, root } of pages) {
-      const offenders = root
-        .querySelectorAll("*")
-        .flatMap((element) =>
-          javascriptUrlAttributes(element).map(
-            (key) => `${element.tagName}[${key}]`,
-          ),
+      const offenders = root.querySelectorAll("*").flatMap((element) => {
+        return javascriptUrlAttributes(element).map(
+          (key) => `${element.tagName}[${key}]`,
         );
+      });
       expect(
         offenders,
         `${name} has javascript: URLs: ${offenders.join(", ")}`,

@@ -11,7 +11,10 @@ import {
   speedLabel,
   speedTierFor,
 } from "./hardware";
-import { assumptionRows } from "./report-assumptions";
+import {
+  assumptionRows,
+  requiresArchitectureParameters,
+} from "./report-assumptions";
 import { fitMeter, type FitMeter } from "./result-format";
 import type {
   DisplayRow,
@@ -59,6 +62,9 @@ const PARALLELISM_STRATEGIES: readonly ParallelismStrategy[] = [
   },
 ];
 
+const MISSING_ARCHITECTURE_PARAMETERS_WARNING =
+  "Total Model Parameters is required to size architecture-dependent memory. No hardware fit is reported.";
+
 // The per-mode formula terms, mirroring the real composition (memoryBreakdown):
 // the buffer multiplies the whole subtotal, runtime overhead is included, and
 // training modes carry no KV cache. The "Formula used" prose and the numbers
@@ -75,10 +81,12 @@ interface FormulaTerm {
   readonly omitWhenZero?: true;
 }
 
-const weightsTerm = (name: string): FormulaTerm => ({
-  name,
-  value: (breakdown) => breakdown.weightsGb,
-});
+const weightsTerm = (name: string): FormulaTerm => {
+  return {
+    name,
+    value: (breakdown) => breakdown.weightsGb,
+  };
+};
 const kvCacheTerm: FormulaTerm = {
   name: "KV cache",
   value: (breakdown) => breakdown.kvCacheGb,
@@ -88,10 +96,12 @@ const activationsTerm: FormulaTerm = {
   name: "activations",
   value: (breakdown) => breakdown.inputActivationGb,
 };
-const trainingTerm = (name: string): FormulaTerm => ({
-  name,
-  value: (breakdown) => breakdown.trainingStateGb,
-});
+const trainingTerm = (name: string): FormulaTerm => {
+  return {
+    name,
+    value: (breakdown) => breakdown.trainingStateGb,
+  };
+};
 const overheadTerm: FormulaTerm = {
   name: "runtime overhead",
   value: (breakdown) => breakdown.runtimeOverheadGb,
@@ -221,10 +231,7 @@ function headroomValue(meter: FitMeter | null): string {
   if (meter === null) {
     return "–";
   }
-  if (meter.isOverflow) {
-    return "N/A";
-  }
-  return `${(100 - meter.fillPercent).toString()}%`;
+  return meter.isOverflow ? "N/A" : `${(100 - meter.fillPercent).toString()}%`;
 }
 
 /**
@@ -278,14 +285,18 @@ export function buildReport(state: Readonly<FormState>): ReportPayload {
   const { requiredGb: required } = breakdown;
   const { utilization } = spec.runtime;
   const canShard = state.memoryShardingEnabled;
-  const recommendation = hardwareRecommendation(required, utilization, {
+  const requiresParameters = requiresArchitectureParameters(state, spec);
+  const fitRequired = requiresParameters ? 0 : required;
+  const recommendation = hardwareRecommendation(fitRequired, utilization, {
     allowSharding: canShard,
   });
-  const minimumRaw = minimumRawVramGb(required, utilization);
+  const minimumRaw = minimumRawVramGb(fitRequired, utilization);
   const tier = hardware(minimumRaw, { allowSharding: canShard });
   const speedTier = speedTierFor(tier);
   const requiresMultiGpu = speedTier.requiresSharding;
-  const warnings: string[] = [];
+  const warnings = requiresParameters
+    ? [MISSING_ARCHITECTURE_PARAMETERS_WARNING]
+    : [];
   // The tier catalog is shared across runtime profiles, so a big Local / Edge
   // deployment can land on a datacenter class (H200/B200). Say what that means
   // locally instead of letting it read as a hardware-store suggestion. 96 GB

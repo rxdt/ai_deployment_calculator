@@ -7,6 +7,26 @@ const BYTES_PER_GB = 1_000_000_000;
 // per-head conv state holds this many token slots regardless of context length.
 const KDA_CONV_KERNEL = 4;
 
+const hybridLayerCounts = (
+  spec: Readonly<CalculationSpec>,
+): Readonly<{ mlaLayers: number; kdaLayers: number }> => {
+  const mlaLayers = Math.min(
+    Math.max(spec.attention.mlaLayers, 0),
+    spec.architecture.layers,
+  );
+  const kdaLayers = Math.min(
+    Math.max(spec.attention.kdaLayers, 0),
+    spec.architecture.layers,
+  );
+  if (mlaLayers + kdaLayers > spec.architecture.layers) {
+    return { mlaLayers: 0, kdaLayers: 0 };
+  }
+  return {
+    mlaLayers,
+    kdaLayers,
+  };
+};
+
 // Elements cached per token, summed over every layer that keeps a growing
 // per-token cache. A standard (grouped-query) layer stores separate K and V for
 // each KV head; an MLA layer stores only its compressed KV latent plus the RoPE
@@ -15,16 +35,20 @@ const KDA_CONV_KERNEL = 4;
 // a conventional cache so the split never silently drops layers.
 const tokenCachedElements = (spec: Readonly<CalculationSpec>): number => {
   const arch = spec.architecture;
-  const { type, mlaLayers, kdaLayers, kvLoraRank, ropeHeadDim } =
-    spec.attention;
+  const { type, kvLoraRank, ropeHeadDim } = spec.attention;
+  const hybrid = hybridLayerCounts(spec);
   const standardPerLayer = 2 * arch.kvHeads * arch.headDim;
   const mlaPerLayer = kvLoraRank + ropeHeadDim;
-  const remainder = Math.max(0, arch.layers - mlaLayers - kdaLayers);
+  const remainder = Math.max(
+    0,
+    arch.layers - hybrid.mlaLayers - hybrid.kdaLayers,
+  );
   const byType: Record<AttentionType, number> = {
     standard: arch.layers * standardPerLayer,
     mla: arch.layers * mlaPerLayer,
     kda: 0,
-    "hybrid-kda-mla": mlaLayers * mlaPerLayer + remainder * standardPerLayer,
+    "hybrid-kda-mla":
+      hybrid.mlaLayers * mlaPerLayer + remainder * standardPerLayer,
   };
   return byType[type];
 };
@@ -36,7 +60,7 @@ const recurrentStateLayers = (spec: Readonly<CalculationSpec>): number => {
     standard: 0,
     mla: 0,
     kda: spec.architecture.layers,
-    "hybrid-kda-mla": spec.attention.kdaLayers,
+    "hybrid-kda-mla": hybridLayerCounts(spec).kdaLayers,
   };
   return byType[spec.attention.type];
 };

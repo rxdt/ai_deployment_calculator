@@ -67,11 +67,12 @@ function videoPatchTokens(state: Readonly<FormState>): number {
 
 type TrainingTokenBuilder = (state: Readonly<FormState>) => number;
 
-const imageTokenCount: TrainingTokenBuilder = (state): number =>
-  imageTokens(
+const imageTokenCount: TrainingTokenBuilder = (state): number => {
+  return imageTokens(
     nonNegativeField(state.imageWidth, 1024),
     nonNegativeField(state.imageHeight, 1024),
   );
+};
 
 const TRAINING_TOKEN_BUILDERS: ReadonlyMap<
   WorkloadFamily,
@@ -83,31 +84,43 @@ const TRAINING_TOKEN_BUILDERS: ReadonlyMap<
   ],
   [
     "encoder_decoder",
-    (state): number =>
-      nonNegativeField(state.inputTokens, 1024) +
-      nonNegativeField(state.outputTokens, 256),
+    (state): number => {
+      return (
+        nonNegativeField(state.inputTokens, 1024) +
+        nonNegativeField(state.outputTokens, 256)
+      );
+    },
   ],
   ["vision", imageTokenCount],
   [
     "vision_language",
-    (state): number =>
-      nonNegativeField(state.textContextTokens, 4000) +
-      nonNegativeField(state.imageCount, 1) * (imageTokenCount(state) - 1),
+    (state): number => {
+      return (
+        nonNegativeField(state.textContextTokens, 4000) +
+        nonNegativeField(state.imageCount, 1) * (imageTokenCount(state) - 1)
+      );
+    },
   ],
   ["image_diffusion", imageTokenCount],
   ["video_generation", videoPatchTokens],
   [
     "audio",
-    (state): number =>
-      nonNegativeField(state.audioSeconds, 30) *
-      DEFAULT_AUDIO_TOKENS_PER_SECOND,
+    (state): number => {
+      return (
+        nonNegativeField(state.audioSeconds, 30) *
+        DEFAULT_AUDIO_TOKENS_PER_SECOND
+      );
+    },
   ],
   [
     "tabular",
-    (state): number =>
-      nonNegativeField(state.rowsPerBatch, 10_000) *
-      nonNegativeField(state.features, 100) *
-      0.01,
+    (state): number => {
+      return (
+        nonNegativeField(state.rowsPerBatch, 10_000) *
+        nonNegativeField(state.features, 100) *
+        0.01
+      );
+    },
   ],
   [
     "custom",

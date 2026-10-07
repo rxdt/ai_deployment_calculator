@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { specFromState, weightsGb } from "../calculator-core";
+import { specFromState, trainingStateGb, weightsGb } from "../calculator-core";
 import { buildReport } from "../report";
 import { defaultState, normalizedState, searchFromState } from "../state";
 import type {
@@ -27,22 +27,21 @@ interface PublishedTrainingByteAnchor {
 }
 
 // Canonical mixed-precision full-training memory PER PARAMETER — the published
-// training-anatomy decomposition (HuggingFace "Model training anatomy",
-// DeepSpeed/ZeRO, and the same "AdamW ~16 B/param" figure cited in specs/qa.md
-// triage). Each anchor is the sum of the resident-weight row and the
-// training-state row (fp32 master + fp16 gradient + optimizer moments) and
+// training-anatomy decomposition (HuggingFace "Model training anatomy"). Each
+// anchor is the sum of the resident-weight row and the training-state row
+// (fp32 master + fp32 gradient + optimizer moments) and
 // EXCLUDES activations, runtime overhead, and the safety buffer. These
 // bytes/param constants come from OUTSIDE our engine, so pinning them catches
 // any drift in the optimizer/master/gradient byte widths absolutely, not by
 // ordering — under-counting here silently OOMs a real training run.
 const PUBLISHED_TRAINING_BYTE_ANCHORS: readonly PublishedTrainingByteAnchor[] =
   [
-    // 2 fp16 weights + 2 fp16 grad + 4 fp32 master + 4 Adam m + 4 Adam v.
-    { optimizer: "AdamW", bytesPerParam: 16, breakdown: "2+2+4+4+4" },
+    // 2 fp16 weights + 4 fp32 grad + 4 fp32 master + 4 Adam m + 4 Adam v.
+    { optimizer: "AdamW", bytesPerParam: 18, breakdown: "2+4+4+4+4" },
     // Adam moments quantized to 8-bit (1 byte each) instead of fp32.
-    { optimizer: "8-bit Adam", bytesPerParam: 10, breakdown: "2+2+4+1+1" },
+    { optimizer: "8-bit Adam", bytesPerParam: 12, breakdown: "2+4+4+1+1" },
     // One fp32 momentum buffer, no second moment.
-    { optimizer: "SGD-like", bytesPerParam: 12, breakdown: "2+2+4+4" },
+    { optimizer: "SGD-like", bytesPerParam: 14, breakdown: "2+4+4+4" },
   ];
 
 const PUBLISHED_WEIGHT_ANCHORS: readonly PublishedWeightAnchor[] = [
@@ -232,8 +231,8 @@ describe("adversarial oracle suite", () => {
       "Q4_K_M",
       "IQ2_XXS",
     ];
-    const rows = weightLadder.map((precision) =>
-      memoryBreakdown(
+    const rows = weightLadder.map((precision) => {
+      return memoryBreakdown(
         specFromState(
           state({
             workloadFamily: "text_generation",
@@ -244,8 +243,8 @@ describe("adversarial oracle suite", () => {
             workloadSize: "4",
           }),
         ),
-      ),
-    );
+      );
+    });
 
     // KV and activation are byte-identical across every weight tier.
     expect(new Set(rows.map((row) => row.kvCacheGb)).size).toBe(1);
@@ -299,7 +298,7 @@ describe("adversarial oracle suite", () => {
 
     expect(qlora).toBeLessThan(lora);
     expect(lora).toBeLessThan(full);
-    expect(full).toBeGreaterThan(8 * 16);
+    expect(full).toBeGreaterThan(8 * 18);
   });
 
   test.each(PUBLISHED_TRAINING_BYTE_ANCHORS)(
@@ -308,8 +307,8 @@ describe("adversarial oracle suite", () => {
       const parameters = 8;
       const build = (
         overrides: Partial<FormState>,
-      ): ReturnType<typeof memoryBreakdown> =>
-        memoryBreakdown(
+      ): ReturnType<typeof memoryBreakdown> => {
+        return memoryBreakdown(
           specFromState(
             state({
               workloadFamily: "text_generation",
@@ -321,6 +320,7 @@ describe("adversarial oracle suite", () => {
             }),
           ),
         );
+      };
 
       // Resident weights + full training state equal the published bytes/param
       // anchor EXACTLY — under-counting OOMs the run, over-counting misreports.
@@ -347,6 +347,29 @@ describe("adversarial oracle suite", () => {
     },
   );
 
+  test.each(["LoRA fine-tuning", "QLoRA fine-tuning"] as const)(
+    "uses PEFT's fp32 adapter-state anchor for %s",
+    (executionMode) => {
+      // PEFT promotes trainable adapters to fp32. Their AdamW state is fp32
+      // weights + fp32 gradients + two fp32 moments: 16 B/adapter parameter.
+      const parameters = 8;
+      const trainablePercent = 2;
+      const spec = specFromState(
+        state({
+          executionMode,
+          optimizer: "AdamW",
+          totalParams: String(parameters),
+          loraTrainablePercent: String(trainablePercent),
+        }),
+      );
+
+      expect(trainingStateGb(spec)).toBeCloseTo(
+        parameters * (trainablePercent / 100) * 16,
+        9,
+      );
+    },
+  );
+
   test.each(TRAINING_MODES)(
     "does not let persistent decoder KV cache leak into %s",
     (executionMode) => {
@@ -369,8 +392,8 @@ describe("adversarial oracle suite", () => {
           }),
         ),
       );
-      const trainingRows = KV_PRECISIONS.map((kvCachePrecision) =>
-        memoryBreakdown(
+      const trainingRows = KV_PRECISIONS.map((kvCachePrecision) => {
+        return memoryBreakdown(
           specFromState(
             state({
               ...base,
@@ -378,8 +401,8 @@ describe("adversarial oracle suite", () => {
               kvCachePrecision,
             }),
           ),
-        ),
-      );
+        );
+      });
       const [firstTrainingRow] = trainingRows;
       if (firstTrainingRow === undefined) {
         throw new Error("Missing training memory row");

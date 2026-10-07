@@ -61,7 +61,6 @@ const KV_PRECISION_BY_ASCENDING_BYTES: readonly KvPrecision[] = [
 ];
 
 /**
-
 @param overrides
 */
 function requiredGb(overrides: Partial<FormState>): number {
@@ -70,7 +69,6 @@ function requiredGb(overrides: Partial<FormState>): number {
 }
 
 /**
-
 @param overrides
 */
 function weightMemoryGb(overrides: Partial<FormState>): number {
@@ -78,7 +76,6 @@ function weightMemoryGb(overrides: Partial<FormState>): number {
 }
 
 /**
-
 @param overrides
 */
 function kvCacheGb(overrides: Partial<FormState>): number {
@@ -207,13 +204,13 @@ describe("calculator properties", () => {
     // than a higher-bit one for the same model.
     fc.assert(
       fc.property(positiveParameterCount, (totalParameters) => {
-        const memories = PRECISION_BY_ASCENDING_WEIGHT.map((precision) =>
-          weightMemoryGb({
+        const memories = PRECISION_BY_ASCENDING_WEIGHT.map((precision) => {
+          return weightMemoryGb({
             workloadFamily: "text_generation",
             totalParams: totalParameters,
             precision,
-          }),
-        );
+          });
+        });
 
         // Strictly increasing == ascending order with no duplicates. Expressed via
         // whole-array comparison to avoid an unchecked index access
@@ -263,12 +260,13 @@ describe("calculator properties", () => {
     fc.assert(
       fc.property(positiveParameterCount, (totalParameters) => {
         const memories = KV_PRECISION_BY_ASCENDING_BYTES.map(
-          (kvCachePrecision) =>
-            requiredGb({
+          (kvCachePrecision) => {
+            return requiredGb({
               workloadFamily: "text_generation",
               totalParams: totalParameters,
               kvCachePrecision,
-            }),
+            });
+          },
         );
 
         // Non-decreasing == already in ascending order. Whole-array comparison avoids
@@ -287,12 +285,13 @@ describe("calculator properties", () => {
     fc.assert(
       fc.property(positiveParameterCount, (totalParameters) => {
         const memories = KV_PRECISION_BY_ASCENDING_BYTES.map(
-          (kvCachePrecision) =>
-            requiredGb({
+          (kvCachePrecision) => {
+            return requiredGb({
               workloadFamily: "text_encoder",
               totalParams: totalParameters,
               kvCachePrecision,
-            }),
+            });
+          },
         );
 
         expect(new Set(memories).size).toBe(1);
@@ -433,10 +432,10 @@ describe("calculator properties", () => {
     );
   });
 
-  test("full training reports a buffered four-part total, never the bare Total_Params_B * 16 shortcut", () => {
-    // Non-negotiable Research Correction: `Full_Training_GB = Total_Params_B * 16` is only a
+  test("full training reports a buffered four-part total, never the bare Total_Params_B * 18 shortcut", () => {
+    // Non-negotiable Research Correction: `Full_Training_GB = Total_Params_B * 18` is only a
     // rough parameter-state shortcut and "still misses activations, runtime overhead, and
-    // buffer". It is the one "Do Not Restore" formula lacking a generalized guard (the 152.9
+    // buffer". It is the one "Do Not Restore" formula lacking a generalized guard (the 170.4
     // canonical case pins a single 7B/16-bit point). Pin across every precision that full
     // training (a) carries each omitted term as a strictly positive component, (b) reports the
     // buffered sum of exactly those components, and therefore (c) strictly exceeds the shortcut.
@@ -477,7 +476,7 @@ describe("calculator properties", () => {
 
           // ...and therefore strictly above the bare parameter-state shortcut it must not restore.
           expect(breakdown.requiredGb).toBeGreaterThan(
-            Number(totalParameters) * 16,
+            Number(totalParameters) * 18,
           );
         },
       ),

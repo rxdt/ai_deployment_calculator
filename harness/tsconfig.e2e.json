@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "paths": {
+      "@axe-core/playwright": [
+        "./node_modules/@axe-core/playwright/dist/index.mjs"
+      ],
+      "@playwright/test": ["./node_modules/@playwright/test/index.mjs"]
+    }
+  }
+}

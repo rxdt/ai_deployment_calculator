@@ -34,6 +34,25 @@ function trainingNotes(state: Readonly<FormState>): string[] {
 }
 
 /**
+Whether a known weight file lacks the parameter count needed to size the
+architecture-dependent terms in a hardware fit.
+@param state - normalized form state
+@param spec - the derived calculation spec
+@returns whether the report must refuse a hardware fit
+*/
+export function requiresArchitectureParameters(
+  state: Readonly<FormState>,
+  spec: Readonly<CalculationSpec>,
+): boolean {
+  return (
+    spec.knownModelFileSizeGb !== null &&
+    spec.knownModelFileSizeGb > 0 &&
+    spec.totalParamsB === 0 &&
+    !(state.workloadFamily === "custom" && state.executionMode === "Inference")
+  );
+}
+
+/**
 Build the "Assumptions used" notes: short plain-language statements of the
 methodology behind the estimate: the fixed overhead, reserve, and precision
 choices a reader cannot infer from their own inputs. Values the user typed
@@ -74,7 +93,9 @@ export function assumptionRows(
   }
   if (spec.knownModelFileSizeGb !== null && spec.knownModelFileSizeGb > 0) {
     notes.push(
-      "Model weight memory taken from the provided known file size, not the parameter estimate.",
+      requiresArchitectureParameters(state, spec)
+        ? "Model weight memory is taken from the provided known file size, but Total Model Parameters is required to size architecture-dependent memory."
+        : "Model weight memory taken from the provided known file size, not the parameter estimate.",
     );
   }
   return notes.map((note) => ({ label: note, value: "" }));

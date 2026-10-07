@@ -13,6 +13,13 @@ const coverageDir = `coverage/${process.pid}`;
 // do not weaken them.
 export default defineConfig({
   root: repoRoot,
+  resolve: {
+    alias: {
+      "fast-check": fileURLToPath(
+        new URL("./node_modules/fast-check", import.meta.url),
+      ),
+    },
+  },
   test: {
     // Default to node; only the frontend DOM suite needs jsdom (it opts in per-file). Booting jsdom
     // everywhere cost seconds for no benefit.
@@ -43,6 +50,7 @@ export default defineConfig({
         "**/node_modules/**",
         "**/.pnpm-store/**",
         "**/dist/**",
+        "harness/*.config.ts",
         "**/*.test.ts",
         "**/*.spec.ts",
         "**/tests/**",

@@ -173,6 +173,9 @@
   /* GitHub chip metrics from the design: 7px icon gap, 11px inline padding. */
   --space-nav-gap: 0.4375rem;
   --space-nav-pad: 0.6875rem;
+
+  /* Info-tip bubbles float above adjacent fields when hovered or focused. */
+  --z-tooltip: 10;
 }
 
 /* Self-hosted variable fonts (latin subset) so the DC's IBM Plex Sans + JetBrains
@@ -579,6 +582,7 @@ summary,
    row (adaptive per-family controls come and go) keeps the same width as a
    paired one instead of stretching across the whole card. */
 .field {
+  position: relative;
   min-width: 0;
   flex: 0 1 var(--layout-half);
   display: grid;
@@ -619,9 +623,26 @@ summary,
   letter-spacing: normal;
 }
 
-/* An inline "info" affordance beside an Advanced-assumption label: a small
-   circled i whose plain-English bubble appears on hover and on keyboard focus,
-   so mouse, touch (focus fires on tap), and screen-reader users all reach it. */
+/* One grid row holding a field's caption and its info tip side by side, so the
+   tip sits right after the label text instead of overlapping it or forming its
+   own stretched grid row. Checkbox rows keep the caption left-aligned; captioned
+   fields centre it over the control column. */
+.field-head {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  min-width: 0;
+}
+
+.field--check .field-head {
+  justify-content: flex-start;
+}
+
+/* An "info" affordance for an Advanced-assumption field: a small circled i whose
+   plain-English bubble appears on hover and on keyboard focus, so mouse, touch
+   (focus fires on tap), and screen-reader users all reach it. Positioned so its
+   bubble anchors to the tip. */
 .field-tip {
   position: relative;
   display: inline-flex;
@@ -629,10 +650,12 @@ summary,
 
 .field-tip-btn {
   display: inline-flex;
+  flex: 0 0 auto;
   align-items: center;
   justify-content: center;
-  width: var(--font-status);
-  height: var(--font-status);
+  width: var(--font-body);
+  height: var(--font-body);
+  min-height: 0;
   padding: 0;
   border: var(--layout-border) solid var(--color-border-strong);
   border-radius: var(--radius-round);
@@ -656,12 +679,11 @@ summary,
 .field-tip-bubble {
   position: absolute;
   bottom: calc(100% + var(--space-xs));
-  left: 50%;
+  inset-inline-end: 0;
   z-index: var(--z-tooltip);
   width: max-content;
   max-width: var(--layout-intro-max);
   padding: var(--space-xs) var(--space-sm);
-  transform: translateX(-50%);
   border: var(--layout-border) solid var(--color-border-strong);
   border-radius: var(--radius-sm);
   background: var(--color-surface);

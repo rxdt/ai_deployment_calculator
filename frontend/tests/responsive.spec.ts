@@ -768,25 +768,25 @@ test("checkboxes render selected checks and empty unchecked indicators", async (
     'label:has(#memory-sharding-enabled) [data-slot="checkbox-indicator"]',
   );
   await expect
-    .poll(async () =>
-      gradientState.evaluate(
+    .poll(async () => {
+      return gradientState.evaluate(
         (node) => getComputedStyle(node, "::before").content,
-      ),
-    )
+      );
+    })
     .toContain("\u{2713}");
   await page.getByLabel("Gradient Checkpointing", { exact: true }).uncheck();
   await expect
-    .poll(async () =>
-      gradientState.evaluate(
+    .poll(async () => {
+      return gradientState.evaluate(
         (node) => getComputedStyle(node, "::before").content,
-      ),
-    )
+      );
+    })
     .toBe('""');
   await expect
-    .poll(async () =>
-      shardingState.evaluate(
+    .poll(async () => {
+      return shardingState.evaluate(
         (node) => getComputedStyle(node, "::before").content,
-      ),
-    )
+      );
+    })
     .toBe('""');
 });

@@ -25,7 +25,6 @@
   "words": [
     "apxml",
     "asmirnov",
-    "autorun",
     "ckpt",
     "crawlable",
     "fixpoint",
@@ -36,9 +35,6 @@
     "safetensors",
     "SDXL",
     "undeployed",
-    "lhci",
-    "lighthouseci",
-    "lighthouserc",
     "ancestordirectories",
     "describedby",
     "behaviour",

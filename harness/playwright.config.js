@@ -4,6 +4,7 @@ import { defineConfig, devices } from "@playwright/test";
 // this harness-owned config drives the frontend app via the dev server below.
 export default defineConfig({
   testDir: "../frontend/tests",
+  tsconfig: "./tsconfig.e2e.json",
   // Cap concurrent browser workers so one e2e run cannot saturate all cores.
   // Without this, Playwright defaults to CPU-count workers (~10 here) and, with
   // multiple loop agents each running `pnpm gate`, pegs the machine and freezes

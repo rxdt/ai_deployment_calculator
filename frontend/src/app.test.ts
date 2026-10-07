@@ -290,10 +290,12 @@ function isRowInapplicable(name: string): boolean {
 @returns one entry per rendered chip, in DOM order
 */
 function statChipCards(): { label: string; value: string }[] {
-  return [...outSlot("stat-chips").children].map((card) => ({
-    label: card.firstElementChild?.textContent ?? "",
-    value: card.lastElementChild?.textContent ?? "",
-  }));
+  return [...outSlot("stat-chips").children].map((card) => {
+    return {
+      label: card.firstElementChild?.textContent ?? "",
+      value: card.lastElementChild?.textContent ?? "",
+    };
+  });
 }
 
 // The hero picks its example card pseudo-randomly from the render clock; pin
@@ -341,11 +343,12 @@ function allElements(root: Document | Element): Element[] {
 */
 function structuredData(parsed: Document): Record<string, unknown>[] {
   return allElements(parsed.head)
-    .filter(
-      (element): element is HTMLScriptElement =>
+    .filter((element): element is HTMLScriptElement => {
+      return (
         element instanceof HTMLScriptElement &&
-        element.type === "application/ld+json",
-    )
+        element.type === "application/ld+json"
+      );
+    })
     .map((script): unknown => JSON.parse(script.textContent))
     .filter(isRecord);
 }
@@ -362,11 +365,12 @@ function metaContent(
   attribute: "name" | "property",
   value: string,
 ): string | null {
-  const meta = allElements(head).find(
-    (entry): entry is HTMLMetaElement =>
+  const meta = allElements(head).find((entry): entry is HTMLMetaElement => {
+    return (
       entry instanceof HTMLMetaElement &&
-      entry.getAttribute(attribute) === value,
-  );
+      entry.getAttribute(attribute) === value
+    );
+  });
   return meta?.content ?? null;
 }
 
@@ -390,9 +394,12 @@ function canonicalHref(head: HTMLHeadElement): string | null {
 */
 function referenceTable(parsed: Document): HTMLTableElement {
   const table = allElements(parsed.body).find(
-    (entry): entry is HTMLTableElement =>
-      entry instanceof HTMLTableElement &&
-      entry.dataset.slot === "vram-reference-table",
+    (entry): entry is HTMLTableElement => {
+      return (
+        entry instanceof HTMLTableElement &&
+        entry.dataset.slot === "vram-reference-table"
+      );
+    },
   );
   if (table === undefined) {
     throw new TypeError("Missing crawlable VRAM reference table");
@@ -514,14 +521,13 @@ describe("static SEO metadata", () => {
         throw new TypeError("Reference row must name a model size");
       }
       const totalParameters = model.replace("B", "");
-      const expected = REFERENCE_PRECISIONS.map(
-        (precision) =>
-          buildReport({
-            ...defaultState(),
-            totalParams: totalParameters,
-            precision,
-          }).totalRequiredMemory,
-      );
+      const expected = REFERENCE_PRECISIONS.map((precision) => {
+        return buildReport({
+          ...defaultState(),
+          totalParams: totalParameters,
+          precision,
+        }).totalRequiredMemory;
+      });
 
       expect(values).toEqual(expected);
     }
@@ -1023,7 +1029,11 @@ describe("mounted calculator", () => {
     loadDom();
     mountCalculator(document);
 
-    const accordions = [...document.querySelectorAll("details")];
+    // Every accordion carries a data-slot, so the allowlisted slot query plus
+    // an element-type filter reaches all of them without a tag selector.
+    const accordions = [...document.querySelectorAll("[data-slot]")].filter(
+      (node) => node instanceof HTMLDetailsElement,
+    );
     expect(accordions.length).toBeGreaterThan(0);
     for (const accordion of accordions) {
       expect(accordion.open).toBe(false);
@@ -1060,16 +1070,14 @@ describe("assumption tooltips", () => {
     loadDom();
     mountCalculator(document);
 
-    const knownTip = document.querySelector<HTMLElement>(
-      "#known-model-file-size-gb-tip",
-    );
-    const residentTip = document.querySelector<HTMLElement>(
-      "#gpu-resident-fraction-tip",
-    );
-    expect(knownTip?.textContent.trim().replaceAll(/\s+/gu, " ")).toBe(
+    // Each tip bubble carries both an id (for aria-describedby) and a matching
+    // data-slot, so the tests reach it through the allowlisted slot query.
+    const knownTip = dataSlot("known-model-file-size-gb-tip");
+    const residentTip = dataSlot("gpu-resident-fraction-tip");
+    expect(knownTip.textContent.trim().replaceAll(/\s+/gu, " ")).toBe(
       "On-disk weight size in GB. Overrides the parameter-based weight estimate when set.",
     );
-    expect(residentTip?.textContent.trim().replaceAll(/\s+/gu, " ")).toBe(
+    expect(residentTip.textContent.trim().replaceAll(/\s+/gu, " ")).toBe(
       "Fraction (0–1, not a percentage) of the known file kept in VRAM. Only applies when Known Model File Size is set.",
     );
     expect(
@@ -1078,7 +1086,15 @@ describe("assumption tooltips", () => {
     expect(
       field("gpu-resident-fraction").getAttribute("aria-describedby"),
     ).toBe("gpu-resident-fraction-tip");
-    expect(document.querySelectorAll(".field-tip-btn")).toHaveLength(2);
+    // Naming the tips rather than counting them: the MoE tip is a separate
+    // feature sharing the suffix, so a bare count silently tracks it too.
+    expect(
+      dataSlotNames().filter((name) => name.endsWith("-tip")),
+    ).toStrictEqual([
+      "moe-tip",
+      "known-model-file-size-gb-tip",
+      "gpu-resident-fraction-tip",
+    ]);
   });
 });
 
@@ -1967,7 +1983,7 @@ describe("adaptive controls", () => {
     loadDom();
     mountCalculator(document);
     fireChange("execution-mode", "Full training");
-    expect(out("total")).toBe("152.9 GB");
+    expect(out("total")).toBe("170.4 GB");
 
     const gradient = field("gradient-checkpointing");
     if (!(gradient instanceof HTMLInputElement)) {
@@ -1976,8 +1992,8 @@ describe("adaptive controls", () => {
     gradient.checked = false;
     gradient.dispatchEvent(new Event("change", { bubbles: true }));
 
-    expect(out("total")).toBe("166.0 GB");
-    expect(out("min-cap")).toBe("207.5 GB");
+    expect(out("total")).toBe("183.5 GB");
+    expect(out("min-cap")).toBe("229.4 GB");
   });
 
   test("offers all KV precision choices and applies 32-bit KV cache estimates", () => {

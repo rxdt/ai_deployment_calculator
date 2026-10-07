@@ -1,11 +1,7 @@
 {
   "name": "ai-deployment-calculator-frontend",
-  "version": "0.0.0",
   "private": true,
   "type": "module",
-  "engines": {
-    "node": ">=22"
-  },
   "scripts": {
     "build": "vite build --config ../harness/vite.config.ts",
     "dev": "vite --config ../harness/vite.config.ts --host 127.0.0.1",
@@ -20,25 +16,5 @@
   },
   "dependencies": {
     "zod": "latest"
-  },
-  "devDependencies": {
-    "@axe-core/playwright": "latest",
-    "@playwright/test": "latest",
-    "fast-check": "latest",
-    "jsdom": "latest",
-    "vite": "latest",
-    "vitest": "latest"
-  },
-  "size-limit": [
-    {
-      "name": "main JS",
-      "path": "dist/assets/*.js",
-      "limit": "17 kB"
-    },
-    {
-      "name": "CSS",
-      "path": "dist/assets/*.css",
-      "limit": "13 kB"
-    }
-  ]
+  }
 }

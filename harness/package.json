@@ -6,10 +6,6 @@
   "bin": {
     "harness": "./harness.mjs"
   },
-  "engines": {
-    "node": "^22.22.0 || >=24.8.0",
-    "pnpm": ">=10"
-  },
   "scripts": {
     "gate": "node harness.mjs gate",
     "harness": "node harness.mjs",
@@ -35,7 +31,7 @@
     "workflow": "cd .. && spectral lint .github/workflows/ci.yml --ruleset harness/.spectral.yml --fail-severity=warn",
     "sast": "cd .. && semgrep scan --config=p/typescript --config=p/javascript --config=p/security-audit --error --metrics=off",
     "secrets": "cd .. && secretlint \"**/*\" --secretlintrc harness/.secretlintrc.json",
-    "audit": "cd .. && pnpm --dir frontend audit --audit-level high",
+    "audit": "cd .. && pnpm audit --audit-level high",
     "build": "cd .. && pnpm --dir frontend run build",
     "coverage": "cd .. && vitest run --config harness/vitest.config.js --cache --coverage",
     "e2e": "cd .. && playwright test --config harness/playwright.config.js",
@@ -88,9 +84,21 @@
     "stylelint-media-use-custom-media": "latest",
     "stylelint-plugin-defensive-css": "latest",
     "tsx": "latest",
-    "typescript": "~6.0.3",
+    "typescript": "latest",
     "typescript-eslint": "latest",
     "vite": "latest",
     "vitest": "latest"
-  }
+  },
+  "size-limit": [
+    {
+      "name": "main JS",
+      "path": "dist/assets/*.js",
+      "limit": "17 kB"
+    },
+    {
+      "name": "CSS",
+      "path": "dist/assets/*.css",
+      "limit": "13 kB"
+    }
+  ]
 }

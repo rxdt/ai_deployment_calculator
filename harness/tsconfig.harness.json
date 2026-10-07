@@ -4,6 +4,10 @@
     "lib": ["ESNext", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "moduleResolution": "bundler",
+    "paths": {
+      "@axe-core/playwright": ["./node_modules/@axe-core/playwright"],
+      "@playwright/test": ["./node_modules/@playwright/test"]
+    },
     "allowImportingTsExtensions": true,
     "noEmit": true,
     "skipLibCheck": true,

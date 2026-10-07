@@ -342,9 +342,9 @@ const REQUIRED_INSTALLED_GATE_TOOLS: readonly {
     commandFragment: harnessTool("eslint"),
   },
   {
-    dependency: "stylelint",
+    dependency: "@biomejs/biome",
     check: "style",
-    commandFragment: harnessTool("stylelint"),
+    commandFragment: harnessTool("biome"),
   },
   {
     dependency: "html-validate",
@@ -387,9 +387,9 @@ const REQUIRED_INSTALLED_GATE_TOOLS: readonly {
     commandFragment: harnessTool("cspell"),
   },
   {
-    dependency: "@stoplight/spectral-cli",
+    dependency: "yaml",
     check: "workflow",
-    commandFragment: harnessTool("spectral"),
+    commandFragment: "harness/workflow-lint.mjs",
   },
   {
     dependency: "secretlint",
@@ -422,11 +422,10 @@ const REQUIRED_INSTALLED_GATE_TOOLS: readonly {
     commandFragment: "harness/playwright.config.js",
   },
   {
-    dependency: "@lhci/cli",
+    dependency: "lighthouse",
     check: "lighthouse",
-    commandFragment: harnessTool("lhci"),
+    commandFragment: "harness/lighthouse-runner.mjs",
   },
-  { dependency: "lighthouse", check: "lighthouse" },
 ];
 
 const REQUIRED_CHECK_POLICIES: readonly {
@@ -456,15 +455,7 @@ const REQUIRED_CHECK_POLICIES: readonly {
   },
   {
     check: "style",
-    fragments: [
-      harnessTool("stylelint"),
-      "frontend/**/*.css",
-      "harness/stylelint.config.js",
-      "--ignore-path",
-      "harness/.stylelintignore",
-      "--max-warnings=0",
-      "--allow-empty-input",
-    ],
+    fragments: [harnessTool("biome"), "lint", "frontend/public/styles"],
   },
   {
     check: "html",
@@ -522,10 +513,9 @@ const REQUIRED_CHECK_POLICIES: readonly {
   {
     check: "workflow",
     fragments: [
-      harnessTool("spectral"),
+      "node",
+      "harness/workflow-lint.mjs",
       ".github/workflows/ci.yml",
-      "harness/.spectral.yml",
-      "--fail-severity=warn",
     ],
   },
   {
@@ -549,7 +539,7 @@ const REQUIRED_CHECK_POLICIES: readonly {
   },
   {
     check: "audit",
-    fragments: ["pnpm", "--dir", "frontend", "audit", "--audit-level", "high"],
+    fragments: ["pnpm", "audit", "--audit-level", "high"],
   },
   // Disabled with the osv check (see FULL_CHECKS in gate-data.ts):
   // {
@@ -585,7 +575,7 @@ const REQUIRED_CHECK_POLICIES: readonly {
   },
   {
     check: "lighthouse",
-    fragments: [harnessTool("lhci"), "autorun", "harness/lighthouserc.cjs"],
+    fragments: ["node", "harness/lighthouse-runner.mjs"],
   },
 ];
 
@@ -969,6 +959,7 @@ describe("gate constants", () => {
         "harness/package.json",
         "harness/eslint.config.js",
         "harness/tsconfig.app.json",
+        "harness/tsconfig.e2e.json",
         "tsconfig.cruise.json",
       ]),
     );
@@ -1032,28 +1023,24 @@ describe("gate constants", () => {
       "harness/.htmlvalidate.json",
       "harness/.prettierignore",
       "harness/.secretlintrc.json",
-      "harness/.spectral.yml",
       "harness/cspell.json",
       "harness/eslint.config.js",
       "harness/knip.json",
-      "harness/lighthouserc.cjs",
+      "harness/lighthouse-runner.mjs",
       "harness/playwright.config.js",
-      "harness/stylelint.config.js",
+      "harness/tsconfig.e2e.json",
       "harness/vitest.config.js",
+      "harness/workflow-lint.mjs",
     ];
     expect(
       configPaths.every((target) => existsSync(path.join(REPO, target))),
     ).toBe(true);
   });
 
-  test("stylelint ignores generated css at any repo depth", () => {
-    const configText = readRepo("harness/stylelint.config.js");
-    expect(configText).toContain('"../**/coverage/**"');
-    expect(configText).toContain('"../**/dist/**"');
-    expect(configText).toContain('"../**/build/**"');
-    expect(configText).toContain('"../**/.next/**"');
-    expect(configText).toContain('"../**/node_modules/**"');
-    expect(configText).toContain('"../**/scratchpad/**"');
+  test("CSS lint targets authored styles only", () => {
+    const command = checkCommand(FULL_CHECKS, "style");
+    expect(command).toContain("frontend/public/styles");
+    expect(command).not.toContain("frontend/dist");
   });
 
   test("typecheck gate uses harness-owned app tsconfig only", () => {
@@ -1063,6 +1050,7 @@ describe("gate constants", () => {
     expect(command).not.toContain("frontend/tsconfig.json");
     expect(FORBIDDEN_FILES.has("frontend/tsconfig.json")).toBe(true);
     expect(FORBIDDEN_FILES.has("harness/tsconfig.app.json")).toBe(true);
+    expect(FORBIDDEN_FILES.has("harness/tsconfig.e2e.json")).toBe(true);
     expect(FORBIDDEN_FILES.has("tsconfig.cruise.json")).toBe(true);
   });
 
@@ -2102,6 +2090,7 @@ describe("frontend gate shape", () => {
       "pnpm-lock.yaml",
       "frontend/package.json",
       "harness/tsconfig.app.json",
+      "harness/tsconfig.e2e.json",
       "tsconfig.cruise.json",
     ]) {
       expect(existsSync(path.join(REPO, target)), target).toBe(true);
@@ -2150,10 +2139,10 @@ describe("frontend gate shape", () => {
       "harness/playwright.config.js",
     );
     expect(commandText(checkCommand(chosen, "lighthouse"))).toContain(
-      "harness/lighthouserc.cjs",
+      "harness/lighthouse-runner.mjs",
     );
     expect(commandText(checkCommand(chosen, "audit"))).toBe(
-      "pnpm --dir frontend audit --audit-level high",
+      "pnpm audit --audit-level high",
     );
     expect(commandText(checkCommand(chosen, "sast"))).toContain(
       "semgrep scan --config=p/typescript --config=p/javascript --config=p/security-audit --error --metrics=off",
@@ -2184,13 +2173,8 @@ describe("frontend gate shape", () => {
     },
     {
       check: "style",
-      tool: "stylelint",
-      required: [
-        "frontend/**/*.css",
-        "--config harness/stylelint.config.js",
-        "--max-warnings=0",
-        "--allow-empty-input",
-      ],
+      tool: "biome",
+      required: ["lint", "frontend/public/styles"],
     },
     {
       check: "html",
@@ -2229,13 +2213,8 @@ describe("frontend gate shape", () => {
     },
     {
       check: "workflow",
-      tool: "spectral",
-      required: [
-        "lint",
-        ".github/workflows/ci.yml",
-        "--ruleset harness/.spectral.yml",
-        "--fail-severity=warn",
-      ],
+      tool: "node",
+      required: ["harness/workflow-lint.mjs", ".github/workflows/ci.yml"],
     },
     {
       check: "secrets",
@@ -2271,7 +2250,7 @@ describe("frontend gate shape", () => {
       "nsTypes",
     ]);
     // knip maps each pnpm workspace so imports resolve to the right package.json; the harness
-    // workspace names cli.ts, its configs, tests, and the lighthouse config as entrypoints.
+    // workspace names cli.ts, its configs, tests, and the lighthouse runner as entrypoints.
     // The frontend workspace names its unit tests as entrypoints so knip does not report
     // test-only exports (or the test files themselves) as unused.
     expect(config.workspaces).toEqual({
@@ -2284,7 +2263,8 @@ describe("frontend gate shape", () => {
           "cli.ts",
           "*.config.{js,cjs,mjs,ts}",
           "*.test.ts",
-          "lighthouserc.cjs",
+          "lighthouse-runner.mjs",
+          "workflow-lint.mjs",
         ],
         project: ["*.ts", "*.{js,cjs,mjs}"],
       },
@@ -2320,25 +2300,22 @@ describe("frontend gate shape", () => {
 
   test("harness package scripts use bounded repo file targets", () => {
     const scripts = readPackageScripts("harness/package.json");
-    // Harness npm scripts run via `pnpm run`, which puts the workspace node_modules/.bin on PATH,
-    // so tools are invoked by bare name (the pnpm-idiomatic form) — no hard-coded .bin path.
+    // Harness npm scripts run via `pnpm run`, which puts the workspace node_modules/.bin on PATH.
     expect(scripts.eslint).toBe(
       "cd .. && eslint . --config harness/eslint.config.js --cache --cache-location . --max-warnings=0",
     );
-    expect(scripts.style).toBe(
-      'cd .. && stylelint "frontend/**/*.css" --config harness/stylelint.config.js --ignore-path harness/.stylelintignore --max-warnings=0 --allow-empty-input',
-    );
+    expect(scripts.style).toBe("cd .. && biome lint frontend/public/styles");
     expect(scripts.html).toBe(
       'cd .. && html-validate --config harness/.htmlvalidate.json "**/*.html"',
     );
-    // typecheck is now a single command (the app-tsc check) so gate-data can
+    // typecheck is now a single command (the latest app-tsc check) so gate-data can
     // derive it; the chained harness+project alias moved to `pnpm lint`-style
     // convenience scripts (typecheck:harness / typecheck:project) kept below.
     expect(scripts.typecheck).toBe(
-      "cd .. && tsc -p harness/tsconfig.app.json --noEmit --incremental --tsBuildInfoFile .cache_tsbuildinfo_app",
+      "cd .. && node harness/node_modules/@typescript/native/bin/tsc -p harness/tsconfig.app.json --noEmit --incremental --tsBuildInfoFile .cache_tsbuildinfo_app",
     );
     expect(scripts["typecheck:project"]).toBe(
-      "cd .. && tsc -p harness/tsconfig.app.json --noEmit",
+      "cd .. && node harness/node_modules/@typescript/native/bin/tsc -p harness/tsconfig.app.json --noEmit",
     );
     expect(scripts["typecheck:frontend"]).toBe("pnpm typecheck:project");
     expect(scripts["typecheck:frontend"]).not.toContain(
@@ -2473,6 +2450,19 @@ describe("frontend gate shape", () => {
     );
   });
 
+  test("e2e tsconfig maps harness-owned ESM test packages", () => {
+    const config = parseJsonObject("harness/tsconfig.e2e.json") as {
+      compilerOptions?: { paths?: Record<string, unknown> };
+    };
+
+    expect(config.compilerOptions?.paths).toEqual({
+      "@axe-core/playwright": [
+        "./node_modules/@axe-core/playwright/dist/index.mjs",
+      ],
+      "@playwright/test": ["./node_modules/@playwright/test/index.mjs"],
+    });
+  });
+
   test("frontend keeps app scripts and delegates checks to harness", () => {
     const scripts = readPackageScripts("frontend/package.json");
     expect(Object.keys(scripts).toSorted((a, b) => a.localeCompare(b))).toEqual(
@@ -2489,7 +2479,9 @@ describe("frontend gate shape", () => {
         "typecheck",
       ],
     );
-    expect(scripts.build).toBe("vite build --config ../harness/vite.config.ts");
+    expect(scripts.build).toBe(
+      "pnpm --prefix ../harness exec vite build --config vite.config.ts",
+    );
     expect(scripts.dev).toContain("vite");
     expect(scripts.test).toBe("pnpm test:coverage");
     expect(scripts["test:coverage"]).toContain("../harness");

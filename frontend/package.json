@@ -3,14 +3,14 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "vite build --config ../harness/vite.config.ts",
-    "dev": "vite --config ../harness/vite.config.ts --host 127.0.0.1",
-    "preview": "vite preview --config ../harness/vite.config.ts --host 127.0.0.1",
+    "build": "pnpm --prefix ../harness exec vite build --config vite.config.ts",
+    "dev": "pnpm --prefix ../harness exec vite --config vite.config.ts --host 127.0.0.1",
+    "preview": "pnpm --prefix ../harness exec vite preview --config vite.config.ts --host 127.0.0.1",
     "lint": "pnpm --prefix ../harness run lint",
     "setup:e2e": "pnpm --prefix ../harness run setup:e2e",
     "test:file": "pnpm --prefix ../harness run test:file --",
     "test": "pnpm test:coverage",
-    "test:coverage": "vitest run --config ../harness/vitest.config.js --coverage --coverage.include=\"frontend/src/**/*.ts\" ../frontend/src/*.test.ts",
+    "test:coverage": "pnpm --prefix ../harness run coverage",
     "test:e2e": "pnpm --prefix ../harness run e2e",
     "typecheck": "pnpm --prefix ../harness run typecheck:frontend"
   },

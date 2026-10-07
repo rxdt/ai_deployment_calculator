@@ -4,6 +4,10 @@
     "lib": ["ES2023", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "moduleResolution": "Bundler",
+    "paths": {
+      "fast-check": ["./node_modules/fast-check"],
+      "vitest": ["./node_modules/vitest"]
+    },
     "types": ["vite/client"],
     "strict": true,
     "isolatedModules": true,
